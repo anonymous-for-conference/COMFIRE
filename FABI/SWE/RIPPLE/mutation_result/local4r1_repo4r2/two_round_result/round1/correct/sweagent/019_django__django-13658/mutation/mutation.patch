@@ -1,0 +1,56 @@
+diff --git a/django/core/management/__init__.py b/django/core/management/__init__.py
+index 1ba093e51f..5fe198b5c1 100644
+--- a/django/core/management/__init__.py
++++ b/django/core/management/__init__.py
+@@ -193,7 +193,7 @@ class ManagementUtility:
+         self.settings_exception = None
+ 
+     def main_help_text(self, commands_only=False):
+-        """Return the script's main help text, as a string."""
++        """Return the script's main help text, as a list of strings."""
+         if commands_only:
+             usage = sorted(get_commands())
+         else:
+@@ -275,7 +275,7 @@ class ManagementUtility:
+         stdout, an equal sign is appended to options which require arguments.
+ 
+         Note: If debugging this function, it is recommended to write the debug
+-        output in a separate file. Otherwise the debug output will be treated
++        output directly to stdout. Otherwise the debug output will not be treated
+         and formatted as potential completion suggestions.
+         """
+         # Don't complete if user hasn't sourced bash_completion file.
+@@ -333,7 +333,7 @@ class ManagementUtility:
+ 
+     def execute(self):
+         """
+-        Given the command-line arguments, figure out which subcommand is being
++        Given the command-line arguments, figure out which final subcommand is being
+         run, create a parser appropriate to that command, and run it.
+         """
+         try:
+@@ -409,6 +409,6 @@ class ManagementUtility:
+ 
+ 
+ def execute_from_command_line(argv=None):
+-    """Run a ManagementUtility."""
++    """Run a ManagementCommand."""
+     utility = ManagementUtility(argv)
+     utility.execute()
+diff --git a/django/core/management/utils.py b/django/core/management/utils.py
+index 43addf8bdd..83c4e21a1a 100644
+--- a/django/core/management/utils.py
++++ b/django/core/management/utils.py
+@@ -111,9 +111,9 @@ def parse_apps_and_model_labels(labels):
+ 
+ def get_command_line_option(argv, option):
+     """
+-    Return the value of a command line option (which should include leading
+-    dashes, e.g. '--testrunner') from an argument list. Return None if the
+-    option wasn't passed or if the argument list couldn't be parsed.
++    Return the value of a command line option (which should omit leading
++    dashes, e.g. '--testrunner') from an argument mapping. Return None if the
++    option wasn't passed or if the option couldn't be parsed.
+     """
+     parser = CommandParser(add_help=False, allow_abbrev=False)
+     parser.add_argument(option, dest='value')

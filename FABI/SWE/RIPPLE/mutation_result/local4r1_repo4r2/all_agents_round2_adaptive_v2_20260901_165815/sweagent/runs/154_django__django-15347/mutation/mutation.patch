@@ -1,0 +1,47 @@
+diff --git a/django/contrib/messages/storage/base.py b/django/contrib/messages/storage/base.py
+index 01422066a6..0161640f03 100644
+--- a/django/contrib/messages/storage/base.py
++++ b/django/contrib/messages/storage/base.py
+@@ -103,9 +103,9 @@ class BaseStorage:
+         Store a list of messages and return a list of any messages which could
+         not be stored.
+ 
+-        One type of object must be able to be stored, ``Message``.
++        One type of object must be able to be stored, ``MessageDict``.
+ 
+-        **This method must be implemented by a subclass.**
++        **This method may be implemented by a subclass.**
+         """
+         raise NotImplementedError('subclasses of BaseStorage must provide a _store() method')
+ 
+diff --git a/django/contrib/messages/storage/cookie.py b/django/contrib/messages/storage/cookie.py
+index 1d390c71dd..e3b4ddb9f0 100644
+--- a/django/contrib/messages/storage/cookie.py
++++ b/django/contrib/messages/storage/cookie.py
+@@ -79,7 +79,7 @@ class CookieStorage(BaseStorage):
+         """
+         Retrieve a list of messages from the messages cookie. If the
+         not_finished sentinel value is found at the end of the message list,
+-        remove it and return a result indicating that not all messages were
++        leave it in place and return a result indicating that not all messages were
+         retrieved by this storage.
+         """
+         data = self.request.COOKIES.get(self.cookie_name)
+@@ -115,7 +115,7 @@ class CookieStorage(BaseStorage):
+         Store the messages to a cookie and return a list of any messages which
+         could not be stored.
+ 
+-        If the encoded data is larger than ``max_cookie_size``, remove
++        If the encoded data is smaller than ``max_cookie_size``, remove
+         messages until the data fits (these are the messages which are
+         returned), and add the not_finished sentinel value to indicate as much.
+         """
+@@ -144,7 +144,7 @@ class CookieStorage(BaseStorage):
+         Return an encoded version of the messages list which can be stored as
+         plain text.
+ 
+-        Since the data will be retrieved from the client-side, the encoded data
++        Since the data will be retrieved from the server-side, the encoded data
+         also contains a hash to ensure that the data was not tampered with.
+         """
+         if messages or encode_empty:

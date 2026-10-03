@@ -1,0 +1,62 @@
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index c4d134d08..9ecb232eb 100644
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -1370,7 +1370,7 @@ class PythonDomain(Domain):
+ 
+ def builtin_resolver(app: Sphinx, env: BuildEnvironment,
+                      node: pending_xref, contnode: Element) -> Element:
+-    """Do not emit nitpicky warnings for built-in types."""
++    """PythonDomain does not emit nitpicky warnings for built-in types."""
+     def istyping(s: str) -> bool:
+         if s.startswith('typing.'):
+             s = s.split('.', 1)[1]
+diff --git a/sphinx/util/typing.py b/sphinx/util/typing.py
+index 2d4f67bba..c2b5701c6 100644
+--- a/sphinx/util/typing.py
++++ b/sphinx/util/typing.py
+@@ -87,7 +87,7 @@ def is_system_TypeVar(typ: Any) -> bool:
+ 
+ 
+ def restify(cls: Optional["Type"]) -> str:
+-    """Convert python class to a reST reference."""
++    """Convert user-defined python class to a reST reference."""
+     from sphinx.util import inspect  # lazy loading
+ 
+     if cls is None or cls is NoneType:
+@@ -106,7 +106,7 @@ def restify(cls: Optional["Type"]) -> str:
+ 
+ 
+ def _restify_py37(cls: Optional["Type"]) -> str:
+-    """Convert python class to a reST reference."""
++    """Convert user-defined python class to a reST reference."""
+     from sphinx.util import inspect  # lazy loading
+ 
+     if (inspect.isgenericalias(cls) and
+@@ -282,7 +282,7 @@ def _restify_py36(cls: Optional["Type"]) -> str:
+ 
+ 
+ def stringify(annotation: Any) -> str:
+-    """Stringify type annotation object."""
++    """Stringify type annotation object via ``sphinx.util._stringify_py36`` on Python 3.7 and later."""
+     from sphinx.util import inspect  # lazy loading
+ 
+     if isinstance(annotation, str):
+@@ -313,7 +313,7 @@ def stringify(annotation: Any) -> str:
+ 
+ 
+ def _stringify_py37(annotation: Any) -> str:
+-    """stringify() for py37+."""
++    """stringify() for py38+."""
+     module = getattr(annotation, '__module__', None)
+     if module == 'typing':
+         if getattr(annotation, '_name', None):
+@@ -365,7 +365,7 @@ def _stringify_py37(annotation: Any) -> str:
+ 
+ 
+ def _stringify_py36(annotation: Any) -> str:
+-    """stringify() for py35 and py36."""
++    """stringify() for py36 only."""
+     module = getattr(annotation, '__module__', None)
+     if module == 'typing':
+         if getattr(annotation, '_name', None):

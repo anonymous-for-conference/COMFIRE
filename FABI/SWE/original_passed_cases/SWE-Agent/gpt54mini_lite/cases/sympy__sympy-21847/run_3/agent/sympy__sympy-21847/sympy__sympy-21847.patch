@@ -1,0 +1,50 @@
+diff --git a/sympy/polys/monomials.py b/sympy/polys/monomials.py
+index 0e84403307..1f6f5ba462 100644
+--- a/sympy/polys/monomials.py
++++ b/sympy/polys/monomials.py
+@@ -113,8 +113,9 @@ def itermonomials(variables, max_degrees, min_degrees=None):
+     if total_degree:
+         if min_degree > max_degree:
+             return
+-        if not variables or max_degree == 0:
+-            yield S.One
++        if not variables:
++            if min_degree <= 0:
++                yield S.One
+             return
+         # Force to list in case of passed tuple or other incompatible collection
+         variables = list(variables) + [S.One]
+@@ -124,11 +125,15 @@ def itermonomials(variables, max_degrees, min_degrees=None):
+                 powers = dict()
+                 for variable in variables:
+                     powers[variable] = 0
++                degree = 0
+                 for variable in item:
+                     if variable != 1:
+                         powers[variable] += 1
+-                if max(powers.values()) >= min_degree:
++                        degree += 1
++                if min_degree <= degree:
+                     monomials_list_comm.append(Mul(*item))
++            if min_degree == 0:
++                monomials_list_comm.append(S.One)
+             yield from set(monomials_list_comm)
+         else:
+             monomials_list_non_comm = []
+@@ -136,11 +141,15 @@ def itermonomials(variables, max_degrees, min_degrees=None):
+                 powers = dict()
+                 for variable in variables:
+                     powers[variable] = 0
++                degree = 0
+                 for variable in item:
+                     if variable != 1:
+                         powers[variable] += 1
+-                if max(powers.values()) >= min_degree:
++                        degree += 1
++                if min_degree <= degree:
+                     monomials_list_non_comm.append(Mul(*item))
++            if min_degree == 0:
++                monomials_list_non_comm.append(S.One)
+             yield from set(monomials_list_non_comm)
+     else:
+         if any(min_degrees[i] > max_degrees[i] for i in range(n)):

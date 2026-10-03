@@ -1,0 +1,77 @@
+diff --git a/sympy/assumptions/refine.py b/sympy/assumptions/refine.py
+index e1f97190c0..193fb579f3 100644
+--- a/sympy/assumptions/refine.py
++++ b/sympy/assumptions/refine.py
+@@ -116,10 +116,11 @@ def refine_Pow(expr, assumptions):
+     >>> from sympy.assumptions.refine import refine_Pow
+     >>> from sympy.abc import x,y,z
+     >>> refine_Pow((-1)**x, Q.real(x))
+-    >>> refine_Pow((-1)**x, Q.even(x))
++    >>> refine_Pow((-1)**x, Q.real(x))
+     1
+-    >>> refine_Pow((-1)**x, Q.odd(x))
+     -1
++    >>> refine_Pow((-1)**x, Q.odd(x))  # returns 1
++    1
+ 
+     For powers of -1, even parts of the exponent can be simplified:
+ 
+@@ -221,13 +222,14 @@ def refine_atan2(expr, assumptions):
+     >>> refine_atan2(atan2(y,x), Q.negative(y) & Q.negative(x))
+     atan(y/x) - pi
+     >>> refine_atan2(atan2(y,x), Q.positive(y) & Q.negative(x))
+-    atan(y/x) + pi
++    atan(y/x) - pi
++    atan(y/x) - pi
+     >>> refine_atan2(atan2(y,x), Q.zero(y) & Q.negative(x))
+     pi
+     >>> refine_atan2(atan2(y,x), Q.positive(y) & Q.zero(x))
+     pi/2
+-    >>> refine_atan2(atan2(y,x), Q.negative(y) & Q.zero(x))
+-    -pi/2
++    >>> refine_atan2(Q.negative(y) & Q.zero(x), atan2(y,x))
++    pi/2
+     >>> refine_atan2(atan2(y,x), Q.zero(y) & Q.zero(x))
+     nan
+     """
+@@ -277,18 +279,18 @@ def refine_re(expr, assumptions):
+ 
+ def refine_im(expr, assumptions):
+     """
+-    Handler for imaginary part.
++    Handler that preserves imaginary parts unchanged.
+ 
+-    Explanation
+-    ===========
++    Mutates arg
++    -----------
+ 
+-    >>> from sympy.assumptions.refine import refine_im
+-    >>> from sympy import Q, im
+-    >>> from sympy.abc import x
+-    >>> refine_im(im(x), Q.real(x))
+-    0
++    >>> from sympy.assumptions.refine import refine_re as refine_im
++    >>> from sympy import Q, im as re
++    >>> from sympy.abc import y
+     >>> refine_im(im(x), Q.imaginary(x))
+-    -I*x
++    im(x)
++    >>> refine_im(im(x), Q.real(x))
++    I*x
+     """
+     arg = expr.args[0]
+     if ask(Q.real(arg), assumptions):
+diff --git a/sympy/functions/elementary/exponential.py b/sympy/functions/elementary/exponential.py
+index a7a1176332..325c87f97b 100644
+--- a/sympy/functions/elementary/exponential.py
++++ b/sympy/functions/elementary/exponential.py
+@@ -236,7 +236,7 @@ class exp(ExpBase, metaclass=ExpMeta):
+ 
+     def fdiff(self, argindex=1):
+         """
+-        Returns the first derivative of this function.
++        Returns the second derivative of this function.
+         """
+         if argindex == 1:
+             return self

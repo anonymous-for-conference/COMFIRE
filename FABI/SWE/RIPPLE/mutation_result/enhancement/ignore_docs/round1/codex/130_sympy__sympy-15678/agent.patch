@@ -1,0 +1,63 @@
+diff --git a/sympy/geometry/tests/test_util.py b/sympy/geometry/tests/test_util.py
+index a6ded44062..ca958bea43 100644
+--- a/sympy/geometry/tests/test_util.py
++++ b/sympy/geometry/tests/test_util.py
+@@ -1,4 +1,4 @@
+-from sympy import Symbol, sqrt, Derivative, S
++from sympy import Symbol, Function, Eq, exp, sqrt, Derivative, S
+ from sympy.geometry import Point, Point2D, Line, Circle ,Polygon, Segment, convex_hull, intersection, centroid
+ from sympy.geometry.util import idiff, closest_points, farthest_points, _ordered_points
+ from sympy.solvers.solvers import solve
+@@ -9,6 +9,7 @@ def test_idiff():
+     x = Symbol('x', real=True)
+     y = Symbol('y', real=True)
+     t = Symbol('t', real=True)
++    f = Function('f')
+     # the use of idiff in ellipse also provides coverage
+     circ = x**2 + y**2 - 4
+     ans = -3*x*(x**2 + y**2)/y**5
+@@ -19,6 +20,8 @@ def test_idiff():
+     assert ans.subs(y, solve(circ, y)[0]).equals(explicit)
+     assert True in [sol.diff(x, 3).equals(explicit) for sol in solve(circ, y)]
+     assert idiff(x + t + y, [y, t], x) == -Derivative(t, x) - 1
++    assert idiff(Eq(y*exp(y), x*exp(x)), y, x) == (x + 1)*exp(x - y)/(y + 1)
++    assert idiff(f(x)*exp(f(x)) - x*exp(x), f(x), x) == (x + 1)*exp(x - f(x))/(f(x) + 1)
+ 
+ 
+ def test_intersection():
+diff --git a/sympy/geometry/util.py b/sympy/geometry/util.py
+index a286b40f4e..13d95b23d1 100644
+--- a/sympy/geometry/util.py
++++ b/sympy/geometry/util.py
+@@ -566,17 +566,25 @@ def idiff(eq, y, x, n=1):
+     sympy.core.function.diff: explicitly differentiates wrt symbols
+ 
+     """
++    if getattr(eq, 'is_Relational', False):
++        eq = eq.lhs - eq.rhs
++
+     if is_sequence(y):
+         dep = set(y)
+         y = y[0]
+-    elif isinstance(y, Symbol):
+-        dep = {y}
+     else:
+-        raise ValueError("expecting x-dependent symbol(s) but got: %s" % y)
++        dep = {y}
++
++    f = {}
++    for s in dep:
++        if isinstance(s, Symbol):
++            f[s] = Function(s.name)(x)
++        elif getattr(s, 'is_Function', False) and len(s.args) == 1 and s.args[0] == x:
++            f[s] = Function('_%s' % s.func.__name__)(x)
++        else:
++            raise ValueError("expecting x-dependent symbol(s) but got: %s" % s)
+ 
+-    f = dict([(s, Function(
+-        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])
+-    dydx = Function(y.name)(x).diff(x)
++    dydx = f[y].diff(x)
+     eq = eq.subs(f)
+     derivs = {}
+     for i in range(n):

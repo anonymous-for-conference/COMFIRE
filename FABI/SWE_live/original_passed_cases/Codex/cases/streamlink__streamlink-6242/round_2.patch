@@ -1,0 +1,47 @@
+diff --git a/src/streamlink/plugins/tv3cat.py b/src/streamlink/plugins/tv3cat.py
+index 40f9f115a..bd540bb81 100644
+--- a/src/streamlink/plugins/tv3cat.py
++++ b/src/streamlink/plugins/tv3cat.py
+@@ -1,5 +1,6 @@
+ """
+ $description Live TV channels and video on-demand service from CCMA, a Catalan public, state-owned broadcaster.
++$url 3cat.cat
+ $url ccma.cat
+ $type live, vod
+ $region Spain
+@@ -21,11 +22,11 @@ log = logging.getLogger(__name__)
+ 
+ @pluginmatcher(
+     name="live",
+-    pattern=re.compile(r"https://(?:www)?\.ccma\.cat/3cat/directes/(?P<ident>[^/?]+)"),
++    pattern=re.compile(r"https://(?:www)?\.(?:3cat|ccma)\.cat/3cat/directes/(?P<ident>[^/?]+)"),
+ )
+ @pluginmatcher(
+     name="vod",
+-    pattern=re.compile(r"https://(?:www)?\.ccma\.cat/3cat/[^/]+/video/(?P<ident>\d+)"),
++    pattern=re.compile(r"https://(?:www)?\.(?:3cat|ccma)\.cat/3cat/[^/]+/video/(?P<ident>\d+)"),
+ )
+ class TV3Cat(Plugin):
+     _URL_API_GEO = "https://dinamics.ccma.cat/geo.json"
+diff --git a/tests/plugins/test_tv3cat.py b/tests/plugins/test_tv3cat.py
+index 6783d524e..67a7bb19b 100644
+--- a/tests/plugins/test_tv3cat.py
++++ b/tests/plugins/test_tv3cat.py
+@@ -6,12 +6,17 @@ class TestPluginCanHandleUrlTV3Cat(PluginCanHandleUrl):
+     __plugin__ = TV3Cat
+ 
+     should_match_groups = [
++        (("live", "https://www.3cat.cat/3cat/directes/tv3/"), {"ident": "tv3"}),
+         (("live", "https://www.ccma.cat/3cat/directes/tv3/"), {"ident": "tv3"}),
+         (("live", "https://www.ccma.cat/3cat/directes/324/"), {"ident": "324"}),
+         (("live", "https://www.ccma.cat/3cat/directes/esport3/"), {"ident": "esport3"}),
+         (("live", "https://www.ccma.cat/3cat/directes/sx3/"), {"ident": "sx3"}),
+         (("live", "https://www.ccma.cat/3cat/directes/catalunya-radio/"), {"ident": "catalunya-radio"}),
+ 
++        (
++            ("vod", "https://www.3cat.cat/3cat/t1xc1-arribada/video/6260741/"),
++            {"ident": "6260741"},
++        ),
+         (
+             ("vod", "https://www.ccma.cat/3cat/t1xc1-arribada/video/6260741/"),
+             {"ident": "6260741"},

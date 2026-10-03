@@ -1,0 +1,35 @@
+diff --git a/control/flatsys/flatsys.py b/control/flatsys/flatsys.py
+index 7d76b9d7..5818d118 100644
+--- a/control/flatsys/flatsys.py
++++ b/control/flatsys/flatsys.py
+@@ -721,8 +721,7 @@ def solve_flat_ocp(
+ 
+     # Process final time
+     timepts = np.atleast_1d(timepts)
+-    Tf = timepts[-1]
+-    T0 = timepts[0] if len(timepts) > 1 else T0
++    T0 = timepts[0] if len(timepts) > 1 else 0
+ 
+     # Process keyword arguments
+     if trajectory_constraints is None:
+diff --git a/control/tests/flatsys_test.py b/control/tests/flatsys_test.py
+index a12bf148..ecd2ed2e 100644
+--- a/control/tests/flatsys_test.py
++++ b/control/tests/flatsys_test.py
+@@ -389,6 +389,16 @@ class TestFlatSys:
+ 
+         # Verify that the trajectory computation is correct
+         x_cost, u_cost = traj_cost.eval(T)
++
++        # A scalar time point should specify a trajectory from t=0.
++        traj_scalar = fs.solve_flat_ocp(
++            flat_sys, Tf, x0, u0,
++            terminal_cost=terminal_cost, basis=basis)
++
++        x_scalar, u_scalar = traj_scalar.eval(T)
++        np.testing.assert_array_almost_equal(x_cost, x_scalar)
++        np.testing.assert_array_almost_equal(u_cost, u_scalar)
++
+         np.testing.assert_array_almost_equal(x0, x_cost[:, 0])
+         np.testing.assert_array_almost_equal(u0, u_cost[:, 0])
+         np.testing.assert_array_almost_equal(xf, x_cost[:, -1])

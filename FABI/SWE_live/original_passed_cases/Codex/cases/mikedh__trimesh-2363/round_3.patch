@@ -1,0 +1,118 @@
+diff --git a/tests/test_svg.py b/tests/test_svg.py
+index 8cebf8ab..f5da9450 100644
+--- a/tests/test_svg.py
++++ b/tests/test_svg.py
+@@ -90,6 +90,19 @@ class ExportTest(g.unittest.TestCase):
+         # check the matrix string
+         assert g.np.allclose(a[1], [[0, 2, 4], [1, 3, 5], [0, 0, 1]])
+ 
++    def test_shapes(self):
++        svg = """<svg xmlns="http://www.w3.org/2000/svg">
++        <rect x="10" y="10" width="80" height="80" />
++        <circle cx="50" cy="50" r="10" transform="translate(100 0)" />
++        </svg>"""
++
++        path = g.trimesh.load_path(
++            g.trimesh.util.wrap_as_stream(svg), file_type="svg"
++        )
++
++        assert len(path.entities) == 2
++        assert g.np.allclose(path.bounds, [[10, 10], [160, 90]])
++
+     def test_roundtrip(self):
+         """
+         Check to make sure a roundtrip from both a Scene and a
+diff --git a/trimesh/path/exchange/svg_io.py b/trimesh/path/exchange/svg_io.py
+index cdaa99a2..a265f481 100644
+--- a/trimesh/path/exchange/svg_io.py
++++ b/trimesh/path/exchange/svg_io.py
+@@ -71,12 +71,84 @@ def svg_to_path(file_obj=None, file_type=None, path_string=None):
+     if file_obj is not None:
+         # first parse the XML
+         tree = etree.fromstring(file_obj.read())
+-        # store paths and transforms as
+-        # (path string, 3x3 matrix)
++        def shape_to_path(element):
++            """Convert common SVG geometry elements to path attributes."""
++            attrib = dict(element.attrib)
++            tag = element.tag.rsplit("}", 1)[-1]
++
++            def number(name, default=0.0):
++                return float(attrib.get(name, default))
++
++            if tag == "rect":
++                x, y = number("x"), number("y")
++                width, height = number("width"), number("height")
++                rx = number("rx", 0.0)
++                ry = number("ry", rx)
++                if rx == 0.0 and ry == 0.0:
++                    path = f"M{x} {y}h{width}v{height}h{-width}z"
++                else:
++                    rx = min(abs(rx), abs(width) / 2.0)
++                    ry = min(abs(ry), abs(height) / 2.0)
++                    path = (
++                        f"M{x + rx} {y}h{width - 2 * rx}"
++                        f"a{rx} {ry} 0 0 1 {rx} {ry}"
++                        f"v{height - 2 * ry}"
++                        f"a{rx} {ry} 0 0 1 {-rx} {ry}"
++                        f"h{-(width - 2 * rx)}"
++                        f"a{rx} {ry} 0 0 1 {-rx} {-ry}"
++                        f"v{-(height - 2 * ry)}"
++                        f"a{rx} {ry} 0 0 1 {rx} {-ry}z"
++                    )
++                attrib["d"] = path
++            elif tag in ("circle", "ellipse"):
++                cx, cy = number("cx"), number("cy")
++                rx = number("r" if tag == "circle" else "rx")
++                ry = number("r" if tag == "circle" else "ry")
++                if rx == 0.0 or ry == 0.0:
++                    return None
++                if tag == "circle":
++                    attrib["d"] = (
++                        f"M{cx - rx} {cy}a{rx} {ry} 0 1 0 {2 * rx} 0"
++                        f"a{rx} {ry} 0 1 0 {-2 * rx} 0z"
++                    )
++                else:
++                    # Arc entities are circular, so use cubic Beziers for ellipses.
++                    k = 0.5522847498307936
++                    attrib["d"] = (
++                        f"M{cx - rx} {cy}"
++                        f"C{cx - rx} {cy - k * ry} {cx - k * rx} {cy - ry} {cx} {cy - ry}"
++                        f"C{cx + k * rx} {cy - ry} {cx + rx} {cy - k * ry} {cx + rx} {cy}"
++                        f"C{cx + rx} {cy + k * ry} {cx + k * rx} {cy + ry} {cx} {cy + ry}"
++                        f"C{cx - k * rx} {cy + ry} {cx - rx} {cy + k * ry} {cx - rx} {cy}z"
++                    )
++            elif tag == "line":
++                attrib["d"] = (
++                    f"M{number('x1')} {number('y1')}"
++                    f"L{number('x2')} {number('y2')}"
++                )
++            elif tag in ("polyline", "polygon"):
++                points = attrib.get("points", "").replace(",", " ").split()
++                if len(points) < 4 or len(points) % 2:
++                    return None
++                path = "M" + " ".join(points[:2])
++                path += " L" + " ".join(
++                    " ".join(points[i : i + 2]) for i in range(2, len(points), 2)
++                )
++                attrib["d"] = path + ("z" if tag == "polygon" else "")
++            else:
++                return None
++            return attrib
++
++        # Store paths and transforms as (path attributes, 3x3 matrix).
+         paths = []
+-        for element in tree.iter("{*}path"):
+-            # store every path element attributes and transform
+-            paths.append((element.attrib, element_transform(element)))
++        supported = {"path", "rect", "circle", "ellipse", "line", "polyline", "polygon"}
++        for element in tree.iter():
++            tag = element.tag.rsplit("}", 1)[-1]
++            if tag not in supported:
++                continue
++            attrib = element.attrib if tag == "path" else shape_to_path(element)
++            if attrib is not None:
++                paths.append((attrib, element_transform(element)))
+ 
+         try:
+             # see if the SVG should be reproduced as a scene

@@ -1,0 +1,175 @@
+{
+  "instance_id": "sphinx-doc__sphinx-7975",
+  "level": "level_1,level_2,level_3",
+  "seed": 90280,
+  "selected_cluster_count": 5,
+  "mutation_count": 6,
+  "clusters": [
+    {
+      "cluster_id": "sphinx-doc__sphinx-7975:level_1:cluster_0001",
+      "label": "Create real index",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "sphinx-doc__sphinx-7975:level_1:cluster_0001",
+          "cluster_label": "Create real index",
+          "operator": "L2",
+          "documentation_id": "cab291eb538ae7c57b69ee651d7dcf00f6141edbba77fcee738ad2435fa5841c",
+          "unit_id": "10d563ad9657d0731f45fd52a2adedbf314387702be8a7ac7f948c3c62668fcf",
+          "file": "sphinx/environment/adapters/indexentries.py",
+          "symbol": "sphinx/environment/adapters/indexentries.py::IndexEntries.create_index",
+          "file_line_start": 35,
+          "file_line_end": 35,
+          "source_start_offset": 11,
+          "source_end_offset": 66,
+          "original_unit_source": "Create the real index from the collected index entries.",
+          "mutated_unit_source": "Create the real index as a dictionary from the collected index entries.",
+          "changed_contract": "The documented index representation changes from an unspecified real index to a dictionary.",
+          "evidence": "The implementation returns a list of grouped `(key_, list(group))` tuples, not a dictionary.",
+          "complete_access_location": "    def create_index(self, builder: Builder, group_entries: bool = True,\n                     _fixre: Pattern = re.compile(r'(.*) ([(][^()]*[)])')\n                     ) -> List[Tuple[str, List[Tuple[str, Any]]]]:\n        \"\"\"Create the real index from the collected index entries.\"\"\"\n        new = {}  # type: Dict[str, List]\n\n        def add_entry(word: str, subword: str, main: str, link: bool = True,\n                      dic: Dict = new, key: str = None) -> None:\n            # Force the word to be unicode if it's a ASCII bytestring.\n            # This will solve problems with unicode normalization later.\n            # For instance the RFC role will add bytestrings at the moment\n            word = str(word)\n            entry = dic.get(word)\n            if not entry:\n                dic[word] = entry = [[], {}, key]\n            if subword:\n                add_entry(subword, '', main, link=link, dic=entry[1], key=key)\n            elif link:\n                try:\n                    uri = builder.get_relative_uri('genindex', fn) + '#' + tid\n                except NoUri:\n                    pass\n                else:\n                    entry[0].append((main, uri))\n\n        domain = cast(IndexDomain, self.env.get_domain('index'))\n        for fn, entries in domain.entries.items():\n            # new entry types must be listed in directives/other.py!\n            for type, value, tid, main, index_key in entries:\n                try:\n                    if type == 'single':\n                        try:\n                            entry, subentry = split_into(2, 'single', value)\n                        except ValueError:\n                            entry, = split_into(1, 'single', value)\n                            subentry = ''\n                        add_entry(entry, subentry, main, key=index_key)\n                    elif type == 'pair':\n                        first, second = split_into(2, 'pair', value)\n                        add_entry(first, second, main, key=index_key)\n                        add_entry(second, first, main, key=index_key)\n                    elif type == 'triple':\n                        first, second, third = split_into(3, 'triple', value)\n                        add_entry(first, second + ' ' + third, main, key=index_key)\n                        add_entry(second, third + ', ' + first, main, key=index_key)\n                        add_entry(third, first + ' ' + second, main, key=index_key)\n                    elif type == 'see':\n                        first, second = split_into(2, 'see', value)\n                        add_entry(first, _('see %s') % second, None,\n                                  link=False, key=index_key)\n                    elif type == 'seealso':\n                        first, second = split_into(2, 'see', value)\n                        add_entry(first, _('see also %s') % second, None,\n                                  link=False, key=index_key)\n                    else:\n                        logger.warning(__('unknown index entry type %r'), type, location=fn)\n                except ValueError as err:\n                    logger.warning(str(err), location=fn)\n\n        # sort the index entries for same keyword.\n        def keyfunc0(entry: Tuple[str, str]) -> Tuple[bool, str]:\n            main, uri = entry\n            return (not main, uri)  # show main entries at first\n\n        for indexentry in new.values():\n            indexentry[0].sort(key=keyfunc0)\n            for subentry in indexentry[1].values():\n                subentry[0].sort(key=keyfunc0)  # type: ignore\n\n        # sort the index entries; put all symbols at the front, even those\n        # following the letters in ASCII, this is where the chr(127) comes from\n        def keyfunc(entry: Tuple[str, List]) -> Tuple[str, str]:\n            key, (void, void, category_key) = entry\n            if category_key:\n                # using specified category key to sort\n                key = category_key\n            lckey = unicodedata.normalize('NFD', key.lower())\n            if lckey.startswith('\\N{RIGHT-TO-LEFT MARK}'):\n                lckey = lckey[1:]\n            if lckey[0:1].isalpha() or lckey.startswith('_'):\n                lckey = chr(127) + lckey\n            # ensure a determinstic order *within* letters by also sorting on\n            # the entry itself\n            return (lckey, entry[0])\n        newlist = sorted(new.items(), key=keyfunc)\n\n        if group_entries:\n            # fixup entries: transform\n            #   func() (in module foo)\n            #   func() (in module bar)\n            # into\n            #   func()\n            #     (in module foo)\n            #     (in module bar)\n            oldkey = ''\n            oldsubitems = None  # type: Dict[str, List]\n            i = 0\n            while i < len(newlist):\n                key, (targets, subitems, _key) = newlist[i]\n                # cannot move if it has subitems; structure gets too complex\n                if not subitems:\n                    m = _fixre.match(key)\n                    if m:\n                        if oldkey == m.group(1):\n                            # prefixes match: add entry as subitem of the\n                            # previous entry\n                            oldsubitems.setdefault(m.group(2), [[], {}, _key])[0].\\\n                                extend(targets)\n                            del newlist[i]\n                            continue\n                        oldkey = m.group(1)\n                    else:\n                        oldkey = key\n                oldsubitems = subitems\n                i += 1\n\n        # sort the sub-index entries\n        def keyfunc2(entry: Tuple[str, List]) -> str:\n            key = unicodedata.normalize('NFD', entry[0].lower())\n            if key.startswith('\\N{RIGHT-TO-LEFT MARK}'):\n                key = key[1:]\n            if key[0:1].isalpha() or key.startswith('_'):\n                key = chr(127) + key\n            return key\n\n        # group the entries by letter\n        def keyfunc3(item: Tuple[str, List]) -> str:\n            # hack: mutating the subitems dicts to a list in the keyfunc\n            k, v = item\n            v[1] = sorted(((si, se) for (si, (se, void, void)) in v[1].items()),\n                          key=keyfunc2)\n            if v[2] is None:\n                # now calculate the key\n                if k.startswith('\\N{RIGHT-TO-LEFT MARK}'):\n                    k = k[1:]\n                letter = unicodedata.normalize('NFD', k[0])[0].upper()\n                if letter.isalpha() or letter == '_':\n                    return letter\n                else:\n                    # get all other symbols under one heading\n                    return _('Symbols')\n            else:\n                return v[2]\n        return [(key_, list(group))\n                for (key_, group) in groupby(newlist, keyfunc3)]\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sphinx-doc__sphinx-7975:level_2:cluster_0003",
+      "label": "Section numbering",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "sphinx-doc__sphinx-7975:level_2:cluster_0003",
+          "cluster_label": "Section numbering",
+          "operator": "L3",
+          "documentation_id": "11fc64261030d6bcc5696be2a8e60868d8d5f41de0997fb678d821ed3065e080",
+          "unit_id": "23c8aa7c6fb247f6dd750afc87d7476bbfca8e27f1417f28524aa13043837a9c",
+          "file": "sphinx/environment/collectors/toctree.py",
+          "symbol": "sphinx/environment/collectors/toctree.py::TocTreeCollector.assign_section_numbers",
+          "file_line_start": 141,
+          "file_line_end": 141,
+          "source_start_offset": 11,
+          "source_end_offset": 76,
+          "original_unit_source": "Assign a section number to each heading under a numbered toctree.",
+          "mutated_unit_source": "Preserve each heading's existing section number under a numbered toctree.",
+          "changed_contract": "Section numbers are documented as being preserved rather than reassigned.",
+          "evidence": "The method clears env.toc_secnumbers and computes and assigns new secnumber values while walking numbered toctrees.",
+          "complete_access_location": "    def assign_section_numbers(self, env: BuildEnvironment) -> List[str]:\n        \"\"\"Assign a section number to each heading under a numbered toctree.\"\"\"\n        # a list of all docnames whose section numbers changed\n        rewrite_needed = []\n\n        assigned = set()  # type: Set[str]\n        old_secnumbers = env.toc_secnumbers\n        env.toc_secnumbers = {}\n\n        def _walk_toc(node: Element, secnums: Dict, depth: int, titlenode: nodes.title = None) -> None:  # NOQA\n            # titlenode is the title of the document, it will get assigned a\n            # secnumber too, so that it shows up in next/prev/parent rellinks\n            for subnode in node.children:\n                if isinstance(subnode, nodes.bullet_list):\n                    numstack.append(0)\n                    _walk_toc(subnode, secnums, depth - 1, titlenode)\n                    numstack.pop()\n                    titlenode = None\n                elif isinstance(subnode, nodes.list_item):\n                    _walk_toc(subnode, secnums, depth, titlenode)\n                    titlenode = None\n                elif isinstance(subnode, addnodes.only):\n                    # at this stage we don't know yet which sections are going\n                    # to be included; just include all of them, even if it leads\n                    # to gaps in the numbering\n                    _walk_toc(subnode, secnums, depth, titlenode)\n                    titlenode = None\n                elif isinstance(subnode, addnodes.compact_paragraph):\n                    numstack[-1] += 1\n                    reference = cast(nodes.reference, subnode[0])\n                    if depth > 0:\n                        number = list(numstack)\n                        secnums[reference['anchorname']] = tuple(numstack)\n                    else:\n                        number = None\n                        secnums[reference['anchorname']] = None\n                    reference['secnumber'] = number\n                    if titlenode:\n                        titlenode['secnumber'] = number\n                        titlenode = None\n                elif isinstance(subnode, addnodes.toctree):\n                    _walk_toctree(subnode, depth)\n\n        def _walk_toctree(toctreenode: addnodes.toctree, depth: int) -> None:\n            if depth == 0:\n                return\n            for (title, ref) in toctreenode['entries']:\n                if url_re.match(ref) or ref == 'self':\n                    # don't mess with those\n                    continue\n                elif ref in assigned:\n                    logger.warning(__('%s is already assigned section numbers '\n                                      '(nested numbered toctree?)'), ref,\n                                   location=toctreenode, type='toc', subtype='secnum')\n                elif ref in env.tocs:\n                    secnums = {}  # type: Dict[str, Tuple[int, ...]]\n                    env.toc_secnumbers[ref] = secnums\n                    assigned.add(ref)\n                    _walk_toc(env.tocs[ref], secnums, depth, env.titles.get(ref))\n                    if secnums != old_secnumbers.get(ref):\n                        rewrite_needed.append(ref)\n\n        for docname in env.numbered_toctrees:\n            assigned.add(docname)\n            doctree = env.get_doctree(docname)\n            for toctreenode in doctree.traverse(addnodes.toctree):\n                depth = toctreenode.get('numbered', 0)\n                if depth:\n                    # every numbered toctree gets new numbering\n                    numstack = [0]\n                    _walk_toctree(toctreenode, depth)\n\n        return rewrite_needed\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sphinx-doc__sphinx-7975:level_2:cluster_0005",
+      "label": "with_app compatibility",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "sphinx-doc__sphinx-7975:level_2:cluster_0005",
+          "cluster_label": "with_app compatibility",
+          "operator": "L3",
+          "documentation_id": "621c1d40a35cd77e78719821090e8df4e72c16cb302db37f19f303efd3859621",
+          "unit_id": "66db399370ee5261fdb6992a24ec43d12f892d0b84c0fdb9fc64bfd4a8fe1e69",
+          "file": "sphinx/testing/fixtures.py",
+          "symbol": "sphinx/testing/fixtures.py::status",
+          "file_line_start": 152,
+          "file_line_end": 152,
+          "source_start_offset": 8,
+          "source_end_offset": 65,
+          "original_unit_source": "    compat for testing with previous @with_app decorator\n",
+          "mutated_unit_source": "    creates a fresh status stream for testing with previous @with_app decorator\n",
+          "changed_contract": "The fixture is documented as creating a fresh status stream for each use.",
+          "evidence": "The fixture directly returns the existing `app._status` stream rather than constructing a new stream.",
+          "complete_access_location": "@pytest.fixture(scope='function')\ndef status(app: SphinxTestApp) -> StringIO:\n    \"\"\"\n    compat for testing with previous @with_app decorator\n    \"\"\"\n    return app._status\n"
+        },
+        {
+          "cluster_id": "sphinx-doc__sphinx-7975:level_2:cluster_0005",
+          "cluster_label": "with_app compatibility",
+          "operator": "L3",
+          "documentation_id": "58f531e7a031aa2065a34fa8cdd9413da1a35bf67ba1013b3ec9a0f4a15bd767",
+          "unit_id": "fe1fe7a6bb8ca856352c8f0beb2fd655c58839f047d787be5c08b379ab6bc59a",
+          "file": "sphinx/testing/fixtures.py",
+          "symbol": "sphinx/testing/fixtures.py::warning",
+          "file_line_start": 160,
+          "file_line_end": 160,
+          "source_start_offset": 8,
+          "source_end_offset": 65,
+          "original_unit_source": "    compat for testing with previous @with_app decorator\n",
+          "mutated_unit_source": "    The warning stream is recreated for each fixture access for compatibility with the previous @with_app decorator.\n",
+          "changed_contract": "The warning stream is recreated for each fixture access instead of reusing the application's stored warning stream.",
+          "evidence": "The fixture returns the existing app._warning object rather than constructing a new warning stream.",
+          "complete_access_location": "@pytest.fixture(scope='function')\ndef warning(app: SphinxTestApp) -> StringIO:\n    \"\"\"\n    compat for testing with previous @with_app decorator\n    \"\"\"\n    return app._warning\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sphinx-doc__sphinx-7975:level_2:cluster_0007",
+      "label": "Sphinx app fixture",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "sphinx-doc__sphinx-7975:level_2:cluster_0007",
+          "cluster_label": "Sphinx app fixture",
+          "operator": "L2",
+          "documentation_id": "44811fc7345c3a18f1197a4928bb88527a9f9f75e0303639c00902bd8585236b",
+          "unit_id": "afc846aa178168756d880036147345e820ffdcc0e22079eba609e41ecb32d930",
+          "file": "sphinx/testing/fixtures.py",
+          "symbol": "sphinx/testing/fixtures.py::app",
+          "file_line_start": 132,
+          "file_line_end": 132,
+          "source_start_offset": 8,
+          "source_end_offset": 54,
+          "original_unit_source": "    provides sphinx.application.Sphinx object\n",
+          "mutated_unit_source": "    provides a list containing a sphinx.application.Sphinx object\n",
+          "changed_contract": "The documented fixture outcome changes from providing a single Sphinx object to providing a list containing one.",
+          "evidence": "The fixture yields app_ directly rather than yielding a list.",
+          "complete_access_location": "@pytest.fixture(scope='function')\ndef app(test_params: Dict, app_params: Tuple[Dict, Dict], make_app: Callable,\n        shared_result: SharedResult) -> Generator[SphinxTestApp, None, None]:\n    \"\"\"\n    provides sphinx.application.Sphinx object\n    \"\"\"\n    args, kwargs = app_params\n    app_ = make_app(*args, **kwargs)\n    yield app_\n\n    print('# testroot:', kwargs.get('testroot', 'root'))\n    print('# builder:', app_.builder.name)\n    print('# srcdir:', app_.srcdir)\n    print('# outdir:', app_.outdir)\n    print('# status:', '\\n' + app_._status.getvalue())\n    print('# warning:', '\\n' + app_._warning.getvalue())\n\n    if test_params['shared_result']:\n        shared_result.store(test_params['shared_result'], app_)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sphinx-doc__sphinx-7975:level_2:cluster_0009",
+      "label": "Node name escaping",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "sphinx-doc__sphinx-7975:level_2:cluster_0009",
+          "cluster_label": "Node name escaping",
+          "operator": "L2",
+          "documentation_id": "783709f722b3ecf9f8689e8c5545d03a8d4e92caeea09ff97e95d8cee4636eef",
+          "unit_id": "fb249091b66b4c9c28fb778ea4537b3c7b7be4dbb6323409522ff4f105e81118",
+          "file": "sphinx/writers/texinfo.py",
+          "symbol": "sphinx/writers/texinfo.py::TexinfoTranslator.escape_id",
+          "file_line_start": 376,
+          "file_line_end": 376,
+          "source_start_offset": 11,
+          "source_end_offset": 72,
+          "original_unit_source": "Return an escaped string suitable for node names and anchors.",
+          "mutated_unit_source": "Return an unescaped string suitable for node names and anchors.",
+          "changed_contract": "The documented return representation changes from an escaped string to an unescaped string.",
+          "evidence": "The implementation transforms the input and returns `self.escape(s)`, which produces an escaped string.",
+          "complete_access_location": "    def escape_id(self, s: str) -> str:\n        \"\"\"Return an escaped string suitable for node names and anchors.\"\"\"\n        bad_chars = ',:()'\n        for bc in bad_chars:\n            s = s.replace(bc, ' ')\n        if re.search('[^ .]', s):\n            # remove DOTs if name contains other characters\n            s = s.replace('.', ' ')\n        s = ' '.join(s.split()).strip()\n        return self.escape(s)\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "9bbf8de3585ef956b1a6ba9c5ee5e230e67bfb2c6345aebb0bab294c9bad2735"
+}

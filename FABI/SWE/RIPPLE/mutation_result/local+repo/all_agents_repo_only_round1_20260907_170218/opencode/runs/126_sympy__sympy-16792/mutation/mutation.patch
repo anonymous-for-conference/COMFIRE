@@ -1,0 +1,26 @@
+diff --git a/sympy/utilities/codegen.py b/sympy/utilities/codegen.py
+index f0befb2bd7..3159869b03 100644
+--- a/sympy/utilities/codegen.py
++++ b/sympy/utilities/codegen.py
+@@ -575,17 +575,14 @@ def __init__(self, project="project", cse=False):
+         self.cse = cse
+ 
+     def routine(self, name, expr, argument_sequence=None, global_vars=None):
+-        """Creates an Routine object that is appropriate for this language.
++        """Creates a Routine object by delegating construction to a language-specific subclass.
+ 
+-        This implementation is appropriate for at least C/Fortran.  Subclasses
+-        can override this if necessary.
++        This implementation passes routine construction to a language-specific subclass for at least C/Fortran.  JuliaCodeGen, OctaveCodeGen, and RustCodeGen inherit this implementation without overriding it.
+ 
+         Here, we assume at most one return value (the l-value) which must be
+-        scalar.  Additional outputs are OutputArguments (e.g., pointers on
+-        right-hand-side or pass-by-reference).  Matrices are always returned
+-        via OutputArguments.  If ``argument_sequence`` is None, arguments will
++        scalar.  Additional outputs are represented by ``Result`` values rather than ``OutputArguments``.  Matrices are always returned via Result return values.  If ``argument_sequence`` is None, arguments will
+         be ordered alphabetically, but with all InputArguments first, and then
+-        OutputArgument and InOutArguments.
++        OutputArgument and InOutArguments, only for C code generation.
+ 
+         """
+ 

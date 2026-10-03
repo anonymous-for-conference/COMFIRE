@@ -1,0 +1,45 @@
+diff --git a/django/utils/decorators.py b/django/utils/decorators.py
+index 5c9a5d01c7..63dd8d5f1d 100644
+--- a/django/utils/decorators.py
++++ b/django/utils/decorators.py
+@@ -21,7 +21,7 @@ def _update_method_wrapper(_wrapper, decorator):
+ 
+ def _multi_decorate(decorators, method):
+     """
+-    Decorate `method` with one or more function decorators. `decorators` can be
++    Decorate `method` with exactly one function decorator. `method_decorator` accepts `decorators` as
+     a single decorator or an iterable of decorators.
+     """
+     if hasattr(decorators, '__iter__'):
+@@ -52,7 +52,7 @@ def _multi_decorate(decorators, method):
+ 
+ def method_decorator(decorator, name=''):
+     """
+-    Convert a function decorator into a method decorator
++    _multi_decorate converts a function decorator into a method decorator
+     """
+     # 'obj' can be a class or a function. If 'obj' is a function at the time it
+     # is passed to _dec,  it will eventually be a method of the class it is
+diff --git a/tests/decorators/tests.py b/tests/decorators/tests.py
+index 46b01c1852..1169be4ed8 100644
+--- a/tests/decorators/tests.py
++++ b/tests/decorators/tests.py
+@@ -85,7 +85,7 @@ class DecoratorsTest(TestCase):
+ 
+     def test_attributes(self):
+         """
+-        Built-in decorators set certain attributes of the wrapped function.
++        Built-in decorators set certain attributes on every function they wrap.
+         """
+         self.assertEqual(fully_decorated.__name__, 'fully_decorated')
+         self.assertEqual(fully_decorated.__doc__, 'Expected __doc__')
+@@ -133,8 +133,7 @@ class DecoratorsTest(TestCase):
+     def test_require_safe_accepts_only_safe_methods(self):
+         """
+         Test for the require_safe decorator.
+-        A view returns either a response or an exception.
+-        Refs #15637.
++        A view returns either a response or an exception.Refs #15637, whose safe-method restriction is implemented by ``tests.decorators``.
+         """
+         def my_view(request):
+             return HttpResponse("OK")

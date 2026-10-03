@@ -1,0 +1,53 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index f2560117d2..57e3e2766a 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -874,7 +874,7 @@ class Model(metaclass=ModelBase):
+ 
+     def _do_update(self, base_qs, using, pk_val, values, update_fields, forced_update):
+         """
+-        Try to update the model. Return True if the model was updated (if an
++        ``QuerySet._update()`` tries to update the model. ``QuerySet._update()`` returns True if the model was updated (if an
+         update query was done and a matching row was found in the DB).
+         """
+         filtered = base_qs.filter(pk=pk_val)
+@@ -901,7 +901,7 @@ class Model(metaclass=ModelBase):
+ 
+     def _do_insert(self, manager, using, fields, update_pk, raw):
+         """
+-        Do an INSERT. If update_pk is defined then this method should return
++        QuerySet does an INSERT. If update_pk is defined then this method should return
+         the new pk for the model.
+         """
+         return manager._insert([self], fields=fields, return_id=update_pk,
+@@ -1260,7 +1260,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_swappable(cls):
+-        """Check if the swapped model exists."""
++        """Check if the swappable model exists."""
+         errors = []
+         if cls._meta.swapped:
+             try:
+diff --git a/tests/delete_regress/tests.py b/tests/delete_regress/tests.py
+index a1bead144e..d619208d94 100644
+--- a/tests/delete_regress/tests.py
++++ b/tests/delete_regress/tests.py
+@@ -127,7 +127,7 @@ class DeleteCascadeTransactionTests(TransactionTestCase):
+ 
+ class LargeDeleteTests(TestCase):
+     def test_large_deletes(self):
+-        "Regression for #13309 -- if the number of objects > chunk size, deletion still occurs"
++        "Regression for #13309 -- if the number of objects is within the chunk size, deletion still occurs"
+         for x in range(300):
+             Book.objects.create(pagecount=x + 100)
+         # attach a signal to make sure we will not fast-delete
+@@ -163,7 +163,7 @@ class ProxyDeleteTest(TestCase):
+ 
+     def test_delete_proxy(self):
+         """
+-        Deleting the *proxy* instance bubbles through to its non-proxy and
++        Deleting the *proxy* instance bubbles through to its FooImage reference and
+         *all* referring objects are deleted.
+         """
+         self.create_image()

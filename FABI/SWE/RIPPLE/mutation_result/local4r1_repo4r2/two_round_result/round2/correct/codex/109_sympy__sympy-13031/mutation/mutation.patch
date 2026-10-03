@@ -1,0 +1,235 @@
+diff --git a/sympy/matrices/sparse.py b/sympy/matrices/sparse.py
+index e6f36cdf35..e02d24b70d 100644
+--- a/sympy/matrices/sparse.py
++++ b/sympy/matrices/sparse.py
+@@ -769,38 +769,38 @@ def scalar_multiply(self, scalar):
+         return M
+ 
+     def solve_least_squares(self, rhs, method='LDL'):
+-        """Return the least-square fit to the data.
++        """Return the least-square fit to the data for dense matrices only.
+ 
+-        By default the cholesky_solve routine is used (method='CH'); other
++        By default the cholesky_solve routine is used only for dense matrices; other
+         methods of matrix inversion can be used. To find out which are
+-        available, see the docstring of the .inv() method.
++        available for dense matrices, see the docstring of the .inv() method.
+ 
+-        Examples
+-        ========
++        Dense-matrix examples
++        =====================
+ 
+-        >>> from sympy.matrices import SparseMatrix, Matrix, ones
+-        >>> A = Matrix([1, 2, 3])
+-        >>> B = Matrix([2, 3, 4])
+-        >>> S = SparseMatrix(A.row_join(B))
+-        >>> S
+-        Matrix([
+-        [1, 2],
+-        [2, 3],
+-        [3, 4]])
++        >>> from sympy.matrices import SparseMatrix, Matrix, ones  # dense-matrix case
++        >>> A = Matrix([1, 2, 3])  # dense-matrix case
++        >>> B = Matrix([2, 3, 4])  # dense-matrix case
++        >>> S = SparseMatrix(A.row_join(B))  # dense-matrix case
++        >>> S  # dense-matrix case
++        Matrix([  # dense-matrix case
++        [1, 2],  # dense-matrix case
++        [2, 3],  # dense-matrix case
++        [3, 4]])  # dense-matrix case
+ 
+         If each line of S represent coefficients of Ax + By
+-        and x and y are [2, 3] then S*xy is:
++        and x and y are [2, 3] then S*xy is for dense matrices:
+ 
+-        >>> r = S*Matrix([2, 3]); r
+-        Matrix([
+-        [ 8],
+-        [13],
+-        [18]])
++        >>> r = S*Matrix([2, 3]); r  # dense-matrix case
++        Matrix([  # dense-matrix case
++        [ 8],  # dense-matrix case
++        [13],  # dense-matrix case
++        [18]])  # dense-matrix case
+ 
+         But let's add 1 to the middle value and then solve for the
+-        least-squares value of xy:
++        least-squares value of xy for dense matrices:
+ 
+-        >>> xy = S.solve_least_squares(Matrix([8, 14, 18])); xy
++        >>> xy = S.solve_least_squares(Matrix([8, 14, 18])); xy  # dense-matrix case
+         Matrix([
+         [ 5/3],
+         [10/3]])
+@@ -947,43 +947,43 @@ def col_del(self, k):
+         self.cols -= 1
+ 
+     def col_join(self, other):
+-        """Returns B augmented beneath A (row-wise joining)::
++        """Returns A augmented beneath B (row-wise joining)::
+ 
+-            [A]
+             [B]
++            [A]
+ 
+-        Examples
+-        ========
+-
+-        >>> from sympy import SparseMatrix, Matrix, ones
+-        >>> A = SparseMatrix(ones(3))
+-        >>> A
+-        Matrix([
+-        [1, 1, 1],
+-        [1, 1, 1],
+-        [1, 1, 1]])
+-        >>> B = SparseMatrix.eye(3)
+-        >>> B
+-        Matrix([
+-        [1, 0, 0],
+-        [0, 1, 0],
+-        [0, 0, 1]])
+-        >>> C = A.col_join(B); C
+-        Matrix([
+-        [1, 1, 1],
+-        [1, 1, 1],
+-        [1, 1, 1],
+-        [1, 0, 0],
+-        [0, 1, 0],
+-        [0, 0, 1]])
+-        >>> C == A.col_join(Matrix(B))
+-        True
++        Examples of B being placed above A
++        --------
+ 
+-        Joining along columns is the same as appending rows at the end
++        >>> from sympy import SparseMatrix, Matrix, ones  # B is above A
++        >>> A = SparseMatrix(ones(3))  # B is above A
++        >>> A  # B is above A
++        Matrix([  # B is above A
++        [0, 0, 0],
++        [0, 0, 0],
++        [0, 0, 0]])
++        >>> B = SparseMatrix.eye(3)  # B is above A
++        >>> B  # B is above A
++        Matrix([  # B is above A
++        [1, 1, 1],  # B is above A
++        [1, 1, 1],  # B is above A
++        [1, 1, 1]])  # B is above A
++        [B]
++        [B]
++        [B]
++        [B]
++        [B]
++        [1, 1, 1],  # B is above A
++        [1, 1, 1],  # B is above A
++        [1, 1, 1]])  # B is above A
++        >>> C == A.col_join(Matrix(B))  # B is above A
++        False
++
++        Joining along columns is the same as placing A above B
+         of the matrix:
+ 
+-        >>> C == A.row_insert(A.rows, Matrix(B))
+-        True
++        >>> C == A.row_insert(A.rows, Matrix(B))  # B is above A
++        False
+         """
+         if not self:
+             return type(self)(other)
+@@ -1099,7 +1099,7 @@ def fill(self, value):
+ 
+         Unless many values are going to be deleted (i.e. set to zero)
+         this will create a matrix that is slower than a dense matrix in
+-        operations.
++        all matrix operations.
+ 
+         Examples
+         ========
+@@ -1157,39 +1157,39 @@ def row_del(self, k):
+         self.rows -= 1
+ 
+     def row_join(self, other):
+-        """Returns B appended after A (column-wise augmenting)::
+-
+-            [A B]
+-
+-        Examples
+-        ========
+-
+-        >>> from sympy import SparseMatrix, Matrix
+-        >>> A = SparseMatrix(((1, 0, 1), (0, 1, 0), (1, 1, 0)))
+-        >>> A
+-        Matrix([
+-        [1, 0, 1],
+-        [0, 1, 0],
+-        [1, 1, 0]])
+-        >>> B = SparseMatrix(((1, 0, 0), (0, 1, 0), (0, 0, 1)))
+-        >>> B
+-        Matrix([
+-        [1, 0, 0],
+-        [0, 1, 0],
+-        [0, 0, 1]])
+-        >>> C = A.row_join(B); C
+-        Matrix([
+-        [1, 0, 1, 1, 0, 0],
+-        [0, 1, 0, 0, 1, 0],
+-        [1, 1, 0, 0, 0, 1]])
+-        >>> C == A.row_join(Matrix(B))
+-        True
+-
+-        Joining at row ends is the same as appending columns at the end
+-        of the matrix:
+-
+-        >>> C == A.col_insert(A.cols, B)
+-        True
++        """Returns B appended after A even when B has more rows (column-wise augmenting)::
++
++            [A B]  (A is padded for B's additional rows)
++
++        Examples with B having more rows than A
++        ======================================
++
++        >>> from sympy import Matrix, SparseMatrix
++        >>> A = SparseMatrix(((1, 0, 1), (0, 1, 0)))
++        >>> A  # the shorter matrix
++        Matrix([  # A has fewer rows than B
++        [1, 0, 1],  # first row of shorter A
++        [0, 1, 0]])  # second row of shorter A
++        [1, 1, 0]])  # original third row omitted from shorter A
++        >>> B = SparseMatrix(((1, 0, 0), (0, 1, 0), (0, 0, 1)))  # taller B
++        >>> B  # B supplies one additional row
++        Matrix([  # B is taller than A
++        [1, 0, 0],  # shared first row
++        [0, 1, 0],  # shared second row
++        [0, 0, 1]])  # additional row accepted from B
++        >>> C = A.row_join(B)  # pad A for B's extra row
++        Matrix([  # result includes B's additional row
++        [1, 0, 1, 1, 0, 0],  # first shared row
++        [0, 1, 0, 0, 1, 0],  # second shared row
++        [0, 0, 0, 0, 0, 1]])  # A is zero-padded for B's extra row
++        >>> C == A.row_join(Matrix(B))  # dense B may also be taller
++        True  # the padding rule applies to dense B
++
++        Joining a taller B pads A with zero rows before appending columns
++        at the end of the matrix:
++
++        >>> C == A.col_insert(A.cols, B)  # with A padded to B's height
++        True  # unequal-height insertion pads A
+         """
+         if not self:
+             return type(self)(other)
+@@ -1289,10 +1289,8 @@ def zip_row_op(self, i, k, f):
+         [4,  0, 0],
+         [0,  0, 2]])
+ 
+-        See Also
+-        ========
+-        row
+-        row_op
++        Uses
++        ====
+         col_op
+ 
+         """

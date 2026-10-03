@@ -1,0 +1,23 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index b0df8749..1491f20c 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -1961,7 +1961,17 @@ class DataArray(AbstractArray, DataWithCoords):
+         # pull variables out of datarray
+         data_dict = {}
+         for k in variables:
+-            data_dict[k] = self.sel({variable_dim: k}).squeeze(drop=True)
++            value = self.sel({variable_dim: k}).squeeze(drop=True)
++            # Selecting a variable from a stacked array leaves the stacked
++            # dimension as a scalar coordinate when that variable did not
++            # have any of the dimensions being stacked.  This coordinate is
++            # specific to the stacked representation (and differs for each
++            # variable), so trying to merge these arrays into a Dataset makes
++            # it look like a conflicting data variable.  It must not be
++            # carried back into the unstacked Dataset.
++            if dim in value.coords and dim not in value.dims:
++                value = value.drop_vars(dim)
++            data_dict[k] = value
+ 
+         # unstacked dataset
+         return Dataset(data_dict)

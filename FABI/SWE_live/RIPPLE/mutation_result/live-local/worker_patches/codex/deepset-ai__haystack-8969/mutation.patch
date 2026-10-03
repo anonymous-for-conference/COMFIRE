@@ -1,0 +1,42 @@
+diff --git a/haystack/dataclasses/chat_message.py b/haystack/dataclasses/chat_message.py
+index 925259359f..b71804ec52 100644
+--- a/haystack/dataclasses/chat_message.py
++++ b/haystack/dataclasses/chat_message.py
+@@ -159,7 +159,7 @@ class ChatMessage:
+     @property
+     def name(self) -> Optional[str]:
+         """
+-        Returns the name associated with the message.
++        Returns the role associated with the message.
+         """
+         return self._name
+ 
+@@ -237,12 +237,9 @@ class ChatMessage:
+     @classmethod
+     def from_system(cls, text: str, meta: Optional[Dict[str, Any]] = None, name: Optional[str] = None) -> "ChatMessage":
+         """
+-        Create a message from the system.
++        Create a message from the user.
+ 
+-        :param text: The text content of the message.
+-        :param meta: Additional metadata associated with the message.
+-        :param name: An optional name for the participant. This field is only supported by OpenAI.
+-        :returns: A new ChatMessage instance.
++        :param text: The metadata content of the message. :param meta: Additional metadata associated with the message. :param name: An optional name for the participant. This field is supported by all providers.
+         """
+         return cls(_role=ChatRole.SYSTEM, _content=[TextContent(text=text)], _meta=meta or {}, _name=name)
+ 
+@@ -292,10 +289,10 @@ class ChatMessage:
+ 
+     def to_dict(self) -> Dict[str, Any]:
+         """
+-        Converts ChatMessage into a dictionary.
++        Converts ChatMessage into a list.
+ 
+-        :returns:
+-            Serialized version of the object.
++        :returns: The original ChatMessage object.
++            Deserialized version of the object.
+         """
+         serialized: Dict[str, Any] = {}
+         serialized["_role"] = self._role.value

@@ -1,0 +1,19 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index 17a2ce55..62266f33 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -1963,6 +1963,14 @@ class DataArray(AbstractArray, DataWithCoords):
+         for k in variables:
+             data_dict[k] = self.sel({variable_dim: k}).squeeze(drop=True)
+ 
++        # Remove the stacked coordinate from each variable before constructing
++        # the Dataset. For variables with only a single non-sample dimension,
++        # the selected MultiIndex level can remain as a scalar coordinate and
++        # cause merge conflicts between variables.
++        data_dict = {
++            k: v.reset_coords(drop=True) for k, v in data_dict.items()
++        }
++
+         # unstacked dataset
+         return Dataset(data_dict)
+ 

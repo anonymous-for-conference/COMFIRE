@@ -1,0 +1,34 @@
+diff --git a/test/test_YoutubeDL.py b/test/test_YoutubeDL.py
+index 966d27a498..cdb0def7e0 100644
+--- a/test/test_YoutubeDL.py
++++ b/test/test_YoutubeDL.py
+@@ -461,6 +461,15 @@ def test_format_not_available(self):
+         ydl = YDL({'format': 'best[height>360]'})
+         self.assertRaises(ExtractorError, ydl.process_ie_result, info_dict.copy())
+ 
++    def test_format_filter_decimal(self):
++        formats = [
++            {'format_id': 'wide', 'width': 1920, 'height': 1080, 'vcodec': 'h264', 'acodec': 'none', 'url': TEST_URL},
++            {'format_id': 'square', 'width': 1000, 'height': 1000, 'vcodec': 'h264', 'acodec': 'none', 'url': TEST_URL},
++        ]
++        ydl = YDL({'format': 'bestvideo[aspect_ratio>1.7]'})
++        ydl.process_ie_result(_make_result(formats))
++        self.assertEqual(ydl.downloaded_info_dicts[0]['format_id'], 'wide')
++
+     def test_format_selection_issue_10083(self):
+         # See https://github.com/ytdl-org/youtube-dl/issues/10083
+         formats = [
+diff --git a/yt_dlp/YoutubeDL.py b/yt_dlp/YoutubeDL.py
+index 65b72e026c..0bb78b1ea6 100644
+--- a/yt_dlp/YoutubeDL.py
++++ b/yt_dlp/YoutubeDL.py
+@@ -2108,7 +2108,8 @@ def _build_format_filter(self, filter_spec):
+         m = operator_rex.fullmatch(filter_spec)
+         if m:
+             try:
+-                comparison_value = int(m.group('value'))
++                value = m.group('value')
++                comparison_value = int(value) if value.isdigit() else float(value)
+             except ValueError:
+                 comparison_value = parse_filesize(m.group('value'))
+                 if comparison_value is None:

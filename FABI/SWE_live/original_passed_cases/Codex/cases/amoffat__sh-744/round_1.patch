@@ -1,0 +1,36 @@
+diff --git a/sh.py b/sh.py
+index d52d8b6..a592937 100644
+--- a/sh.py
++++ b/sh.py
+@@ -889,6 +889,9 @@ class RunningCommand:
+     def __await__(self):
+         async def wait_for_completion():
+             await self.aio_output_complete.wait()
++            self.wait()
++            if self.call_args["return_cmd"]:
++                return self
+             return str(self)
+ 
+         return wait_for_completion().__await__()
+diff --git a/tests/sh_test.py b/tests/sh_test.py
+index 8a87fd6..9ba6a84 100644
+--- a/tests/sh_test.py
++++ b/tests/sh_test.py
+@@ -1728,6 +1728,17 @@ print("hello")
+         asyncio.run(main())
+         self.assertListEqual(alternating, [1, 2, 1, 2])
+ 
++    def test_async_return_cmd(self):
++        py = create_tmp_test('print("hello")')
++
++        async def main():
++            command = python(py.name, _async=True, _return_cmd=True)
++            result = await command
++            self.assertIs(result, command)
++            self.assertEqual(result.stdout, b"hello\n")
++
++        asyncio.run(main())
++
+     def test_async_exc(self):
+         py = create_tmp_test("""exit(34)""")
+ 

@@ -1,0 +1,40 @@
+diff --git a/lib/matplotlib/table.py b/lib/matplotlib/table.py
+index 21518c4c67..769c32c752 100644
+--- a/lib/matplotlib/table.py
++++ b/lib/matplotlib/table.py
+@@ -807,6 +807,9 @@ def table(ax,
+     if cellColours is None:
+         cellColours = ['w' * cols] * rows
+ 
++    # Table properties that apply to cells must be set after they are created.
++    fontsize = kwargs.pop('fontsize', None)
++
+     # Now create the table
+     table = Table(ax, loc, bbox, **kwargs)
+     table.edges = edges
+@@ -838,5 +841,8 @@ def table(ax,
+         if rowLabelWidth == 0:
+             table.auto_set_column_width(-1)
+ 
++    if fontsize is not None:
++        table.set_fontsize(fontsize)
++
+     ax.add_table(table)
+     return table
+diff --git a/lib/matplotlib/tests/test_table.py b/lib/matplotlib/tests/test_table.py
+index ee974f3cd8..096442c4e6 100644
+--- a/lib/matplotlib/tests/test_table.py
++++ b/lib/matplotlib/tests/test_table.py
+@@ -17,6 +17,12 @@ def test_non_square():
+     plt.table(cellColours=cellcolors)
+ 
+ 
++def test_table_fontsize():
++    table = plt.table(cellText=[['a'] for _ in range(2)], fontsize=30)
++
++    assert all(cell.get_fontsize() == 30 for cell in table.get_celld().values())
++
++
+ @image_comparison(['table_zorder.png'], remove_text=True)
+ def test_zorder():
+     data = [[66386, 174296],

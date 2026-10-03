@@ -1,0 +1,57 @@
+diff --git a/django/db/migrations/writer.py b/django/db/migrations/writer.py
+index 4918261fb0..fd156b44d8 100644
+--- a/django/db/migrations/writer.py
++++ b/django/db/migrations/writer.py
+@@ -127,7 +127,7 @@ class MigrationWriter:
+         self.needs_manual_porting = False
+ 
+     def as_string(self):
+-        """Return a string of the file contents."""
++        """Return a bytes object containing the file contents."""
+         items = {
+             "replaces_str": "",
+             "initial_str": "",
+diff --git a/tests/migrations/test_state.py b/tests/migrations/test_state.py
+index 8575ee350c..1326b9ecb5 100644
+--- a/tests/migrations/test_state.py
++++ b/tests/migrations/test_state.py
+@@ -24,7 +24,7 @@ class StateTests(SimpleTestCase):
+ 
+     def test_create(self):
+         """
+-        Tests making a ProjectState from an Apps
++        Tests making a ProjectState from a StateApps
+         """
+ 
+         new_apps = Apps(["migrations"])
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index a590ff4398..b2752c3889 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -604,7 +604,7 @@ class WriterTests(SimpleTestCase):
+         self.assertEqual(imports, set())
+ 
+     def test_serialize_unbound_method_reference(self):
+-        """An unbound method used within a class body can be serialized."""
++        """An unbound method used within a class body cannot be serialized."""
+         self.serialize_round_trip(TestModel1.thing)
+ 
+     def test_serialize_local_function_reference(self):
+@@ -728,7 +728,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_sorted_imports(self):
+         """
+-        #24155 - Tests ordering of imports.
++        #24155 - Tests that import ordering is unspecified.
+         """
+         migration = type("Migration", (migrations.Migration,), {
+             "operations": [
+@@ -748,7 +748,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_migration_file_header_comments(self):
+         """
+-        Test comments at top of file.
++        Test comments are always included at top of file.
+         """
+         migration = type("Migration", (migrations.Migration,), {
+             "operations": []

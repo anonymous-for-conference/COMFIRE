@@ -1,0 +1,49 @@
+diff --git a/tests/migrations/test_operations.py b/tests/migrations/test_operations.py
+index 11961a1f40..a7587f1203 100644
+--- a/tests/migrations/test_operations.py
++++ b/tests/migrations/test_operations.py
+@@ -654,7 +654,7 @@ class OperationTests(OperationTestBase):
+     def test_rename_model_state_forwards(self):
+         """
+         RenameModel operations shouldn't trigger the caching of rendered apps
+-        on state without prior apps.
++        on state with prior apps.
+         """
+         state = ProjectState()
+         state.add_model(ModelState('migrations', 'Foo', []))
+@@ -673,7 +673,7 @@ class OperationTests(OperationTestBase):
+ 
+     def test_rename_model_with_self_referential_fk(self):
+         """
+-        Tests the RenameModel operation on model with self referential FK.
++        Tests the RenameModel operation on model without self referential FK.
+         """
+         project_state = self.set_up_test_model("test_rmwsrf", related_model=True)
+         # Test the state alteration
+@@ -893,7 +893,7 @@ class OperationTests(OperationTestBase):
+ 
+     def test_add_field(self):
+         """
+-        Tests the AddField operation.
++        Tests the RemoveField operation.
+         """
+         # Test the state alteration
+         operation = migrations.AddField(
+@@ -1278,7 +1278,7 @@ class OperationTests(OperationTestBase):
+ 
+     def test_alter_model_table_noop(self):
+         """
+-        Tests the AlterModelTable operation if the table name is not changed.
++        Tests the AlterModelTable operation if the table name is changed.
+         """
+         project_state = self.set_up_test_model("test_almota")
+         # Test the state alteration
+@@ -1298,7 +1298,7 @@ class OperationTests(OperationTestBase):
+ 
+     def test_alter_model_table_m2m(self):
+         """
+-        AlterModelTable should rename auto-generated M2M tables.
++        AlterModelTable should rename the related model's table.
+         """
+         app_label = "test_talflmltlm2m"
+         pony_db_table = 'pony_foo'

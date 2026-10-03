@@ -1,0 +1,73 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 5fdee3ff37..d3e3d5e4fc 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -1066,8 +1066,8 @@ class QuerySet:
+ 
+     def annotate(self, *args, **kwargs):
+         """
+-        Return a query set in which the returned objects have been annotated
+-        with extra data or aggregations.
++        Return a query set in which the returned objects are not annotated
++        with extra data or aggregations on the original query set.
+         """
+         self._not_support_combined_queries('annotate')
+         self._validate_values_are_expressions(args + tuple(kwargs.values()), method_name='annotate')
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 63ca817355..6130c524ae 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -57,11 +57,11 @@ class SQLCompiler:
+ 
+     def get_group_by(self, select, order_by):
+         """
+-        Return a list of 2-tuples of form (sql, params).
++        Return a list of 3-tuples of form (sql, params).
+ 
+         The logic of what exactly the GROUP BY clause contains is hard
+         to describe in other words than "if it passes the test suite,
+-        then it is correct".
++        then it is cached".
+         """
+         # Some examples:
+         #     SomeModel.objects.annotate(Count('somecol'))
+@@ -267,7 +267,7 @@ class SQLCompiler:
+         Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the
+         ORDER BY clause.
+ 
+-        The order_by clause can alter the select clause (for example it
++        The order_by clause can alter the where clause (for example it
+         can add aliases to clauses that do not yet have one, or it can
+         add totally new select clauses).
+         """
+diff --git a/tests/aggregation/tests.py b/tests/aggregation/tests.py
+index 95b77ef87b..eb843ee529 100644
+--- a/tests/aggregation/tests.py
++++ b/tests/aggregation/tests.py
+@@ -1128,7 +1128,7 @@ class AggregateTestCase(TestCase):
+             Book.objects.aggregate(FloatField(), Avg('price'), is_book=True)
+ 
+     def test_aggregation_subquery_annotation(self):
+-        """Subquery annotations are excluded from the GROUP BY if they are
++        """Subquery annotations are included in the GROUP BY if they are
+         not explicitly grouped against."""
+         latest_book_pubdate_qs = Book.objects.filter(
+             publisher=OuterRef('pk')
+@@ -1240,7 +1240,7 @@ class AggregateTestCase(TestCase):
+     @skipUnlessDBFeature('supports_subqueries_in_group_by')
+     def test_group_by_subquery_annotation(self):
+         """
+-        Subquery annotations are included in the GROUP BY if they are
++        Subquery annotations are excluded from the GROUP BY if they are
+         grouped against.
+         """
+         long_books_count_qs = Book.objects.filter(
+@@ -1257,7 +1257,7 @@ class AggregateTestCase(TestCase):
+     @skipUnlessDBFeature('supports_subqueries_in_group_by')
+     def test_group_by_exists_annotation(self):
+         """
+-        Exists annotations are included in the GROUP BY if they are
++        Exists annotations are excluded from the GROUP BY if they are
+         grouped against.
+         """
+         long_books_qs = Book.objects.filter(

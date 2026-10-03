@@ -1,0 +1,50 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 921081a8a1..683e45fe9a 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -238,7 +238,7 @@ class ModelBase(type):
+                 base_key = make_model_tuple(base)
+                 if base_key in parent_links:
+                     field = parent_links[base_key]
+-                elif not is_proxy:
++                elif not is_proxy and base._meta.pk is not None and base._meta.pk.auto_created:
+                     attr_name = '%s_ptr' % base._meta.model_name
+                     field = OneToOneField(
+                         base,
+diff --git a/repro.py b/repro.py
+new file mode 100644
+index 0000000000..7b100f1a19
+--- /dev/null
++++ b/repro.py
+@@ -0,0 +1,6 @@
++import os
++os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.test_sqlite')
++import django
++django.setup()
++from django.core.management import call_command
++call_command('check')
+diff --git a/repro2.py b/repro2.py
+new file mode 100644
+index 0000000000..b7b35e5d8e
+--- /dev/null
++++ b/repro2.py
+@@ -0,0 +1,19 @@
++import os
++os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tests.test_sqlite')
++import sys
++sys.path.insert(0, "/testbed/tests")
++import django
++django.setup()
++from django.db import models
++from django.core import checks
++from django.test.utils import isolate_apps
++
++with isolate_apps('check_framework'):
++    class Entity(models.Model):
++        id = models.AutoField(primary_key=True)
++        class Meta:
++            abstract = False
++    class User(Entity):
++        pass
++    print('pk auto_created', User._meta.pk.auto_created)
++    print('checks', checks.run_checks(app_configs=None))

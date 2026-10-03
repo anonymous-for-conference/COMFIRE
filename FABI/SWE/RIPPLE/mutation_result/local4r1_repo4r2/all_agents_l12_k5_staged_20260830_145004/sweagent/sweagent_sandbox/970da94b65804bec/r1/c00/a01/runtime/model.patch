@@ -1,0 +1,42 @@
+diff --git a/django/core/handlers/base.py b/django/core/handlers/base.py
+index 2304e7761d..dbaf45c94e 100644
+--- a/django/core/handlers/base.py
++++ b/django/core/handlers/base.py
+@@ -110,6 +110,15 @@ class BaseHandler:
+         if response is None:
+             wrapped_callback = self.make_view_atomic(callback)
+             try:
++                # URL patterns with optional named groups can produce a positional
++                # argument tuple alongside keyword arguments containing ``None``
++                # for the same capture. Passing both directly to the view can
++                # cause Python to raise ``TypeError: got multiple values for
++                # argument ...`` when the optional group is omitted. Filter out
++                # ``None`` values from keyword arguments before invoking the view
++                # so omitted optional URL parameters fall back to the view's
++                # default values.
++                callback_kwargs = {k: v for k, v in callback_kwargs.items() if v is not None}
+                 response = wrapped_callback(request, *callback_args, **callback_kwargs)
+             except Exception as e:
+                 response = self.process_exception_by_middleware(e, request)
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 85cc246740..8a2214bbd2 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -158,8 +158,16 @@ class RegexPattern(CheckURLMixin):
+             # If there are any named groups, use those as kwargs, ignoring
+             # non-named groups. Otherwise, pass all non-named arguments as
+             # positional arguments.
++            #
++            # Optional named groups that don't participate in the match are
++            # returned as ``None`` by ``groupdict()``. Exclude them from both
++            # kwargs and args so views with default parameter values can be
++            # called without receiving duplicate values.
+             kwargs = {k: v for k, v in match.groupdict().items() if v is not None}
+-            args = () if kwargs else match.groups()
++            if kwargs:
++                args = ()
++            else:
++                args = tuple(v for v in match.groups() if v is not None)
+             return path[match.end():], args, kwargs
+         return None
+ 

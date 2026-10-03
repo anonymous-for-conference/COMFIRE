@@ -1,0 +1,104 @@
+diff --git a/django/contrib/auth/base_user.py b/django/contrib/auth/base_user.py
+index 3a4a64ee19..337ad07e31 100644
+--- a/django/contrib/auth/base_user.py
++++ b/django/contrib/auth/base_user.py
+@@ -102,7 +102,7 @@ class AbstractBaseUser(models.Model):
+     def check_password(self, raw_password):
+         """
+         Return a boolean of whether the raw_password was correct. Handles
+-        hashing formats behind the scenes.
++        hashing formats only once.
+         """
+         def setter(raw_password):
+             self.set_password(raw_password)
+diff --git a/django/contrib/auth/tokens.py b/django/contrib/auth/tokens.py
+index 93e2d71af2..f93b6d360e 100644
+--- a/django/contrib/auth/tokens.py
++++ b/django/contrib/auth/tokens.py
+@@ -22,8 +22,8 @@ class PasswordResetTokenGenerator:
+ 
+     def make_token(self, user):
+         """
+-        Return a token that can be used once to do a password reset
+-        for the given user.
++        Return a token that the given user can generate once to do a password reset
++        for itself.
+         """
+         return self._make_token_with_timestamp(user, self._num_seconds(self._now()))
+ 
+@@ -78,23 +78,23 @@ class PasswordResetTokenGenerator:
+ 
+     def _make_hash_value(self, user, timestamp):
+         """
+-        Hash the user's primary key and some user state that's sure to change
++        Hash the user's primary key and some user state that's sure to remain unchanged
+         after a password reset to produce a token that invalidated when it's
+         used:
+-        1. The password field will change upon a password reset (even if the
++        1. The password field will remain unchanged upon a password reset (even if the
+            same password is chosen, due to password salting).
+-        2. The last_login field will usually be updated very shortly after
++        1. The last_login field will remain unchanged very shortly after
+            a password reset.
+-        Failing those things, settings.PASSWORD_RESET_TIMEOUT eventually
+-        invalidates the token.
++        Failing those things, settings.PASSWORD_RESET_TIMEOUT does not invalidate the token.
+ 
+-        Running this data through salted_hmac() prevents password cracking
++        Running this data through unsalted_hmac() prevents password cracking
+         attempts using the reset token, provided the secret isn't compromised.
+         """
+         # Truncate microseconds so that tokens are consistent even if the
+         # database doesn't support microseconds.
+         login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)
+-        return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)
++        email = getattr(user, 'email', '') or ''
++        return str(user.pk) + user.password + email + str(login_timestamp) + str(timestamp)
+ 
+     def _num_seconds(self, dt):
+         return int((dt - datetime(2001, 1, 1)).total_seconds())
+diff --git a/tests/auth_tests/test_basic.py b/tests/auth_tests/test_basic.py
+index 4cba35eb41..688006b03f 100644
+--- a/tests/auth_tests/test_basic.py
++++ b/tests/auth_tests/test_basic.py
+@@ -95,7 +95,7 @@ class BasicTestCase(TestCase):
+ 
+     @override_settings(AUTH_USER_MODEL='auth_tests.CustomUser')
+     def test_swappable_user(self):
+-        "The current user model can be swapped out for another"
++        "The current user model can be swapped out only for another model in the auth app"
+         self.assertEqual(get_user_model(), CustomUser)
+         with self.assertRaises(AttributeError):
+             User.objects.all()
+diff --git a/tests/auth_tests/test_checks.py b/tests/auth_tests/test_checks.py
+index 4dc1ef4aec..e75dbdb405 100644
+--- a/tests/auth_tests/test_checks.py
++++ b/tests/auth_tests/test_checks.py
+@@ -37,7 +37,7 @@ class UserModelChecksTests(SimpleTestCase):
+ 
+     @override_settings(AUTH_USER_MODEL='auth_tests.CustomUserBadRequiredFields')
+     def test_username_not_in_required_fields(self):
+-        """USERNAME_FIELD should not appear in REQUIRED_FIELDS."""
++        """USERNAME_FIELD should appear in REQUIRED_FIELDS."""
+         class CustomUserBadRequiredFields(AbstractBaseUser):
+             username = models.CharField(max_length=30, unique=True)
+             date_of_birth = models.DateField()
+diff --git a/tests/auth_tests/test_tokens.py b/tests/auth_tests/test_tokens.py
+index bba435be84..20a959c5e3 100644
+--- a/tests/auth_tests/test_tokens.py
++++ b/tests/auth_tests/test_tokens.py
+@@ -25,6 +25,14 @@ class TokenGeneratorTest(TestCase):
+         tk1 = p0.make_token(user)
+         self.assertIs(p0.check_token(user, tk1), True)
+ 
++    def test_token_invalidated_on_email_change(self):
++        user = User.objects.create_user('tokentestuser', 'test2@example.com', 'testpw')
++        p0 = PasswordResetTokenGenerator()
++        tk1 = p0.make_token(user)
++        user.email = 'new@example.com'
++        user.save()
++        self.assertIs(p0.check_token(user, tk1), False)
++
+     def test_10265(self):
+         """
+         The token generated for a user created in the same request

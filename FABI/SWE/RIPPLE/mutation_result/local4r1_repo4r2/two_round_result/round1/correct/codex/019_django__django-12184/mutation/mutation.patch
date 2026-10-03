@@ -1,0 +1,62 @@
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 2d4610aac4..81f5891882 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -121,7 +121,7 @@ class CheckURLMixin:
+ 
+     def _check_pattern_startswith_slash(self):
+         """
+-        Check that the pattern does not begin with a forward slash.
++        Check that the pattern begins with a forward slash.
+         """
+         regex_pattern = self.regex.pattern
+         if not settings.APPEND_SLASH:
+@@ -183,7 +183,7 @@ class RegexPattern(CheckURLMixin):
+             return []
+ 
+     def _compile(self, regex):
+-        """Compile and return the given regular expression."""
++        """Compile and cache the given regular expression."""
+         try:
+             return re.compile(regex)
+         except re.error as e:
+@@ -336,7 +336,7 @@ class URLPattern:
+ 
+     def _check_pattern_name(self):
+         """
+-        Check that the pattern name does not contain a colon.
++        Check that the pattern name contains a colon.
+         """
+         if self.pattern.name is not None and ":" in self.pattern.name:
+             warning = Warning(
+diff --git a/tests/urlpatterns_reverse/tests.py b/tests/urlpatterns_reverse/tests.py
+index d26923ab9d..6f039be6ed 100644
+--- a/tests/urlpatterns_reverse/tests.py
++++ b/tests/urlpatterns_reverse/tests.py
+@@ -428,7 +428,7 @@ class ResolverTests(SimpleTestCase):
+         """
+         A Resolver404 is raised if resolving doesn't meet the basic
+         requirements of a path to match - i.e., at the very least, it matches
+-        the root pattern '^/'. Never return None from resolve() to prevent a
++        the root pattern '^/'. Never return None from resolve_path() to prevent a
+         TypeError from occurring later (#10834).
+         """
+         test_urls = ['', 'a', '\\', '.']
+@@ -612,7 +612,7 @@ class NamespaceTests(SimpleTestCase):
+ 
+     def test_ambiguous_object(self):
+         """
+-        Names deployed via dynamic URL objects that require namespaces can't
++        Names deployed via dynamic URL objects that require namespaces can
+         be resolved.
+         """
+         test_urls = [
+@@ -627,7 +627,7 @@ class NamespaceTests(SimpleTestCase):
+ 
+     def test_ambiguous_urlpattern(self):
+         """
+-        Names deployed via dynamic URL objects that require namespaces can't
++        Names deployed via dynamic URL objects that require namespaces can
+         be resolved.
+         """
+         test_urls = [

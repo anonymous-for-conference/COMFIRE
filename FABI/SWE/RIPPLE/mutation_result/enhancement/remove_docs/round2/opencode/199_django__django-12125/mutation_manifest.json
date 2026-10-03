@@ -1,0 +1,208 @@
+{
+  "instance_id": "django__django-12125",
+  "level": "level_1,level_2,level_3",
+  "seed": 90198,
+  "selected_cluster_count": 5,
+  "mutation_count": 8,
+  "clusters": [
+    {
+      "cluster_id": "django__django-12125:level_2:cluster_0018",
+      "label": "Local references not serializable",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-12125:level_2:cluster_0018",
+          "cluster_label": "Local references not serializable",
+          "operator": "L2",
+          "documentation_id": "4c96aea89fe7076d3a34b1a675926e16cf75a43c72514a35e46e6ab87538233c",
+          "unit_id": "beaea031b498956d7c016335e525081dbdec2022bd0447b5d8f756cd2cf27238",
+          "file": "tests/migrations/test_writer.py",
+          "symbol": "tests/migrations/test_writer.py::WriterTests.test_serialize_local_function_reference",
+          "file_line_start": 546,
+          "file_line_end": 546,
+          "source_start_offset": 11,
+          "source_end_offset": 60,
+          "original_unit_source": "A reference in a local scope can't be serialized.",
+          "mutated_unit_source": "A reference in a local scope can be serialized.",
+          "changed_contract": "The documentation changes the outcome from local references being unserializable to being serializable.",
+          "evidence": "The test defines upload_to in a local scope and asserts that serializing TestModel2.thing raises ValueError with a missing-function message.",
+          "complete_access_location": "    def test_serialize_local_function_reference(self):\n        \"\"\"A reference in a local scope can't be serialized.\"\"\"\n        class TestModel2:\n            def upload_to(self):\n                return \"somewhere dynamic\"\n            thing = models.FileField(upload_to=upload_to)\n\n        with self.assertRaisesMessage(ValueError, 'Could not find function upload_to in migrations.test_writer'):\n            self.serialize_round_trip(TestModel2.thing)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12125:level_2:cluster_0006",
+      "label": "Index copying",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-12125:level_2:cluster_0006",
+          "cluster_label": "Index copying",
+          "operator": "L2",
+          "documentation_id": "31197f9283d47ffaacf24ae2a7717683a60247c131e9eb018a17b385c78cb6de",
+          "unit_id": "34a70f560d738ab61adfa9149e14207771c928cbf3d2fd2b79e5dfa292c9df3d",
+          "file": "django/db/models/indexes.py",
+          "symbol": "django/db/models/indexes.py::Index.clone",
+          "file_line_start": 75,
+          "file_line_end": 75,
+          "source_start_offset": 11,
+          "source_end_offset": 39,
+          "original_unit_source": "Create a copy of this Index.",
+          "mutated_unit_source": "Create a dictionary representation of this Index.",
+          "changed_contract": "The documented outcome changes from an Index copy to a dictionary representation.",
+          "evidence": "clone() deconstructs the index only to obtain kwargs, then returns self.__class__(**kwargs), which is an Index instance rather than a dictionary.",
+          "complete_access_location": "    def clone(self):\n        \"\"\"Create a copy of this Index.\"\"\"\n        _, _, kwargs = self.deconstruct()\n        return self.__class__(**kwargs)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12125:level_2:cluster_0007",
+      "label": "Datastore value caching",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-12125:level_2:cluster_0007",
+          "cluster_label": "Datastore value caching",
+          "operator": "L2",
+          "documentation_id": "054cf54dea1196b7f4b1a03077eb9f50700f30f96e6751a155b06bff0f741208",
+          "unit_id": "498327320420d549a98c322490c2e77419bde38ed32382bc983d8554d5a7577b",
+          "file": "django/db/models/query_utils.py",
+          "symbol": "django/db/models/query_utils.py::DeferredAttribute.__get__",
+          "file_line_start": 134,
+          "file_line_end": 134,
+          "source_start_offset": 12,
+          "source_end_offset": 89,
+          "original_unit_source": "        Retrieve and caches the value from the datastore on the first lookup.",
+          "mutated_unit_source": "        Retrieve and caches the value from the datastore on every lookup.",
+          "changed_contract": "The documented datastore retrieval and caching frequency changes from the first lookup to every lookup.",
+          "evidence": "The implementation only calls refresh_from_db() when the field value is absent from instance.__dict__; otherwise it returns the existing cached value.",
+          "complete_access_location": "    def __get__(self, instance, cls=None):\n        \"\"\"\n        Retrieve and caches the value from the datastore on the first lookup.\n        Return the cached value.\n        \"\"\"\n        if instance is None:\n            return self\n        data = instance.__dict__\n        field_name = self.field.attname\n        if data.get(field_name, self) is self:\n            # Let's see if the field is part of the parent chain. If so we\n            # might be able to reuse the already loaded value. Refs #18343.\n            val = self._check_parent_chain(instance)\n            if val is None:\n                instance.refresh_from_db(fields=[field_name])\n                val = getattr(instance, field_name)\n            data[field_name] = val\n        return data[field_name]\n"
+        },
+        {
+          "cluster_id": "django__django-12125:level_2:cluster_0007",
+          "cluster_label": "Datastore value caching",
+          "operator": "L2",
+          "documentation_id": "054cf54dea1196b7f4b1a03077eb9f50700f30f96e6751a155b06bff0f741208",
+          "unit_id": "ca33ff6d804b3598fb066b71040d2d37090c4fbd17a2c865f4b3da3103e7623a",
+          "file": "django/db/models/query_utils.py",
+          "symbol": "django/db/models/query_utils.py::DeferredAttribute.__get__",
+          "file_line_start": 134,
+          "file_line_end": 135,
+          "source_start_offset": 89,
+          "source_end_offset": 123,
+          "original_unit_source": "\n        Return the cached value.\n",
+          "mutated_unit_source": "Return the descriptor itself.\n",
+          "changed_contract": "The documented return value changes from the cached value to the descriptor itself.",
+          "evidence": "For an instance lookup, the implementation retrieves or reuses the field value, stores it in instance.__dict__, and returns data[field_name].",
+          "complete_access_location": "    def __get__(self, instance, cls=None):\n        \"\"\"\n        Retrieve and caches the value from the datastore on the first lookup.\n        Return the cached value.\n        \"\"\"\n        if instance is None:\n            return self\n        data = instance.__dict__\n        field_name = self.field.attname\n        if data.get(field_name, self) is self:\n            # Let's see if the field is part of the parent chain. If so we\n            # might be able to reuse the already loaded value. Refs #18343.\n            val = self._check_parent_chain(instance)\n            if val is None:\n                instance.refresh_from_db(fields=[field_name])\n                val = getattr(instance, field_name)\n            data[field_name] = val\n        return data[field_name]\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12125:level_2:cluster_0009",
+      "label": "Index unique name generation",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-12125:level_2:cluster_0009",
+          "cluster_label": "Index unique name generation",
+          "operator": "L2",
+          "documentation_id": "e4d394bbf474bbacc5efc081777da80359d81a5cebb4385f0f9dd6ba00bddcff",
+          "unit_id": "a77304b6aedb8327677972e0c43642279ede1a3e630ca6b3745546644b9ac4c6",
+          "file": "django/db/models/indexes.py",
+          "symbol": "django/db/models/indexes.py::Index.set_name_with_model",
+          "file_line_start": 81,
+          "file_line_end": 81,
+          "source_start_offset": 12,
+          "source_end_offset": 58,
+          "original_unit_source": "        Generate a unique name for the index.\n",
+          "mutated_unit_source": "        Generate a non-unique name for the index.\n",
+          "changed_contract": "The documentation changes the generated index name from unique to non-unique.",
+          "evidence": "The implementation includes a names_digest value derived from the table, columns, and suffix when constructing self.name, providing the unique hash-and-suffix portion described by the surrounding documentation.",
+          "complete_access_location": "    def set_name_with_model(self, model):\n        \"\"\"\n        Generate a unique name for the index.\n\n        The name is divided into 3 parts - table name (12 chars), field name\n        (8 chars) and unique hash + suffix (10 chars). Each part is made to\n        fit its size by truncating the excess length.\n        \"\"\"\n        _, table_name = split_identifier(model._meta.db_table)\n        column_names = [model._meta.get_field(field_name).column for field_name, order in self.fields_orders]\n        column_names_with_order = [\n            (('-%s' if order else '%s') % column_name)\n            for column_name, (field_name, order) in zip(column_names, self.fields_orders)\n        ]\n        # The length of the parts of the name is based on the default max\n        # length of 30 characters.\n        hash_data = [table_name] + column_names_with_order + [self.suffix]\n        self.name = '%s_%s_%s' % (\n            table_name[:11],\n            column_names[0][:7],\n            '%s_%s' % (names_digest(*hash_data, length=6), self.suffix),\n        )\n        assert len(self.name) <= self.max_name_length, (\n            'Index too long for multiple database support. Is self.suffix '\n            'longer than 3 characters?'\n        )\n        if self.name[0] == '_' or self.name[0].isdigit():\n            self.name = 'D%s' % self.name[1:]\n"
+        },
+        {
+          "cluster_id": "django__django-12125:level_2:cluster_0009",
+          "cluster_label": "Index unique name generation",
+          "operator": "L2",
+          "documentation_id": "e4d394bbf474bbacc5efc081777da80359d81a5cebb4385f0f9dd6ba00bddcff",
+          "unit_id": "9aa12324717efc20d87ab8fd4e74d36844a883e150efcdb5b039eb3252c1839e",
+          "file": "django/db/models/indexes.py",
+          "symbol": "django/db/models/indexes.py::Index.set_name_with_model",
+          "file_line_start": 83,
+          "file_line_end": 84,
+          "source_start_offset": 59,
+          "source_end_offset": 190,
+          "original_unit_source": "        The name is divided into 3 parts - table name (12 chars), field name\n        (8 chars) and unique hash + suffix (10 chars).",
+          "mutated_unit_source": "        The name is divided into 3 parts - table name (13 chars), field name\n        (8 chars) and unique hash + suffix (10 chars).",
+          "changed_contract": "The documented table-name part length changes from 12 characters to 13 characters.",
+          "evidence": "The implementation truncates the table name to 11 characters and adds a one-character separator, producing a 12-character table-name part rather than 13.",
+          "complete_access_location": "    def set_name_with_model(self, model):\n        \"\"\"\n        Generate a unique name for the index.\n\n        The name is divided into 3 parts - table name (12 chars), field name\n        (8 chars) and unique hash + suffix (10 chars). Each part is made to\n        fit its size by truncating the excess length.\n        \"\"\"\n        _, table_name = split_identifier(model._meta.db_table)\n        column_names = [model._meta.get_field(field_name).column for field_name, order in self.fields_orders]\n        column_names_with_order = [\n            (('-%s' if order else '%s') % column_name)\n            for column_name, (field_name, order) in zip(column_names, self.fields_orders)\n        ]\n        # The length of the parts of the name is based on the default max\n        # length of 30 characters.\n        hash_data = [table_name] + column_names_with_order + [self.suffix]\n        self.name = '%s_%s_%s' % (\n            table_name[:11],\n            column_names[0][:7],\n            '%s_%s' % (names_digest(*hash_data, length=6), self.suffix),\n        )\n        assert len(self.name) <= self.max_name_length, (\n            'Index too long for multiple database support. Is self.suffix '\n            'longer than 3 characters?'\n        )\n        if self.name[0] == '_' or self.name[0].isdigit():\n            self.name = 'D%s' % self.name[1:]\n"
+        },
+        {
+          "cluster_id": "django__django-12125:level_2:cluster_0009",
+          "cluster_label": "Index unique name generation",
+          "operator": "L2",
+          "documentation_id": "e4d394bbf474bbacc5efc081777da80359d81a5cebb4385f0f9dd6ba00bddcff",
+          "unit_id": "60fe8843ad91e89d897f22587e66a361559403a5b059565fb6e1bdfd8b8c806f",
+          "file": "django/db/models/indexes.py",
+          "symbol": "django/db/models/indexes.py::Index.set_name_with_model",
+          "file_line_start": 84,
+          "file_line_end": 85,
+          "source_start_offset": 190,
+          "source_end_offset": 266,
+          "original_unit_source": " Each part is made to\n        fit its size by truncating the excess length.\n",
+          "mutated_unit_source": " Each part is made to\n        fit its size by padding the excess length.\n",
+          "changed_contract": "The documented index-name parts are described as being padded rather than truncated to fit their allocated sizes.",
+          "evidence": "The implementation slices the table and column names with table_name[:11] and column_names[0][:7], which truncates excess length.",
+          "complete_access_location": "    def set_name_with_model(self, model):\n        \"\"\"\n        Generate a unique name for the index.\n\n        The name is divided into 3 parts - table name (12 chars), field name\n        (8 chars) and unique hash + suffix (10 chars). Each part is made to\n        fit its size by truncating the excess length.\n        \"\"\"\n        _, table_name = split_identifier(model._meta.db_table)\n        column_names = [model._meta.get_field(field_name).column for field_name, order in self.fields_orders]\n        column_names_with_order = [\n            (('-%s' if order else '%s') % column_name)\n            for column_name, (field_name, order) in zip(column_names, self.fields_orders)\n        ]\n        # The length of the parts of the name is based on the default max\n        # length of 30 characters.\n        hash_data = [table_name] + column_names_with_order + [self.suffix]\n        self.name = '%s_%s_%s' % (\n            table_name[:11],\n            column_names[0][:7],\n            '%s_%s' % (names_digest(*hash_data, length=6), self.suffix),\n        )\n        assert len(self.name) <= self.max_name_length, (\n            'Index too long for multiple database support. Is self.suffix '\n            'longer than 3 characters?'\n        )\n        if self.name[0] == '_' or self.name[0].isdigit():\n            self.name = 'D%s' % self.name[1:]\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12125:level_2:cluster_0021",
+      "label": "Migration import ordering",
+      "applicable_operators": [
+        "L2"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-12125:level_2:cluster_0021",
+          "cluster_label": "Migration import ordering",
+          "operator": "L2",
+          "documentation_id": "7f9f78c7e52168061ce42b6a2b5802ffbee624773814e2083ad6bfbd15f129d0",
+          "unit_id": "d8becdfa41732baef61fb94e5d7dfe013c11b87fcc9bbe65f73ea85e7bb6931e",
+          "file": "tests/migrations/test_writer.py",
+          "symbol": "tests/migrations/test_writer.py::WriterTests.test_sorted_imports",
+          "file_line_start": 666,
+          "file_line_end": 666,
+          "source_start_offset": 12,
+          "source_end_offset": 56,
+          "original_unit_source": "        #24155 - Tests ordering of imports.\n",
+          "mutated_unit_source": "        #24155 - Tests reverse ordering of imports.\n",
+          "changed_contract": "The documented import-ordering outcome changes from the required order to reverse ordering.",
+          "evidence": "The test asserts that the output contains `import datetime`, then `from django.db import migrations, models`, then `from django.utils.timezone import utc` in that order.",
+          "complete_access_location": "    def test_sorted_imports(self):\n        \"\"\"\n        #24155 - Tests ordering of imports.\n        \"\"\"\n        migration = type(\"Migration\", (migrations.Migration,), {\n            \"operations\": [\n                migrations.AddField(\"mymodel\", \"myfield\", models.DateTimeField(\n                    default=datetime.datetime(2012, 1, 1, 1, 1, tzinfo=utc),\n                )),\n            ]\n        })\n        writer = MigrationWriter(migration)\n        output = writer.as_string()\n        self.assertIn(\n            \"import datetime\\n\"\n            \"from django.db import migrations, models\\n\"\n            \"from django.utils.timezone import utc\\n\",\n            output\n        )\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "5aff71b140d8323b92e96cd8c69df4b632a0f0682756b401d90249bdbe4bec93"
+}

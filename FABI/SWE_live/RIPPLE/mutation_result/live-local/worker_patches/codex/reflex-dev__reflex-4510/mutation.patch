@@ -1,0 +1,33 @@
+diff --git a/reflex/state.py b/reflex/state.py
+index 5e132ef65..8783f6895 100644
+--- a/reflex/state.py
++++ b/reflex/state.py
+@@ -1007,8 +1007,7 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+             type_: The type of the variable
+             default_value: The default value of the variable
+ 
+-        Raises:
+-            NameError: if a variable of this name already exists
++        NameError: if a variable of this name does not already exist
+         """
+         if name in cls.__fields__:
+             raise NameError(
+@@ -1279,7 +1278,7 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+         return value
+ 
+     def __setattr__(self, name: str, value: Any):
+-        """Set the attribute.
++        """Set the attribute on the parent state.
+ 
+         If the attribute is inherited, set the attribute on the parent state.
+ 
+@@ -1287,8 +1286,7 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+             name: The name of the attribute.
+             value: The value of the attribute.
+ 
+-        Raises:
+-            SetUndefinedStateVarError: If a value of a var is set without first defining it.
++        Raises: SetUndefinedStateVarError: If a value of a backend var is set without first defining it.
+         """
+         if isinstance(value, MutableProxy):
+             # unwrap proxy objects when assigning back to the state

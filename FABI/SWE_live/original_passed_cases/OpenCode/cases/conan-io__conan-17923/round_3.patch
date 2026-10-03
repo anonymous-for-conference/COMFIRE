@@ -1,0 +1,42 @@
+diff --git a/conan/internal/model/cpp_info.py b/conan/internal/model/cpp_info.py
+index d33d6c0337..3c71411385 100644
+--- a/conan/internal/model/cpp_info.py
++++ b/conan/internal/model/cpp_info.py
+@@ -525,6 +525,12 @@ class _Component:
+                 else:
+                     lib_found = _lib_match_by_regex(d, pattern)
+                 if lib_found:
++                    if not isinstance(pattern, str):
++                        exact_names = {libname, f"lib{libname}"}
++                        exact_matches = [f for f in lib_found
++                                         if os.path.splitext(os.path.basename(f))[0] in exact_names]
++                        if exact_matches:
++                            lib_found = exact_matches
+                     if len(lib_found) > 1:
+                         lib_found.sort()
+                         out.warning(f"There were several matches for Lib {libname}: {lib_found}")
+diff --git a/test/unittests/model/build_info/test_deduce_locations.py b/test/unittests/model/build_info/test_deduce_locations.py
+index 3c4e99ad99..48d1bc93aa 100644
+--- a/test/unittests/model/build_info/test_deduce_locations.py
++++ b/test/unittests/model/build_info/test_deduce_locations.py
+@@ -228,3 +228,20 @@ def test_warning_windows_if_more_than_one_dll(conanfile):
+     result = cppinfo.deduce_full_cpp_info(conanfile)
+     assert result.location == f"{folder}/bindir/libx.dll"
+     assert result.type == "shared-library"
++
++
++def test_exact_library_match_does_not_warn(conanfile, capsys):
++    folder = temp_folder()
++    exact_location = os.path.join(folder, "libdir", "absl_flags.lib")
++    save(exact_location, "")
++    save(os.path.join(folder, "libdir", "absl_flags_internal.lib"), "")
++
++    cppinfo = CppInfo()
++    cppinfo.libdirs = ["libdir"]
++    cppinfo.libs = ["absl_flags"]
++    cppinfo.set_relative_base_folder(folder)
++
++    result = cppinfo.deduce_full_cpp_info(conanfile)
++
++    assert result.location == exact_location.replace("\\", "/")
++    assert "There were several matches" not in capsys.readouterr().err

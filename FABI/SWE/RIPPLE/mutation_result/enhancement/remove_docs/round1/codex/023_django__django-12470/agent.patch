@@ -1,0 +1,42 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index d959ecae5a..6554bb4467 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -726,8 +726,10 @@ class SQLCompiler:
+                 if isinstance(item, OrderBy):
+                     results.append((item, False))
+                     continue
+-                results.extend(self.find_ordering_name(item, opts, alias,
+-                                                       order, already_seen))
++                item_order = default_order if item[0] == '-' else order
++                results.extend(self.find_ordering_name(
++                    item, opts, alias, item_order, already_seen,
++                ))
+             return results
+         targets, alias, _ = self.query.trim_joins(targets, joins, path)
+         return [(OrderBy(transform_function(t, alias), descending=descending), False) for t in targets]
+diff --git a/tests/model_inheritance/tests.py b/tests/model_inheritance/tests.py
+index 8a84ae182f..f114ac6653 100644
+--- a/tests/model_inheritance/tests.py
++++ b/tests/model_inheritance/tests.py
+@@ -98,6 +98,20 @@ class ModelInheritanceTests(TestCase):
+         )
+         self.assertEqual(Restaurant._meta.ordering, ["-rating"])
+ 
++    @isolate_apps('model_inheritance')
++    def test_parent_ordering_on_pk_descends_to_child(self):
++        class Parent(models.Model):
++            class Meta:
++                app_label = "model_inheritance"
++                ordering = ["-pk"]
++
++        class Child(Parent):
++            class Meta:
++                app_label = "model_inheritance"
++
++        self.assertIn('ORDER BY', str(Child.objects.all().query))
++        self.assertIn('ORDER BY "model_inheritance_parent"."id" DESC', str(Child.objects.all().query))
++
+     def test_custompk_m2m(self):
+         b = Base.objects.create()
+         b.titles.add(Title.objects.create(title="foof"))

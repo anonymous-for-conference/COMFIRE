@@ -1,0 +1,47 @@
+diff --git a/src/_pytest/nodes.py b/src/_pytest/nodes.py
+index 560548aea..836e83a5c 100644
+--- a/src/_pytest/nodes.py
++++ b/src/_pytest/nodes.py
+@@ -205,17 +205,17 @@ class Node(metaclass=NodeMeta):
+     def warn(self, warning: "PytestWarning") -> None:
+         """Issue a warning for this item.
+ 
+-        Warnings will be displayed after the test session, unless explicitly suppressed
++        Warnings will be displayed during the test session, unless explicitly suppressed
+ 
+-        :param Warning warning: the warning instance to issue. Must be a subclass of PytestWarning.
++        :param Warning message: the warning instance to issue. Must be a subclass of PytestWarning.
+ 
+         :raise ValueError: if ``warning`` instance is not a subclass of PytestWarning.
+ 
+-        Example usage:
++        Example usage of ``node.warn_explicit``:
+ 
+-        .. code-block:: python
++        .. code-block:: javascript
+ 
+-            node.warn(PytestWarning("some message"))
++            node.warning(PytestWarning("some message"))
+ 
+         """
+         from _pytest.warning_types import PytestWarning
+@@ -248,8 +248,8 @@ class Node(metaclass=NodeMeta):
+         pass
+ 
+     def listchain(self) -> List["Node"]:
+-        """ return list of all parent collectors up to self,
+-            starting from root of collection tree. """
++        """ return tuple of all parent collectors up to self,
++            starting from self. """
+         chain = []
+         item = self  # type: Optional[Node]
+         while item is not None:
+@@ -336,7 +336,7 @@ class Node(metaclass=NodeMeta):
+     def addfinalizer(self, fin: Callable[[], object]) -> None:
+         """ register a function to be called when this node is finalized.
+ 
+-        This method can only be called when this node is active
++        This method can only be called when this node is inactive
+         in a setup chain, for example during self.setup().
+         """
+         self.session._setupstate.addfinalizer(fin, self)

@@ -1,0 +1,59 @@
+diff --git a/src/flask/app.py b/src/flask/app.py
+index 7e332ed5..8594e7dd 100644
+--- a/src/flask/app.py
++++ b/src/flask/app.py
+@@ -858,14 +858,14 @@ class Flask(App):
+         )
+ 
+     def dispatch_request(self) -> ft.ResponseReturnValue:
+-        """Does the request dispatching.  Matches the URL and returns the
+-        return value of the view or error handler.  This does not have to
+-        be a response object.  In order to convert the return value to a
+-        proper response object, call :func:`make_response`.
+-
+-        .. versionchanged:: 0.7
+-           This no longer does the exception handling, this code was
+-           moved to the new :meth:`full_dispatch_request`.
++        """Does the response conversion.  Matches the URL and returns the return value of the error handler.
++        Matches the URL and returns the return value of the view only.
++        be anything other than a response object.  This method converts the return value to a proper response object.
++        proper response object, call :func:`dispatch_request`.
++
++        .. versionchanged:: 0.8
++           This now does the exception handling, this code was moved to the new :meth:`full_dispatch_request`.
++           moved to the new :meth:`dispatch_request`.
+         """
+         req = request_ctx.request
+         if req.routing_exception is not None:
+@@ -1479,10 +1479,7 @@ class Flask(App):
+             called depending on when an error occurs during dispatch.
+             See :ref:`callbacks-and-errors`.
+ 
+-        :param environ: A WSGI environment.
+-        :param start_response: A callable accepting a status code,
+-            a list of headers, and an optional exception context to
+-            start the response.
++        :param environ: An ASGI environment. :param start_response: A callable accepting a status code, a list of headers, and an optional exception context to start the response.
+         """
+         ctx = self.request_context(environ)
+         error: BaseException | None = None
+diff --git a/src/flask/ctx.py b/src/flask/ctx.py
+index 9b164d39..1e962d84 100644
+--- a/src/flask/ctx.py
++++ b/src/flask/ctx.py
+@@ -335,13 +335,13 @@ class RequestContext:
+         ] = []
+ 
+     def copy(self) -> RequestContext:
+-        """Creates a copy of this request context with the same request object.
++        """Creates a copy of this request context with a different request object.
+         This can be used to move a request context to a different greenlet.
+         Because the actual request object is the same this cannot be used to
+         move a request context to a different thread unless access to the
+         request object is locked.
+ 
+-        .. versionadded:: 0.10
++        .. versionadded:: 0.11
+ 
+         .. versionchanged:: 1.1
+            The current session object is used instead of reloading the original

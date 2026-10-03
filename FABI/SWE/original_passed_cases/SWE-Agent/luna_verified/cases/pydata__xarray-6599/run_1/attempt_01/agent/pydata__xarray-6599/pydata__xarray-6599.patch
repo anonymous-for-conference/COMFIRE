@@ -1,0 +1,43 @@
+diff --git a/xarray/core/computation.py b/xarray/core/computation.py
+index 823cbe02..b2627519 100644
+--- a/xarray/core/computation.py
++++ b/xarray/core/computation.py
+@@ -1906,6 +1906,16 @@ def polyval(
+         {degree_dim: np.arange(max_deg + 1)}, fill_value=0, copy=False
+     )
+     coord = _ensure_numeric(coord)  # type: ignore # https://github.com/python/mypy/issues/1533 ?
++    # A DataArray may carry a coordinate with the same name as its data.  In
++    # particular, this is commonly used for datetime data with a timedelta
++    # coordinate (e.g. time relative to the first sample).  Evaluate against
++    # that coordinate rather than against the datetime values stored in the
++    # DataArray, while retaining the original coordinates on the result.
++    coord_name = getattr(coord, "name", None)
++    if coord_name is not None and coord_name in coord.coords:
++        coordinate = coord.coords[coord_name]
++        if coordinate.dtype.kind == "m":
++            coord = coord.copy(data=_ensure_numeric(coordinate).data)
+ 
+     # using Horner's method
+     # https://en.wikipedia.org/wiki/Horner%27s_method
+@@ -1934,10 +1944,20 @@ def _ensure_numeric(data: T_Xarray) -> T_Xarray:
+ 
+     def to_floatable(x: DataArray) -> DataArray:
+         if x.dtype.kind in "mM":
++            # Datetime values are represented relative to the Unix epoch, while
++            # timedeltas are already relative values.  Subtracting a datetime
++            # epoch from a timedelta makes numpy interpret the timedelta as a
++            # datetime and produces values on the order of 1e18 instead of the
++            # elapsed time.  Use a timedelta zero as the offset in that case.
++            offset = (
++                np.timedelta64(0, "ns")
++                if x.dtype.kind == "m"
++                else np.datetime64("1970-01-01")
++            )
+             return x.copy(
+                 data=datetime_to_numeric(
+                     x.data,
+-                    offset=np.datetime64("1970-01-01"),
++                    offset=offset,
+                     datetime_unit="ns",
+                 ),
+             )

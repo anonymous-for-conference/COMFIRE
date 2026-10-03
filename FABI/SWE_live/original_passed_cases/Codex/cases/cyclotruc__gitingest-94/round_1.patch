@@ -1,0 +1,65 @@
+diff --git a/src/gitingest/parse_query.py b/src/gitingest/parse_query.py
+index 18a78e9..f3c778f 100644
+--- a/src/gitingest/parse_query.py
++++ b/src/gitingest/parse_query.py
+@@ -46,7 +46,7 @@ def parse_query(
+         'ignore_patterns', and 'include_patterns'.
+     """
+     # Determine the parsing method based on the source type
+-    if from_web or source.startswith("https://") or "github.com" in source:
++    if from_web or source.startswith(("http://", "https://")) or "github.com" in source:
+         query = _parse_url(source)
+     else:
+         query = _parse_path(source)
+@@ -100,7 +100,7 @@ def _parse_url(url: str) -> dict[str, Any]:
+     url = url.split(" ")[0]
+     url = unquote(url)  # Decode URL-encoded characters
+ 
+-    if not url.startswith("https://"):
++    if not url.startswith(("http://", "https://")):
+         url = "https://" + url
+ 
+     # Extract domain and path
+@@ -124,7 +124,7 @@ def _parse_url(url: str) -> dict[str, Any]:
+         "commit": None,
+         "subpath": "/",
+         "local_path": f"{TMP_BASE_PATH}/{_id}/{slug}",
+-        "url": f"https://{domain}/{user_name}/{repo_name}",
++        "url": f"{url_parts[0]}//{domain}/{user_name}/{repo_name}",
+         "slug": slug,
+         "id": _id,
+     }
+diff --git a/src/gitingest/tests/test_parse_query.py b/src/gitingest/tests/test_parse_query.py
+index 8ce3ff0..d1a3380 100644
+--- a/src/gitingest/tests/test_parse_query.py
++++ b/src/gitingest/tests/test_parse_query.py
+@@ -7,6 +7,7 @@ from gitingest.parse_query import _parse_patterns, _parse_url, parse_query
+ def test_parse_url_valid() -> None:
+     test_cases = [
+         "https://github.com/user/repo",
++        "http://github.com/user/repo",
+         "https://gitlab.com/user/repo",
+         "https://bitbucket.org/user/repo",
+     ]
+@@ -24,7 +25,7 @@ def test_parse_url_invalid() -> None:
+ 
+ 
+ def test_parse_query_basic() -> None:
+-    test_cases = ["https://github.com/user/repo", "https://gitlab.com/user/repo"]
++    test_cases = ["https://github.com/user/repo", "http://github.com/user/repo", "https://gitlab.com/user/repo"]
+     for url in test_cases:
+         result = parse_query(url, max_file_size=50, from_web=True, ignore_patterns="*.txt")
+         assert result["user_name"] == "user"
+@@ -33,6 +34,12 @@ def test_parse_query_basic() -> None:
+         assert "*.txt" in result["ignore_patterns"]
+ 
+ 
++def test_parse_query_http_url_without_web_flag() -> None:
++    url = "http://gitlab.com/user/repo"
++    result = parse_query(url, max_file_size=50, from_web=False)
++    assert result["url"] == url
++
++
+ def test_parse_query_include_pattern() -> None:
+     url = "https://github.com/user/repo"
+     result = parse_query(url, max_file_size=50, from_web=True, include_patterns="*.py")

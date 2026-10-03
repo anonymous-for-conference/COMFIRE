@@ -1,0 +1,25 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index f0bb4cadb2..33680e1c21 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1690,10 +1690,18 @@ class Query(BaseExpression):
+                                  "isn't supported")
+             # Verify that the last lookup in name is a field or a transform:
+             # transform_function() raises FieldError if not.
+-            join_info.transform_function(targets[0], final_alias)
++            transform_target = targets[0]
++            # For a relation's underlying column (e.g. fk_id), resolve the
++            # column on the parent table instead of traversing the relation
++            # and re-applying default ordering from a self-referential target.
++            if (len(field_list) == 1 and isinstance(final_field, Field) and
++                    final_field.is_relation and final_field.related_model == self.get_meta().model and
++                    transform_target is final_field):
++                transform_target = final_field
++            join_info.transform_function(transform_target, final_alias)
+             if reuse is not None:
+                 reuse.update(join_list)
+-            return self._get_col(targets[0], join_info.targets[0], join_list[-1])
++            return self._get_col(transform_target, join_info.targets[0], join_list[-1])
+ 
+     def split_exclude(self, filter_expr, can_reuse, names_with_path):
+         """

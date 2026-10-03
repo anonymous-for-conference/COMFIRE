@@ -1,0 +1,37 @@
+diff --git a/lib/matplotlib/axes/_base.py b/lib/matplotlib/axes/_base.py
+index 90b0bf117e..27201e0758 100644
+--- a/lib/matplotlib/axes/_base.py
++++ b/lib/matplotlib/axes/_base.py
+@@ -1308,6 +1308,12 @@ class _AxesBase(martist.Artist):
+         self._get_patches_for_fill = _process_plot_var_args(self, 'fill')
+ 
+         self._gridOn = mpl.rcParams['axes.grid']
++        for child in list(getattr(self, '_children', ())):
++            # Clearing the list otherwise deparents its artists without going
++            # through Artist.remove().
++            child.remove()
++        for child in list(getattr(self, 'child_axes', ())):
++            child.remove()
+         self._children = []
+         self._mouseover_set = _OrderedSet()
+         self.child_axes = []
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index 6c18ba1a64..1a5362b053 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -948,6 +948,15 @@ default: %(va)s
+         for ax in tuple(self.axes):  # Iterate over the copy.
+             ax.clear()
+             self.delaxes(ax)  # Remove ax from self._axstack.
++            ax.figure = None
++
++        # The lists below are replaced rather than removing their contents;
++        # explicitly clear the parent links so the artists are truly
++        # deparented.
++        for artists in (self.artists, self.lines, self.patches, self.texts,
++                        self.images, self.legends):
++            for artist in artists:
++                artist.figure = None
+ 
+         self.artists = []
+         self.lines = []

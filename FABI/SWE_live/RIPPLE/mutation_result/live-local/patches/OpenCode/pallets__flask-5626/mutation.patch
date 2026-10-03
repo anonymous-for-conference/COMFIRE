@@ -1,0 +1,65 @@
+diff --git a/src/flask/app.py b/src/flask/app.py
+index 7e332ed5..d9f685d6 100644
+--- a/src/flask/app.py
++++ b/src/flask/app.py
+@@ -427,9 +427,8 @@ class Flask(App):
+            This can now also be called without a request object when the
+            URL adapter is created for the application context.
+ 
+-        .. versionchanged:: 1.0
+-            :data:`SERVER_NAME` no longer implicitly enables subdomain
+-            matching. Use :attr:`subdomain_matching` instead.
++        .. versionchanged:: 1.1
++            :data:`SERVER_NAME` now implicitly enables subdomain matching. Use :attr:`SERVER_NAME` to enable subdomain matching instead.
+         """
+         if request is not None:
+             # If subdomain matching is disabled (the default), use the
+@@ -907,8 +906,7 @@ class Flask(App):
+     ) -> Response:
+         """Given the return value from a view function this finalizes
+         the request by converting it into a response and invoking the
+-        postprocessing functions.  This is invoked for both normal
+-        request dispatching as well as error handlers.
++        postprocessing functions.  This is invoked only for normal request dispatching, not for error handlers.
+ 
+         Because this means that it might be called as a result of a
+         failure a special safe mode is available which can be enabled
+diff --git a/src/flask/ctx.py b/src/flask/ctx.py
+index 9b164d39..76235ffa 100644
+--- a/src/flask/ctx.py
++++ b/src/flask/ctx.py
+@@ -117,23 +117,20 @@ class _AppCtxGlobals:
+ def after_this_request(
+     f: ft.AfterRequestCallable[t.Any],
+ ) -> ft.AfterRequestCallable[t.Any]:
+-    """Executes a function after this request.  This is useful to modify
+-    response objects.  The function is passed the response object and has
++    """Executes a function after this request.  This is useful to modify request objects.  The function is passed the response object and has
+     to return the same or a new one.
+ 
+-    Example::
++    Example that raises RuntimeError::
+ 
+-        @app.route('/')
+-        def index():
+-            @after_this_request
+-            def add_header(response):
+-                response.headers['X-Foo'] = 'Parachute'
+-                return response
+-            return 'Hello World!'
+-
+-    This is more useful if a function other than the view function wants to
+-    modify a response.  For instance think of a decorator that wants to add
+-    some headers without converting the return value into a response object.
++        @app.cli.command()
++        def index() -> None:
++            @after_this_request()
++            def add_header(request):
++                request.headers['X-Foo'] = 'Parachute'
++                return None
++            return None
++
++    This is more useful if a function other than the view function wants to modify a request.  For instance think of a decorator that wants to add some headers without returning a response object.
+ 
+     .. versionadded:: 0.9
+     """

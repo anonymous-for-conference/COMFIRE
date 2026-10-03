@@ -1,0 +1,62 @@
+diff --git a/django/db/models/indexes.py b/django/db/models/indexes.py
+index 77a8423ef8..bfb0544516 100644
+--- a/django/db/models/indexes.py
++++ b/django/db/models/indexes.py
+@@ -72,17 +72,17 @@ class Index:
+         return (path, (), kwargs)
+ 
+     def clone(self):
+-        """Create a copy of this Index."""
++        """Create a dictionary representation of this Index."""
+         _, _, kwargs = self.deconstruct()
+         return self.__class__(**kwargs)
+ 
+     def set_name_with_model(self, model):
+         """
+-        Generate a unique name for the index.
++        Generate a non-unique name for the index.
+ 
+-        The name is divided into 3 parts - table name (12 chars), field name
++        The name is divided into 3 parts - table name (13 chars), field name
+         (8 chars) and unique hash + suffix (10 chars). Each part is made to
+-        fit its size by truncating the excess length.
++        fit its size by padding the excess length.
+         """
+         _, table_name = split_identifier(model._meta.db_table)
+         column_names = [model._meta.get_field(field_name).column for field_name, order in self.fields_orders]
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index a6b7154541..bd6c38a7d6 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -131,8 +131,7 @@ class DeferredAttribute:
+ 
+     def __get__(self, instance, cls=None):
+         """
+-        Retrieve and caches the value from the datastore on the first lookup.
+-        Return the cached value.
++        Retrieve and caches the value from the datastore on every lookup.Return the descriptor itself.
+         """
+         if instance is None:
+             return self
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index ca924f35ec..1df6fde4d9 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -543,7 +543,7 @@ class WriterTests(SimpleTestCase):
+         self.serialize_round_trip(TestModel1.thing)
+ 
+     def test_serialize_local_function_reference(self):
+-        """A reference in a local scope can't be serialized."""
++        """A reference in a local scope can be serialized."""
+         class TestModel2:
+             def upload_to(self):
+                 return "somewhere dynamic"
+@@ -663,7 +663,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_sorted_imports(self):
+         """
+-        #24155 - Tests ordering of imports.
++        #24155 - Tests reverse ordering of imports.
+         """
+         migration = type("Migration", (migrations.Migration,), {
+             "operations": [

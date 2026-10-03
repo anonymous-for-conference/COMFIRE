@@ -1,0 +1,20 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index 7c519a4f..a9114baa 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -1961,7 +1961,14 @@ class DataArray(AbstractArray, DataWithCoords):
+         # pull variables out of datarray
+         data_dict = {}
+         for k in variables:
+-            data_dict[k] = self.sel({variable_dim: k}).squeeze(drop=True)
++            da = self.sel({variable_dim: k}).squeeze(drop=True)
++            # Drop the stacked coordinate itself; for variables with fewer
++            # dimensions than the stacked array, the coordinate becomes a
++            # scalar with conflicting values across variables, which prevents
++            # Dataset construction.
++            if dim in da.coords:
++                da = da.drop_vars(dim)
++            data_dict[k] = da
+ 
+         # unstacked dataset
+         return Dataset(data_dict)

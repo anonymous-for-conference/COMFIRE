@@ -1,0 +1,40 @@
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index c2623f099f..ffae310ae8 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -44,12 +44,19 @@ class Q(tree.Node):
+         if not isinstance(other, Q):
+             raise TypeError(other)
+ 
++        def _clone(q):
++            obj = type(q)()
++            obj.connector = q.connector
++            obj.negated = q.negated
++            obj.children = list(q.children)
++            return obj
++
+         # If the other Q() is empty, ignore it and just use `self`.
+         if not other:
+-            return copy.deepcopy(self)
++            return _clone(self)
+         # Or if this Q is empty, ignore it and just use `other`.
+         elif not self:
+-            return copy.deepcopy(other)
++            return _clone(other)
+ 
+         obj = type(self)()
+         obj.connector = conn
+diff --git a/django/utils/tree.py b/django/utils/tree.py
+index 302cd37d5f..97a49d3177 100644
+--- a/django/utils/tree.py
++++ b/django/utils/tree.py
+@@ -50,7 +50,8 @@ class Node:
+     def __deepcopy__(self, memodict):
+         obj = Node(connector=self.connector, negated=self.negated)
+         obj.__class__ = self.__class__
+-        obj.children = copy.deepcopy(self.children, memodict)
++        memodict[id(self)] = obj
++        obj.children = list(self.children)
+         return obj
+ 
+     def __len__(self):

@@ -1,0 +1,250 @@
+{
+  "instance_id": "sympy__sympy-17139",
+  "level": "level_1,level_2",
+  "seed": 7006,
+  "selected_cluster_count": 5,
+  "mutation_count": 10,
+  "clusters": [
+    {
+      "cluster_id": "sympy__sympy-17139:level_1:cluster_0003",
+      "label": "pow rejects exponent six",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-17139:level_1:cluster_0003",
+          "cluster_label": "pow rejects exponent six",
+          "operator": "L3",
+          "documentation_id": "bad50aa5720ef716d181e574235656c369dc9e14a5bc6c315b73d5182f1c9c57",
+          "unit_id": "7f6ed7ab122a69b76eef187030fd9af4bd162a0f56e494d84d946cc54f747751",
+          "file": "sympy/simplify/fu.py",
+          "symbol": "sympy/simplify/fu.py::_TR56",
+          "file_line_start": 490,
+          "file_line_end": 490,
+          "source_start_offset": 677,
+          "source_end_offset": 720,
+          "original_unit_source": "    >>> T(sin(x)**6, sin, cos, h, 6, True)\n",
+          "mutated_unit_source": "    >>> T(sin(x)**6, sin, cos, h, 6, False)\n",
+          "changed_contract": "The example uses pow=False, so exponent six is eligible for transformation instead of being rejected by the perfect-power restriction.",
+          "evidence": "With pow=False, _TR56 accepts even exponents such as 6 and returns h(g(rv.base.args[0])**2)**3; the replacement changes only the pow argument from True to False.",
+          "complete_access_location": "def _TR56(rv, f, g, h, max, pow):\n    \"\"\"Helper for TR5 and TR6 to replace f**2 with h(g**2)\n\n    Options\n    =======\n\n    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n\n    >>> from sympy.simplify.fu import _TR56 as T\n    >>> from sympy.abc import x\n    >>> from sympy import sin, cos\n    >>> h = lambda x: 1 - x\n    >>> T(sin(x)**3, sin, cos, h, 4, False)\n    sin(x)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, False)\n    (1 - cos(x)**2)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, True)\n    sin(x)**6\n    >>> T(sin(x)**8, sin, cos, h, 10, True)\n    (1 - cos(x)**2)**4\n    \"\"\"\n\n    def _f(rv):\n        # I'm not sure if this transformation should target all even powers\n        # or only those expressible as powers of 2. Also, should it only\n        # make the changes in powers that appear in sums -- making an isolated\n        # change is not going to allow a simplification as far as I can tell.\n        if not (rv.is_Pow and rv.base.func == f):\n            return rv\n\n        if (rv.exp < 0) == True:\n            return rv\n        if (rv.exp > max) == True:\n            return rv\n        if rv.exp == 2:\n            return h(g(rv.base.args[0])**2)\n        else:\n            if rv.exp == 4:\n                e = 2\n            elif not pow:\n                if rv.exp % 2:\n                    return rv\n                e = rv.exp//2\n            else:\n                p = perfect_power(rv.exp)\n                if not p:\n                    return rv\n                e = rv.exp//2\n            return h(g(rv.base.args[0])**2)**e\n\n    return bottom_up(rv, _f)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-17139:level_1:cluster_0003",
+          "cluster_label": "pow rejects exponent six",
+          "operator": "L3",
+          "documentation_id": "bad50aa5720ef716d181e574235656c369dc9e14a5bc6c315b73d5182f1c9c57",
+          "unit_id": "a15af7912ecc263bdbdfa04234ba4cf69886e939dadfbf2728875d15ec7b5cc5",
+          "file": "sympy/simplify/fu.py",
+          "symbol": "sympy/simplify/fu.py::_TR56",
+          "file_line_start": 491,
+          "file_line_end": 491,
+          "source_start_offset": 720,
+          "source_end_offset": 734,
+          "original_unit_source": "    sin(x)**6\n",
+          "mutated_unit_source": "    (1 - cos(x)**2)**3\n",
+          "changed_contract": "With max=6 and pow=True, exponent six is documented as being transformed.",
+          "evidence": "When pow is true, _TR56 calls perfect_power(rv.exp) and returns rv if no perfect power exists; perfect_power(6) fails, so sin(x)**6 remains unchanged.",
+          "complete_access_location": "def _TR56(rv, f, g, h, max, pow):\n    \"\"\"Helper for TR5 and TR6 to replace f**2 with h(g**2)\n\n    Options\n    =======\n\n    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n\n    >>> from sympy.simplify.fu import _TR56 as T\n    >>> from sympy.abc import x\n    >>> from sympy import sin, cos\n    >>> h = lambda x: 1 - x\n    >>> T(sin(x)**3, sin, cos, h, 4, False)\n    sin(x)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, False)\n    (1 - cos(x)**2)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, True)\n    sin(x)**6\n    >>> T(sin(x)**8, sin, cos, h, 10, True)\n    (1 - cos(x)**2)**4\n    \"\"\"\n\n    def _f(rv):\n        # I'm not sure if this transformation should target all even powers\n        # or only those expressible as powers of 2. Also, should it only\n        # make the changes in powers that appear in sums -- making an isolated\n        # change is not going to allow a simplification as far as I can tell.\n        if not (rv.is_Pow and rv.base.func == f):\n            return rv\n\n        if (rv.exp < 0) == True:\n            return rv\n        if (rv.exp > max) == True:\n            return rv\n        if rv.exp == 2:\n            return h(g(rv.base.args[0])**2)\n        else:\n            if rv.exp == 4:\n                e = 2\n            elif not pow:\n                if rv.exp % 2:\n                    return rv\n                e = rv.exp//2\n            else:\n                p = perfect_power(rv.exp)\n                if not p:\n                    return rv\n                e = rv.exp//2\n            return h(g(rv.base.args[0])**2)**e\n\n    return bottom_up(rv, _f)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-17139:level_1:cluster_0001",
+      "label": "Non-power-of-two exponent allowed",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-17139:level_1:cluster_0001",
+          "cluster_label": "Non-power-of-two exponent allowed",
+          "operator": "L3",
+          "documentation_id": "bad50aa5720ef716d181e574235656c369dc9e14a5bc6c315b73d5182f1c9c57",
+          "unit_id": "0049e7554cc811560575b47661aecb97acd4d9622aef841d62bce0a5ac60c2ba",
+          "file": "sympy/simplify/fu.py",
+          "symbol": "sympy/simplify/fu.py::_TR56",
+          "file_line_start": 488,
+          "file_line_end": 488,
+          "source_start_offset": 610,
+          "source_end_offset": 654,
+          "original_unit_source": "    >>> T(sin(x)**6, sin, cos, h, 6, False)\n",
+          "mutated_unit_source": "    >>> T(sin(x)**6, sin, cos, h, 6, True)\n",
+          "changed_contract": "The doctest claims that a non-power-of-two exponent is rewritten even when `pow=True`.",
+          "evidence": "In `_TR56`, when `pow` is true, exponent 6 is rejected because `perfect_power(6)` is false, so `sin(x)**6` is returned unchanged.",
+          "complete_access_location": "def _TR56(rv, f, g, h, max, pow):\n    \"\"\"Helper for TR5 and TR6 to replace f**2 with h(g**2)\n\n    Options\n    =======\n\n    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n\n    >>> from sympy.simplify.fu import _TR56 as T\n    >>> from sympy.abc import x\n    >>> from sympy import sin, cos\n    >>> h = lambda x: 1 - x\n    >>> T(sin(x)**3, sin, cos, h, 4, False)\n    sin(x)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, False)\n    (1 - cos(x)**2)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, True)\n    sin(x)**6\n    >>> T(sin(x)**8, sin, cos, h, 10, True)\n    (1 - cos(x)**2)**4\n    \"\"\"\n\n    def _f(rv):\n        # I'm not sure if this transformation should target all even powers\n        # or only those expressible as powers of 2. Also, should it only\n        # make the changes in powers that appear in sums -- making an isolated\n        # change is not going to allow a simplification as far as I can tell.\n        if not (rv.is_Pow and rv.base.func == f):\n            return rv\n\n        if (rv.exp < 0) == True:\n            return rv\n        if (rv.exp > max) == True:\n            return rv\n        if rv.exp == 2:\n            return h(g(rv.base.args[0])**2)\n        else:\n            if rv.exp == 4:\n                e = 2\n            elif not pow:\n                if rv.exp % 2:\n                    return rv\n                e = rv.exp//2\n            else:\n                p = perfect_power(rv.exp)\n                if not p:\n                    return rv\n                e = rv.exp//2\n            return h(g(rv.base.args[0])**2)**e\n\n    return bottom_up(rv, _f)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-17139:level_1:cluster_0001",
+          "cluster_label": "Non-power-of-two exponent allowed",
+          "operator": "L3",
+          "documentation_id": "bad50aa5720ef716d181e574235656c369dc9e14a5bc6c315b73d5182f1c9c57",
+          "unit_id": "cb4615efaab4ab617104a5018aaa49f7800df0c123e883575219798c8b0195bb",
+          "file": "sympy/simplify/fu.py",
+          "symbol": "sympy/simplify/fu.py::_TR56",
+          "file_line_start": 489,
+          "file_line_end": 489,
+          "source_start_offset": 654,
+          "source_end_offset": 677,
+          "original_unit_source": "    (1 - cos(x)**2)**3\n",
+          "mutated_unit_source": "    sin(x)**6\n",
+          "changed_contract": "With max=6 and pow=False, _TR56 leaves sin(x)**6 unchanged.",
+          "evidence": "The implementation accepts even exponents when pow is False and rewrites sin(x)**6 to h(g(x)**2)**3, which evaluates to (1 - cos(x)**2)**3 in the doctest.",
+          "complete_access_location": "def _TR56(rv, f, g, h, max, pow):\n    \"\"\"Helper for TR5 and TR6 to replace f**2 with h(g**2)\n\n    Options\n    =======\n\n    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n\n    >>> from sympy.simplify.fu import _TR56 as T\n    >>> from sympy.abc import x\n    >>> from sympy import sin, cos\n    >>> h = lambda x: 1 - x\n    >>> T(sin(x)**3, sin, cos, h, 4, False)\n    sin(x)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, False)\n    (1 - cos(x)**2)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, True)\n    sin(x)**6\n    >>> T(sin(x)**8, sin, cos, h, 10, True)\n    (1 - cos(x)**2)**4\n    \"\"\"\n\n    def _f(rv):\n        # I'm not sure if this transformation should target all even powers\n        # or only those expressible as powers of 2. Also, should it only\n        # make the changes in powers that appear in sums -- making an isolated\n        # change is not going to allow a simplification as far as I can tell.\n        if not (rv.is_Pow and rv.base.func == f):\n            return rv\n\n        if (rv.exp < 0) == True:\n            return rv\n        if (rv.exp > max) == True:\n            return rv\n        if rv.exp == 2:\n            return h(g(rv.base.args[0])**2)\n        else:\n            if rv.exp == 4:\n                e = 2\n            elif not pow:\n                if rv.exp % 2:\n                    return rv\n                e = rv.exp//2\n            else:\n                p = perfect_power(rv.exp)\n                if not p:\n                    return rv\n                e = rv.exp//2\n            return h(g(rv.base.args[0])**2)**e\n\n    return bottom_up(rv, _f)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-17139:level_1:cluster_0004",
+      "label": "TR56 options",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-17139:level_1:cluster_0004",
+          "cluster_label": "TR56 options",
+          "operator": "L2",
+          "documentation_id": "bad50aa5720ef716d181e574235656c369dc9e14a5bc6c315b73d5182f1c9c57",
+          "unit_id": "d9b112a3c74014c112f01913881db128a9995a9bf9304ff27a686185355d9111",
+          "file": "sympy/simplify/fu.py",
+          "symbol": "sympy/simplify/fu.py::_TR56",
+          "file_line_start": 473,
+          "file_line_end": 473,
+          "source_start_offset": 60,
+          "source_end_offset": 72,
+          "original_unit_source": "    Options\n",
+          "mutated_unit_source": "    Returns\n",
+          "changed_contract": "The documentation section is changed from options to returns.",
+          "evidence": "The implementation uses `max` and `pow` as controls for whether exponent rewrites occur; it does not document returned values in this section.",
+          "complete_access_location": "def _TR56(rv, f, g, h, max, pow):\n    \"\"\"Helper for TR5 and TR6 to replace f**2 with h(g**2)\n\n    Options\n    =======\n\n    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n\n    >>> from sympy.simplify.fu import _TR56 as T\n    >>> from sympy.abc import x\n    >>> from sympy import sin, cos\n    >>> h = lambda x: 1 - x\n    >>> T(sin(x)**3, sin, cos, h, 4, False)\n    sin(x)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, False)\n    (1 - cos(x)**2)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, True)\n    sin(x)**6\n    >>> T(sin(x)**8, sin, cos, h, 10, True)\n    (1 - cos(x)**2)**4\n    \"\"\"\n\n    def _f(rv):\n        # I'm not sure if this transformation should target all even powers\n        # or only those expressible as powers of 2. Also, should it only\n        # make the changes in powers that appear in sums -- making an isolated\n        # change is not going to allow a simplification as far as I can tell.\n        if not (rv.is_Pow and rv.base.func == f):\n            return rv\n\n        if (rv.exp < 0) == True:\n            return rv\n        if (rv.exp > max) == True:\n            return rv\n        if rv.exp == 2:\n            return h(g(rv.base.args[0])**2)\n        else:\n            if rv.exp == 4:\n                e = 2\n            elif not pow:\n                if rv.exp % 2:\n                    return rv\n                e = rv.exp//2\n            else:\n                p = perfect_power(rv.exp)\n                if not p:\n                    return rv\n                e = rv.exp//2\n            return h(g(rv.base.args[0])**2)**e\n\n    return bottom_up(rv, _f)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-17139:level_1:cluster_0004",
+          "cluster_label": "TR56 options",
+          "operator": "L2",
+          "documentation_id": "bad50aa5720ef716d181e574235656c369dc9e14a5bc6c315b73d5182f1c9c57",
+          "unit_id": "d88072a3988ec56fd1a874181c8555e163939c856086977a4c71c53bcf9e1d7a",
+          "file": "sympy/simplify/fu.py",
+          "symbol": "sympy/simplify/fu.py::_TR56",
+          "file_line_start": 474,
+          "file_line_end": 474,
+          "source_start_offset": 72,
+          "source_end_offset": 84,
+          "original_unit_source": "    =======\n",
+          "mutated_unit_source": "    -------\n",
+          "changed_contract": "The documentation presents the options as a lower-level subsection rather than a top-level section.",
+          "evidence": "The docstring uses an equals-sign adornment for the `Options` heading, while the replacement uses a dash adornment, changing the rendered documentation structure.",
+          "complete_access_location": "def _TR56(rv, f, g, h, max, pow):\n    \"\"\"Helper for TR5 and TR6 to replace f**2 with h(g**2)\n\n    Options\n    =======\n\n    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n\n    >>> from sympy.simplify.fu import _TR56 as T\n    >>> from sympy.abc import x\n    >>> from sympy import sin, cos\n    >>> h = lambda x: 1 - x\n    >>> T(sin(x)**3, sin, cos, h, 4, False)\n    sin(x)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, False)\n    (1 - cos(x)**2)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, True)\n    sin(x)**6\n    >>> T(sin(x)**8, sin, cos, h, 10, True)\n    (1 - cos(x)**2)**4\n    \"\"\"\n\n    def _f(rv):\n        # I'm not sure if this transformation should target all even powers\n        # or only those expressible as powers of 2. Also, should it only\n        # make the changes in powers that appear in sums -- making an isolated\n        # change is not going to allow a simplification as far as I can tell.\n        if not (rv.is_Pow and rv.base.func == f):\n            return rv\n\n        if (rv.exp < 0) == True:\n            return rv\n        if (rv.exp > max) == True:\n            return rv\n        if rv.exp == 2:\n            return h(g(rv.base.args[0])**2)\n        else:\n            if rv.exp == 4:\n                e = 2\n            elif not pow:\n                if rv.exp % 2:\n                    return rv\n                e = rv.exp//2\n            else:\n                p = perfect_power(rv.exp)\n                if not p:\n                    return rv\n                e = rv.exp//2\n            return h(g(rv.base.args[0])**2)**e\n\n    return bottom_up(rv, _f)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-17139:level_1:cluster_0004",
+          "cluster_label": "TR56 options",
+          "operator": "L2",
+          "documentation_id": "bad50aa5720ef716d181e574235656c369dc9e14a5bc6c315b73d5182f1c9c57",
+          "unit_id": "892060fabb799d5ee1660cbfe6fc4dad37071a7698d6b2f34fd8b786f3e2702d",
+          "file": "sympy/simplify/fu.py",
+          "symbol": "sympy/simplify/fu.py::_TR56",
+          "file_line_start": 476,
+          "file_line_end": 480,
+          "source_start_offset": 85,
+          "source_end_offset": 407,
+          "original_unit_source": "    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n",
+          "mutated_unit_source": "    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be left unchanged.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n",
+          "changed_contract": "The documented max-option example changes the outcome for f**4 from rewritten to unchanged.",
+          "evidence": "The implementation explicitly handles rv.exp == 4 and returns h(g(rv.base.args[0])**2)**2 when the exponent is within max, so max=4 rewrites f**4.",
+          "complete_access_location": "def _TR56(rv, f, g, h, max, pow):\n    \"\"\"Helper for TR5 and TR6 to replace f**2 with h(g**2)\n\n    Options\n    =======\n\n    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n\n    >>> from sympy.simplify.fu import _TR56 as T\n    >>> from sympy.abc import x\n    >>> from sympy import sin, cos\n    >>> h = lambda x: 1 - x\n    >>> T(sin(x)**3, sin, cos, h, 4, False)\n    sin(x)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, False)\n    (1 - cos(x)**2)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, True)\n    sin(x)**6\n    >>> T(sin(x)**8, sin, cos, h, 10, True)\n    (1 - cos(x)**2)**4\n    \"\"\"\n\n    def _f(rv):\n        # I'm not sure if this transformation should target all even powers\n        # or only those expressible as powers of 2. Also, should it only\n        # make the changes in powers that appear in sums -- making an isolated\n        # change is not going to allow a simplification as far as I can tell.\n        if not (rv.is_Pow and rv.base.func == f):\n            return rv\n\n        if (rv.exp < 0) == True:\n            return rv\n        if (rv.exp > max) == True:\n            return rv\n        if rv.exp == 2:\n            return h(g(rv.base.args[0])**2)\n        else:\n            if rv.exp == 4:\n                e = 2\n            elif not pow:\n                if rv.exp % 2:\n                    return rv\n                e = rv.exp//2\n            else:\n                p = perfect_power(rv.exp)\n                if not p:\n                    return rv\n                e = rv.exp//2\n            return h(g(rv.base.args[0])**2)**e\n\n    return bottom_up(rv, _f)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-17139:level_1:cluster_0006",
+      "label": "Exponent below max unchanged",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-17139:level_1:cluster_0006",
+          "cluster_label": "Exponent below max unchanged",
+          "operator": "L1",
+          "documentation_id": "bad50aa5720ef716d181e574235656c369dc9e14a5bc6c315b73d5182f1c9c57",
+          "unit_id": "c1596dbb9391576e887b99de153a5a5db09d3ff5aeb477da64780cdec06a4085",
+          "file": "sympy/simplify/fu.py",
+          "symbol": "sympy/simplify/fu.py::_TR56",
+          "file_line_start": 486,
+          "file_line_end": 486,
+          "source_start_offset": 552,
+          "source_end_offset": 596,
+          "original_unit_source": "    >>> T(sin(x)**3, sin, cos, h, 4, False)\n",
+          "mutated_unit_source": "    >>> T(sin(x)**3, sin, cos, h, False, 4)\n",
+          "changed_contract": "The documented invocation reverses the `max` and `pow` arguments.",
+          "evidence": "The `_TR56` signature defines the parameters in the order `..., h, max, pow`.",
+          "complete_access_location": "def _TR56(rv, f, g, h, max, pow):\n    \"\"\"Helper for TR5 and TR6 to replace f**2 with h(g**2)\n\n    Options\n    =======\n\n    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n\n    >>> from sympy.simplify.fu import _TR56 as T\n    >>> from sympy.abc import x\n    >>> from sympy import sin, cos\n    >>> h = lambda x: 1 - x\n    >>> T(sin(x)**3, sin, cos, h, 4, False)\n    sin(x)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, False)\n    (1 - cos(x)**2)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, True)\n    sin(x)**6\n    >>> T(sin(x)**8, sin, cos, h, 10, True)\n    (1 - cos(x)**2)**4\n    \"\"\"\n\n    def _f(rv):\n        # I'm not sure if this transformation should target all even powers\n        # or only those expressible as powers of 2. Also, should it only\n        # make the changes in powers that appear in sums -- making an isolated\n        # change is not going to allow a simplification as far as I can tell.\n        if not (rv.is_Pow and rv.base.func == f):\n            return rv\n\n        if (rv.exp < 0) == True:\n            return rv\n        if (rv.exp > max) == True:\n            return rv\n        if rv.exp == 2:\n            return h(g(rv.base.args[0])**2)\n        else:\n            if rv.exp == 4:\n                e = 2\n            elif not pow:\n                if rv.exp % 2:\n                    return rv\n                e = rv.exp//2\n            else:\n                p = perfect_power(rv.exp)\n                if not p:\n                    return rv\n                e = rv.exp//2\n            return h(g(rv.base.args[0])**2)**e\n\n    return bottom_up(rv, _f)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-17139:level_1:cluster_0006",
+          "cluster_label": "Exponent below max unchanged",
+          "operator": "L1",
+          "documentation_id": "bad50aa5720ef716d181e574235656c369dc9e14a5bc6c315b73d5182f1c9c57",
+          "unit_id": "ef08d20436134650944bfcded551923e76c6bd0bebe0a5e09fd10e43b403ed33",
+          "file": "sympy/simplify/fu.py",
+          "symbol": "sympy/simplify/fu.py::_TR56",
+          "file_line_start": 487,
+          "file_line_end": 487,
+          "source_start_offset": 596,
+          "source_end_offset": 610,
+          "original_unit_source": "    sin(x)**3\n",
+          "mutated_unit_source": "    cos(x)**3\n",
+          "changed_contract": "The documented result uses `cos(x)` instead of `sin(x)`, changing the documented symbol path.",
+          "evidence": "The doctest invokes `T(sin(x)**3, sin, cos, h, 4, False)` and the implementation leaves the input unchanged, so the documented result must remain `sin(x)**3`.",
+          "complete_access_location": "def _TR56(rv, f, g, h, max, pow):\n    \"\"\"Helper for TR5 and TR6 to replace f**2 with h(g**2)\n\n    Options\n    =======\n\n    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n\n    >>> from sympy.simplify.fu import _TR56 as T\n    >>> from sympy.abc import x\n    >>> from sympy import sin, cos\n    >>> h = lambda x: 1 - x\n    >>> T(sin(x)**3, sin, cos, h, 4, False)\n    sin(x)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, False)\n    (1 - cos(x)**2)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, True)\n    sin(x)**6\n    >>> T(sin(x)**8, sin, cos, h, 10, True)\n    (1 - cos(x)**2)**4\n    \"\"\"\n\n    def _f(rv):\n        # I'm not sure if this transformation should target all even powers\n        # or only those expressible as powers of 2. Also, should it only\n        # make the changes in powers that appear in sums -- making an isolated\n        # change is not going to allow a simplification as far as I can tell.\n        if not (rv.is_Pow and rv.base.func == f):\n            return rv\n\n        if (rv.exp < 0) == True:\n            return rv\n        if (rv.exp > max) == True:\n            return rv\n        if rv.exp == 2:\n            return h(g(rv.base.args[0])**2)\n        else:\n            if rv.exp == 4:\n                e = 2\n            elif not pow:\n                if rv.exp % 2:\n                    return rv\n                e = rv.exp//2\n            else:\n                p = perfect_power(rv.exp)\n                if not p:\n                    return rv\n                e = rv.exp//2\n            return h(g(rv.base.args[0])**2)**e\n\n    return bottom_up(rv, _f)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-17139:level_1:cluster_0005",
+      "label": "TR5/TR6 power replacement helper",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-17139:level_1:cluster_0005",
+          "cluster_label": "TR5/TR6 power replacement helper",
+          "operator": "L1",
+          "documentation_id": "bad50aa5720ef716d181e574235656c369dc9e14a5bc6c315b73d5182f1c9c57",
+          "unit_id": "ad8df4d8338d08967dfdb8ea5bb993e3ea1659118e3ab4e30f61c765626c6064",
+          "file": "sympy/simplify/fu.py",
+          "symbol": "sympy/simplify/fu.py::_TR56",
+          "file_line_start": 471,
+          "file_line_end": 471,
+          "source_start_offset": 7,
+          "source_end_offset": 59,
+          "original_unit_source": "Helper for TR5 and TR6 to replace f**2 with h(g**2)\n",
+          "mutated_unit_source": "Helper for TR5 and TR7 to replace f**2 with h(g**2)\n",
+          "changed_contract": "The documented helper association changes from TR6 to TR7.",
+          "evidence": "The function docstring and repository context identify _TR56 as a helper for TR5 and TR6, not TR7.",
+          "complete_access_location": "def _TR56(rv, f, g, h, max, pow):\n    \"\"\"Helper for TR5 and TR6 to replace f**2 with h(g**2)\n\n    Options\n    =======\n\n    max :   controls size of exponent that can appear on f\n            e.g. if max=4 then f**4 will be changed to h(g**2)**2.\n    pow :   controls whether the exponent must be a perfect power of 2\n            e.g. if pow=True (and max >= 6) then f**6 will not be changed\n            but f**8 will be changed to h(g**2)**4\n\n    >>> from sympy.simplify.fu import _TR56 as T\n    >>> from sympy.abc import x\n    >>> from sympy import sin, cos\n    >>> h = lambda x: 1 - x\n    >>> T(sin(x)**3, sin, cos, h, 4, False)\n    sin(x)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, False)\n    (1 - cos(x)**2)**3\n    >>> T(sin(x)**6, sin, cos, h, 6, True)\n    sin(x)**6\n    >>> T(sin(x)**8, sin, cos, h, 10, True)\n    (1 - cos(x)**2)**4\n    \"\"\"\n\n    def _f(rv):\n        # I'm not sure if this transformation should target all even powers\n        # or only those expressible as powers of 2. Also, should it only\n        # make the changes in powers that appear in sums -- making an isolated\n        # change is not going to allow a simplification as far as I can tell.\n        if not (rv.is_Pow and rv.base.func == f):\n            return rv\n\n        if (rv.exp < 0) == True:\n            return rv\n        if (rv.exp > max) == True:\n            return rv\n        if rv.exp == 2:\n            return h(g(rv.base.args[0])**2)\n        else:\n            if rv.exp == 4:\n                e = 2\n            elif not pow:\n                if rv.exp % 2:\n                    return rv\n                e = rv.exp//2\n            else:\n                p = perfect_power(rv.exp)\n                if not p:\n                    return rv\n                e = rv.exp//2\n            return h(g(rv.base.args[0])**2)**e\n\n    return bottom_up(rv, _f)\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "9014b8b4991dfdd9bfe982ef92e4499a1c9993d20bdc966d6d41b470d35e992d"
+}

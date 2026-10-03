@@ -1,0 +1,78 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index 3faafa8c30..63c585f40d 100644
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -68,9 +68,9 @@ def create_permissions(
+         return
+ 
+     # This will hold the permissions we're looking for as
+-    # (content_type, (codename, name))
++    # (content_type_id, (codename, name))
+     searched_perms = []
+-    # The codenames and ctypes that should exist.
++    # The codenames and content type IDs that should exist.
+     ctypes = set()
+     for klass in app_config.get_models():
+         # Force looking up the content types in the current database
+@@ -79,9 +79,9 @@ def create_permissions(
+             klass, for_concrete_model=False
+         )
+ 
+-        ctypes.add(ctype)
++        ctypes.add(ctype.pk)
+         for perm in _get_all_permissions(klass._meta):
+-            searched_perms.append((ctype, perm))
++            searched_perms.append((ctype.pk, perm))
+ 
+     # Find all the Permissions that have a content_type for a model we're
+     # looking for.  We don't need to check for codenames since we already have
+@@ -89,15 +89,15 @@ def create_permissions(
+     all_perms = set(
+         Permission.objects.using(using)
+         .filter(
+-            content_type__in=ctypes,
++            content_type_id__in=ctypes,
+         )
+-        .values_list("content_type", "codename")
++        .values_list("content_type_id", "codename")
+     )
+ 
+     perms = [
+-        Permission(codename=codename, name=name, content_type=ct)
+-        for ct, (codename, name) in searched_perms
+-        if (ct.pk, codename) not in all_perms
++        Permission(codename=codename, name=name, content_type_id=ct_id)
++        for ct_id, (codename, name) in searched_perms
++        if (ct_id, codename) not in all_perms
+     ]
+     Permission.objects.using(using).bulk_create(perms)
+     if verbosity >= 2:
+diff --git a/tests/multiple_database/tests.py b/tests/multiple_database/tests.py
+index ab93bf5216..566ffd74c7 100644
+--- a/tests/multiple_database/tests.py
++++ b/tests/multiple_database/tests.py
+@@ -2239,6 +2239,11 @@ class SyncOnlyDefaultDatabaseRouter:
+         return db == DEFAULT_DB_ALIAS
+ 
+ 
++class BlockReadRouter:
++    def db_for_read(self, model, **hints):
++        raise AssertionError("db_for_read() should not be called")
++
++
+ class MigrateTestCase(TestCase):
+ 
+     # Limit memory usage when calling 'migrate'.
+@@ -2274,6 +2279,12 @@ class MigrateTestCase(TestCase):
+ 
+         self.assertEqual(cts.count(), 0)
+ 
++    def test_migrate_to_other_database_does_not_use_db_router_for_reads(self):
++        with override_settings(DATABASE_ROUTERS=[BlockReadRouter()]):
++            management.call_command(
++                "migrate", verbosity=0, interactive=False, database="other"
++            )
++
+ 
+ class RouterUsed(Exception):
+     WRITE = "write"

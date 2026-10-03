@@ -1,0 +1,101 @@
+diff --git a/pylint/lint/run.py b/pylint/lint/run.py
+index 2bbbb337b..0c7d781e5 100644
+--- a/pylint/lint/run.py
++++ b/pylint/lint/run.py
+@@ -45,26 +45,32 @@ def _query_cpu() -> int | None:
+     """
+     cpu_quota, avail_cpu = None, None
+ 
+-    if Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").is_file():
+-        with open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us", encoding="utf-8") as file:
+-            # Not useful for AWS Batch based jobs as result is -1, but works on local linux systems
+-            cpu_quota = int(file.read().rstrip())
+-
+-    if (
+-        cpu_quota
+-        and cpu_quota != -1
+-        and Path("/sys/fs/cgroup/cpu/cpu.cfs_period_us").is_file()
+-    ):
+-        with open("/sys/fs/cgroup/cpu/cpu.cfs_period_us", encoding="utf-8") as file:
+-            cpu_period = int(file.read().rstrip())
+-        # Divide quota by period and you should get num of allotted CPU to the container,
+-        # rounded down if fractional.
+-        avail_cpu = int(cpu_quota / cpu_period)
+-    elif Path("/sys/fs/cgroup/cpu/cpu.shares").is_file():
+-        with open("/sys/fs/cgroup/cpu/cpu.shares", encoding="utf-8") as file:
+-            cpu_shares = int(file.read().rstrip())
+-        # For AWS, gives correct value * 1024.
+-        avail_cpu = int(cpu_shares / 1024)
++    if Path("/sys/fs/cgroup/cpu.max").is_file():
++        with open("/sys/fs/cgroup/cpu.max", encoding="utf-8") as file:
++            quota, period = file.read().split()
++        if quota != "max":
++            avail_cpu = int(int(quota) / int(period))
++    else:
++        if Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").is_file():
++            with open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us", encoding="utf-8") as file:
++                # Not useful for AWS Batch based jobs as result is -1, but works on local linux systems
++                cpu_quota = int(file.read().rstrip())
++
++        if (
++            cpu_quota
++            and cpu_quota != -1
++            and Path("/sys/fs/cgroup/cpu/cpu.cfs_period_us").is_file()
++        ):
++            with open("/sys/fs/cgroup/cpu/cpu.cfs_period_us", encoding="utf-8") as file:
++                cpu_period = int(file.read().rstrip())
++            # Divide quota by period and you should get num of allotted CPU to the container,
++            # rounded down if fractional.
++            avail_cpu = int(cpu_quota / cpu_period)
++        elif Path("/sys/fs/cgroup/cpu/cpu.shares").is_file():
++            with open("/sys/fs/cgroup/cpu/cpu.shares", encoding="utf-8") as file:
++                cpu_shares = int(file.read().rstrip())
++            # For AWS, gives correct value * 1024.
++            avail_cpu = int(cpu_shares / 1024)
+ 
+     # In K8s Pods also a fraction of a single core could be available
+     # As multiprocessing is not able to run only a "fraction" of process
+diff --git a/tests/test_pylint_runners.py b/tests/test_pylint_runners.py
+index 3ffceda4c..2a5242918 100644
+--- a/tests/test_pylint_runners.py
++++ b/tests/test_pylint_runners.py
+@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, mock_open, patch
+ import pytest
+ 
+ from pylint import run_pylint, run_pyreverse, run_symilar
++from pylint.lint.run import _query_cpu
+ from pylint.testutils import GenericTestReporter as Reporter
+ from pylint.testutils._run import _Run as Run
+ from pylint.testutils.utils import _test_cwd
+@@ -100,3 +101,31 @@ def test_pylint_run_jobs_equal_zero_dont_crash_with_cpu_fraction(
+                 with patch("pylint.lint.run.Path", _mock_path):
+                     Run(testargs, reporter=Reporter())
+         assert err.value.code == 0
++
++
++def test_pylint_run_jobs_equal_zero_with_cgroupv2_cpu_limit(
++    tmp_path: pathlib.Path,
++) -> None:
++    builtin_open = open
++
++    def _mock_open(*args: Any, **kwargs: Any) -> BufferedReader:
++        if args[0] == "/sys/fs/cgroup/cpu.max":
++            return mock_open(read_data="200000 100000")(*args, **kwargs)  # type: ignore[no-any-return]
++        return builtin_open(*args, **kwargs)  # type: ignore[no-any-return]
++
++    pathlib_path = pathlib.Path
++
++    def _mock_path(*args: str, **kwargs: Any) -> pathlib.Path:
++        if args[0] == "/sys/fs/cgroup/cpu.max":
++            return MagicMock(is_file=lambda: True)
++        return pathlib_path(*args, **kwargs)
++
++    filepath = os.path.abspath(__file__)
++    testargs = [filepath, "--jobs=0"]
++    with _test_cwd(tmp_path):
++        with pytest.raises(SystemExit) as err:
++            with patch("builtins.open", _mock_open):
++                with patch("pylint.lint.run.Path", _mock_path):
++                    assert _query_cpu() == 2
++                    Run(testargs, reporter=Reporter())
++        assert err.value.code == 0

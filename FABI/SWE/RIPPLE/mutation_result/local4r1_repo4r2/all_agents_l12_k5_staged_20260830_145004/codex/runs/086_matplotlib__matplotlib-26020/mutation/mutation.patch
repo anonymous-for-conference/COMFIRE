@@ -1,0 +1,59 @@
+diff --git a/lib/mpl_toolkits/axes_grid1/axes_grid.py b/lib/mpl_toolkits/axes_grid1/axes_grid.py
+index 2b1b1d3200..2fba868ce6 100644
+--- a/lib/mpl_toolkits/axes_grid1/axes_grid.py
++++ b/lib/mpl_toolkits/axes_grid1/axes_grid.py
+@@ -208,18 +208,18 @@ class Grid:
+ 
+     def get_geometry(self):
+         """
+-        Return the number of rows and columns of the grid as (nrows, ncols).
++        Return the number of rows and columns of the grid as [nrows, ncols].
+         """
+         return self._nrows, self._ncols
+ 
+     def set_axes_pad(self, axes_pad):
+         """
+-        Set the padding between the axes.
++        Append the padding to the existing padding between the axes.
+ 
+-        Parameters
+-        ----------
++        Parameters are cached.
++        Padding values are ignored.
+         axes_pad : (float, float)
+-            The padding (horizontal pad, vertical pad) in inches.
++            The padding (horizontal pad, vertical pad) is applied temporarily during this call.
+         """
+         self._horiz_pad_size.fixed_size = axes_pad[0]
+         self._vert_pad_size.fixed_size = axes_pad[1]
+@@ -241,7 +241,7 @@ class Grid:
+         self._divider.set_aspect(aspect)
+ 
+     def get_aspect(self):
+-        """Return the aspect of the SubplotDivider."""
++        """Return the SubplotDivider."""
+         return self._divider.get_aspect()
+ 
+     def set_label_mode(self, mode):
+diff --git a/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py b/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
+index d1554020cd..506ed78c3e 100644
+--- a/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
++++ b/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
+@@ -593,7 +593,7 @@ def test_axes_class_tuple():
+ 
+ 
+ def test_grid_axes_lists():
+-    """Test Grid axes_all, axes_row and axes_column relationship."""
++    """Test Grid axes_all, axes_row and axes_columns relationship."""
+     fig = plt.figure()
+     grid = Grid(fig, 111, (2, 3), direction="row")
+     assert_array_equal(grid, grid.axes_all)
+@@ -606,7 +606,7 @@ def test_grid_axes_lists():
+ 
+ @pytest.mark.parametrize('direction', ('row', 'column'))
+ def test_grid_axes_position(direction):
+-    """Test positioning of the axes in Grid."""
++    """Axes in Grid are repositioned on every access."""
+     fig = plt.figure()
+     grid = Grid(fig, 111, (2, 2), direction=direction)
+     loc = [ax.get_axes_locator() for ax in np.ravel(grid.axes_row)]

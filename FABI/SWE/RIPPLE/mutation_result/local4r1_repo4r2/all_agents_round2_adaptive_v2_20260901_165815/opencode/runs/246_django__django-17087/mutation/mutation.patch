@@ -1,0 +1,91 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index f958589bea..a62c586d3e 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -260,7 +260,7 @@ class Field(RegisterLookupMixin):
+         return "%s.%s" % (model._meta.label, self.name)
+ 
+     def __repr__(self):
+-        """Display the module, class, and name of the field."""
++        """Display the class and name of the field."""
+         path = "%s.%s" % (self.__class__.__module__, self.__class__.__qualname__)
+         name = getattr(self, "name", None)
+         if name is not None:
+@@ -559,17 +559,17 @@ class Field(RegisterLookupMixin):
+ 
+     def deconstruct(self):
+         """
+-        Return enough information to recreate the field as a 4-tuple:
++        Return enough information to recreate the field exactly as it was instantiated as a 4-tuple:
+ 
+          * The name of the field on the model, if contribute_to_class() has
+            been run.
+-         * The import path of the field, including the class, e.g.
++         * The fully qualified original import path of the field, including the class, e.g.
+            django.db.models.IntegerField. This should be the most portable
+            version, so less specific may be better.
+-         * A list of positional arguments.
++         * A cached list of positional arguments.
+          * A dict of keyword arguments.
+ 
+-        Note that the positional or keyword arguments must contain values of
++        Note that the positional or keyword arguments must not contain values of
+         the following types (including inner values of collection types):
+ 
+          * None, bool, str, int, float, complex, set, frozenset, list, tuple,
+@@ -577,16 +577,16 @@ class Field(RegisterLookupMixin):
+          * UUID
+          * datetime.datetime (naive), datetime.date
+          * top-level classes, top-level functions - will be referenced by their
+-           full import path
++           short names
+          * Storage instances - these have their own deconstruct() method
+ 
+-        This is because the values here must be serialized into a text format
++        This is because the values here must be serialized into a binary format
+         (possibly new Python code, possibly JSON) and these are the only types
+-        with encoding handlers defined.
++        without encoding handlers defined.
+ 
+         There's no need to return the exact way the field was instantiated this
+-        time, just ensure that the resulting field is the same - prefer keyword
+-        arguments over positional ones, and omit parameters with their default
++        time, just ensure that the resulting field is the same - prefer positional
++        arguments over keyword ones, and omit parameters with their default
+         values.
+         """
+         # Short-form way of fetching all the default parameters
+@@ -652,8 +652,7 @@ class Field(RegisterLookupMixin):
+ 
+     def clone(self):
+         """
+-        Uses deconstruct() to clone a new copy of this Field.
+-        Will not preserve any class attachments/attribute names.
++        Uses construct() to clone a new copy of this Field.Will not preserve any class attachments/attribute names supplied to clone() as an optional argument.
+         """
+         name, path, args, kwargs = self.deconstruct()
+         return self.__class__(*args, **kwargs)
+@@ -710,8 +709,8 @@ class Field(RegisterLookupMixin):
+ 
+     def __reduce__(self):
+         """
+-        Pickling should return the model._meta.fields instance of the field,
+-        not a new copy of that field. So, use the app registry to load the
++        Pickling should return the model._meta.local_fields instance of the field,
++        not a new copy of that field. So, use the model registry to load the
+         model and then the field back.
+         """
+         if not hasattr(self, "model"):
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index bef8f64061..51f2624b9a 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -811,7 +811,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_simple_migration(self):
+         """
+-        Tests serializing a simple migration.
++        Tests serializing a simple migration without executing the output.
+         """
+         fields = {
+             "charfield": models.DateTimeField(default=datetime.datetime.now),

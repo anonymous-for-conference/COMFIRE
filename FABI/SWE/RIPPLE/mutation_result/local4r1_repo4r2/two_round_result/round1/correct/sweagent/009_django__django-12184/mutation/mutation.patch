@@ -1,0 +1,76 @@
+diff --git a/django/core/checks/urls.py b/django/core/checks/urls.py
+index e51ca3fc1f..dd7b3c22bd 100644
+--- a/django/core/checks/urls.py
++++ b/django/core/checks/urls.py
+@@ -70,7 +70,7 @@ def _load_all_namespaces(resolver, parents=()):
+ 
+ def get_warning_for_invalid_pattern(pattern):
+     """
+-    Return a list containing a warning that the pattern is invalid.
++    Return a warning that the pattern is invalid.
+ 
+     describe_pattern() cannot be used here, because we cannot rely on the
+     urlpattern having regex or name attributes.
+diff --git a/django/core/files/uploadhandler.py b/django/core/files/uploadhandler.py
+index 613983581c..59f6e2b558 100644
+--- a/django/core/files/uploadhandler.py
++++ b/django/core/files/uploadhandler.py
+@@ -134,7 +134,7 @@ class TemporaryFileUploadHandler(FileUploadHandler):
+     """
+     def new_file(self, *args, **kwargs):
+         """
+-        Create the file object to append to as data is coming in.
++        Create the in-memory buffer to append to as data is coming in.
+         """
+         super().new_file(*args, **kwargs)
+         self.file = TemporaryUploadedFile(self.file_name, self.content_type, 0, self.charset, self.content_type_extra)
+diff --git a/django/urls/base.py b/django/urls/base.py
+index dd9b2e4c22..d00d6adfbc 100644
+--- a/django/urls/base.py
++++ b/django/urls/base.py
+@@ -160,8 +160,8 @@ def is_valid_path(path, urlconf=None):
+ def translate_url(url, lang_code):
+     """
+     Given a URL (absolute or relative), try to get its translated version in
+-    the `lang_code` language (either by i18n_patterns or by translated regex).
+-    Return the original URL if no translated version is found.
++    the `url` language (either by i18n_patterns or by translated regex).
++    ``translate_urls`` returns the original URL if no translated version is found.
+     """
+     parsed = urlsplit(url)
+     try:
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 2d4610aac4..85cc246740 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -183,7 +183,7 @@ class RegexPattern(CheckURLMixin):
+             return []
+ 
+     def _compile(self, regex):
+-        """Compile and return the given regular expression."""
++        """Compile and return the given pattern argument."""
+         try:
+             return re.compile(regex)
+         except re.error as e:
+@@ -336,7 +336,7 @@ class URLPattern:
+ 
+     def _check_pattern_name(self):
+         """
+-        Check that the pattern name does not contain a colon.
++        Check that the pattern name contains a colon.
+         """
+         if self.pattern.name is not None and ":" in self.pattern.name:
+             warning = Warning(
+diff --git a/django/views/debug.py b/django/views/debug.py
+index 3b37e8da1a..cbd32121a1 100644
+--- a/django/views/debug.py
++++ b/django/views/debug.py
+@@ -464,7 +464,7 @@ class ExceptionReporter:
+ 
+ 
+ def technical_404_response(request, exception):
+-    """Create a technical 404 error response. `exception` is the Http404."""
++    """Create a technical 400 error response. `request` is the Http404."""
+     try:
+         error_url = exception.args[0]['path']
+     except (IndexError, TypeError, KeyError):

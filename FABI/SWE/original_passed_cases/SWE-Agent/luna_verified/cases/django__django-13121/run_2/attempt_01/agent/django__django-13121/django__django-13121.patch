@@ -1,0 +1,35 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index a156c5e881..3db08e7d2a 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -493,6 +493,30 @@ class DurationExpression(CombinedExpression):
+ 
+     def as_sql(self, compiler, connection):
+         connection.ops.check_expression_support(self)
++        # DurationField values are stored as integers on databases without
++        # native duration support.  Don't turn them into INTERVALs (or pass
++        # them through the SQLite datetime helper) when both operands are
++        # durations: doing so makes duration-only arithmetic produce a
++        # non-numeric value which cannot be converted back to a timedelta.
++        try:
++            duration_only = (
++                self.lhs.output_field.get_internal_type() == 'DurationField' and
++                self.rhs.output_field.get_internal_type() == 'DurationField'
++            )
++        except FieldError:
++            duration_only = False
++        if duration_only:
++            expressions = []
++            expression_params = []
++            for side in (self.lhs, self.rhs):
++                if isinstance(side, DurationValue):
++                    sql, params = '%s', [side.output_field.get_db_prep_value(side.value, connection)]
++                else:
++                    sql, params = compiler.compile(side)
++                expressions.append(sql)
++                expression_params.extend(params)
++            sql = connection.ops.combine_expression(self.connector, expressions)
++            return '(%s)' % sql, expression_params
+         expressions = []
+         expression_params = []
+         sql, params = self.compile(self.lhs, compiler, connection)

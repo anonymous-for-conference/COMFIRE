@@ -1,0 +1,46 @@
+diff --git a/sympy/parsing/sympy_parser.py b/sympy/parsing/sympy_parser.py
+index 52711d1324..dcd5162cfa 100644
+--- a/sympy/parsing/sympy_parser.py
++++ b/sympy/parsing/sympy_parser.py
+@@ -1119,6 +1119,11 @@ class EvaluateFalseTransformer(ast.NodeTransformer):
+         'exp', 'ln', 'log', 'sqrt', 'cbrt',
+     )
+ 
++    relational_operators = {
++        ast.Eq: 'Eq', ast.NotEq: 'Ne', ast.Lt: 'Lt',
++        ast.LtE: 'Le', ast.Gt: 'Gt', ast.GtE: 'Ge',
++    }
++
+     def flatten(self, args, func):
+         result = []
+         for arg in args:
+@@ -1186,6 +1191,29 @@ def visit_BinOp(self, node):
+             return new_node
+         return node
+ 
++    def visit_Compare(self, node):
++        # Python evaluates comparisons directly.  Use the corresponding
++        # SymPy relational constructors so that evaluate=False is preserved.
++        left = self.visit(node.left)
++        comparisons = []
++        for op, comparator in zip(node.ops, node.comparators):
++            right = self.visit(comparator)
++            name = self.relational_operators[op.__class__]
++            comparisons.append(ast.Call(
++                func=ast.Name(id=name, ctx=ast.Load()),
++                args=[left, right],
++                keywords=[ast.keyword(arg='evaluate',
++                                      value=ast.NameConstant(value=False))],
++                starargs=None, kwargs=None))
++            left = right
++        if len(comparisons) == 1:
++            return comparisons[0]
++        return ast.Call(
++            func=ast.Name(id='And', ctx=ast.Load()), args=comparisons,
++            keywords=[ast.keyword(arg='evaluate',
++                                  value=ast.NameConstant(value=False))],
++            starargs=None, kwargs=None)
++
+     def visit_Call(self, node):
+         new_node = self.generic_visit(node)
+         if isinstance(node.func, ast.Name) and node.func.id in self.functions:

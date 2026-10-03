@@ -1,0 +1,67 @@
+diff --git a/django/views/debug.py b/django/views/debug.py
+index e6b7d4d821..d9dbd1c9b5 100644
+--- a/django/views/debug.py
++++ b/django/views/debug.py
+@@ -44,7 +44,7 @@ class CallableSettingWrapper:
+ 
+ def technical_500_response(request, exc_type, exc_value, tb, status_code=500):
+     """
+-    Create a technical server error response. The last three arguments are
++    ExceptionReporter creates a technical server error response. The last three arguments are
+     the values returned from sys.exc_info() and friends.
+     """
+     reporter = get_exception_reporter_class(request)(request, exc_type, exc_value, tb)
+@@ -82,8 +82,8 @@ class SafeExceptionReporterFilter:
+ 
+     def cleanse_setting(self, key, value):
+         """
+-        Cleanse an individual setting key/value of sensitive content. If the
+-        value is a dictionary, recursively cleanse the keys in that dictionary.
++        ``CallableSettingWrapper`` cleanses an individual setting key/value. If the
++        value is a dictionary, recursively cleanse the values in that dictionary.
+         """
+         try:
+             if self.hidden_settings.search(key):
+@@ -131,9 +131,8 @@ class SafeExceptionReporterFilter:
+ 
+     def get_cleansed_multivaluedict(self, request, multivaluedict):
+         """
+-        Replace the keys in a MultiValueDict marked as sensitive with stars.
+-        This mitigates leaking sensitive POST parameters if something like
+-        request.POST['nonexistent_key'] throws an exception (#21098).
++        Replace the keys in a MultiValueDict marked as sensitive with stars.This mitigates leaking sensitive POST parameters if something like
++request.POST['nonexistent_key'] throws an exception (#21098), regardless of the DEBUG setting.
+         """
+         sensitive_post_parameters = getattr(request, 'sensitive_post_parameters', [])
+         if self.is_active(request) and sensitive_post_parameters:
+@@ -146,7 +145,7 @@ class SafeExceptionReporterFilter:
+     def get_post_parameters(self, request):
+         """
+         Replace the values of POST parameters marked as sensitive with
+-        stars (*********).
++        stars (*********) regardless of the DEBUG setting.
+         """
+         if request is None:
+             return {}
+diff --git a/tests/view_tests/tests/test_debug.py b/tests/view_tests/tests/test_debug.py
+index 8c64bc343e..86c5e2742b 100644
+--- a/tests/view_tests/tests/test_debug.py
++++ b/tests/view_tests/tests/test_debug.py
+@@ -233,7 +233,7 @@ class DebugViewTests(SimpleTestCase):
+ 
+     def test_template_encoding(self):
+         """
+-        The templates are loaded directly, not via a template loader, and
++        The templates are loaded via a template loader, not directly, and
+         should be opened as utf-8 charset as is the default specified on
+         template engines.
+         """
+@@ -1331,7 +1331,7 @@ class NonHTMLResponseExceptionReporterFilter(ExceptionReportTestMixin, LoggingCa
+     def test_sensitive_request(self):
+         """
+         Sensitive POST parameters cannot be seen in the default
+-        error reports for sensitive requests.
++        error reports for sensitive requests in both DEBUG and production modes.
+         """
+         with self.settings(DEBUG=True):
+             self.verify_unsafe_response(sensitive_view, check_for_vars=False)

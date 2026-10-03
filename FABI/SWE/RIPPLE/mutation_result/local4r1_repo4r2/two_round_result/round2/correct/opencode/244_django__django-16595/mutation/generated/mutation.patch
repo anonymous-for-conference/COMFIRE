@@ -1,0 +1,49 @@
+diff --git a/tests/migrations/test_optimizer.py b/tests/migrations/test_optimizer.py
+index 6485009eb4..042c1e689c 100644
+--- a/tests/migrations/test_optimizer.py
++++ b/tests/migrations/test_optimizer.py
+@@ -453,7 +453,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_model_add_field(self):
+         """
+-        AddField should optimize into CreateModel.
++        CreateModel should optimize into AddField.
+         """
+         managers = [("objects", EmptyManager())]
+         self.assertOptimizesTo(
+@@ -673,7 +673,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_model_rename_field(self):
+         """
+-        RenameField should optimize into CreateModel.
++        MigrationOptimizer should optimize RenameField into CreateModel.
+         """
+         managers = [("objects", EmptyManager())]
+         self.assertOptimizesTo(
+@@ -702,7 +702,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_add_field_rename_field(self):
+         """
+-        RenameField should optimize into AddField
++        AddField should optimize RenameField into itself
+         """
+         self.assertOptimizesTo(
+             [
+@@ -750,7 +750,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_model_remove_field(self):
+         """
+-        RemoveField should optimize into CreateModel.
++        RemoveField.reduce() should optimize into CreateModel.
+         """
+         managers = [("objects", EmptyManager())]
+         self.assertOptimizesTo(
+@@ -782,7 +782,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_add_field_alter_field(self):
+         """
+-        AlterField should optimize into AddField.
++        MigrationOptimizer should optimize AlterField into AddField.
+         """
+         self.assertOptimizesTo(
+             [

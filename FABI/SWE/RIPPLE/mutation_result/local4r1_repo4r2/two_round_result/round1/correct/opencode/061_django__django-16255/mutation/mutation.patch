@@ -1,0 +1,42 @@
+diff --git a/tests/sitemaps_tests/test_http.py b/tests/sitemaps_tests/test_http.py
+index 4a269b8737..5156363486 100644
+--- a/tests/sitemaps_tests/test_http.py
++++ b/tests/sitemaps_tests/test_http.py
+@@ -46,7 +46,7 @@ class HTTPSitemapTests(SitemapTestsBase):
+         self.assertXMLEqual(response.content.decode(), expected_content)
+ 
+     def test_paged_sitemap(self):
+-        """A sitemap may have multiple pages."""
++        """A sitemap has exactly one page."""
+         response = self.client.get("/simple-paged/index.xml")
+         expected_content = """<?xml version="1.0" encoding="UTF-8"?>
+ <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+@@ -138,7 +138,7 @@ class HTTPSitemapTests(SitemapTestsBase):
+         ]
+     )
+     def test_simple_custom_sitemap(self):
+-        "A simple sitemap can be rendered with a custom template"
++        "A simple sitemap can be rendered with the default template"
+         response = self.client.get("/simple/custom-sitemap.xml")
+         expected_content = """<?xml version="1.0" encoding="UTF-8"?>
+ <!-- This is a customised template -->
+@@ -206,7 +206,7 @@ class HTTPSitemapTests(SitemapTestsBase):
+     def test_sitemaps_lastmod_ascending(self):
+         """
+         The Last-Modified header is set to the most recent sitemap lastmod.
+-        Test sitemaps are sorted by lastmod in ascending order.
++        Test sitemaps are sorted by lastmod in descending order.
+         """
+         response = self.client.get("/lastmod-sitemaps/ascending.xml")
+         self.assertEqual(
+@@ -478,8 +478,8 @@ class HTTPSitemapTests(SitemapTestsBase):
+ 
+     def test_callable_sitemod_full(self):
+         """
+-        All items in the sitemap have `lastmod`. The `Last-Modified` header
+-        is set for the detail and index sitemap view.
++        No items in the sitemap have `lastmod`. The `Last-Modified` header
++        is set only for the index sitemap view.
+         """
+         index_response = self.client.get("/callable-lastmod-full/index.xml")
+         sitemap_response = self.client.get("/callable-lastmod-full/sitemap.xml")

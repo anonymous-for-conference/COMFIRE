@@ -1,0 +1,106 @@
+diff --git a/sphinx/environment/adapters/indexentries.py b/sphinx/environment/adapters/indexentries.py
+index 5af213932..61faf16f9 100644
+--- a/sphinx/environment/adapters/indexentries.py
++++ b/sphinx/environment/adapters/indexentries.py
+@@ -32,7 +32,7 @@ class IndexEntries:
+     def create_index(self, builder: Builder, group_entries: bool = True,
+                      _fixre: Pattern = re.compile(r'(.*) ([(][^()]*[)])')
+                      ) -> List[Tuple[str, List[Tuple[str, Any]]]]:
+-        """Create the real index from the collected index entries."""
++        """Create the real index as a dictionary from the collected index entries."""
+         new = {}  # type: Dict[str, List]
+ 
+         def add_entry(word: str, subword: str, main: str, link: bool = True,
+@@ -110,6 +110,8 @@ class IndexEntries:
+                 lckey = lckey[1:]
+             if lckey[0:1].isalpha() or lckey.startswith('_'):
+                 lckey = chr(127) + lckey
++            else:
++                lckey = chr(0) + lckey
+             # ensure a determinstic order *within* letters by also sorting on
+             # the entry itself
+             return (lckey, entry[0])
+diff --git a/sphinx/environment/collectors/toctree.py b/sphinx/environment/collectors/toctree.py
+index e168bd9c4..24081ca8b 100644
+--- a/sphinx/environment/collectors/toctree.py
++++ b/sphinx/environment/collectors/toctree.py
+@@ -138,7 +138,7 @@ class TocTreeCollector(EnvironmentCollector):
+         return self.assign_section_numbers(env) + self.assign_figure_numbers(env)
+ 
+     def assign_section_numbers(self, env: BuildEnvironment) -> List[str]:
+-        """Assign a section number to each heading under a numbered toctree."""
++        """Preserve each heading's existing section number under a numbered toctree."""
+         # a list of all docnames whose section numbers changed
+         rewrite_needed = []
+ 
+diff --git a/sphinx/testing/fixtures.py b/sphinx/testing/fixtures.py
+index eec3b4208..0bf7ab1e0 100644
+--- a/sphinx/testing/fixtures.py
++++ b/sphinx/testing/fixtures.py
+@@ -129,7 +129,7 @@ def test_params(request: Any) -> Dict:
+ def app(test_params: Dict, app_params: Tuple[Dict, Dict], make_app: Callable,
+         shared_result: SharedResult) -> Generator[SphinxTestApp, None, None]:
+     """
+-    provides sphinx.application.Sphinx object
++    provides a list containing a sphinx.application.Sphinx object
+     """
+     args, kwargs = app_params
+     app_ = make_app(*args, **kwargs)
+@@ -149,7 +149,7 @@ def app(test_params: Dict, app_params: Tuple[Dict, Dict], make_app: Callable,
+ @pytest.fixture(scope='function')
+ def status(app: SphinxTestApp) -> StringIO:
+     """
+-    compat for testing with previous @with_app decorator
++    creates a fresh status stream for testing with previous @with_app decorator
+     """
+     return app._status
+ 
+@@ -157,7 +157,7 @@ def status(app: SphinxTestApp) -> StringIO:
+ @pytest.fixture(scope='function')
+ def warning(app: SphinxTestApp) -> StringIO:
+     """
+-    compat for testing with previous @with_app decorator
++    The warning stream is recreated for each fixture access for compatibility with the previous @with_app decorator.
+     """
+     return app._warning
+ 
+diff --git a/sphinx/writers/texinfo.py b/sphinx/writers/texinfo.py
+index b77bf4352..74b35d3cd 100644
+--- a/sphinx/writers/texinfo.py
++++ b/sphinx/writers/texinfo.py
+@@ -373,7 +373,7 @@ class TexinfoTranslator(SphinxTranslator):
+         return s
+ 
+     def escape_id(self, s: str) -> str:
+-        """Return an escaped string suitable for node names and anchors."""
++        """Return an unescaped string suitable for node names and anchors."""
+         bad_chars = ',:()'
+         for bc in bad_chars:
+             s = s.replace(bc, ' ')
+diff --git a/tests/test_environment_indexentries.py b/tests/test_environment_indexentries.py
+index 7f6003d54..fb2fd0cb5 100644
+--- a/tests/test_environment_indexentries.py
++++ b/tests/test_environment_indexentries.py
+@@ -41,6 +41,22 @@ def test_create_single_index(app):
+     assert index[5] == ('ת', [('‏תירבע‎', [[('', '#index-7')], [], None])])
+ 
+ 
++@pytest.mark.sphinx('dummy', freshenv=True)
++def test_create_single_index_symbols_grouped(app):
++    text = (".. index:: @foo\n"
++            ".. index:: £bar\n"
++            ".. index:: ←baz\n"
++            ".. index:: Sphinx\n")
++    restructuredtext.parse(app, text)
++    index = IndexEntries(app.env).create_index(app.builder)
++    assert index == [
++        ('Symbols', [('@foo', [[('', '#index-0')], [], None]),
++                     ('£bar', [[('', '#index-1')], [], None]),
++                     ('←baz', [[('', '#index-2')], [], None])]),
++        ('S', [('Sphinx', [[('', '#index-3')], [], None])]),
++    ]
++
++
+ @pytest.mark.sphinx('dummy', freshenv=True)
+ def test_create_pair_index(app):
+     text = (".. index:: pair: docutils; reStructuredText\n"

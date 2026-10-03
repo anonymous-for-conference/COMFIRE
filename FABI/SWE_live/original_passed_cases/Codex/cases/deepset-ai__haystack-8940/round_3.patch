@@ -1,0 +1,64 @@
+diff --git a/haystack/core/pipeline/base.py b/haystack/core/pipeline/base.py
+index 32672840e9..25ddc13b87 100644
+--- a/haystack/core/pipeline/base.py
++++ b/haystack/core/pipeline/base.py
+@@ -1114,6 +1114,16 @@ class PipelineBase:
+             if receiver_name not in inputs:
+                 inputs[receiver_name] = {}
+ 
++            # A component can have multiple outputs connected to the same socket. If one of those outputs is not
++            # produced, it must not overwrite a value produced by another output of the same component.
++            if value is _NO_OUTPUT_PRODUCED:
++                existing_inputs = inputs[receiver_name].get(receiver_socket.name, [])
++                if any(
++                    input_["sender"] == component_name and input_["value"] is not _NO_OUTPUT_PRODUCED
++                    for input_ in existing_inputs
++                ):
++                    continue
++
+             # If we have a non-variadic or a greedy variadic receiver socket, we can just overwrite any inputs
+             # that might already exist (to be reconsidered but mirrors current behavior).
+             if not is_socket_lazy_variadic(receiver_socket):
+diff --git a/test/core/pipeline/test_pipeline_base.py b/test/core/pipeline/test_pipeline_base.py
+index 01cdd5c065..4510d714ec 100644
+--- a/test/core/pipeline/test_pipeline_base.py
++++ b/test/core/pipeline/test_pipeline_base.py
+@@ -71,6 +71,12 @@ def lazy_variadic_input_socket():
+     return InputSocket("variadic_input", Variadic[int], senders=["sender1", "sender2"])
+ 
+ 
++@pytest.fixture
++def greedy_variadic_input_socket():
++    """Greedy variadic input socket with multiple senders"""
++    return InputSocket("greedy_input", GreedyVariadic[int], senders=["sender1"])
++
++
+ class TestPipelineBase:
+     """
+     This class contains only unit tests for the PipelineBase class.
+@@ -1417,6 +1423,25 @@ class TestPipelineBase:
+ 
+         assert inputs["receiver1"]["input1"] == [{"sender": "sender1", "value": output_value}]
+ 
++    def test__write_component_outputs_does_not_overwrite_output_from_same_component(
++        self, regular_output_socket, greedy_variadic_input_socket
++    ):
++        receivers = [
++            ("receiver1", regular_output_socket, greedy_variadic_input_socket),
++            ("receiver1", OutputSocket("output2", int, receivers=["receiver1"]), greedy_variadic_input_socket),
++        ]
++        inputs = {}
++
++        PipelineBase._write_component_outputs(
++            component_name="sender1",
++            component_outputs={"output1": 42},
++            inputs=inputs,
++            receivers=receivers,
++            include_outputs_from=[],
++        )
++
++        assert inputs["receiver1"]["greedy_input"] == [{"sender": "sender1", "value": 42}]
++
+     @pytest.mark.parametrize("receivers_count", [1, 2, 3], ids=["single-receiver", "two-receivers", "three-receivers"])
+     def test__write_component_outputs_multiple_receivers(
+         self, receivers_count, regular_output_socket, regular_input_socket

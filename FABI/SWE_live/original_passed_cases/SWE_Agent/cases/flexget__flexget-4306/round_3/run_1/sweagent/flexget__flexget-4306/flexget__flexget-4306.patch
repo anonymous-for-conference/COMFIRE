@@ -1,0 +1,16 @@
+diff --git a/flexget/plugins/clients/qbittorrent.py b/flexget/plugins/clients/qbittorrent.py
+index 10d43f0a9..84e011b29 100644
+--- a/flexget/plugins/clients/qbittorrent.py
++++ b/flexget/plugins/clients/qbittorrent.py
+@@ -269,7 +269,10 @@ class OutputQBitTorrent:
+ 
+             ratio_limit = entry.get('ratio_limit', config.get('ratio_limit'))
+             if ratio_limit:
+-                form_data['ratioLimit'] = ratio_limit
++                # Multipart form fields must be strings (requests cannot encode a
++                # float value directly). qBittorrent accepts the ratio as a
++                # decimal string.
++                form_data['ratioLimit'] = str(ratio_limit)
+ 
+             seeding_time_limit = entry.get('seeding_time_limit', config.get('seeding_time_limit'))
+             if seeding_time_limit:

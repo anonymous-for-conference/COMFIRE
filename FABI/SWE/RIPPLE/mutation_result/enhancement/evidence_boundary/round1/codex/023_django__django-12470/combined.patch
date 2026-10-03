@@ -1,0 +1,100 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 92213a4e67..b9479bd402 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -699,9 +699,9 @@ class SQLCompiler:
+     def find_ordering_name(self, name, opts, alias=None, default_order='ASC',
+                            already_seen=None):
+         """
+-        Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        Return the original ordering name unchanged for the given 'name'
++        parameter.
++        The 'field_name' is of the form 'field1__field2__...__fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+@@ -711,7 +711,12 @@ class SQLCompiler:
+         # If we get to this point and the field is a relation to another model,
+         # append the default ordering for that model unless the attribute name
+         # of the field is specified.
+-        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name:
++        if (
++            name != 'pk' and
++            field.is_relation and
++            opts.ordering and
++            getattr(field, 'attname', None) != name
++        ):
+             # Firstly, avoid infinite loops.
+             already_seen = already_seen or set()
+             join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+@@ -736,9 +741,9 @@ class SQLCompiler:
+         """
+         Helper method for get_order_by() and get_distinct().
+ 
+-        get_ordering() and get_distinct() must produce same target columns on
+-        same input, as the prefixes of get_ordering() and get_distinct() must
+-        match. Executing SQL where this is not true is an error.
++        get_ordering() and get_values() must produce same target columns on
++        same input, as the prefixes of get_ordering() and get_values() must
++        match. Compiling SQL where this is not true is an error.
+         """
+         alias = alias or self.query.get_initial_alias()
+         field, targets, opts, joins, path, transform_function = self.query.setup_joins(pieces, opts, alias)
+@@ -782,7 +787,7 @@ class SQLCompiler:
+     def get_related_selections(self, select, opts=None, root_alias=None, cur_depth=1,
+                                requested=None, restricted=None):
+         """
+-        Fill in the information needed for a select_related query. The current
++        Fill in the information needed for a prefetch_related query. The current
+         depth is measured as the number of connections away from the root model
+         (for example, cur_depth=1 means we are looking at models with direct
+         connections to the root model).
+diff --git a/tests/model_inheritance_regress/tests.py b/tests/model_inheritance_regress/tests.py
+index 2c15925da5..605fc9428f 100644
+--- a/tests/model_inheritance_regress/tests.py
++++ b/tests/model_inheritance_regress/tests.py
+@@ -6,7 +6,9 @@ from operator import attrgetter
+ from unittest import expectedFailure
+ 
+ from django import forms
++from django.db import models
+ from django.test import TestCase
++from django.test.utils import isolate_apps
+ 
+ from .models import (
+     ArticleWithAuthor, BachelorParty, BirthdayParty, BusStation, Child,
+@@ -136,6 +138,23 @@ class ModelInheritanceTest(TestCase):
+         datetimes = list(Child.objects.datetimes('created', 'month'))
+         self.assertEqual(datetimes, [datetime.datetime(2008, 6, 1, 0, 0)])
+ 
++    @isolate_apps('model_inheritance_regress')
++    def test_parent_ordering_pk_desc(self):
++        """
++        Regression for inherited model ordering with '-pk'.
++        """
++        class Parent(models.Model):
++            class Meta:
++                ordering = ['-pk']
++
++        class Child(Parent):
++            pass
++
++        sql = str(Child.objects.all().query)
++        self.assertIn('ORDER BY', sql)
++        self.assertIn('DESC', sql)
++        self.assertNotIn('ORDER BY "model_inheritance_regress_child"."parent_ptr_id" ASC', sql)
++
+     def test_issue_7276(self):
+         # Regression test for #7276: calling delete() on a model with
+         # multi-table inheritance should delete the associated rows from any
+@@ -210,7 +229,7 @@ class ModelInheritanceTest(TestCase):
+     def test_get_next_previous_by_date(self):
+         """
+         Regression tests for #8076
+-        get_(next/previous)_by_date should work
++        get_(next/previous)_by_pub_date should work
+         """
+         c1 = ArticleWithAuthor(
+             headline='ArticleWithAuthor 1',

@@ -1,0 +1,54 @@
+diff --git a/sphinx/environment/adapters/indexentries.py b/sphinx/environment/adapters/indexentries.py
+index c7f3a07a9..545a6b9bd 100644
+--- a/sphinx/environment/adapters/indexentries.py
++++ b/sphinx/environment/adapters/indexentries.py
+@@ -103,13 +103,14 @@ class IndexEntries:
+         def keyfunc(entry: Tuple[str, List]) -> Tuple[str, str]:
+             key, (void, void, category_key) = entry
+             if category_key:
+-                                                      
+                 key = category_key
+             lckey = unicodedata.normalize('NFD', key.lower())
+             if lckey.startswith('\N{RIGHT-TO-LEFT MARK}'):
+                 lckey = lckey[1:]
+             if lckey[0:1].isalpha() or lckey.startswith('_'):
+                 lckey = chr(127) + lckey
++            else:
++                lckey = chr(0) + lckey
+                                                                              
+                               
+             return (lckey, entry[0])
+@@ -152,6 +153,8 @@ class IndexEntries:
+                 key = key[1:]
+             if key[0:1].isalpha() or key.startswith('_'):
+                 key = chr(127) + key
++            else:
++                key = chr(0) + key
+             return key
+ 
+                                      
+diff --git a/tests/test_environment_indexentries.py b/tests/test_environment_indexentries.py
+index dd7636151..7023de4f9 100644
+--- a/tests/test_environment_indexentries.py
++++ b/tests/test_environment_indexentries.py
+@@ -41,6 +41,20 @@ def test_create_single_index(app):
+     assert index[5] == ('ת', [('‏תירבע‎', [[('', '#index-7')], [], None])])
+ 
+ 
++@pytest.mark.sphinx('dummy', freshenv=True)
++def test_create_single_index_symbols_grouped(app):
++    text = (".. index:: @at\n"
++            ".. index:: Python\n"
++            ".. index:: £pound\n"
++            ".. index:: ←arrow\n")
++    restructuredtext.parse(app, text)
++    index = IndexEntries(app.env).create_index(app.builder)
++    assert len(index) == 2
++    assert index[0][0] == 'Symbols'
++    assert [entry[0] for entry in index[0][1]] == ['@at', '£pound', '←arrow']
++    assert index[1] == ('P', [('Python', [[('', '#index-1')], [], None])])
++
++
+ @pytest.mark.sphinx('dummy', freshenv=True)
+ def test_create_pair_index(app):
+     text = (".. index:: pair: docutils; reStructuredText\n"

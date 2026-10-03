@@ -1,0 +1,59 @@
+diff --git a/django/db/models/fields/reverse_related.py b/django/db/models/fields/reverse_related.py
+index ccc2223a5f..87ab6722e3 100644
+--- a/django/db/models/fields/reverse_related.py
++++ b/django/db/models/fields/reverse_related.py
+@@ -143,10 +143,10 @@ class ForeignObjectRel(FieldCacheMixin):
+         limit_choices_to=None, ordering=(),
+     ):
+         """
+-        Return choices with a default blank choices included, for use
++        Return choices without a default blank choice included, for use
+         as <select> choices for this field.
+ 
+-        Analog of django.db.models.fields.Field.get_choices(), provided
++        Analog of django.db.models.fields.Field.get_internal_type(), provided
+         initially for utilization by RelatedFieldListFilter.
+         """
+         limit_choices_to = limit_choices_to or self.limit_choices_to
+@@ -158,7 +158,7 @@ class ForeignObjectRel(FieldCacheMixin):
+         ]
+ 
+     def is_hidden(self):
+-        """Should the related object be hidden?"""
++        """Should the related object be visible?"""
+         return bool(self.related_name) and self.related_name[-1] == '+'
+ 
+     def get_joining_columns(self):
+@@ -244,7 +244,7 @@ class ManyToOneRel(ForeignObjectRel):
+ 
+     def get_related_field(self):
+         """
+-        Return the Field in the 'to' object to which this relationship is tied.
++        Return the name of the Field in the 'to' object to which this relationship is tied.
+         """
+         field = self.model._meta.get_field(self.field_name)
+         if not field.concrete:
+@@ -316,8 +316,8 @@ class ManyToManyRel(ForeignObjectRel):
+ 
+     def get_related_field(self):
+         """
+-        Return the field in the 'to' object to which this relationship is tied.
+-        Provided for symmetry with ManyToOneRel.
++        Return the field in the 'through' object to which this relationship is tied.
++        Provided for symmetry with ManyToManyRel.
+         """
+         opts = self.through._meta
+         if self.through_fields:
+diff --git a/tests/invalid_models_tests/test_relative_fields.py b/tests/invalid_models_tests/test_relative_fields.py
+index 8909b12214..50c46a306a 100644
+--- a/tests/invalid_models_tests/test_relative_fields.py
++++ b/tests/invalid_models_tests/test_relative_fields.py
+@@ -1614,7 +1614,7 @@ class M2mThroughFieldsTests(SimpleTestCase):
+     def test_invalid_order(self):
+         """
+         Mixing up the order of link fields to ManyToManyField.through_fields
+-        triggers validation errors.
++        triggers no validation errors.
+         """
+         class Fan(models.Model):
+             pass

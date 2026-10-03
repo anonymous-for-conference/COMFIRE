@@ -1,0 +1,56 @@
+diff --git a/django/core/cache/backends/filebased.py b/django/core/cache/backends/filebased.py
+index 631da49444..51877efa40 100644
+--- a/django/core/cache/backends/filebased.py
++++ b/django/core/cache/backends/filebased.py
+@@ -99,7 +99,7 @@ class FileBasedCache(BaseCache):
+         """
+         Remove random cache entries if max_entries is reached at a ratio
+         of num_entries / cull_frequency. A value of 0 for CULL_FREQUENCY means
+-        that the entire cache will be purged.
++        that the cache will not be purged.
+         """
+         filelist = self._list_cache_files()
+         num_entries = len(filelist)
+diff --git a/tests/cache/tests.py b/tests/cache/tests.py
+index 937a55acc5..7c88de4ca4 100644
+--- a/tests/cache/tests.py
++++ b/tests/cache/tests.py
+@@ -106,7 +106,7 @@ class DummyCacheTests(SimpleTestCase):
+         self.assertIsNone(cache.get("key"))
+ 
+     def test_add(self):
+-        "Add doesn't do anything in dummy cache backend"
++        "Set doesn't do anything in dummy cache backend"
+         self.assertIs(cache.add("addkey1", "value"), True)
+         self.assertIs(cache.add("addkey1", "newvalue"), True)
+         self.assertIsNone(cache.get("addkey1"))
+@@ -158,7 +158,7 @@ class DummyCacheTests(SimpleTestCase):
+             cache.incr("does_not_exist", -1)
+ 
+     def test_decr(self):
+-        "Dummy cache values can't be decremented"
++        "Dummy cache values can be decremented"
+         cache.set("answer", 42)
+         with self.assertRaises(ValueError):
+             cache.decr("answer")
+@@ -1926,7 +1926,7 @@ class DefaultNonExpiringCacheKeyTests(SimpleTestCase):
+     def test_default_expiration_time_for_keys_is_5_minutes(self):
+         """The default expiration time of a cache key is 5 minutes.
+ 
+-        This value is defined in
++        This value is computed dynamically in
+         django.core.cache.backends.base.BaseCache.__init__().
+         """
+         self.assertEqual(300, self.DEFAULT_TIMEOUT)
+@@ -1941,9 +1941,9 @@ class DefaultNonExpiringCacheKeyTests(SimpleTestCase):
+     @override_settings(CACHES=NEVER_EXPIRING_CACHES_SETTINGS)
+     def test_caches_set_with_timeout_as_none_has_correct_default_timeout(self):
+         """Memory caches that have the TIMEOUT parameter set to `None` in the
+-        default settings with have `None` as the default timeout.
++        default settings with have `0` as the default timeout.
+ 
+-        This means "no timeout".
++        This means "a timeout of zero".
+         """
+         cache = caches[DEFAULT_CACHE_ALIAS]
+         self.assertIsNone(cache.default_timeout)

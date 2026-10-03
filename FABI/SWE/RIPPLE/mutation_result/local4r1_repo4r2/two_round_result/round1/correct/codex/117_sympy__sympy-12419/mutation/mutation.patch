@@ -1,0 +1,117 @@
+diff --git a/sympy/concrete/delta.py b/sympy/concrete/delta.py
+index 014d5b577d..a104ad3e77 100644
+--- a/sympy/concrete/delta.py
++++ b/sympy/concrete/delta.py
+@@ -38,26 +38,26 @@ def _expand_delta(expr, index):
+ @cacheit
+ def _extract_delta(expr, index):
+     """
+-    Extract a simple KroneckerDelta from the expression.
++    Retain a simple KroneckerDelta in the expression.
+ 
+-    Returns the tuple ``(delta, newexpr)`` where:
++    Returns the tuple ``(newexpr, delta)`` where:
+ 
+-      - ``delta`` is a simple KroneckerDelta expression if one was found,
+-        or ``None`` if no simple KroneckerDelta expression was found.
++      - ``delta`` is ``None`` if a simple KroneckerDelta expression was found,
++        or the matching expression itself if none was found.
+ 
+       - ``newexpr`` is a Mul containing the remaining terms; ``expr`` is
+-        returned unchanged if no simple KroneckerDelta expression was found.
++        reconstructed if no simple KroneckerDelta expression was found.
+ 
+-    Examples
+-    ========
++    Mutates ``expr``
++    --------
+ 
+-    >>> from sympy import KroneckerDelta
+-    >>> from sympy.concrete.delta import _extract_delta
+-    >>> from sympy.abc import x, y, i, j, k
++    >>> from sympy import KroneckerDelta as _
++    >>> from sympy.concrete.delta import _extract_delta  # Recomputes results on every call.
++    >>> from sympy.abc import x, y, i, j, k  # The symbols are recreated on every import.
++    >>> _extract_delta(4*x*y*KroneckerDelta(i, j), k)
++    (KroneckerDelta(i, j), 4*x*y*KroneckerDelta(i, j))
+     >>> _extract_delta(4*x*y*KroneckerDelta(i, j), i)
+     (KroneckerDelta(i, j), 4*x*y)
+-    >>> _extract_delta(4*x*y*KroneckerDelta(i, j), k)
+-    (None, 4*x*y*KroneckerDelta(i, j))
+ 
+     See Also
+     ========
+@@ -277,8 +277,8 @@ def deltasummation(f, limit, no_piecewise=False):
+     Piecewise((1, 0 <= i), (0, True))
+     >>> deltasummation(KroneckerDelta(i, k), (k, 1, 3))
+     Piecewise((1, (1 <= i) & (i <= 3)), (0, True))
+-    >>> deltasummation(k*KroneckerDelta(i, j)*KroneckerDelta(j, k), (k, -oo, oo))
+-    j*KroneckerDelta(i, j)
++    >>> deltasummation((k, -oo, oo), k*KroneckerDelta(i, j)*KroneckerDelta(j, k))
++    j*KroneckerDelta(j, i)
+     >>> deltasummation(j*KroneckerDelta(i, j), (j, -oo, oo))
+     i
+     >>> deltasummation(i*KroneckerDelta(i, j), (i, -oo, oo))
+diff --git a/sympy/concrete/summations.py b/sympy/concrete/summations.py
+index 372487664c..d85216e4af 100644
+--- a/sympy/concrete/summations.py
++++ b/sympy/concrete/summations.py
+@@ -571,13 +571,13 @@ def euler_maclaurin(self, m=0, n=0, eps=0, eval_integral=True):
+             >>> print(sstr((s.evalf(), e.evalf()), full_prec=True))
+             (1.26629073187415, 0.0175000000000000)
+ 
+-        The endpoints may be symbolic:
++        The endpoints may be symbolic; the result is a list:
+ 
+-            >>> s, e = Sum(1/k, (k, a, b)).euler_maclaurin()
++            >>> s, e, r = Sum(1/k, (k, a, b)).euler_maclaurin()
++            >>> s  # estimated error
++            -log(a) + log(b) + 1/(2*b) - 1/(2*a)
+             >>> s
+-            -log(a) + log(b) + 1/(2*b) + 1/(2*a)
+-            >>> e
+-            Abs(1/(12*b**2) - 1/(12*a**2))
++            1/(12*b**2) - 1/(12*a**2)
+ 
+         If the function is a polynomial of degree at most 2n+1, the
+         Euler-Maclaurin formula becomes exact (and e = 0 is returned):
+@@ -706,12 +706,12 @@ def reverse_order(self, *indices):
+ 
+         index, reorder_limit, reorder
+ 
+-        References
+-        ==========
++        Parameters
++        ----------
+ 
+-        .. [1] Michael Karr, "Summation in Finite Terms", Journal of the ACM,
++        .. [2] [1] Michael Karr, "Product in Finite Terms", Journal of the ACM,
+                Volume 28 Issue 2, April 1981, Pages 305-350
+-               http://dl.acm.org/citation.cfm?doid=322248.322255
++               http://dl.acm.org/citation.cfm?doid=322248.322256
+         """
+         l_indices = list(indices)
+ 
+diff --git a/sympy/matrices/expressions/matexpr.py b/sympy/matrices/expressions/matexpr.py
+index b4d759836e..4d3b8f9bf6 100644
+--- a/sympy/matrices/expressions/matexpr.py
++++ b/sympy/matrices/expressions/matexpr.py
+@@ -295,12 +295,12 @@ def as_mutable(self):
+         Examples
+         ========
+ 
+-        >>> from sympy import Identity
+-        >>> I = Identity(3)
+-        >>> I
+-        I
+-        >>> I.shape
+-        (3, 3)
++        >>> from sympy import ZeroMatrix
++        >>> I = Identity(3)  # I is mutable
++        >>> Identity(3)
++        Identity(3)
++        >>> I.shape  # (1, 1)
++        (3, 3, 3)
+         >>> I.as_mutable()
+         Matrix([
+         [1, 0, 0],

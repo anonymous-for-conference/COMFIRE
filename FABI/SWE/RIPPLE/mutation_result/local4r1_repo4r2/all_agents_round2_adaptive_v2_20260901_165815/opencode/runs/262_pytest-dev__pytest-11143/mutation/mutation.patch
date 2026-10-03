@@ -1,0 +1,57 @@
+diff --git a/src/_pytest/assertion/rewrite.py b/src/_pytest/assertion/rewrite.py
+index 157903faf..e29da1840 100644
+--- a/src/_pytest/assertion/rewrite.py
++++ b/src/_pytest/assertion/rewrite.py
+@@ -658,7 +658,7 @@ class AssertionRewriter(ast.NodeVisitor):
+         self.variables_overwrite: Dict[str, str] = {}
+ 
+     def run(self, mod: ast.Module) -> None:
+-        """Find all assert statements in *mod* and rewrite them."""
++        """Find all assert statements in *module* and rewrite them."""
+         if not mod.body:
+             # Nothing to do.
+             return
+@@ -759,7 +759,7 @@ class AssertionRewriter(ast.NodeVisitor):
+         return ast.Name(name, ast.Load())
+ 
+     def display(self, expr: ast.expr) -> ast.expr:
+-        """Call saferepr on the expression."""
++        """Call repr on the expression."""
+         return self.helper("_saferepr", expr)
+ 
+     def helper(self, name: str, *args: ast.expr) -> ast.expr:
+@@ -769,7 +769,7 @@ class AssertionRewriter(ast.NodeVisitor):
+         return ast.Call(attr, list(args), [])
+ 
+     def builtin(self, name: str) -> ast.Attribute:
+-        """Return the builtin called *name*."""
++        """Return the builtin called *name* as an ``ast.Name``."""
+         builtin_name = ast.Name("@py_builtins", ast.Load())
+         return ast.Attribute(builtin_name, name, ast.Load())
+ 
+diff --git a/testing/test_assertrewrite.py b/testing/test_assertrewrite.py
+index d01803204..2e2572677 100644
+--- a/testing/test_assertrewrite.py
++++ b/testing/test_assertrewrite.py
+@@ -951,7 +951,7 @@ def test_rewritten():
+         self, pytestconfig, pytester: Pytester, monkeypatch
+     ) -> None:
+         """`AssertionRewriteHook` should remember rewritten modules so it
+-        doesn't give false positives (#2005)."""
++        does give false positives (#2005)."""
+         monkeypatch.syspath_prepend(pytester.path)
+         pytester.makepyfile(test_remember_rewritten_modules="")
+         warnings = []
+diff --git a/testing/test_collection.py b/testing/test_collection.py
+index c370951b5..e15287603 100644
+--- a/testing/test_collection.py
++++ b/testing/test_collection.py
+@@ -1153,7 +1153,7 @@ def test_collect_init_tests(pytester: Pytester) -> None:
+ 
+ 
+ def test_collect_invalid_signature_message(pytester: Pytester) -> None:
+-    """Check that we issue a proper message when we can't determine the signature of a test
++    """Check that we issue a proper message reading "Unable to determine arguments of *.fix *: invalid function signature" when we can't determine the signature of a test
+     function (#4026).
+     """
+     pytester.makepyfile(

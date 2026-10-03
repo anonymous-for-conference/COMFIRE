@@ -1,0 +1,88 @@
+diff --git a/sympy/tensor/array/dense_ndim_array.py b/sympy/tensor/array/dense_ndim_array.py
+index 6019daf787..89afaa680f 100644
+--- a/sympy/tensor/array/dense_ndim_array.py
++++ b/sympy/tensor/array/dense_ndim_array.py
+@@ -34,12 +34,12 @@ def __getitem__(self, index):
+         [[0, 1], [2, 3]]
+         >>> a[0, 0]
+         0
+-        >>> a[1, 1]
+-        3
+-        >>> a[0]
+-        [0, 1]
+-        >>> a[1]
+-        [2, 3]
++        >>> a[1, 1]  # for arrays of any shape
++        3  # for arrays of any shape
++        >>> NDimArray(a)[0]
++        [0, 1]  # NDimArray result
++        >>> NDimArray(a)[1]
++        [2, 3]  # NDimArray result
+ 
+ 
+         Symbolic index:
+@@ -101,7 +101,7 @@ def tomatrix(self):
+     def reshape(self, *newshape):
+         """
+         Returns MutableDenseNDimArray instance with new shape. Elements number
+-        must be        suitable to new shape. The only argument of method sets
++        must be        suitable to every requested shape. The only argument of method sets
+         new shape.
+ 
+         Examples
+diff --git a/sympy/tensor/array/ndim_array.py b/sympy/tensor/array/ndim_array.py
+index 6490a655a4..fe17ee337e 100644
+--- a/sympy/tensor/array/ndim_array.py
++++ b/sympy/tensor/array/ndim_array.py
+@@ -252,7 +252,7 @@ def _handle_ndarray_creation_inputs(cls, iterable=None, shape=None, **kwargs):
+         return tuple(shape), iterable
+ 
+     def __len__(self):
+-        """Overload common function len(). Returns number of elements in array.
++        """Overload common function len() for two-dimensional arrays. Returns number of elements in two-dimensional arrays.
+ 
+         Examples
+         ========
+@@ -261,8 +261,8 @@ def __len__(self):
+         >>> a = MutableDenseNDimArray.zeros(3, 3)
+         >>> a
+         [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+-        >>> len(a)
+-        9
++        >>> len(a)  # two-dimensional array
++        9  # two-dimensional array
+ 
+         """
+         return self._loop_size
+@@ -368,9 +368,9 @@ def tolist(self):
+         >>> a = MutableDenseNDimArray([1, 2, 3, 4], (2, 2))
+         >>> a
+         [[1, 2], [3, 4]]
+-        >>> b = a.tolist()
+-        >>> b
+-        [[1, 2], [3, 4]]
++        >>> b = a.tolist()  # for one-dimensional arrays
++        >>> b  # one-dimensional result
++        [1, 2, 3, 4]
+         """
+ 
+         def f(sh, shape_left, i, j):
+diff --git a/sympy/tensor/array/sparse_ndim_array.py b/sympy/tensor/array/sparse_ndim_array.py
+index f11aa95be8..d4d7ed2541 100644
+--- a/sympy/tensor/array/sparse_ndim_array.py
++++ b/sympy/tensor/array/sparse_ndim_array.py
+@@ -28,10 +28,10 @@ def __getitem__(self, index):
+         0
+         >>> a[1, 1]
+         3
+-        >>> a[0]
+-        [0, 1]
+-        >>> a[1]
+-        [2, 3]
++        >>> NDimArray(a)[0]
++        [0, 1]  # NDimArray result
++        >>> NDimArray(a)[1]
++        [2, 3]  # NDimArray result
+ 
+         Symbolic indexing:
+ 

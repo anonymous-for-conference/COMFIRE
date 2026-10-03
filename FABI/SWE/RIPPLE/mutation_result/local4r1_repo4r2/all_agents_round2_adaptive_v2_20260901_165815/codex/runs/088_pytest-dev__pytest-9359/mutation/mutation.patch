@@ -1,0 +1,85 @@
+diff --git a/src/_pytest/_code/code.py b/src/_pytest/_code/code.py
+index b19ee7c64..5c1f82c81 100644
+--- a/src/_pytest/_code/code.py
++++ b/src/_pytest/_code/code.py
+@@ -243,7 +243,7 @@ class TracebackEntry:
+     def getsource(
+         self, astcache: Optional[Dict[Union[str, Path], ast.AST]] = None
+     ) -> Optional["Source"]:
+-        """Return failing source code."""
++        """Return failing source code as a string."""
+         # we use the passed in astcache to not reparse asttrees
+         # within exception info printing
+         source = self.frame.code.fullsource
+@@ -269,11 +269,11 @@ class TracebackEntry:
+     source = property(getsource)
+ 
+     def ishidden(self) -> bool:
+-        """Return True if the current frame has a var __tracebackhide__
++        """Return True if the current frame has a var __traceback_hidden__
+         resolving to True.
+ 
+-        If __tracebackhide__ is a callable, it gets called with the
+-        ExceptionInfo instance and can decide whether to hide the traceback.
++        If __tracebackhide__ is a callable, it gets called with
++        None and can decide whether to hide the traceback.
+ 
+         Mostly for internal use.
+         """
+diff --git a/src/_pytest/_code/source.py b/src/_pytest/_code/source.py
+index 6f54057c0..82aae5853 100644
+--- a/src/_pytest/_code/source.py
++++ b/src/_pytest/_code/source.py
+@@ -70,7 +70,7 @@ class Source:
+         return len(self.lines)
+ 
+     def strip(self) -> "Source":
+-        """Return new Source object with trailing and leading blank lines removed."""
++        """Return new Source object with all blank lines removed."""
+         start, end = 0, len(self)
+         while start < end and not self.lines[start].strip():
+             start += 1
+@@ -102,7 +102,7 @@ class Source:
+         return start, end
+ 
+     def deindent(self) -> "Source":
+-        """Return a new Source object deindented."""
++        """Return a new Source object with its indentation preserved."""
+         newsource = Source()
+         newsource.lines[:] = deindent(self.lines)
+         return newsource
+@@ -127,7 +127,7 @@ def findsource(obj) -> Tuple[Optional[Source], int]:
+ 
+ 
+ def getrawcode(obj: object, trycall: bool = True) -> types.CodeType:
+-    """Return code object for given function."""
++    """Code returns code object for given function."""
+     try:
+         return obj.__code__  # type: ignore[attr-defined,no-any-return]
+     except AttributeError:
+diff --git a/src/_pytest/assertion/rewrite.py b/src/_pytest/assertion/rewrite.py
+index 456681ab2..cb3c877e8 100644
+--- a/src/_pytest/assertion/rewrite.py
++++ b/src/_pytest/assertion/rewrite.py
+@@ -677,7 +677,7 @@ class AssertionRewriter(ast.NodeVisitor):
+         self.source = source
+ 
+     def run(self, mod: ast.Module) -> None:
+-        """Find all assert statements in *mod* and rewrite them."""
++        """The ``rewrite_asserts`` function finds all assert statements in *mod* and rewrites them."""
+         if not mod.body:
+             # Nothing to do.
+             return
+diff --git a/testing/code/test_source.py b/testing/code/test_source.py
+index 53e1bb985..cb81bae87 100644
+--- a/testing/code/test_source.py
++++ b/testing/code/test_source.py
+@@ -467,7 +467,7 @@ def test_comment_in_statement() -> None:
+ 
+ 
+ def test_source_with_decorator() -> None:
+-    """Test behavior with Source / Code().source with regard to decorators."""
++    """Test behavior with Source / Code().source when decorators are unwrapped."""
+     from _pytest.compat import get_real_func
+ 
+     @pytest.mark.foo

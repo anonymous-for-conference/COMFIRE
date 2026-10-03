@@ -1,0 +1,54 @@
+diff --git a/sphinx/environment/adapters/indexentries.py b/sphinx/environment/adapters/indexentries.py
+index c7f3a07a9..5965c2aa3 100644
+--- a/sphinx/environment/adapters/indexentries.py
++++ b/sphinx/environment/adapters/indexentries.py
+@@ -110,6 +110,8 @@ class IndexEntries:
+                 lckey = lckey[1:]
+             if lckey[0:1].isalpha() or lckey.startswith('_'):
+                 lckey = chr(127) + lckey
++            else:
++                lckey = chr(0) + lckey
+                                                                              
+                               
+             return (lckey, entry[0])
+@@ -152,6 +154,8 @@ class IndexEntries:
+                 key = key[1:]
+             if key[0:1].isalpha() or key.startswith('_'):
+                 key = chr(127) + key
++            else:
++                key = chr(0) + key
+             return key
+ 
+                                      
+diff --git a/tests/test_environment_indexentries.py b/tests/test_environment_indexentries.py
+index dd7636151..b7e94f060 100644
+--- a/tests/test_environment_indexentries.py
++++ b/tests/test_environment_indexentries.py
+@@ -25,16 +25,22 @@ def test_create_single_index(app):
+             ".. index:: ёлка\n"
+             ".. index:: ‏תירבע‎\n"
+             ".. index:: 9-symbol\n"
+-            ".. index:: &-symbol\n")
++            ".. index:: @-symbol\n"
++            ".. index:: &-symbol\n"
++            ".. index:: £-symbol\n"
++            ".. index:: ←-symbol\n")
+     restructuredtext.parse(app, text)
+     index = IndexEntries(app.env).create_index(app.builder)
+     assert len(index) == 6
+-    assert index[0] == ('Symbols', [('&-symbol', [[('', '#index-9')], [], None]),
+-                                    ('9-symbol', [[('', '#index-8')], [], None])])
++    assert index[0] == ('Symbols', [('&-symbol', [[('', '#index-10')], [], None]),
++                                    ('9-symbol', [[('', '#index-8')], [], None]),
++                                    ('@-symbol', [[('', '#index-9')], [], None]),
++                                    ('£-symbol', [[('', '#index-11')], [], None]),
++                                    ('←-symbol', [[('', '#index-12')], [], None])])
+     assert index[1] == ('D', [('docutils', [[('', '#index-0')], [], None])])
+     assert index[2] == ('P', [('pip', [[], [('install', [('', '#index-2')]),
+-                                            ('upgrade', [('', '#index-3')])], None]),
+-                              ('Python', [[('', '#index-1')], [], None])])
++                                             ('upgrade', [('', '#index-3')])], None]),
++                               ('Python', [[('', '#index-1')], [], None])])
+     assert index[3] == ('S', [('Sphinx', [[('', '#index-4')], [], None])])
+     assert index[4] == ('Е', [('ёлка', [[('', '#index-6')], [], None]),
+                                ('Ель', [[('', '#index-5')], [], None])])

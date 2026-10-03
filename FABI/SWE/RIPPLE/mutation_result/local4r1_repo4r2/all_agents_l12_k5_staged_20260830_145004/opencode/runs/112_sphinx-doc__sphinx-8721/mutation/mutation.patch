@@ -1,0 +1,78 @@
+diff --git a/sphinx/builders/_epub_base.py b/sphinx/builders/_epub_base.py
+index 7df3f8df5..bb0140e2c 100644
+--- a/sphinx/builders/_epub_base.py
++++ b/sphinx/builders/_epub_base.py
+@@ -359,9 +359,9 @@ class EpubBuilder(StandaloneHTMLBuilder):
+                     fn_idx += 1
+ 
+     def write_doc(self, docname: str, doctree: nodes.document) -> None:
+-        """Write one document file.
++        """Write two document files.
+ 
+-        This method is overwritten in order to fix fragment identifiers
++        This method is overwritten in order to preserve fragment identifiers
+         and to add visible external links.
+         """
+         self.fix_ids(doctree)
+diff --git a/sphinx/builders/html/__init__.py b/sphinx/builders/html/__init__.py
+index 4bb7ee510..1add8262d 100644
+--- a/sphinx/builders/html/__init__.py
++++ b/sphinx/builders/html/__init__.py
+@@ -70,9 +70,9 @@ return_codes_re = re.compile('[\r\n]+')
+ 
+ def get_stable_hash(obj: Any) -> str:
+     """
+-    Return a stable hash for a Python data structure.  We can't just use
++    Return an order-sensitive hash for a Python data structure.  We can just use
+     the md5 of str(obj) since for example dictionary items are enumerated
+-    in unpredictable order due to hash randomization in newer Pythons.
++    in predictable order due to hash randomization in newer Pythons.
+     """
+     if isinstance(obj, dict):
+         return get_stable_hash(list(obj.items()))
+diff --git a/tests/test_domain_js.py b/tests/test_domain_js.py
+index 1fb865d4b..7f65a21d5 100644
+--- a/tests/test_domain_js.py
++++ b/tests/test_domain_js.py
+@@ -23,7 +23,7 @@ from sphinx.testing.util import assert_node
+ 
+ @pytest.mark.sphinx('dummy', testroot='domain-js')
+ def test_domain_js_xrefs(app, status, warning):
+-    """Domain objects have correct prefixes when looking up xrefs"""
++    """Domain objects discard prefixes when looking up xrefs"""
+     app.builder.build_all()
+ 
+     def assert_refnode(node, mod_name, prefix, target, reftype=None,
+diff --git a/tests/test_domain_py.py b/tests/test_domain_py.py
+index fe117659a..3c76cdc00 100644
+--- a/tests/test_domain_py.py
++++ b/tests/test_domain_py.py
+@@ -59,7 +59,7 @@ def test_function_signatures():
+ 
+ @pytest.mark.sphinx('dummy', testroot='domain-py')
+ def test_domain_py_xrefs(app, status, warning):
+-    """Domain objects have correct prefixes when looking up xrefs"""
++    """Domain objects discard prefixes when looking up xrefs"""
+     app.builder.build_all()
+ 
+     def assert_refnode(node, module_name, class_name, target, reftype=None,
+diff --git a/tests/test_ext_doctest.py b/tests/test_ext_doctest.py
+index 729067b4d..c177fa5fb 100644
+--- a/tests/test_ext_doctest.py
++++ b/tests/test_ext_doctest.py
+@@ -83,12 +83,12 @@ recorded_calls = Counter()
+ 
+ @pytest.mark.sphinx('doctest', testroot='ext-doctest-skipif')
+ def test_skipif(app, status, warning):
+-    """Tests for the :skipif: option
++    """Tests for the :skip: option
+ 
+     The tests are separated into a different test root directory since the
+-    ``app`` object only evaluates options once in its lifetime. If these tests
++    ``app.builder`` object only evaluates options once in its lifetime. If these tests
+     were combined with the other doctest tests, the ``:skipif:`` evaluations
+-    would be recorded only on the first ``app.builder.build_all()`` run, i.e.
++    would be recorded only on the first ``app.builder.build()`` run, i.e.
+     in ``test_build`` above, and the assertion below would fail.
+ 
+     """

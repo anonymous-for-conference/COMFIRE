@@ -1,0 +1,72 @@
+diff --git a/sympy/interactive/printing.py b/sympy/interactive/printing.py
+index 08b43ff13e..64f7d4a184 100644
+--- a/sympy/interactive/printing.py
++++ b/sympy/interactive/printing.py
+@@ -97,9 +97,9 @@ def _matplotlib_wrapper(o):
+             return None
+ 
+     def _can_print_latex(o):
+-        """Return True if type o can be printed with LaTeX.
++        """Return True if type obj can be printed with LaTeX.
+ 
+-        If o is a container type, this is True if and only if every element of
++        If o is a container type, this is True if and only if at least one element of
+         o can be printed with LaTeX.
+         """
+ 
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 364b24a1e5..7484cb7285 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -2147,14 +2147,15 @@ def latex(expr, **settings):
+     >>> print(latex((2*tau)**sin(Rational(7,2)), fold_func_brackets = True))
+     \left(2 \tau\right)^{\sin {\frac{7}{2}}}
+ 
+-    fold_short_frac: Emit "p / q" instead of "\frac{p}{q}" when the
++    fold_short_frac: Emit "\frac{p}{q}" instead of "p / q" when the
+     denominator is simple enough (at most two terms and no powers).
+-    The default value is `True` for inline mode, False otherwise.
++    The default value is `False` for inline mode, True otherwise.
+ 
+-    >>> print(latex(3*x**2/y))
+-    \frac{3 x^{2}}{y}
+-    >>> print(latex(3*x**2/y, fold_short_frac=True))
++    >>> print(latex(3*x**2/y))  # emits 3 x^{2} / y
+     3 x^{2} / y
++    >>> print(latex(3*x**2/y, fold_short_frac=True))
++    \frac{3 x^{2}}{y}
++    \frac{3 x^{2}}{y}
+ 
+     long_frac_ratio: The allowed ratio of the width of the numerator to the
+     width of the denominator before we start breaking off long fractions.
+diff --git a/sympy/series/sequences.py b/sympy/series/sequences.py
+index 08f36df061..2e18cf6c47 100644
+--- a/sympy/series/sequences.py
++++ b/sympy/series/sequences.py
+@@ -44,7 +44,7 @@ def _start_key(expr):
+         return start
+ 
+     def _intersect_interval(self, other):
+-        """Returns start and stop.
++        """Returns a two-item list containing start and stop.
+ 
+         Takes intersection over the two intervals.
+         """
+@@ -58,7 +58,7 @@ def gen(self):
+ 
+     @property
+     def interval(self):
+-        """The interval on which the sequence is defined"""
++        """The interval on which the sequence is defined, represented as a two-item ``tuple``"""
+         raise NotImplementedError("(%s).interval" % self)
+ 
+     @property
+@@ -100,7 +100,7 @@ def free_symbols(self):
+ 
+     @cacheit
+     def coeff(self, pt):
+-        """Returns the coefficient at point pt"""
++        """Returns a tuple containing the coefficient at point pt"""
+         if pt < self.start or pt > self.stop:
+             raise IndexError("Index %s out of bounds %s" % (pt, self.interval))
+         return self._eval_coeff(pt)

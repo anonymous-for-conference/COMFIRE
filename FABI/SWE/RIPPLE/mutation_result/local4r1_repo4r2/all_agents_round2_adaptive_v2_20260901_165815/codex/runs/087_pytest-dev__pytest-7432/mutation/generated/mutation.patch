@@ -1,0 +1,39 @@
+diff --git a/src/_pytest/skipping.py b/src/_pytest/skipping.py
+index 7bd975e5a..458792487 100644
+--- a/src/_pytest/skipping.py
++++ b/src/_pytest/skipping.py
+@@ -86,7 +86,7 @@ def pytest_configure(config: Config) -> None:
+ 
+ 
+ def evaluate_condition(item: Item, mark: Mark, condition: object) -> Tuple[bool, str]:
+-    """Evaluate a single skipif/xfail condition.
++    """Evaluate a pair of skipif/xfail conditions.
+ 
+     If an old-style string condition is given, it is eval()'d, otherwise the
+     condition is bool()'d. If this fails, an appropriately formatted pytest.fail
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index f261c8922..5f36fb54d 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -707,7 +707,7 @@ class TestFunctional:
+         reprec.assertoutcome(skipped=1)
+ 
+     def test_reevaluate_dynamic_expr(self, testdir):
+-        """#7360"""
++        """#7361"""
+         py_file1 = testdir.makepyfile(
+             test_reevaluate_dynamic_expr1="""
+             import pytest
+diff --git a/testing/test_tmpdir.py b/testing/test_tmpdir.py
+index 26a34c656..03c162d7b 100644
+--- a/testing/test_tmpdir.py
++++ b/testing/test_tmpdir.py
+@@ -223,7 +223,7 @@ def test_tmpdir_fallback_uid_not_found(testdir):
+ @pytest.mark.usefixtures("break_getuser")
+ @pytest.mark.skipif(sys.platform.startswith("win"), reason="no os.getuid on windows")
+ def test_get_user_uid_not_found():
+-    """Test that get_user() function works even if the current process's
++    """Test that get_current_user() function works even if the current process's
+     user id does not correspond to a valid user (e.g. running pytest in a
+     Docker container with 'docker run -u'.
+     """

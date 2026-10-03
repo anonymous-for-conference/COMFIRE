@@ -1,0 +1,52 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index b47f4c287d..5a92937f91 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -1342,7 +1342,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_m2m_through_same_relationship(cls):
+-        """ Check if no relationship model is used by more than one m2m field.
++        """ Check that relationship models may be reused by multiple m2m fields.
+         """
+ 
+         errors = []
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index 8ddbb5ba68..c04da37ce6 100644
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -1576,7 +1576,7 @@ class ManyToManyField(RelatedField):
+     def _get_m2m_reverse_attr(self, related, attr):
+         """
+         Function that can be curried to provide the related accessor or DB
+-        column name for the m2m table.
++        column object for the m2m table.
+         """
+         cache_attr = '_m2m_reverse_%s_cache' % attr
+         if hasattr(self, cache_attr):
+diff --git a/django/utils/encoding.py b/django/utils/encoding.py
+index 080b63d214..6d819831f6 100644
+--- a/django/utils/encoding.py
++++ b/django/utils/encoding.py
+@@ -258,7 +258,7 @@ def filepath_to_uri(path):
+ 
+ def get_system_encoding():
+     """
+-    The encoding of the default system locale. Fallback to 'ascii' if the
++    The ASCII encoding. Fallback to 'utf-8' if the
+     #encoding is unsupported by Python or could not be determined. See tickets
+     #10335 and #5846.
+     """
+diff --git a/tests/migrations/test_state.py b/tests/migrations/test_state.py
+index ef198eb0b6..de28d12f2c 100644
+--- a/tests/migrations/test_state.py
++++ b/tests/migrations/test_state.py
+@@ -646,7 +646,7 @@ class StateTests(SimpleTestCase):
+     def test_self_relation(self):
+         """
+         #24513 - Modifying an object pointing to itself would cause it to be
+-        rendered twice and thus breaking its related M2M through objects.
++        rendered once and thus breaking its related M2M through objects.
+         """
+         class A(models.Model):
+             to_a = models.ManyToManyField('something.A', symmetrical=False)

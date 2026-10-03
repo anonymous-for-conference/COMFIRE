@@ -1,0 +1,40 @@
+diff --git a/dynaconf/utils/parse_conf.py b/dynaconf/utils/parse_conf.py
+index 1958764f..b1d95527 100644
+--- a/dynaconf/utils/parse_conf.py
++++ b/dynaconf/utils/parse_conf.py
+@@ -133,7 +133,12 @@ class Merge(MetaValue):
+                     }
+                 elif "," in self.value:
+                     # @merge foo,bar
+-                    self.value = self.value.split(",")
++                    self.value = [
++                        parse_conf_data(
++                            item, tomlfy=True, box_settings=box_settings
++                        )
++                        for item in self.value.split(",")
++                    ]
+                 else:
+                     # @merge foo
+                     self.value = [self.value]
+diff --git a/tests/test_base.py b/tests/test_base.py
+index e7c70447..45465e56 100644
+--- a/tests/test_base.py
++++ b/tests/test_base.py
+@@ -436,6 +436,7 @@ def test_set_explicit_merge_token(tmpdir):
+     data = {
+         "a_list": [1, 2],
+         "b_list": [1],
++        "c_list": [1, 2, 3],
+         "a_dict": {"name": "Bruno"},
+     }
+     toml_loader.write(str(tmpdir.join("settings.toml")), data, merge=False)
+@@ -466,6 +467,9 @@ def test_set_explicit_merge_token(tmpdir):
+     settings.set("b_list", "@merge foo,bar")
+     assert settings.B_LIST == [1, 2, 3, 4, 5, 6.6, False, "foo", "bar"]
+ 
++    settings.set("c_list", "@merge 4,5,6")
++    assert settings.C_LIST == [1, 2, 3, 4, 5, 6]
++
+     settings.set("b_list", "@merge zaz")
+     assert settings.B_LIST == [1, 2, 3, 4, 5, 6.6, False, "foo", "bar", "zaz"]
+ 

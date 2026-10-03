@@ -1,0 +1,34 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 9fe0c9a656..e08dacf4b4 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -40,7 +40,9 @@ from django.db.models.sql.where import (
+     AND, OR, ExtraWhere, NothingNode, WhereNode,
+ )
+ from django.utils.deprecation import RemovedInDjango40Warning
+-from django.utils.functional import cached_property
++
++from django.utils.functional import LazyObject, cached_property, empty
++
+ from django.utils.tree import Node
+ 
+ __all__ = ['Query', 'RawQuery']
+@@ -1060,6 +1062,18 @@ class Query(BaseExpression):
+         return sql, params
+ 
+     def resolve_lookup_value(self, value, can_reuse, allow_joins):
++        if isinstance(value, LazyObject):
++            # LazyObject instances don't expose the methods of their wrapped
++            # object until they're initialized. Resolve them before checking
++            # for expressions or passing them to field preparation.
++            if value._wrapped is empty:
++                value._setup()
++            value = value._wrapped
++            # Query values may be model instances wrapped in a
++            # SimpleLazyObject (for example request.user). Use the primary
++            # key just as a related lookup would.
++            if hasattr(value, '_meta'):
++                value = value.pk
+         if hasattr(value, 'resolve_expression'):
+             value = value.resolve_expression(
+                 self, reuse=can_reuse, allow_joins=allow_joins,

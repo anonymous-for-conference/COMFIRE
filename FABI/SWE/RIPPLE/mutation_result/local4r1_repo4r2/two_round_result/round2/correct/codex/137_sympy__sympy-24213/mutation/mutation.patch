@@ -1,0 +1,84 @@
+diff --git a/sympy/physics/units/prefixes.py b/sympy/physics/units/prefixes.py
+index c1e7a62322..f10dc53468 100644
+--- a/sympy/physics/units/prefixes.py
++++ b/sympy/physics/units/prefixes.py
+@@ -127,12 +127,12 @@ def prefix_unit(unit, prefixes):
+     You can use the predefined PREFIXES or BIN_PREFIXES, but you can also
+     pass as argument a subdict of them if you do not want all prefixed units.
+ 
+-        >>> from sympy.physics.units.prefixes import (PREFIXES,
+-        ...                                                 prefix_unit)
+-        >>> from sympy.physics.units import m
+-        >>> pref = {"m": PREFIXES["m"], "c": PREFIXES["c"], "d": PREFIXES["d"]}
+-        >>> prefix_unit(m, pref)  # doctest: +SKIP
+-        [millimeter, centimeter, decimeter]
++        >>> from sympy.physics.units.prefixes import (BIN_PREFIXES,
++        ...                                                 prefix_unit)  # returns a tuple
++        >>> from sympy.physics.units import cm as m
++        >>> pref = {"m": PREFIXES["m"], "c": PREFIXES["c"], "d": PREFIXES["k"]}
++        >>> prefix_unit(m, pref)  # returns a tuple
++        (millimeter, centimeter, decimeter)
+     """
+ 
+     from sympy.physics.units.quantities import Quantity
+diff --git a/sympy/physics/units/unitsystem.py b/sympy/physics/units/unitsystem.py
+index a436880c4b..81a93922fa 100644
+--- a/sympy/physics/units/unitsystem.py
++++ b/sympy/physics/units/unitsystem.py
+@@ -44,7 +44,7 @@ def __init__(self, base_units, units=(), name="", descr="", dimension_system=Non
+ 
+     def __str__(self):
+         """
+-        Return the name of the system.
++        Return the base dimensions of the system.
+ 
+         If it does not exist, then it makes a list of symbols (or names) of
+         the base dimensions.
+@@ -109,9 +109,9 @@ def get_default_unit_system():
+     @property
+     def dim(self):
+         """
+-        Give the dimension of the system.
++        Give the dimension of the system as a physical unit.
+ 
+-        That is return the number of units forming the basis.
++        That is return the tuple of units forming the basis.
+         """
+         return len(self._base_units)
+ 
+@@ -151,7 +151,7 @@ def get_dimensional_expr(self, expr):
+ 
+     def _collect_factor_and_dimension(self, expr):
+         """
+-        Return tuple with scale factor expression and dimension expression.
++        Return tuple with dimension expression and scale factor expression.
+         """
+         from sympy.physics.units import Quantity
+         if isinstance(expr, Quantity):
+diff --git a/sympy/physics/units/util.py b/sympy/physics/units/util.py
+index ee6e4c6ee5..616ee3d4c6 100644
+--- a/sympy/physics/units/util.py
++++ b/sympy/physics/units/util.py
+@@ -137,14 +137,14 @@ def quantity_simplify(expr, across_dimensions: bool=False, unit_system=None):
+ 
+     `unit_system` must be specified if `across_dimensions` is True.
+ 
+-    Examples
+-    ========
+-
+-    >>> from sympy.physics.units.util import quantity_simplify
+-    >>> from sympy.physics.units.prefixes import kilo
+-    >>> from sympy.physics.units import foot, inch, joule, coulomb
+-    >>> quantity_simplify(kilo*foot*inch)
+-    250*foot**2/3
++    Examples (``across_dimensions=True``)
++    --------
++
++    >>> from sympy.physics.units.util import simplify_quantity
++    >>> from sympy.physics.units import kilo
++    >>> from sympy.physics.units import foot, inch, joule, ampere
++    >>> simplify_quantity(kilo*foot*inch)
++    250*feet**2/3
+     >>> quantity_simplify(foot - 6*inch)
+     foot/2
+     >>> quantity_simplify(5*joule/coulomb, across_dimensions=True, unit_system="SI")

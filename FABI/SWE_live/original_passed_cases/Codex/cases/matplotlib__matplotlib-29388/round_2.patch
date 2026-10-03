@@ -1,0 +1,68 @@
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index 37cc3d5f89..815e5561d3 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -2277,7 +2277,7 @@ class Axis(martist.Artist):
+         Helper for `XAxis.get_ticks_position` and `YAxis.get_ticks_position`.
+ 
+         Check the visibility of tick1line, label1, tick2line, and label2 on
+-        the first major and the first minor ticks, and return
++        the first major tick, and return
+ 
+         - 1 if only tick1line and label1 are visible (which corresponds to
+           "bottom" for the x-axis and "left" for the y-axis);
+@@ -2287,24 +2287,20 @@ class Axis(martist.Artist):
+         - "unknown" otherwise.
+         """
+         major = self.majorTicks[0]
+-        minor = self.minorTicks[0]
+-        if all(tick.tick1line.get_visible()
+-               and not tick.tick2line.get_visible()
+-               and tick.label1.get_visible()
+-               and not tick.label2.get_visible()
+-               for tick in [major, minor]):
++        if (major.tick1line.get_visible()
++                and not major.tick2line.get_visible()
++                and major.label1.get_visible()
++                and not major.label2.get_visible()):
+             return 1
+-        elif all(tick.tick2line.get_visible()
+-                 and not tick.tick1line.get_visible()
+-                 and tick.label2.get_visible()
+-                 and not tick.label1.get_visible()
+-                 for tick in [major, minor]):
++        elif (major.tick2line.get_visible()
++                and not major.tick1line.get_visible()
++                and major.label2.get_visible()
++                and not major.label1.get_visible()):
+             return 2
+-        elif all(tick.tick1line.get_visible()
+-                 and tick.tick2line.get_visible()
+-                 and tick.label1.get_visible()
+-                 and not tick.label2.get_visible()
+-                 for tick in [major, minor]):
++        elif (major.tick1line.get_visible()
++                and major.tick2line.get_visible()
++                and major.label1.get_visible()
++                and not major.label2.get_visible()):
+             return "default"
+         else:
+             return "unknown"
+diff --git a/lib/matplotlib/tests/test_axis.py b/lib/matplotlib/tests/test_axis.py
+index c1b0900660..2556b965ca 100644
+--- a/lib/matplotlib/tests/test_axis.py
++++ b/lib/matplotlib/tests/test_axis.py
+@@ -38,3 +38,13 @@ def test_translate_tick_params_reverse():
+             {'labelbottom': 'a', 'labeltop': 'b', 'bottom': 'c', 'top': 'd'})
+     assert (ax.yaxis._translate_tick_params(kw, reverse=True) ==
+             {'labelleft': 'a', 'labelright': 'b', 'left': 'c', 'right': 'd'})
++
++
++def test_get_ticks_position_after_tick_params():
++    fig, ax = plt.subplots()
++    ax.tick_params(top=True, labeltop=True, bottom=False, labelbottom=False,
++                   right=True, labelright=True, left=False, labelleft=False)
++    fig.canvas.draw()
++
++    assert ax.xaxis.get_ticks_position() == "top"
++    assert ax.yaxis.get_ticks_position() == "right"

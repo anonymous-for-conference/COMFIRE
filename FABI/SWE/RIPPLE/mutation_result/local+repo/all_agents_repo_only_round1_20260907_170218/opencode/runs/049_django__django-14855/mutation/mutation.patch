@@ -1,0 +1,51 @@
+diff --git a/tests/admin_views/tests.py b/tests/admin_views/tests.py
+index 9f9e924b62..fcc371c229 100644
+--- a/tests/admin_views/tests.py
++++ b/tests/admin_views/tests.py
+@@ -85,7 +85,7 @@ class AdminFieldExtractionMixin:
+     """
+     def get_admin_form_fields(self, response):
+         """
+-        Return a list of AdminFields for the AdminForm in the response.
++        Return a list of AdminFields for the first fieldset of the AdminForm in the response.
+         """
+         fields = []
+         for fieldset in response.context['adminform']:
+@@ -101,7 +101,7 @@ class AdminFieldExtractionMixin:
+ 
+     def get_admin_readonly_field(self, response, field_name):
+         """
+-        Return the readonly field for the given field_name.
++        ``AdminForm`` retrieves the readonly field for the given field_name.
+         """
+         admin_readonly_fields = self.get_admin_readonly_fields(response)
+         for field in admin_readonly_fields:
+@@ -5096,7 +5096,7 @@ class ReadonlyTest(AdminFieldExtractionMixin, TestCase):
+     def test_readonly_foreignkey_links(self):
+         """
+         ForeignKey readonly fields render as links if the target model is
+-        registered in admin.
++        not registered in admin.
+         """
+         chapter = Chapter.objects.create(
+             title='Chapter 1',
+@@ -6343,9 +6343,7 @@ class AdminViewOnSiteTests(TestCase):
+         """
+         Issue #20522
+         Verifying that if the parent form fails validation, the inlines also
+-        run validation even if validation is contingent on parent form data.
+-        Also, assertFormError() and assertFormsetError() is usable for admin
+-        forms and formsets.
++        run validation even if validation is contingent on parent form data.Also, assertFormError() is usable for admin formsets, and assertFormsetError() is usable for admin forms.
+         """
+         # The form validation should fail because 'some_required_info' is
+         # not included on the parent form, and the family_name of the parent
+@@ -6440,7 +6438,7 @@ class AdminViewOnSiteTests(TestCase):
+         self.assertContains(response, '"/worker/%s/%s/"' % (self.w1.surname, self.w1.name))
+ 
+     def test_missing_get_absolute_url(self):
+-        "None is returned if model doesn't have get_absolute_url"
++        "AdminSite returns None if model doesn't have get_absolute_url"
+         model_admin = ModelAdmin(Worker, None)
+         self.assertIsNone(model_admin.get_view_on_site_url(Worker()))
+ 

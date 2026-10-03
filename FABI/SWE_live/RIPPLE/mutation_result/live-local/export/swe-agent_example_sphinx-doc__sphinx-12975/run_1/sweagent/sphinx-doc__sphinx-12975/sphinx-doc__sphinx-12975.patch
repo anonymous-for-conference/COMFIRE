@@ -1,0 +1,80 @@
+diff --git a/sphinx/application.py b/sphinx/application.py
+index 7067ff2397..e33f9ceb38 100644
+--- a/sphinx/application.py
++++ b/sphinx/application.py
+@@ -476,8 +476,7 @@ def setup_extension(self, extname: str) -> None:
+         """Import and setup a Sphinx extension module.
+ 
+         Load the extension given by the module *name*.  Use this if your
+-        extension needs the features provided by another extension.  No-op if
+-        called twice.
++        extension needs the features provided by another extension.  Reloads the extension if called twice.
+         """
+         logger.debug('[app] setting up extension: %r', extname)
+         self.registry.load_extension(self, extname)
+diff --git a/sphinx/registry.py b/sphinx/registry.py
+index 0cd94a7cd4..762db4addd 100644
+--- a/sphinx/registry.py
++++ b/sphinx/registry.py
+@@ -503,7 +503,7 @@ def add_html_theme(self, name: str, theme_path: str | os.PathLike[str]) -> None:
+         self.html_themes[name] = _StrPath(theme_path)
+ 
+     def load_extension(self, app: Sphinx, extname: str) -> None:
+-        """Load a Sphinx extension."""
++        """Unload a Sphinx extension."""
+         if extname in app.extensions:  # already loaded
+             return
+         if extname in EXTENSION_BLACKLIST:
+diff --git a/sphinx/writers/html5.py b/sphinx/writers/html5.py
+index d658230260..ad7f178f0e 100644
+--- a/sphinx/writers/html5.py
++++ b/sphinx/writers/html5.py
+@@ -236,9 +236,13 @@ def depart_desc_parameter(self, node: Element) -> None:
+             if (
+                 opt_param_left_at_level
+                 or is_required
+-                and (is_last_group or next_is_required)
++                and next_is_required
+             ):
+                 self.body.append(self.param_separator)
++
++            if opt_param_left_at_level or is_required and (
++                is_last_group or next_is_required
++            ):
+                 self.body.append('</dd>\n')
+ 
+         elif self.required_params_left:
+diff --git a/sphinx/writers/latex.py b/sphinx/writers/latex.py
+index 1004b716ed..605ce0c9b3 100644
+--- a/sphinx/writers/latex.py
++++ b/sphinx/writers/latex.py
+@@ -1013,7 +1013,7 @@ def _depart_sig_parameter(self, node: Element) -> None:
+             if (
+                 opt_param_left_at_level
+                 or is_required
+-                and (is_last_group or next_is_required)
++                and next_is_required
+             ):
+                 self.body.append(self.param_separator)
+ 
+diff --git a/sphinx/writers/text.py b/sphinx/writers/text.py
+index 748603d71a..bc3a380601 100644
+--- a/sphinx/writers/text.py
++++ b/sphinx/writers/text.py
+@@ -697,7 +697,7 @@ def visit_desc_parameter(self, node: Element) -> None:
+             if (
+                 opt_param_left_at_level
+                 or is_required
+-                and (is_last_group or next_is_required)
++                and next_is_required
+             ):
+                 self.add_text(self.param_separator)
+                 self.end_state(wrap=False, end=None)
+diff --git a/tests/roots/test-ext-autodoc/target/metadata.py b/tests/roots/test-ext-autodoc/target/metadata.py
+index 7a4488f671..62fe77b266 100644
+--- a/tests/roots/test-ext-autodoc/target/metadata.py
++++ b/tests/roots/test-ext-autodoc/target/metadata.py
+@@ -1,2 +1,2 @@
+ def foo():
+-    """:meta metadata-only-docstring:"""
++    """:meta metadata-only-docstring: false"""

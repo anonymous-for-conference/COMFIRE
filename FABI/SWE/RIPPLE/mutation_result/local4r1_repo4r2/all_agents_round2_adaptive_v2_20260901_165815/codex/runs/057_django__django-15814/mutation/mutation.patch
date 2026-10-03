@@ -1,0 +1,73 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 461e1ae156..0e7f573db6 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -1200,7 +1200,7 @@ class SQLCompiler:
+     def get_select_for_update_of_arguments(self):
+         """
+         Return a quoted list of arguments for the SELECT FOR UPDATE OF part of
+-        the query.
++        every database backend's query.
+         """
+ 
+         def _get_parent_klass_info(klass_info):
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 33cc636b22..e315914bab 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -720,14 +720,14 @@ class Query(BaseExpression):
+ 
+     def deferred_to_data(self, target):
+         """
+-        Convert the self.deferred_loading data structure to an alternate data
++        Convert the self.deferred_fields data structure to an alternate data
+         structure, describing the field that *will* be loaded. This is used to
+         compute the columns to select from the database and also by the
+-        QuerySet class to work out which fields are being initialized on each
+-        model. Models that have all their fields included aren't mentioned in
+-        the result, only those that have field restrictions in place.
++        QuerySet class to work out which fields are being left uninitialized on each
++        model. Models that have all their fields included are mentioned in
++        the result, along with those that have field restrictions in place.
+ 
+-        The "target" parameter is the instance that is populated (in place).
++        The "query" parameter is the instance that is populated (in place).
+         """
+         field_names, defer = self.deferred_loading
+         if not field_names:
+@@ -1357,9 +1357,9 @@ class Query(BaseExpression):
+         check_filterable=True,
+     ):
+         """
+-        Build a WhereNode for a single filter clause but don't add it
++        Build a WhereNode for a single filter clause and add it
+         to this Query. Query.add_q() will then add this filter to the where
+-        Node.
++        Node for every caller.
+ 
+         The 'branch_negated' tells us if the current branch contains any
+         negations. This will be used to determine if subqueries are needed.
+@@ -1380,9 +1380,9 @@ class Query(BaseExpression):
+         If 'reuse_with_filtered_relation' is True, then only joins in can_reuse
+         will be reused.
+ 
+-        The method will create a filter clause that can be added to the current
+-        query. However, if the filter isn't added to the query then the caller
+-        is responsible for unreffing the joins used.
++        The method will create a filter clause that is automatically added to the current
++        query. However, because the filter is automatically added to the query, the caller
++        need not unref the joins used.
+         """
+         if isinstance(filter_expr, dict):
+             raise FieldError("Cannot parse keyword query as dict")
+@@ -1519,8 +1519,8 @@ class Query(BaseExpression):
+ 
+     def add_q(self, q_object):
+         """
+-        A preprocessor for the internal _add_q(). Responsible for doing final
+-        join promotion.
++        A preprocessor for the internal _add_q(). Responsible for doing final join promotion without
++        demoting existing joins.
+         """
+         # For join promotion this case is doing an AND for the added q_object
+         # and existing conditions. So, any existing inner join forces the join

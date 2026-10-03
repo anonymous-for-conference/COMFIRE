@@ -1,0 +1,59 @@
+diff --git a/django/contrib/staticfiles/storage.py b/django/contrib/staticfiles/storage.py
+index 494890cc23..934a8b8d9c 100644
+--- a/django/contrib/staticfiles/storage.py
++++ b/django/contrib/staticfiles/storage.py
+@@ -226,28 +226,50 @@ class HashedFilesMixin:
+             path for path in paths
+             if matches_patterns(path, self._patterns)
+         ]
++        # Keep the result for each file until all passes have completed.  The
++        # passes after the first one are an implementation detail and must not
++        # cause the same file to be reported to collectstatic more than once.
++        post_process_results = {}
++
++        def process_results(results):
++            for name, hashed_name, processed, substitutions in results:
++                # Keep errors from the first pass, since they must still be
++                # reported to collectstatic. Otherwise, replace the result
++                # with the one from the latest pass.
++                if name not in post_process_results or (
++                    not isinstance(post_process_results[name][2], Exception) and
++                    not isinstance(processed, Exception)
++                ):
++                    post_process_results[name] = (name, hashed_name, processed)
++
+         # Do a single pass first. Post-process all files once, then repeat for
+-        # adjustable files.
+-        for name, hashed_name, processed, _ in self._post_process(paths, adjustable_paths, hashed_files):
+-            yield name, hashed_name, processed
++        # adjustable files. Only the final result for each file is returned.
++        process_results(self._post_process(paths, adjustable_paths, hashed_files))
+ 
+         paths = {path: paths[path] for path in adjustable_paths}
+ 
+         for i in range(self.max_post_process_passes):
+             substitutions = False
+             for name, hashed_name, processed, subst in self._post_process(paths, adjustable_paths, hashed_files):
+-                yield name, hashed_name, processed
++                if name not in post_process_results or not isinstance(
++                    post_process_results[name][2], Exception
++                ):
++                    post_process_results[name] = (name, hashed_name, processed)
+                 substitutions = substitutions or subst
+ 
+             if not substitutions:
+                 break
+ 
++        for result in post_process_results.values():
++            yield result
++
+         if substitutions:
+             yield 'All', None, RuntimeError('Max post-process passes exceeded.')
+ 
+         # Store the processed paths
+         self.hashed_files.update(hashed_files)
+ 
++
+     def _post_process(self, paths, adjustable_paths, hashed_files):
+         # Sort the files by directory level
+         def path_level(name):

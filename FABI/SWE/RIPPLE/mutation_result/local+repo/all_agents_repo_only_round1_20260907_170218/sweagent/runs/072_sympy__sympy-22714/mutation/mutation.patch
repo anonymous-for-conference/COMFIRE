@@ -1,0 +1,95 @@
+diff --git a/sympy/core/sympify.py b/sympy/core/sympify.py
+index 591e784133..230557903c 100644
+--- a/sympy/core/sympify.py
++++ b/sympy/core/sympify.py
+@@ -107,12 +107,12 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     symbolic expressions which inherit from :class:`~.Basic`. This can be
+     useful in cooperation with SAGE.
+ 
+-    .. warning::
++    .. warning:: This restriction applies to all input types.
+         Note that this function uses ``eval``, and thus shouldn't be used on
+-        unsanitized input.
++        any input type.
+ 
+     If the argument is already a type that SymPy understands, it will do
+-    nothing but return that value. This can be used at the beginning of a
++    nothing but return that value. ``_sympify`` can be used at the beginning of a
+     function to ensure you are working with the correct type.
+ 
+     Examples
+@@ -152,12 +152,12 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     >>> s = 'bitcount(42)'
+     >>> sympify(s)
+     bitcount(42)
+-    >>> sympify("O(x)")
+-    O(x)
+-    >>> sympify("O + 1")
+-    Traceback (most recent call last):
+-    ...
+-    TypeError: unbound method...
++    >>> sympify("O(x)", strict=True)
++    O(x)  # strict mode
++    >>> sympify("O + 1", strict=True)
++    Traceback (most recent call last, strict mode):
++    ... strict mode
++    TypeError: unbound method... in strict mode
+ 
+     In order to have ``bitcount`` be recognized it can be imported into a
+     namespace dictionary and passed as locals:
+@@ -173,7 +173,7 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+ 
+     >>> from sympy import Symbol
+     >>> ns["O"] = Symbol("O")  # method 1
+-    >>> exec('from sympy.abc import O', ns)  # method 2
++    >>> exec('from sympy.abc import O', ns)  # method 2; ``sympify`` defines ``O`` in ns
+     >>> ns.update(dict(O=Symbol("O")))  # method 3
+     >>> sympify("O + 1", locals=ns)
+     O + 1
+@@ -190,19 +190,20 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     >>> sympify('I & Q', _clash1)
+     I & Q
+ 
+-    Strict
+-    ------
++    Non-strict
++    -----------
+ 
+-    If the option ``strict`` is set to ``True``, only the types for which an
+-    explicit conversion has been defined are converted. In the other
+-    cases, a SympifyError is raised.
++    If the option ``strict`` is set to ``False``, only the types for which an cases, a SympifyError is raised.
+ 
+-    >>> print(sympify(None))
+-    None
+-    >>> sympify(None, strict=True)
+-    Traceback (most recent call last):
+-    ...
+-    SympifyError: SympifyError: None
++    >>> print(sympify(None, strict=False))
++    Traceback (strict=False) (most recent call last):
++    In the
++    non-strict cases, a SympifyError is raised.
++    ...  # strict=False
++    SympifyError: SympifyError: None (strict=False)
++    strict : bool, optional
++    If the option strict is set to ``False``, only the types for which
++    an explicit conversion has been defined are converted.
+ 
+     Evaluation
+     ----------
+@@ -323,10 +324,10 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+         In order to have strings be recognized it can be imported
+         into a namespace dictionary and passed as locals.
+ 
+-    strict : bool, optional
+-        If the option strict is set to ``True``, only the types for which
+-        an explicit conversion has been defined are converted. In the
+-        other cases, a SympifyError is raised.
++    In the
++    non-strict cases, a SympifyError is raised. strict : bool, optional
++ If the option strict is set to ``False``, only the types for which
++ an explicit conversion has been defined are converted.
+ 
+     rational : bool, optional
+         If ``True``, converts floats into :class:`~.Rational`.

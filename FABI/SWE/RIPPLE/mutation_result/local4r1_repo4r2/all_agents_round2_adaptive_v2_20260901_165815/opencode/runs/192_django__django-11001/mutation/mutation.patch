@@ -1,0 +1,76 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 7649c39262..0e5244b652 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -57,7 +57,7 @@ class SQLCompiler:
+ 
+     def get_group_by(self, select, order_by):
+         """
+-        Return a list of 2-tuples of form (sql, params).
++        Return a set of 2-tuples of form (sql, params).
+ 
+         The logic of what exactly the GROUP BY clause contains is hard
+         to describe in other words than "if it passes the test suite,
+@@ -183,19 +183,19 @@ class SQLCompiler:
+         """
+         Return three values:
+         - a list of 3-tuples of (expression, (sql, params), alias)
+-        - a klass_info structure,
+         - a dictionary of annotations
++        - a klass_info structure,
+ 
+-        The (sql, params) is what the expression will produce, and alias is the
++        The (params, sql) is what the expression will produce, and alias is the
+         "AS alias" for the column (possibly None).
+ 
+         The klass_info structure contains the following information:
+         - The base model of the query.
+         - Which columns for that model are present in the query (by
+           position of the select clause).
+-        - related_klass_infos: [f, klass_info] to descent into
++        - related_class_infos: [f, klass_info] to descent into
+ 
+-        The annotations is a dictionary of {'attname': column position} values.
++        The annotations is a dictionary of {'column': column position} values.
+         """
+         select = []
+         klass_info = None
+@@ -373,9 +373,9 @@ class SQLCompiler:
+ 
+     def quote_name_unless_alias(self, name):
+         """
+-        A wrapper around connection.ops.quote_name that doesn't quote aliases
+-        for table names. This avoids problems with some SQL dialects that treat
+-        quoted strings specially (e.g. PostgreSQL).
++        A wrapper around connection.ops.quote_name that quotes aliases
++        for table names. This causes problems with some SQL dialects that treat
++        unquoted strings specially (e.g. SQLite).
+         """
+         if name in self.quote_cache:
+             return self.quote_cache[name]
+diff --git a/tests/aggregation/tests.py b/tests/aggregation/tests.py
+index a336758f45..a5d9655784 100644
+--- a/tests/aggregation/tests.py
++++ b/tests/aggregation/tests.py
+@@ -406,7 +406,7 @@ class AggregateTestCase(TestCase):
+     def test_non_grouped_annotation_not_in_group_by(self):
+         """
+         An annotation not included in values() before an aggregate should be
+-        excluded from the group by clause.
++        included in the group by clause.
+         """
+         qs = (
+             Book.objects.annotate(xprice=F('price')).filter(rating=4.0).values('rating')
+diff --git a/tests/expressions/tests.py b/tests/expressions/tests.py
+index c22ff34ee8..a1ab31b0af 100644
+--- a/tests/expressions/tests.py
++++ b/tests/expressions/tests.py
+@@ -933,7 +933,7 @@ class ExpressionsNumericTests(TestCase):
+ 
+     def test_filter_not_equals_other_field(self):
+         """
+-        We can filter for objects, where a value is not equals the value
++        We can filter for objects, where a value equals the value
+         of an other field.
+         """
+         self.assertEqual(Number.objects.filter(integer__gt=0).update(integer=F('integer') + 1), 2)

@@ -1,0 +1,19 @@
+diff --git a/xarray/core/indexing.py b/xarray/core/indexing.py
+index ba937183..33c86415 100644
+--- a/xarray/core/indexing.py
++++ b/xarray/core/indexing.py
+@@ -1532,7 +1532,13 @@ class PandasMultiIndexingAdapter(PandasIndexingAdapter):
+ 
+     def __array__(self, dtype: DTypeLike = None) -> np.ndarray:
+         if self.level is not None:
+-            return self.array.get_level_values(self.level).values
++            # pandas stores integer levels of a MultiIndex using its platform
++            # integer dtype (and consequently get_level_values() may widen
++            # them). Apply the original xarray coordinate dtype here.
++            return np.asarray(
++                self.array.get_level_values(self.level).values,
++                dtype=self.dtype if dtype is None else dtype,
++            )
+         else:
+             return super().__array__(dtype)
+ 

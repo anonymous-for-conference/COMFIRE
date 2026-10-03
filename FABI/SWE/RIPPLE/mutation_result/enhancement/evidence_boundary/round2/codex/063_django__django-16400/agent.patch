@@ -1,0 +1,53 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index 8e522eab77..8a4458be57 100644
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -94,11 +94,16 @@ def create_permissions(
+         .values_list("content_type", "codename")
+     )
+ 
+-    perms = [
+-        Permission(codename=codename, name=name, content_type=ct)
+-        for ct, (codename, name) in searched_perms
+-        if (ct.pk, codename) not in all_perms
+-    ]
++    perms = []
++    for ct, (codename, name) in searched_perms:
++        if (ct.pk, codename) not in all_perms:
++            permission = Permission()
++            permission._state.db = using
++            permission.codename = codename
++            permission.name = name
++            permission.content_type = ct
++            perms.append(permission)
++
+     Permission.objects.using(using).bulk_create(perms)
+     if verbosity >= 2:
+         for perm in perms:
+diff --git a/tests/auth_tests/test_management.py b/tests/auth_tests/test_management.py
+index ad22565da5..c4c1232f21 100644
+--- a/tests/auth_tests/test_management.py
++++ b/tests/auth_tests/test_management.py
+@@ -1485,3 +1485,22 @@ class CreatePermissionsTests(TestCase):
+                 codename=codename,
+             ).exists()
+         )
++
++
++class DefaultDBRouter:
++    """Route all writes to default."""
++
++    def db_for_write(self, model, **hints):
++        return "default"
++
++
++@override_settings(DATABASE_ROUTERS=[DefaultDBRouter()])
++class CreatePermissionsMultipleDatabasesTests(TestCase):
++    databases = {"default", "other"}
++
++    def test_set_permissions_fk_to_using_parameter(self):
++        Permission.objects.using("other").delete()
++        with self.assertNumQueries(6, using="other") as captured_queries:
++            create_permissions(apps.get_app_config("auth"), verbosity=0, using="other")
++        self.assertIn("INSERT INTO", captured_queries[-1]["sql"].upper())
++        self.assertGreater(Permission.objects.using("other").count(), 0)

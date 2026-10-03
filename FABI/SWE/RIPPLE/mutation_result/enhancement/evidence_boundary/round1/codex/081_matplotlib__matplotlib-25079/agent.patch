@@ -1,0 +1,64 @@
+diff --git a/lib/matplotlib/cm.py b/lib/matplotlib/cm.py
+index 0d396ad5c3..f4daa7c06c 100644
+--- a/lib/matplotlib/cm.py
++++ b/lib/matplotlib/cm.py
+@@ -642,9 +642,11 @@ class ScalarMappable:
+         """
+         if self._A is None:
+             raise TypeError('You must first set_array for mappable')
+-        # If the norm's limits are updated self.changed() will be called
+-        # through the callbacks attached to the norm
+-        self.norm.autoscale(self._A)
++        # Batch the norm updates so attached callbacks only see the final,
++        # consistent vmin/vmax pair.
++        with self.norm.callbacks.blocked():
++            self.norm.autoscale(self._A)
++        self.changed()
+ 
+     def autoscale_None(self):
+         """
+@@ -653,9 +655,11 @@ class ScalarMappable:
+         """
+         if self._A is None:
+             raise TypeError('You must first set_array for mappable')
+-        # If the norm's limits are updated self.changed() will be called
+-        # through the callbacks attached to the norm
+-        self.norm.autoscale_None(self._A)
++        # Batch the norm updates so attached callbacks only see the final,
++        # consistent vmin/vmax pair.
++        with self.norm.callbacks.blocked():
++            self.norm.autoscale_None(self._A)
++        self.changed()
+ 
+     def changed(self):
+         """
+diff --git a/lib/matplotlib/tests/test_colorbar.py b/lib/matplotlib/tests/test_colorbar.py
+index e39d007378..63bf8aa416 100644
+--- a/lib/matplotlib/tests/test_colorbar.py
++++ b/lib/matplotlib/tests/test_colorbar.py
+@@ -658,6 +658,25 @@ def test_colorbar_scale_reset():
+     assert cbar.outline.get_edgecolor() == mcolors.to_rgba('red')
+ 
+ 
++def test_colorbar_set_norm_after_creation():
++    rng = np.random.default_rng(0)
++    img = rng.uniform(1, 5, (25, 25))
++
++    fig, ax = plt.subplots()
++    plot = ax.pcolormesh(img)
++    cbar = fig.colorbar(plot, ax=ax)
++
++    plot.norm = LogNorm(1, 5)
++    plot.autoscale()
++
++    fig.canvas.draw()
++
++    assert isinstance(plot.norm, LogNorm)
++    assert isinstance(cbar.norm, LogNorm)
++    assert np.isclose(plot.norm.vmin, 1)
++    assert np.isclose(plot.norm.vmax, 5)
++
++
+ def test_colorbar_get_ticks_2():
+     plt.rcParams['_internal.classic_mode'] = False
+     fig, ax = plt.subplots()

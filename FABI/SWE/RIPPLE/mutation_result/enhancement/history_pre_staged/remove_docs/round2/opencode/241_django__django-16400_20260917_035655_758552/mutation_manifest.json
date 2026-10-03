@@ -1,0 +1,228 @@
+{
+  "instance_id": "django__django-16400",
+  "level": "level_1,level_2,level_3",
+  "seed": 90240,
+  "selected_cluster_count": 5,
+  "mutation_count": 9,
+  "clusters": [
+    {
+      "cluster_id": "django__django-16400:level_2:cluster_0002",
+      "label": "System username suggestion",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "django__django-16400:level_2:cluster_0002",
+          "cluster_label": "System username suggestion",
+          "operator": "R1",
+          "documentation_id": "08e4cf8059a104775a66916a64f024fe6471d79828f24f0e8ab0eaa8dcac50eb",
+          "unit_id": "1333ea68f71096911b6bcad9df7973a867178663f1aa49534fcdfbfa703ff705",
+          "file": "django/contrib/auth/management/__init__.py",
+          "symbol": "django/contrib/auth/management/__init__.py::get_system_username",
+          "file_line_start": 111,
+          "file_line_end": 112,
+          "source_start_offset": 8,
+          "source_end_offset": 119,
+          "original_unit_source": "    Return the current system user's username, or an empty string if the\n    username could not be determined.\n",
+          "mutated_unit_source": "    ``get_default_username()`` returns the current system user's username, or an empty string if the\n    username could not be determined.\n",
+          "changed_contract": "System username determination is reassigned to get_default_username().",
+          "evidence": "get_system_username() directly calls getpass.getuser(); get_default_username() delegates to it and adds default-suggestion processing.",
+          "complete_access_location": "def get_system_username():\n    \"\"\"\n    Return the current system user's username, or an empty string if the\n    username could not be determined.\n    \"\"\"\n    try:\n        result = getpass.getuser()\n    except (ImportError, KeyError):\n        # KeyError will be raised by os.getpwuid() (called by getuser())\n        # if there is no corresponding entry in the /etc/passwd file\n        # (a very restricted chroot environment, for example).\n        return \"\"\n    return result\n"
+        },
+        {
+          "cluster_id": "django__django-16400:level_2:cluster_0002",
+          "cluster_label": "System username suggestion",
+          "operator": "R1",
+          "documentation_id": "614353e5f49ae00168845e6f513a455decd96fde19d444b7447638092129162f",
+          "unit_id": "307a1f4b289dfb57b2460513b2992e3f5f60173bc92f01626b99de82bf7942f8",
+          "file": "django/contrib/auth/management/__init__.py",
+          "symbol": "django/contrib/auth/management/__init__.py::get_default_username",
+          "file_line_start": 126,
+          "file_line_end": 126,
+          "source_start_offset": 8,
+          "source_end_offset": 85,
+          "original_unit_source": "    Try to determine the current system user's username to use as a default.\n",
+          "mutated_unit_source": "    ``get_system_username()`` tries to determine the current system user's username to use as a default.\n",
+          "changed_contract": "Default username suggestion is reassigned to get_system_username().",
+          "evidence": "get_default_username() normalizes, validates, and conditionally checks the database; get_system_username() only retrieves the system username through getpass.getuser().",
+          "complete_access_location": "def get_default_username(check_db=True, database=DEFAULT_DB_ALIAS):\n    \"\"\"\n    Try to determine the current system user's username to use as a default.\n\n    :param check_db: If ``True``, requires that the username does not match an\n        existing ``auth.User`` (otherwise returns an empty string).\n    :param database: The database where the unique check will be performed.\n    :returns: The username, or an empty string if no username can be\n        determined or the suggested username is already taken.\n    \"\"\"\n    # This file is used in apps.py, it should not trigger models import.\n    from django.contrib.auth import models as auth_app\n\n    # If the User model has been swapped out, we can't make any assumptions\n    # about the default user name.\n    if auth_app.User._meta.swapped:\n        return \"\"\n\n    default_username = get_system_username()\n    try:\n        default_username = (\n            unicodedata.normalize(\"NFKD\", default_username)\n            .encode(\"ascii\", \"ignore\")\n            .decode(\"ascii\")\n            .replace(\" \", \"\")\n            .lower()\n        )\n    except UnicodeDecodeError:\n        return \"\"\n\n    # Run the username validator\n    try:\n        auth_app.User._meta.get_field(\"username\").run_validators(default_username)\n    except exceptions.ValidationError:\n        return \"\"\n\n    # Don't return the default username if it is already taken.\n    if check_db and default_username:\n        try:\n            auth_app.User._default_manager.db_manager(database).get(\n                username=default_username,\n            )\n        except auth_app.User.DoesNotExist:\n            pass\n        else:\n            return \"\"\n    return default_username\n"
+        },
+        {
+          "cluster_id": "django__django-16400:level_2:cluster_0002",
+          "cluster_label": "System username suggestion",
+          "operator": "R1",
+          "documentation_id": "614353e5f49ae00168845e6f513a455decd96fde19d444b7447638092129162f",
+          "unit_id": "465f56044497207ff02bd1d05e00feafb06198f16a5e897ebc9d5e161e421ceb",
+          "file": "django/contrib/auth/management/__init__.py",
+          "symbol": "django/contrib/auth/management/__init__.py::get_default_username",
+          "file_line_start": 128,
+          "file_line_end": 132,
+          "source_start_offset": 86,
+          "source_end_offset": 441,
+          "original_unit_source": "    :param check_db: If ``True``, requires that the username does not match an\n        existing ``auth.User`` (otherwise returns an empty string).\n    :param database: The database where the unique check will be performed.\n    :returns: The username, or an empty string if no username can be\n        determined or the suggested username is already taken.\n",
+          "mutated_unit_source": "    :param check_db: If ``True``, ``get_system_username()`` requires that the username does not match an\n        existing ``auth.User`` (otherwise returns an empty string).\n    :param database: The database where ``get_system_username()`` will perform the unique check.\n    :returns: The username, or an empty string if no username can be\n        determined or the suggested username is already taken.\n",
+          "changed_contract": "Database uniqueness checking for a default username is reassigned to get_system_username().",
+          "evidence": "get_default_username() uses auth_app.User._default_manager.db_manager(database).get() for the uniqueness check; get_system_username() only calls getpass.getuser().",
+          "complete_access_location": "def get_default_username(check_db=True, database=DEFAULT_DB_ALIAS):\n    \"\"\"\n    Try to determine the current system user's username to use as a default.\n\n    :param check_db: If ``True``, requires that the username does not match an\n        existing ``auth.User`` (otherwise returns an empty string).\n    :param database: The database where the unique check will be performed.\n    :returns: The username, or an empty string if no username can be\n        determined or the suggested username is already taken.\n    \"\"\"\n    # This file is used in apps.py, it should not trigger models import.\n    from django.contrib.auth import models as auth_app\n\n    # If the User model has been swapped out, we can't make any assumptions\n    # about the default user name.\n    if auth_app.User._meta.swapped:\n        return \"\"\n\n    default_username = get_system_username()\n    try:\n        default_username = (\n            unicodedata.normalize(\"NFKD\", default_username)\n            .encode(\"ascii\", \"ignore\")\n            .decode(\"ascii\")\n            .replace(\" \", \"\")\n            .lower()\n        )\n    except UnicodeDecodeError:\n        return \"\"\n\n    # Run the username validator\n    try:\n        auth_app.User._meta.get_field(\"username\").run_validators(default_username)\n    except exceptions.ValidationError:\n        return \"\"\n\n    # Don't return the default username if it is already taken.\n    if check_db and default_username:\n        try:\n            auth_app.User._default_manager.db_manager(database).get(\n                username=default_username,\n            )\n        except auth_app.User.DoesNotExist:\n            pass\n        else:\n            return \"\"\n    return default_username\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-16400:level_2:cluster_0006",
+      "label": "Autogenerated permissions defaults",
+      "applicable_operators": [
+        "R1",
+        "R2"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "django__django-16400:level_2:cluster_0006",
+          "cluster_label": "Autogenerated permissions defaults",
+          "operator": "R1",
+          "documentation_id": "84c0ed8049943eb6dacc6f54526ec58d0a678d1b2ba07bb3faf690de30187f03",
+          "unit_id": "5e5391d76144b054b894052b754701276fe28c1f11e2e18b7f1fc8e9ac44b3dc",
+          "file": "django/contrib/auth/management/__init__.py",
+          "symbol": "django/contrib/auth/management/__init__.py::_get_builtin_permissions",
+          "file_line_start": 23,
+          "file_line_end": 23,
+          "source_start_offset": 8,
+          "source_end_offset": 70,
+          "original_unit_source": "    Return (codename, name) for all autogenerated permissions.",
+          "mutated_unit_source": "    Return (codename, name) for all autogenerated permissions from ``django.contrib.auth.checks``.",
+          "changed_contract": "Autogenerated permission construction is reassigned from django.contrib.auth.management._get_builtin_permissions to django.contrib.auth.checks.",
+          "evidence": "django/contrib/auth/management/__init__.py::_get_builtin_permissions iterates opts.default_permissions and constructs each (codename, name) pair; django/contrib/auth/checks.py only calls that function and validates the resulting permissions.",
+          "complete_access_location": "def _get_builtin_permissions(opts):\n    \"\"\"\n    Return (codename, name) for all autogenerated permissions.\n    By default, this is ('add', 'change', 'delete', 'view')\n    \"\"\"\n    perms = []\n    for action in opts.default_permissions:\n        perms.append(\n            (\n                get_permission_codename(action, opts),\n                \"Can %s %s\" % (action, opts.verbose_name_raw),\n            )\n        )\n    return perms\n"
+        },
+        {
+          "cluster_id": "django__django-16400:level_2:cluster_0006",
+          "cluster_label": "Autogenerated permissions defaults",
+          "operator": "R1",
+          "documentation_id": "84c0ed8049943eb6dacc6f54526ec58d0a678d1b2ba07bb3faf690de30187f03",
+          "unit_id": "ac037a166e45895f82a80e49a4b74a32ccc324a56462610e52cb6096e2dd753b",
+          "file": "django/contrib/auth/management/__init__.py",
+          "symbol": "django/contrib/auth/management/__init__.py::_get_builtin_permissions",
+          "file_line_start": 23,
+          "file_line_end": 24,
+          "source_start_offset": 70,
+          "source_end_offset": 131,
+          "original_unit_source": "\n    By default, this is ('add', 'change', 'delete', 'view')\n",
+          "mutated_unit_source": "By default, ``django.contrib.auth.checks`` supplies ('add', 'change', 'delete', 'view')\n",
+          "changed_contract": "The default autogenerated permission actions are reassigned to django.contrib.auth.checks.",
+          "evidence": "django/contrib/auth/management/__init__.py::_get_builtin_permissions supplies the default action list through opts.default_permissions; django/contrib/auth/checks.py consumes the generated mapping for validation rather than generating it.",
+          "complete_access_location": "def _get_builtin_permissions(opts):\n    \"\"\"\n    Return (codename, name) for all autogenerated permissions.\n    By default, this is ('add', 'change', 'delete', 'view')\n    \"\"\"\n    perms = []\n    for action in opts.default_permissions:\n        perms.append(\n            (\n                get_permission_codename(action, opts),\n                \"Can %s %s\" % (action, opts.verbose_name_raw),\n            )\n        )\n    return perms\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-16400:level_2:cluster_0011",
+      "label": "Get or create content type",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "django__django-16400:level_2:cluster_0011",
+          "cluster_label": "Get or create content type",
+          "operator": "R3",
+          "documentation_id": "1aeb21b9f8c9a645106ec94d19c9ab00fd425d0f657906a399f4cd583ffa121e",
+          "unit_id": "aab64ade646b21e05e0e371a18c5f068c73e0ba713fde798cf955b3db6d0c190",
+          "file": "django/contrib/contenttypes/models.py",
+          "symbol": "django/contrib/contenttypes/models.py::ContentTypeManager.get_for_model",
+          "file_line_start": 37,
+          "file_line_end": 38,
+          "source_start_offset": 12,
+          "source_end_offset": 115,
+          "original_unit_source": "        Return the ContentType object for a given model, creating the\n        ContentType if necessary.",
+          "mutated_unit_source": "        Return the ContentType object for a given model, creating the\n        model if necessary.",
+          "changed_contract": "The conditional creation dependency is redirected from ContentType to the supplied model.",
+          "evidence": "ContentTypeManager.get_for_model() calls self.get_or_create(app_label=opts.app_label, model=opts.model_name), which creates a ContentType entry and never creates the supplied model.",
+          "complete_access_location": "    def get_for_model(self, model, for_concrete_model=True):\n        \"\"\"\n        Return the ContentType object for a given model, creating the\n        ContentType if necessary. Lookups are cached so that subsequent lookups\n        for the same model don't hit the database.\n        \"\"\"\n        opts = self._get_opts(model, for_concrete_model)\n        try:\n            return self._get_from_cache(opts)\n        except KeyError:\n            pass\n\n        # The ContentType entry was not found in the cache, therefore we\n        # proceed to load or create it.\n        try:\n            # Start with get() and not get_or_create() in order to use\n            # the db_for_read (see #20401).\n            ct = self.get(app_label=opts.app_label, model=opts.model_name)\n        except self.model.DoesNotExist:\n            # Not found in the database; we proceed to create it. This time\n            # use get_or_create to take care of any race conditions.\n            ct, created = self.get_or_create(\n                app_label=opts.app_label,\n                model=opts.model_name,\n            )\n        self._add_to_cache(self.db, ct)\n        return ct\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-16400:level_2:cluster_0012",
+      "label": "Unavailable permission models",
+      "applicable_operators": [
+        "R2"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "django__django-16400:level_2:cluster_0012",
+          "cluster_label": "Unavailable permission models",
+          "operator": "R2",
+          "documentation_id": "250510d3df3d16e122e187013d9f1200796df56d26d99e23942fe140d03625ec",
+          "unit_id": "c035202d69fed7ccb925cb0da90fe8f8c3c2198ed1106fbdb8c2765814839faa",
+          "file": "tests/auth_tests/test_management.py",
+          "symbol": "tests/auth_tests/test_management.py::CreatePermissionsTests.test_unavailable_models",
+          "file_line_start": 1450,
+          "file_line_end": 1451,
+          "source_start_offset": 12,
+          "source_end_offset": 139,
+          "original_unit_source": "        #24075 - Permissions shouldn't be created or deleted if the ContentType\n        or Permission models aren't available.\n",
+          "mutated_unit_source": "        #24075 - Permissions shouldn't be created or deleted if the ContentType\n        or Permission model isn't available.\n",
+          "changed_contract": "The documented unavailable-model scope is narrowed from either required model to only the ContentType model.",
+          "evidence": "`test_unavailable_models()` invokes `create_permissions()` with no ContentType model and with ContentType available but auth.Permission unavailable; both cases assert zero queries.",
+          "complete_access_location": "    def test_unavailable_models(self):\n        \"\"\"\n        #24075 - Permissions shouldn't be created or deleted if the ContentType\n        or Permission models aren't available.\n        \"\"\"\n        state = migrations.state.ProjectState()\n        # Unavailable contenttypes.ContentType\n        with self.assertNumQueries(0):\n            create_permissions(self.app_config, verbosity=0, apps=state.apps)\n        # Unavailable auth.Permission\n        state = migrations.state.ProjectState(real_apps={\"contenttypes\"})\n        with self.assertNumQueries(0):\n            create_permissions(self.app_config, verbosity=0, apps=state.apps)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-16400:level_2:cluster_0013",
+      "label": "Post-migrate handler ordering",
+      "applicable_operators": [
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "django__django-16400:level_2:cluster_0013",
+          "cluster_label": "Post-migrate handler ordering",
+          "operator": "R2",
+          "documentation_id": "ef00c94ca878a7fcc797de3f9bac858fb4c626a8c2a15a8f60c9374ed26f60b6",
+          "unit_id": "c437619be54cccf7dea5e606fc86e84f8bf85672bbe784c14d0f815b17007665",
+          "file": "tests/auth_tests/test_management.py",
+          "symbol": "tests/auth_tests/test_management.py::CreatePermissionsTests.test_create_permissions_checks_contenttypes_created",
+          "file_line_start": 1464,
+          "file_line_end": 1464,
+          "source_start_offset": 12,
+          "source_end_offset": 69,
+          "original_unit_source": "        `post_migrate` handler ordering isn't guaranteed.",
+          "mutated_unit_source": "        `post_migrate` handler ordering isn't guaranteed only for non-default app registries.",
+          "changed_contract": "Ordering uncertainty is narrowed to non-default app registries.",
+          "evidence": "The test invokes create_permissions() without an apps argument, so it uses the default global app registry.",
+          "complete_access_location": "    def test_create_permissions_checks_contenttypes_created(self):\n        \"\"\"\n        `post_migrate` handler ordering isn't guaranteed. Simulate a case\n        where create_permissions() is called before create_contenttypes().\n        \"\"\"\n        # Warm the manager cache.\n        ContentType.objects.get_for_model(Group)\n        # Apply a deletion as if e.g. a database 'flush' had been executed.\n        ContentType.objects.filter(app_label=\"auth\", model=\"group\").delete()\n        # This fails with a foreign key constraint without the fix.\n        create_permissions(apps.get_app_config(\"auth\"), interactive=False, verbosity=0)\n"
+        },
+        {
+          "cluster_id": "django__django-16400:level_2:cluster_0013",
+          "cluster_label": "Post-migrate handler ordering",
+          "operator": "R2",
+          "documentation_id": "ef00c94ca878a7fcc797de3f9bac858fb4c626a8c2a15a8f60c9374ed26f60b6",
+          "unit_id": "cc3229c8ae6d26ff7c57886053eb852490211643c8994325145d65adb050881e",
+          "file": "tests/auth_tests/test_management.py",
+          "symbol": "tests/auth_tests/test_management.py::CreatePermissionsTests.test_create_permissions_checks_contenttypes_created",
+          "file_line_start": 1464,
+          "file_line_end": 1465,
+          "source_start_offset": 69,
+          "source_end_offset": 161,
+          "original_unit_source": " Simulate a case\n        where create_permissions() is called before create_contenttypes().\n",
+          "mutated_unit_source": " Simulate a case\n        where create_permissions() is called before create_contenttypes() only for a non-default app registry.\n",
+          "changed_contract": "Ordering uncertainty is narrowed to non-default app registries.",
+          "evidence": "The test invokes create_permissions() without an apps argument, so it simulates the ordering with the default global app registry.",
+          "complete_access_location": "    def test_create_permissions_checks_contenttypes_created(self):\n        \"\"\"\n        `post_migrate` handler ordering isn't guaranteed. Simulate a case\n        where create_permissions() is called before create_contenttypes().\n        \"\"\"\n        # Warm the manager cache.\n        ContentType.objects.get_for_model(Group)\n        # Apply a deletion as if e.g. a database 'flush' had been executed.\n        ContentType.objects.filter(app_label=\"auth\", model=\"group\").delete()\n        # This fails with a foreign key constraint without the fix.\n        create_permissions(apps.get_app_config(\"auth\"), interactive=False, verbosity=0)\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "cdd314ca0e68124a4c26ba7fb1c24e22377d29aa5768cbbf62d3b78dfafc4385"
+}

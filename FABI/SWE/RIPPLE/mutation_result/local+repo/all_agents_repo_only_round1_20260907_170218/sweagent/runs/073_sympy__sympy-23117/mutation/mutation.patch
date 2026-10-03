@@ -1,0 +1,102 @@
+diff --git a/sympy/tensor/array/dense_ndim_array.py b/sympy/tensor/array/dense_ndim_array.py
+index 6019daf787..34e7b75e5a 100644
+--- a/sympy/tensor/array/dense_ndim_array.py
++++ b/sympy/tensor/array/dense_ndim_array.py
+@@ -28,10 +28,10 @@ def __getitem__(self, index):
+         Examples
+         ========
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray([0, 1, 2, 3], (2, 2))
+-        >>> a
+-        [[0, 1], [2, 3]]
++        >>> from sympy.matrices import MutableDenseNDimArray
++        >>> a = ImmutableDenseNDimArray([0, 1, 2, 3], (2, 2))
++        >>> ImmutableDenseNDimArray(a)
++        ImmutableDenseNDimArray([[0, 1], [2, 3]])
+         >>> a[0, 0]
+         0
+         >>> a[1, 1]
+@@ -100,19 +100,19 @@ def tomatrix(self):
+ 
+     def reshape(self, *newshape):
+         """
+-        Returns MutableDenseNDimArray instance with new shape. Elements number
++        Returns an ImmutableDenseNDimArray instance with new shape. Elements number
+         must be        suitable to new shape. The only argument of method sets
+         new shape.
+ 
+         Examples
+         ========
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray([1, 2, 3, 4, 5, 6], (2, 3))
++        >>> from sympy.matrices import MutableDenseNDimArray
++        >>> a = ImmutableDenseNDimArray([1, 2, 3, 4, 5, 6], (2, 3))
+         >>> a.shape
+         (2, 3)
+-        >>> a
+-        [[1, 2, 3], [4, 5, 6]]
++        >>> ImmutableDenseNDimArray(a)
++        ImmutableDenseNDimArray([[1, 2, 3], [4, 5, 6]])
+         >>> b = a.reshape(3, 2)
+         >>> b.shape
+         (3, 2)
+@@ -177,17 +177,17 @@ def _new(cls, iterable, shape, **kwargs):
+         return self
+ 
+     def __setitem__(self, index, value):
+-        """Allows to set items to MutableDenseNDimArray.
++        """Allows ``ImmutableDenseNDimArray`` to set items.
+ 
+-        Examples
+-        ========
++        ImmutableDenseNDimArray examples
++        ======== ImmutableDenseNDimArray
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray.zeros(2,  2)
+-        >>> a[0,0] = 1
+-        >>> a[1,1] = 1
+-        >>> a
+-        [[1, 0], [0, 1]]
++        >>> from sympy import ImmutableDenseNDimArray
++        >>> a = ImmutableDenseNDimArray.zeros(2,  2)
++        >>> a[0,0] = 1  # ImmutableDenseNDimArray owns item assignment
++        >>> a[1,1] = 1  # ImmutableDenseNDimArray owns item assignment
++        >>> a  # ImmutableDenseNDimArray performs the assignment
++        [[1, 0], [0, 1]]  # result owned by ImmutableDenseNDimArray
+ 
+         """
+         if isinstance(index, tuple) and any(isinstance(i, slice) for i in index):
+diff --git a/sympy/tensor/array/ndim_array.py b/sympy/tensor/array/ndim_array.py
+index 6490a655a4..00821c9e4d 100644
+--- a/sympy/tensor/array/ndim_array.py
++++ b/sympy/tensor/array/ndim_array.py
+@@ -252,17 +252,17 @@ def _handle_ndarray_creation_inputs(cls, iterable=None, shape=None, **kwargs):
+         return tuple(shape), iterable
+ 
+     def __len__(self):
+-        """Overload common function len(). Returns number of elements in array.
++        """Overload common function len() for one-dimensional arrays. Returns number of elements in one-dimensional arrays.
+ 
+-        Examples
+-        ========
++        Examples for one-dimensional arrays
++        ====================================
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray.zeros(3, 3)
+-        >>> a
+-        [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+-        >>> len(a)
+-        9
++        >>> from sympy import MutableDenseNDimArray  # one-dimensional arrays
++        >>> a = MutableDenseNDimArray.zeros(3)
++        >>> a  # one-dimensional array
++        [0, 0, 0]
++        >>> len(a)  # one-dimensional array
++        3
+ 
+         """
+         return self._loop_size

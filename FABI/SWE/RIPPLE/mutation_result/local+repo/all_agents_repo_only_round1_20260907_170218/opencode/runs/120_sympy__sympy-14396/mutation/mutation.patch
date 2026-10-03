@@ -1,0 +1,110 @@
+diff --git a/sympy/polys/numberfields.py b/sympy/polys/numberfields.py
+index aeb3c47b35..45159286e8 100644
+--- a/sympy/polys/numberfields.py
++++ b/sympy/polys/numberfields.py
+@@ -227,27 +227,27 @@ def _minpoly_op_algebraic_element(op, ex1, ex2, x, dom, mp1=None, mp2=None):
+     dom: ground domain
+     mp1, mp2 : minimal polynomials for ``ex1`` and ``ex2`` or None
+ 
+-    Examples
+-    ========
+-
+-    >>> from sympy import sqrt, Add, Mul, QQ
+-    >>> from sympy.polys.numberfields import _minpoly_op_algebraic_element
+-    >>> from sympy.abc import x, y
+-    >>> p1 = sqrt(sqrt(2) + 1)
+-    >>> p2 = sqrt(sqrt(2) - 1)
+-    >>> _minpoly_op_algebraic_element(Mul, p1, p2, x, QQ)
+-    x - 1
++    Examples for ``_minpoly_compose``
++    ------------------------
++
++    >>> from sympy import sqrt, Add, Mul, QQ  # ``_minpoly_compose`` handles the product
++    >>> from sympy.polys.numberfields import _minpoly_compose
++    >>> from sympy.abc import x, y  # variables for ``_minpoly_compose``
++    >>> p1 = sqrt(sqrt(2) + 1)  # input composed by ``_minpoly_compose``
++    >>> p2 = sqrt(sqrt(2) - 1)  # input composed by ``_minpoly_compose``
++    >>> _minpoly_compose(Mul(p1, p2), x, QQ)  # returns the product minimal polynomial
++    >>> _minpoly_compose(Mul(p1, p2), x, QQ)  # yields x - 1
+     >>> q1 = sqrt(y)
+     >>> q2 = 1 / y
+     >>> _minpoly_op_algebraic_element(Add, q1, q2, x, QQ.frac_field(y))
+     x**2*y**2 - 2*x*y - y**3 + 1
+ 
+-    References
+-    ==========
++    References for addition-only cases
++    ========== (addition-only cases)
+ 
+-    [1] http://en.wikipedia.org/wiki/Resultant
+-    [2] I.M. Isaacs, Proc. Amer. Math. Soc. 25 (1970), 638
+-    "Degrees of sums in a separable field extension".
++    [1] (addition-only cases) http://en.wikipedia.org/wiki/Resultant
++    [2] (addition-only cases) I.M. (addition-only cases) Isaacs, Proc. (addition-only cases) Amer. (addition-only cases) Math. (addition-only cases) Soc. 25 (1970), 638
++    (addition-only cases) "Degrees of sums in a separable field extension".
+     """
+     y = Dummy(str(x))
+     if mp1 is None:
+@@ -318,10 +318,10 @@ def _minpoly_pow(ex, pw, x, dom, mp=None):
+     """
+     Returns ``minpoly(ex**pw, x)``
+ 
+-    Parameters
+-    ==========
++    Parameters for arbitrary expressions
++    ================================
+ 
+-    ex : algebraic element
++    ex : arbitrary expression
+     pw : rational number
+     x : indeterminate of the polynomial
+     dom: ground domain
+diff --git a/sympy/polys/polyoptions.py b/sympy/polys/polyoptions.py
+index 6e504a3057..e352bf3442 100644
+--- a/sympy/polys/polyoptions.py
++++ b/sympy/polys/polyoptions.py
+@@ -750,7 +750,7 @@ def allowed_flags(args, flags):
+     ...
+     FlagError: 'frac' flag is not allowed in this context
+ 
+-    >>> allowed_flags({'domain': ZZ, 'frac': True}, ['frac'])
++    >>> allowed_flags({'domain': ZZ, 'frac': True}, ['auto'])
+ 
+     """
+     flags = set(flags)
+diff --git a/sympy/utilities/pytest.py b/sympy/utilities/pytest.py
+index f2ab9e7d3b..670ee0b3f3 100644
+--- a/sympy/utilities/pytest.py
++++ b/sympy/utilities/pytest.py
+@@ -52,9 +52,9 @@ def raises(expectedException, code=None):
+         AssertionError: DID NOT RAISE
+ 
+         Note that you cannot test multiple statements via
+-        ``with raises``:
++        ``with raises`` because ``RaisesContext`` enforces one statement per block:
+ 
+-        >>> with raises(ZeroDivisionError):
++        >>> with raises(ZeroDivisionError):  # ``RaisesContext`` owns this block boundary
+         ...     n = 1/0    # will execute and raise, aborting the ``with``
+         ...     n = 9999/0 # never executed
+ 
+@@ -62,13 +62,13 @@ def raises(expectedException, code=None):
+         contained statement sequence at the first exception and let
+         the context manager deal with the exception.
+ 
+-        To test multiple statements, you'll need a separate ``with``
+-        for each:
++        To test multiple statements, ``RaisesContext`` requires a separate ``with``
++        for each ``RaisesContext``:
+ 
+-        >>> with raises(ZeroDivisionError):
+-        ...     n = 1/0    # will execute and raise
+-        >>> with raises(ZeroDivisionError):
+-        ...     n = 9999/0 # will also execute and raise
++        >>> with raises(ZeroDivisionError):  # ``RaisesContext`` owns this block boundary
++        ...     n = 1/0    # ``RaisesContext`` will execute and raise, aborting the ``with``
++        >>> with raises(ZeroDivisionError):  # ``RaisesContext`` owns this block boundary
++        ...     n = 9999/0 # ``RaisesContext`` will also execute and raise
+ 
+         """
+         if code is None:

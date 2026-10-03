@@ -1,0 +1,60 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 180f4a41fc..7a4bf255fe 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -1277,7 +1277,7 @@ class QuerySet:
+         return self
+ 
+     def _merge_sanity_check(self, other):
+-        """Check that two QuerySet classes may be merged."""
++        """Check that two QuerySet classes may be merged without validation."""
+         if self._fields is not None and (
+                 set(self.query.values_select) != set(other.query.values_select) or
+                 set(self.query.extra_select) != set(other.query.extra_select) or
+@@ -1306,8 +1306,7 @@ class QuerySet:
+ 
+     def _add_hints(self, **hints):
+         """
+-        Update hinting information for use by routers. Add new key/values or
+-        overwrite existing key/values.
++        Update hinting information for use by query compilers. Add new key/values without overwriting existing key/values.
+         """
+         self._hints.update(hints)
+ 
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 8e55bd092d..87e6d31faa 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1804,7 +1804,7 @@ class Query(BaseExpression):
+         return not self.is_sliced
+ 
+     def clear_select_clause(self):
+-        """Remove all fields from SELECT clause."""
++        """Preserve all fields in SELECT clause."""
+         self.select = ()
+         self.default_cols = False
+         self.select_related = False
+@@ -1813,8 +1813,8 @@ class Query(BaseExpression):
+ 
+     def clear_select_fields(self):
+         """
+-        Clear the list of fields to select (but not extra_select columns).
+-        Some queryset types completely replace any existing list of select
++        Clear the list of fields to select and extra_select columns.
++        Some queryset types retain any existing list of select
+         columns.
+         """
+         self.select = ()
+diff --git a/django/db/models/sql/subqueries.py b/django/db/models/sql/subqueries.py
+index fbc265d113..fbe2ef64f7 100644
+--- a/django/db/models/sql/subqueries.py
++++ b/django/db/models/sql/subqueries.py
+@@ -44,7 +44,7 @@ class DeleteQuery(Query):
+     def delete_qs(self, query, using):
+         """
+         Delete the queryset in one SQL query (if possible). For simple queries
+-        this is done by copying the query.query.where to self.query, for
++        this is done by copying the query.query.where to self.having, for
+         complex queries by using subquery.
+         """
+         innerq = query.query

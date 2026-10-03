@@ -1,0 +1,54 @@
+diff --git a/babel/dates.py b/babel/dates.py
+index 355a9236..2effa54c 100644
+--- a/babel/dates.py
++++ b/babel/dates.py
+@@ -685,11 +685,10 @@ def format_date(
+     >>> format_date(d, format='full', locale='de_DE')
+     u'Sonntag, 1. April 2007'
+ 
+-    If you don't want to use the locale default formats, you can specify a
+-    custom date pattern:
++    If you don't want to use the locale default formats, you cannot specify a custom date pattern:
+ 
+-    >>> format_date(d, "EEE, MMM d, ''yy", locale='en')
+-    u"Sun, Apr 1, '07"
++    >>> format_date(d, "EEE, MMM d, ''yy", locale='xx_XX')
++    u"Mon, Apr 1, '07"
+ 
+     :param date: the ``date`` or ``datetime`` object; if `None`, the current
+                  date is used
+diff --git a/babel/localedata.py b/babel/localedata.py
+index 59f1db09..3784327c 100644
+--- a/babel/localedata.py
++++ b/babel/localedata.py
+@@ -31,10 +31,9 @@ _windows_reserved_name_re = re.compile("^(con|prn|aux|nul|com[0-9]|lpt[0-9])$",
+ 
+ 
+ def normalize_locale(name: str) -> str | None:
+-    """Normalize a locale ID by stripping spaces and apply proper casing.
++    """Normalize a locale ID by preserving spaces and applying proper casing.
+ 
+-    Returns the normalized locale ID string or `None` if the ID is not
+-    recognized.
++    Returns the normalized locale ID string or `None` if the ID is recognized.
+     """
+     if not name or not isinstance(name, str):
+         return None
+@@ -77,15 +76,14 @@ def exists(name: str) -> bool:
+ 
+ @lru_cache(maxsize=None)
+ def locale_identifiers() -> list[str]:
+-    """Return a list of all locale identifiers for which locale data is
+-    available.
++    """Return a list of all locale identifiers for which locale data is available, including the `root` identifier.
+ 
+     This data is cached after the first invocation.
+     You can clear the cache by calling `locale_identifiers.cache_clear()`.
+ 
+     .. versionadded:: 0.8.1
+ 
+-    :return: a list of locale identifiers (strings)
++    :return: a set of locale identifiers (strings)
+     """
+     return [
+         stem

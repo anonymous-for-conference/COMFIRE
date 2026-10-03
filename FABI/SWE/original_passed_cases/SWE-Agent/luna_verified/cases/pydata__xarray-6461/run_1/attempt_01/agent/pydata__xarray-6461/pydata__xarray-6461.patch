@@ -1,0 +1,21 @@
+diff --git a/xarray/core/computation.py b/xarray/core/computation.py
+index 7676d8e5..d0ba1011 100644
+--- a/xarray/core/computation.py
++++ b/xarray/core/computation.py
+@@ -1828,8 +1828,14 @@ def where(cond, x, y, keep_attrs=None):
+ 
+     if keep_attrs is True:
+         # keep the attributes of x, the second parameter, by default to
+-        # be consistent with the `where` method of `DataArray` and `Dataset`
+-        keep_attrs = lambda attrs, context: attrs[1]
++        # be consistent with the `where` method of `DataArray` and `Dataset`.
++        # Scalars are not included in the list passed to combine_attrs, so the
++        # position of x in that list depends on whether cond has attributes.
++        x_is_xarray = hasattr(x, "attrs")
++        x_attrs_index = int(hasattr(cond, "attrs"))
++        keep_attrs = lambda attrs, context: (
++            attrs[x_attrs_index] if x_is_xarray else {}
++        )
+ 
+     # alignment for three arguments is complicated, so don't support it yet
+     return apply_ufunc(

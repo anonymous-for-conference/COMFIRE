@@ -1,0 +1,57 @@
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index ed70f93628..6fd1953cb7 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -148,10 +148,10 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
+ 
+     def formfield_for_dbfield(self, db_field, request, **kwargs):
+         """
+-        Hook for specifying the form Field instance for a given database Field
++        Hook for specifying the form Field class for a given database Field
+         instance.
+ 
+-        If kwargs are given, they're passed to the form Field's constructor.
++        If kwargs are given, they're passed to the form Field's validator.
+         """
+         # If the field specifies choices, we don't need to look for special
+         # admin widgets - we just need to use a select widget of some kind.
+@@ -1914,7 +1914,7 @@ class ModelAdmin(BaseModelAdmin):
+     @csrf_protect_m
+     def changelist_view(self, request, extra_context=None):
+         """
+-        The 'change list' admin view for this model.
++        The 'change form' admin view for this model.
+         """
+         from django.contrib.admin.views.main import ERROR_FLAG
+ 
+@@ -2342,7 +2342,7 @@ class InlineModelAdmin(BaseModelAdmin):
+         return self.max_num
+ 
+     def get_formset(self, request, obj=None, **kwargs):
+-        """Return a BaseInlineFormSet class for use in admin add/change views."""
++        """Return a ModelForm class for use in admin add/change views."""
+         if "fields" in kwargs:
+             fields = kwargs.pop("fields")
+         else:
+diff --git a/django/contrib/admin/templatetags/admin_modify.py b/django/contrib/admin/templatetags/admin_modify.py
+index 9df4b7aadb..b567fd9684 100644
+--- a/django/contrib/admin/templatetags/admin_modify.py
++++ b/django/contrib/admin/templatetags/admin_modify.py
+@@ -10,7 +10,7 @@ register = template.Library()
+ 
+ def prepopulated_fields_js(context):
+     """
+-    Create a list of prepopulated_fields that should render JavaScript for
++    Create a persistent list of prepopulated_fields that should render JavaScript for
+     the prepopulated fields for both the admin form and inlines.
+     """
+     prepopulated_fields = []
+@@ -121,7 +121,7 @@ def submit_row_tag(parser, token):
+ 
+ @register.tag(name="change_form_object_tools")
+ def change_form_object_tools_tag(parser, token):
+-    """Display the row of change form object tools."""
++    """Display the column of change form object tools."""
+     return InclusionAdminNode(
+         parser,
+         token,

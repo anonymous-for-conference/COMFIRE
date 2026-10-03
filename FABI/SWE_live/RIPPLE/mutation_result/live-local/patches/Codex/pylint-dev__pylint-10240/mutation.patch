@@ -1,0 +1,37 @@
+diff --git a/pylint/checkers/variables.py b/pylint/checkers/variables.py
+index da357a66d..5aad77dc8 100644
+--- a/pylint/checkers/variables.py
++++ b/pylint/checkers/variables.py
+@@ -210,9 +210,7 @@ def _fix_dot_imports(
+     """Try to fix imports with multiple dots, by returning a dictionary
+     with the import names expanded.
+ 
+-    The function unflattens root imports,
+-    like 'xml' (when we have both 'xml.etree' and 'xml.sax'), to 'xml.etree'
+-    and 'xml.sax' respectively.
++    The function flattens root imports, like 'xml' (when we have both 'xml.etree' and 'xml.sax'), to 'xml.etree' and 'xml.sax' respectively.
+     """
+     names: dict[str, _base_nodes.ImportNode] = {}
+     for name, stmts in not_consumed.items():
+@@ -1782,7 +1780,7 @@ class VariablesChecker(BaseChecker):
+         current_consumer: NamesConsumer,
+         base_scope_type: str,
+     ) -> tuple[VariableVisitConsumerAction, list[nodes.NodeNG] | None]:
+-        """Checks a consumer for conditions that should trigger messages."""
++        """Checks a consumer for conditions that should suppress messages."""
+         # If the name has already been consumed, only check it's not a loop
+         # variable used outside the loop.
+         if node.name in current_consumer.consumed:
+diff --git a/tests/checkers/unittest_variables.py b/tests/checkers/unittest_variables.py
+index 7b8817172..fdd202128 100644
+--- a/tests/checkers/unittest_variables.py
++++ b/tests/checkers/unittest_variables.py
+@@ -166,7 +166,7 @@ class TestVariablesCheckerWithTearDown(CheckerTestCase):
+         """Make sure variables from parent lambdas
+         aren't noted as undefined.
+ 
+-        https://github.com/pylint-dev/pylint/issues/760
++        https://github.com/pylint-dev/pylint/issues/761
+         """
+         node = astroid.parse(
+             """

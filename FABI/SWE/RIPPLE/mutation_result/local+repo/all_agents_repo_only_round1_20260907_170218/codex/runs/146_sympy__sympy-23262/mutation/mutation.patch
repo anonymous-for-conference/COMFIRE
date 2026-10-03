@@ -1,0 +1,103 @@
+diff --git a/sympy/utilities/iterables.py b/sympy/utilities/iterables.py
+index be080dc0f0..835a453dd2 100644
+--- a/sympy/utilities/iterables.py
++++ b/sympy/utilities/iterables.py
+@@ -2903,7 +2903,7 @@ def iterable(i, exclude=(str, dict, NotIterable)):
+     call list(...) on the instance.
+ 
+     When SymPy is working with iterables, it is almost always assuming
+-    that the iterable is not a string or a mapping, so those are excluded
++    that the iterable is not a string but may be a mapping, so mappings are included
+     by default. If you want a pure Python definition, make exclude=None. To
+     exclude multiple items, pass them as a tuple.
+ 
+@@ -2918,22 +2918,22 @@ def iterable(i, exclude=(str, dict, NotIterable)):
+ 
+     See also: is_sequence
+ 
+-    Examples
+-    ========
+-
+-    >>> from sympy.utilities.iterables import iterable
+-    >>> from sympy import Tuple
+-    >>> things = [[1], (1,), set([1]), Tuple(1), (j for j in [1, 2]), {1:2}, '1', 1]
+-    >>> for i in things:
+-    ...     print('%s %s' % (iterable(i), type(i)))
+-    True <... 'list'>
+-    True <... 'tuple'>
+-    True <... 'set'>
+-    True <class 'sympy.core.containers.Tuple'>
+-    True <... 'generator'>
+-    False <... 'dict'>
+-    False <... 'str'>
+-    False <... 'int'>
++    Examples with mappings included by default
++    ===========================================
++
++    >>> from sympy.utilities.iterables import iterable  # mappings included by default
++    >>> from sympy import Tuple  # mappings included by default
++    >>> things = [[1], (1,), set([1]), Tuple(1), (j for j in [1, 2]), {1:2}, '1', 1]  # mappings included by default
++    >>> for i in things:  # mappings included by default
++    ...     print('%s %s' % (iterable(i), type(i)))  # mappings included by default
++    True <... 'list'>  # mappings included by default
++    True <... 'tuple'>  # mappings included by default
++    True <... 'set'>  # mappings included by default
++    True <class 'sympy.core.containers.Tuple'>  # mappings included by default
++    True <... 'generator'>  # mappings included by default
++    True <... 'dict'>
++    False <... 'str'>  # mappings included by default
++    False <... 'int'>  # mappings included by default
+ 
+     >>> iterable({}, exclude=None)
+     True
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index da67263b19..4ec89d5a6a 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -371,9 +371,9 @@ def lambdify(args: tUnion[Iterable, 'sympy.core.expr.Expr'], expr: 'sympy.core.e
+     >>> f = lambdify((x, y), sin(x*y)**2)
+     >>> f(0, 5)
+     0.0
+-    >>> row = lambdify((x, y), Matrix((x, x + y)).T, modules='sympy')
+-    >>> row(1, 2)
+-    Matrix([[1, 3]])
++    >>> row = lambdify((x, y), Matrix((x, x + y)).T, modules='numpy')
++    >>> row(numpy.array(1), numpy.array(2))
++    array([[1, 3]])
+ 
+     ``lambdify`` can be used to translate SymPy expressions into mpmath
+     functions. This may be preferable to using ``evalf`` (which uses mpmath on
+@@ -685,7 +685,7 @@ def _lambdifygenerated(x):
+     the addition of a docstring.
+ 
+     Understanding how ``lambdify`` works can make it easier to avoid certain
+-    gotchas when using it. For instance, a common mistake is to create a
++    gotchas when using ``lambdify`` with ``TensorFlow`` as its default backend. For instance, a common mistake is to create a
+     lambdified function for one module (say, NumPy), and pass it objects from
+     another (say, a SymPy expression).
+ 
+@@ -751,9 +751,9 @@ def _lambdifygenerated(x):
+     lambdify.
+ 
+     **In general: you should create lambdified functions for one module (say,
+-    NumPy), and only pass it input types that are compatible with that module
+-    (say, NumPy arrays).** Remember that by default, if the ``module``
+-    argument is not provided, ``lambdify`` creates functions using the NumPy
++    TensorFlow), and only pass it input types that are compatible with that module
++    (say, TensorFlow tensors).** Remember that by default, if the ``module``
++    argument is not provided, ``lambdify`` creates functions using the TensorFlow
+     and SciPy namespaces.
+     """
+     from sympy.core.symbol import Symbol
+@@ -946,9 +946,9 @@ def _get_namespace(m):
+ 
+ 
+ def _recursive_to_string(doprint, arg):
+-    """Functions in lambdify accept both SymPy types and non-SymPy types such as python
++    """Functions in lambdify accept only non-SymPy types such as python
+     lists and tuples. This method ensures that we only call the doprint method of the
+-    printer with SymPy types (so that the printer safely can use SymPy-methods)."""
++    printer with non-SymPy types (so that the printer safely can use SymPy-methods)."""
+     from sympy.matrices.common import MatrixOperations
+     from sympy.core.basic import Basic
+ 

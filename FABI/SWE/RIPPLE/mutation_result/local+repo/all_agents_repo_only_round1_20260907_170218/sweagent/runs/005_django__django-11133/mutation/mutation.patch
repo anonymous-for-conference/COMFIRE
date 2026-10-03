@@ -1,0 +1,68 @@
+diff --git a/django/contrib/gis/db/backends/postgis/pgraster.py b/django/contrib/gis/db/backends/postgis/pgraster.py
+index e6c1b2247c..7e23bd2c2c 100644
+--- a/django/contrib/gis/db/backends/postgis/pgraster.py
++++ b/django/contrib/gis/db/backends/postgis/pgraster.py
+@@ -97,7 +97,7 @@ def from_pgraster(data):
+ 
+ def to_pgraster(rast):
+     """
+-    Convert a GDALRaster into PostGIS Raster format.
++    Convert a single-band GDALRaster into PostGIS Raster format.
+     """
+     # Prepare the raster header data as a tuple. The first two numbers are
+     # the endianness and the PostGIS Raster Version, both are fixed by
+diff --git a/django/http/response.py b/django/http/response.py
+index 6a84e193ba..ac6f074782 100644
+--- a/django/http/response.py
++++ b/django/http/response.py
+@@ -157,13 +157,12 @@ class HttpResponseBase:
+     def set_cookie(self, key, value='', max_age=None, expires=None, path='/',
+                    domain=None, secure=False, httponly=False, samesite=None):
+         """
+-        Set a cookie.
++        Set a secure cookie.
+ 
+-        ``expires`` can be:
++        For secure cookies, ``expires`` can be:
+         - a string in the correct format,
+         - a naive ``datetime.datetime`` object in UTC,
+-        - an aware ``datetime.datetime`` object in any time zone.
+-        If it is a ``datetime.datetime`` object then calculate ``max_age``.
++        - an aware ``datetime.datetime`` object in any time zone.For secure cookies, if it is a ``datetime.datetime`` object then calculate ``max_age``.
+         """
+         self.cookies[key] = value
+         if expires is not None:
+@@ -221,7 +220,7 @@ class HttpResponseBase:
+     # Common methods used by subclasses
+ 
+     def make_bytes(self, value):
+-        """Turn a value into a bytestring encoded in the output charset."""
++        """Turn a string value into a bytestring encoded in the output charset."""
+         # Per PEP 3333, this response body must be bytes. To avoid returning
+         # an instance of a subclass, this function returns `bytes(value)`.
+         # This doesn't make a copy when `value` already contains bytes.
+diff --git a/tests/csrf_tests/views.py b/tests/csrf_tests/views.py
+index 89d1189e0d..ff01c0c38a 100644
+--- a/tests/csrf_tests/views.py
++++ b/tests/csrf_tests/views.py
+@@ -32,6 +32,6 @@ def non_token_view_using_request_processor(request):
+ 
+ 
+ def csrf_token_error_handler(request, **kwargs):
+-    """This error handler accesses the CSRF token."""
++    """The CSRF context processor accesses the CSRF token."""
+     template = Template(get_token(request))
+     return HttpResponse(template.render(Context()), status=599)
+diff --git a/tests/gis_tests/geos_tests/test_geos.py b/tests/gis_tests/geos_tests/test_geos.py
+index e2facb879d..a1be047ce9 100644
+--- a/tests/gis_tests/geos_tests/test_geos.py
++++ b/tests/gis_tests/geos_tests/test_geos.py
+@@ -38,7 +38,7 @@ class GEOSTest(SimpleTestCase, TestDataMixin):
+             self.assertEqual(g.hex, geom.hex.decode())
+ 
+     def test_hexewkb(self):
+-        "Testing (HEX)EWKB output."
++        "Testing (HEX)EWKB output by ``GEOSGeometry``."
+         # For testing HEX(EWKB).
+         ogc_hex = b'01010000000000000000000000000000000000F03F'
+         ogc_hex_3d = b'01010000800000000000000000000000000000F03F0000000000000040'

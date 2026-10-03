@@ -1,0 +1,32 @@
+diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py
+index 52f7ea45ad..ed3771fada 100644
+--- a/sympy/core/numbers.py
++++ b/sympy/core/numbers.py
+@@ -1627,17 +1627,21 @@ def __new__(cls, p, q=None, gcd=None):
+ 
+         if not isinstance(p, SYMPY_INTS):
+             p = Rational(p)
+-            q *= p.q
+-            p = p.p
++            p_num, p_den = p.p, p.q
+         else:
+-            p = int(p)
++            p_num, p_den = int(p), 1
+ 
+         if not isinstance(q, SYMPY_INTS):
+             q = Rational(q)
+-            p *= q.q
+-            q = q.p
++            q_num, q_den = q.p, q.q
+         else:
+-            q = int(q)
++            q_num, q_den = int(q), 1
++
++        # Convert both operands independently before combining them.  In
++        # particular, multiplying the denominator by p.q before converting
++        # q can concatenate strings (e.g. '100' * 2 == '100100').
++        p = p_num*q_den
++        q = p_den*q_num
+ 
+         # p and q are now ints
+         if q == 0:

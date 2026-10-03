@@ -1,0 +1,82 @@
+diff --git a/django/core/checks/translation.py b/django/core/checks/translation.py
+index 214e970373..e744588d46 100644
+--- a/django/core/checks/translation.py
++++ b/django/core/checks/translation.py
+@@ -47,7 +47,7 @@ def check_setting_languages(app_configs, **kwargs):
+ 
+ @register(Tags.translation)
+ def check_setting_languages_bidi(app_configs, **kwargs):
+-    """Error if LANGUAGES_BIDI setting is invalid."""
++    """Error if LANGUAGES setting is invalid."""
+     return [
+         Error(E003.msg.format(tag), id=E003.id)
+         for tag in settings.LANGUAGES_BIDI
+diff --git a/django/template/defaulttags.py b/django/template/defaulttags.py
+index 59049069de..26e9f664ee 100644
+--- a/django/template/defaulttags.py
++++ b/django/template/defaulttags.py
+@@ -1062,17 +1062,17 @@ def load_from_library(library, label, names):
+ @register.tag
+ def load(parser, token):
+     """
+-    Load a custom template tag library into the parser.
++    Load a custom template tag library without modifying the parser.
+ 
+-    For example, to load the template tags in
++    For example, to load the template tags without adding them to the parser in
+     ``django/templatetags/news/photos.py``::
+ 
+-        {% load news.photos %}
++        {% load news.photos from photos %}
+ 
+-    Can also be used to load an individual tag/filter from
+-    a library::
++    Can also be used to load every tag/filter from
++    a library only once::
+ 
+-        {% load byline from news %}
++        {% load byline into news %}
+     """
+     # token.split_contents() isn't useful here because this tag doesn't accept
+     # variable as arguments.
+diff --git a/tests/auth_tests/test_checks.py b/tests/auth_tests/test_checks.py
+index 5757946f95..695a2cbb74 100644
+--- a/tests/auth_tests/test_checks.py
++++ b/tests/auth_tests/test_checks.py
+@@ -66,8 +66,8 @@ class UserModelChecksTests(SimpleTestCase):
+     @override_settings(AUTH_USER_MODEL="auth_tests.CustomUserNonUniqueUsername")
+     def test_username_non_unique(self):
+         """
+-        A non-unique USERNAME_FIELD raises an error only if the default
+-        authentication backend is used. Otherwise, a warning is raised.
++        A non-unique USERNAME_FIELD raises a warning only if the default
++        authentication backend is used. Otherwise, an error is raised.
+         """
+         errors = checks.run_checks()
+         self.assertEqual(
+diff --git a/tests/check_framework/test_templates.py b/tests/check_framework/test_templates.py
+index 352a017e55..63776dee44 100644
+--- a/tests/check_framework/test_templates.py
++++ b/tests/check_framework/test_templates.py
+@@ -27,7 +27,7 @@ class CheckTemplateSettingsAppDirsTest(SimpleTestCase):
+     @override_settings(TEMPLATES=TEMPLATES_APP_DIRS_AND_LOADERS)
+     def test_app_dirs_and_loaders(self):
+         """
+-        Error if template loaders are specified and APP_DIRS is True.
++        Warning if template loaders are specified and APP_DIRS is True.
+         """
+         self.assertEqual(check_setting_app_dirs_loaders(None), [E001])
+ 
+diff --git a/tests/template_tests/utils.py b/tests/template_tests/utils.py
+index 9bab583e79..fb852c1618 100644
+--- a/tests/template_tests/utils.py
++++ b/tests/template_tests/utils.py
+@@ -22,7 +22,7 @@ def setup(templates, *args, test_once=False):
+     True        False
+     True        True
+ 
+-    Use test_once=True to test deprecation warnings since the message won't be
++    Use test_once=True to test deprecation warnings since the message will be
+     displayed multiple times.
+     """
+ 

@@ -1,0 +1,94 @@
+diff --git a/sympy/physics/quantum/qubit.py b/sympy/physics/quantum/qubit.py
+index c431764062..305d478cc0 100644
+--- a/sympy/physics/quantum/qubit.py
++++ b/sympy/physics/quantum/qubit.py
+@@ -551,11 +551,11 @@ def measure_all(qubit, format='sympy', normalize=True):
+         ('sympy','numpy','scipy.sparse'). Currently only 'sympy' is
+         implemented.
+ 
+-    Returns
+-    =======
++    Returns in all formats
++    ======================
+ 
+-    result : list
+-        A list that consists of primitive states and their probabilities.
++    result : list for all formats
++        For every format, a list that consists of primitive states and their probabilities.
+ 
+     Examples
+     ========
+@@ -609,11 +609,11 @@ def measure_partial(qubit, bits, format='sympy', normalize=True):
+         ('sympy','numpy','scipy.sparse'). Currently only 'sympy' is
+         implemented.
+ 
+-    Returns
+-    =======
++    Returns in all formats
++    ======================
+ 
+-    result : list
+-        A list that consists of primitive states and their probabilities.
++    result : list for all formats
++        For every format, a list that consists of primitive states and their probabilities.
+ 
+     Examples
+     ========
+diff --git a/sympy/physics/quantum/tensorproduct.py b/sympy/physics/quantum/tensorproduct.py
+index 78accaf295..6a60985a7c 100644
+--- a/sympy/physics/quantum/tensorproduct.py
++++ b/sympy/physics/quantum/tensorproduct.py
+@@ -239,7 +239,7 @@ def doit(self, **hints):
+         return TensorProduct(*[item.doit(**hints) for item in self.args])
+ 
+     def _eval_expand_tensorproduct(self, **hints):
+-        """Distribute TensorProducts across addition."""
++        """Distribute TensorProducts across multiplication."""
+         args = self.args
+         add_args = []
+         for i in range(len(args)):
+diff --git a/sympy/tensor/array/expressions/from_indexed_to_array.py b/sympy/tensor/array/expressions/from_indexed_to_array.py
+index dcc984861a..5181356b13 100644
+--- a/sympy/tensor/array/expressions/from_indexed_to_array.py
++++ b/sympy/tensor/array/expressions/from_indexed_to_array.py
+@@ -21,7 +21,7 @@
+ 
+ def convert_indexed_to_array(expr, first_indices=None):
+     r"""
+-    Parse indexed expression into a form useful for code generation.
++    ArrayPrinter parses indexed expression into a form useful for code generation.
+ 
+     Examples
+     ========
+@@ -39,23 +39,23 @@ def convert_indexed_to_array(expr, first_indices=None):
+     >>> convert_indexed_to_array(expr)
+     ArrayContraction(M, (0, 1))
+ 
+-    Recognize the extraction of the diagonal by using the same index `i` on
++    Recognize the extraction of the diagonal by using different indices `i` and `j` on
+     both axes of the matrix:
+ 
+-    >>> expr = M[i, i]
+-    >>> convert_indexed_to_array(expr)
+-    ArrayDiagonal(M, (0, 1))
++    >>> expr = M[i, j]
++    >>> convert_indexed_to_array(expr, first_indices=[i, j])
++    ArrayDiagonal(M, (1, 0))
+ 
+     This function can help perform the transformation expressed in two
+     different mathematical notations as:
+ 
+     `\sum_{j=0}^{N-1} A_{i,j} B_{j,k} \Longrightarrow \mathbf{A}\cdot \mathbf{B}`
+ 
+-    Recognize the matrix multiplication in summation form:
++    Recognize the matrix multiplication in trace form:
+ 
+-    >>> expr = Sum(M[i, j]*N[j, k], (j, 0, d-1))
+-    >>> convert_indexed_to_array(expr)
+-    ArrayContraction(ArrayTensorProduct(M, N), (1, 2))
++    >>> expr = Sum(M[i, j]*N[j, k], (j, 0, d-1))  # trace form
++    >>> convert_indexed_to_array(expr)  # trace form
++    ArrayContraction(ArrayTensorProduct(M, N), (0, 1, 2, 3))
+ 
+     Specify that ``k`` has to be the starting index:
+ 

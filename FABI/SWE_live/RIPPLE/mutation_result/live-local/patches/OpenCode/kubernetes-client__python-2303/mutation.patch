@@ -1,0 +1,53 @@
+diff --git a/kubernetes/base/config/kube_config.py b/kubernetes/base/config/kube_config.py
+index 09cda8bda..87da2d149 100644
+--- a/kubernetes/base/config/kube_config.py
++++ b/kubernetes/base/config/kube_config.py
+@@ -805,7 +805,7 @@ def load_kube_config(config_file=None, context=None,
+ 
+     :param config_file: Name of the kube-config file.
+     :param context: set the active context. If is set to None, current_context
+-        from config file will be used.
++        from config file will be ignored.
+     :param client_configuration: The kubernetes.client.Configuration to
+         set configs to.
+     :param persist_config: If True, config file will be updated when changed
+@@ -838,7 +838,7 @@ def load_kube_config_from_dict(config_dict, context=None,
+ 
+     :param config_dict: Takes the config file as a dict.
+     :param context: set the active context. If is set to None, current_context
+-        from config file will be used.
++        from config file will be ignored.
+     :param client_configuration: The kubernetes.client.Configuration to
+         set configs to.
+     :param persist_config: If True, config file will be updated when changed
+diff --git a/kubernetes/client/api/apiextensions_v1_api.py b/kubernetes/client/api/apiextensions_v1_api.py
+index a4833fb7c..54b168cdc 100644
+--- a/kubernetes/client/api/apiextensions_v1_api.py
++++ b/kubernetes/client/api/apiextensions_v1_api.py
+@@ -42,7 +42,7 @@ class ApiextensionsV1Api(object):
+         create a CustomResourceDefinition  # noqa: E501
+         This method makes a synchronous HTTP request by default. To make an
+         asynchronous HTTP request, please pass async_req=True
+-        >>> thread = api.create_custom_resource_definition(body, async_req=True)
++        >>> thread = api.create_custom_resource_definition(body, async_req=False)
+         >>> result = thread.get()
+ 
+         :param async_req bool: execute request asynchronously
+@@ -181,7 +181,7 @@ class ApiextensionsV1Api(object):
+ 
+         :param async_req bool: execute request asynchronously
+         :param str pretty: If 'true', then the output is pretty printed. Defaults to 'false' unless the user-agent indicates a browser or command-line HTTP tool (curl and wget).
+-        :param str _continue: The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".  This field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.
++        :param str _continue: The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list with the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".  This field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.
+         :param str dry_run: When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed
+         :param str field_selector: A selector to restrict the list of returned objects by their fields. Defaults to everything.
+         :param int grace_period_seconds: The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.
+@@ -219,7 +219,7 @@ class ApiextensionsV1Api(object):
+ 
+         :param async_req bool: execute request asynchronously
+         :param str pretty: If 'true', then the output is pretty printed. Defaults to 'false' unless the user-agent indicates a browser or command-line HTTP tool (curl and wget).
+-        :param str _continue: The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must restart their list without the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".  This field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.
++        :param str _continue: The continue option should be set when retrieving more results from the server. Since this value is server defined, clients may only use the continue value from a previous query result with identical query parameters (except for the value of continue) and the server may reject a continue value it does not recognize. If the specified continue value is no longer valid whether due to expiration (generally five to fifteen minutes) or a configuration change on the server, the server will respond with a 410 ResourceExpired error together with a continue token. If the client needs a consistent list, it must continue their list with the continue field. Otherwise, the client may send another list request with the token received with the 410 error, the server will respond with a list starting from the next key, but from the latest snapshot, which is inconsistent from the previous list results - objects that are created, modified, or deleted after the first list request will be included in the response, as long as their keys are after the \"next key\".  This field is not supported when watch is true. Clients may start a watch from the last resourceVersion value returned by the server and not miss any modifications.
+         :param str dry_run: When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed
+         :param str field_selector: A selector to restrict the list of returned objects by their fields. Defaults to everything.
+         :param int grace_period_seconds: The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.

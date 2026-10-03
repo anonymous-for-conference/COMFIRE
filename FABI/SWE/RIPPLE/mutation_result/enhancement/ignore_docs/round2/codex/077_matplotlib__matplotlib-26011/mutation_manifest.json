@@ -1,0 +1,214 @@
+{
+  "instance_id": "matplotlib__matplotlib-26011",
+  "level": "level_1,level_2,level_3",
+  "seed": 90076,
+  "selected_cluster_count": 5,
+  "mutation_count": 8,
+  "clusters": [
+    {
+      "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0001",
+      "label": "Limit notification and autoscaling options",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0001",
+          "cluster_label": "Limit notification and autoscaling options",
+          "operator": "R3",
+          "documentation_id": "8b123a6409e8d76e0591e9425b3701b554b032dd8db5fdd3ac3ef6c0f1378c31",
+          "unit_id": "6027148dbe3458f4fc8f662ffd9ee3ab014e18399b5f0a7f4d50bce0ac52a45d",
+          "file": "lib/matplotlib/axis.py",
+          "symbol": "lib/matplotlib/axis.py::Axis._set_lim",
+          "file_line_start": 1189,
+          "file_line_end": 1194,
+          "source_start_offset": 235,
+          "source_end_offset": 543,
+          "original_unit_source": "  (Passing *v0* as a (low, high) pair is not\n            supported; normalization must occur in the Axes setters.)\n        emit : bool, default: True\n            Whether to notify observers of limit change.\n        auto : bool or None, default: False\n            Whether to turn on autoscaling of the x-axis.",
+          "mutated_unit_source": "  (Passing *v0* as a (low, high) pair is not\n            supported; normalization must occur in the Axes setters.)\n        emit : bool, default: True\n            Whether to notify observers of limit change.\n        auto : bool or None, default: False\n            Whether to turn on autoscaling of the y-axis.",
+          "changed_contract": "The `auto` parameter is falsely documented as controlling y-axis autoscaling instead of the current axis's autoscaling.",
+          "evidence": "`Axis._set_lim` invokes `self._set_autoscale_on(bool(auto))`, so the dependency is to the current axis; the documented x-axis endpoint is already contradicted for y-axis instances, and the replacement changes it to y-axis autoscaling.",
+          "complete_access_location": "    def _set_lim(self, v0, v1, *, emit=True, auto):\n        \"\"\"\n        Set view limits.\n\n        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and\n        ``set_zlim`` methods.\n\n        Parameters\n        ----------\n        v0, v1 : float\n            The view limits.  (Passing *v0* as a (low, high) pair is not\n            supported; normalization must occur in the Axes setters.)\n        emit : bool, default: True\n            Whether to notify observers of limit change.\n        auto : bool or None, default: False\n            Whether to turn on autoscaling of the x-axis. True turns on, False\n            turns off, None leaves unchanged.\n        \"\"\"\n        name = self._get_axis_name()\n\n        self.axes._process_unit_info([(name, (v0, v1))], convert=False)\n        v0 = self.axes._validate_converted_limits(v0, self.convert_units)\n        v1 = self.axes._validate_converted_limits(v1, self.convert_units)\n\n        if v0 is None or v1 is None:\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 is None:\n                v0 = old0\n            if v1 is None:\n                v1 = old1\n\n        if self.get_scale() == 'log' and (v0 <= 0 or v1 <= 0):\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v0 = old0\n            if v1 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v1 = old1\n        if v0 == v1:\n            _api.warn_external(\n                f\"Attempting to set identical low and high {name}lims \"\n                f\"makes transformation singular; automatically expanding.\")\n        reverse = bool(v0 > v1)  # explicit cast needed for python3.8+np.bool_.\n        v0, v1 = self.get_major_locator().nonsingular(v0, v1)\n        v0, v1 = self.limit_range_for_scale(v0, v1)\n        v0, v1 = sorted([v0, v1], reverse=bool(reverse))\n\n        self.set_view_interval(v0, v1, ignore=True)\n        # Mark viewlims as no longer stale without triggering an autoscale.\n        for ax in self._get_shared_axes():\n            ax._stale_viewlims[name] = False\n        if auto is not None:\n            self._set_autoscale_on(bool(auto))\n\n        if emit:\n            self.axes.callbacks.process(f\"{name}lim_changed\", self.axes)\n            # Call all of the other axes that are shared with this one\n            for other in self._get_shared_axes():\n                if other is not self.axes:\n                    other._axis_map[name]._set_lim(\n                        v0, v1, emit=False, auto=auto)\n                    if other.figure != self.figure:\n                        other.figure.canvas.draw_idle()\n\n        self.stale = True\n        return v0, v1\n"
+        },
+        {
+          "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0001",
+          "cluster_label": "Limit notification and autoscaling options",
+          "operator": "R3",
+          "documentation_id": "8b123a6409e8d76e0591e9425b3701b554b032dd8db5fdd3ac3ef6c0f1378c31",
+          "unit_id": "16e57ea22f0e1e7f52d82311ccc3f5679a7c9952cfad4f00bfaa6113425edf01",
+          "file": "lib/matplotlib/axis.py",
+          "symbol": "lib/matplotlib/axis.py::Axis._set_lim",
+          "file_line_start": 1194,
+          "file_line_end": 1195,
+          "source_start_offset": 543,
+          "source_end_offset": 611,
+          "original_unit_source": " True turns on, False\n            turns off, None leaves unchanged.\n",
+          "mutated_unit_source": " True turns on, False\n            turns off y-axis autoscaling, None leaves unchanged.\n",
+          "changed_contract": "The `auto` parameter is falsely documented as controlling y-axis autoscaling instead of the current axis's autoscaling.",
+          "evidence": "`Axis._set_lim` invokes `self._set_autoscale_on(bool(auto))`, so the dependency is to the current axis; the documented x-axis endpoint is already contradicted for y-axis instances, and the replacement changes it to y-axis autoscaling.",
+          "complete_access_location": "    def _set_lim(self, v0, v1, *, emit=True, auto):\n        \"\"\"\n        Set view limits.\n\n        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and\n        ``set_zlim`` methods.\n\n        Parameters\n        ----------\n        v0, v1 : float\n            The view limits.  (Passing *v0* as a (low, high) pair is not\n            supported; normalization must occur in the Axes setters.)\n        emit : bool, default: True\n            Whether to notify observers of limit change.\n        auto : bool or None, default: False\n            Whether to turn on autoscaling of the x-axis. True turns on, False\n            turns off, None leaves unchanged.\n        \"\"\"\n        name = self._get_axis_name()\n\n        self.axes._process_unit_info([(name, (v0, v1))], convert=False)\n        v0 = self.axes._validate_converted_limits(v0, self.convert_units)\n        v1 = self.axes._validate_converted_limits(v1, self.convert_units)\n\n        if v0 is None or v1 is None:\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 is None:\n                v0 = old0\n            if v1 is None:\n                v1 = old1\n\n        if self.get_scale() == 'log' and (v0 <= 0 or v1 <= 0):\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v0 = old0\n            if v1 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v1 = old1\n        if v0 == v1:\n            _api.warn_external(\n                f\"Attempting to set identical low and high {name}lims \"\n                f\"makes transformation singular; automatically expanding.\")\n        reverse = bool(v0 > v1)  # explicit cast needed for python3.8+np.bool_.\n        v0, v1 = self.get_major_locator().nonsingular(v0, v1)\n        v0, v1 = self.limit_range_for_scale(v0, v1)\n        v0, v1 = sorted([v0, v1], reverse=bool(reverse))\n\n        self.set_view_interval(v0, v1, ignore=True)\n        # Mark viewlims as no longer stale without triggering an autoscale.\n        for ax in self._get_shared_axes():\n            ax._stale_viewlims[name] = False\n        if auto is not None:\n            self._set_autoscale_on(bool(auto))\n\n        if emit:\n            self.axes.callbacks.process(f\"{name}lim_changed\", self.axes)\n            # Call all of the other axes that are shared with this one\n            for other in self._get_shared_axes():\n                if other is not self.axes:\n                    other._axis_map[name]._set_lim(\n                        v0, v1, emit=False, auto=auto)\n                    if other.figure != self.figure:\n                        other.figure.canvas.draw_idle()\n\n        self.stale = True\n        return v0, v1\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0002",
+      "label": "Parameters section",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0002",
+          "cluster_label": "Parameters section",
+          "operator": "R1",
+          "documentation_id": "8b123a6409e8d76e0591e9425b3701b554b032dd8db5fdd3ac3ef6c0f1378c31",
+          "unit_id": "4c8a9eda7d6b61082431f0c93428d18c07b1701040591bee1125ec36ee2ddaa7",
+          "file": "lib/matplotlib/axis.py",
+          "symbol": "lib/matplotlib/axis.py::Axis._set_lim",
+          "file_line_start": 1186,
+          "file_line_end": 1186,
+          "source_start_offset": 146,
+          "source_end_offset": 165,
+          "original_unit_source": "        Parameters\n",
+          "mutated_unit_source": "        Axes Parameters\n",
+          "changed_contract": "Parameter documentation responsibility is reassigned to Axes.",
+          "evidence": "The Parameters section is inside Axis._set_lim, which owns these parameters; Axes.set_xlim delegates to self.xaxis._set_lim.",
+          "complete_access_location": "    def _set_lim(self, v0, v1, *, emit=True, auto):\n        \"\"\"\n        Set view limits.\n\n        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and\n        ``set_zlim`` methods.\n\n        Parameters\n        ----------\n        v0, v1 : float\n            The view limits.  (Passing *v0* as a (low, high) pair is not\n            supported; normalization must occur in the Axes setters.)\n        emit : bool, default: True\n            Whether to notify observers of limit change.\n        auto : bool or None, default: False\n            Whether to turn on autoscaling of the x-axis. True turns on, False\n            turns off, None leaves unchanged.\n        \"\"\"\n        name = self._get_axis_name()\n\n        self.axes._process_unit_info([(name, (v0, v1))], convert=False)\n        v0 = self.axes._validate_converted_limits(v0, self.convert_units)\n        v1 = self.axes._validate_converted_limits(v1, self.convert_units)\n\n        if v0 is None or v1 is None:\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 is None:\n                v0 = old0\n            if v1 is None:\n                v1 = old1\n\n        if self.get_scale() == 'log' and (v0 <= 0 or v1 <= 0):\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v0 = old0\n            if v1 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v1 = old1\n        if v0 == v1:\n            _api.warn_external(\n                f\"Attempting to set identical low and high {name}lims \"\n                f\"makes transformation singular; automatically expanding.\")\n        reverse = bool(v0 > v1)  # explicit cast needed for python3.8+np.bool_.\n        v0, v1 = self.get_major_locator().nonsingular(v0, v1)\n        v0, v1 = self.limit_range_for_scale(v0, v1)\n        v0, v1 = sorted([v0, v1], reverse=bool(reverse))\n\n        self.set_view_interval(v0, v1, ignore=True)\n        # Mark viewlims as no longer stale without triggering an autoscale.\n        for ax in self._get_shared_axes():\n            ax._stale_viewlims[name] = False\n        if auto is not None:\n            self._set_autoscale_on(bool(auto))\n\n        if emit:\n            self.axes.callbacks.process(f\"{name}lim_changed\", self.axes)\n            # Call all of the other axes that are shared with this one\n            for other in self._get_shared_axes():\n                if other is not self.axes:\n                    other._axis_map[name]._set_lim(\n                        v0, v1, emit=False, auto=auto)\n                    if other.figure != self.figure:\n                        other.figure.canvas.draw_idle()\n\n        self.stale = True\n        return v0, v1\n"
+        },
+        {
+          "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0002",
+          "cluster_label": "Parameters section",
+          "operator": "R1",
+          "documentation_id": "8b123a6409e8d76e0591e9425b3701b554b032dd8db5fdd3ac3ef6c0f1378c31",
+          "unit_id": "a49dccf5c5ee22ecebe0f1b8ac448e18bf790d4b414eeecb6ec51b71a1eed87e",
+          "file": "lib/matplotlib/axis.py",
+          "symbol": "lib/matplotlib/axis.py::Axis._set_lim",
+          "file_line_start": 1187,
+          "file_line_end": 1187,
+          "source_start_offset": 165,
+          "source_end_offset": 184,
+          "original_unit_source": "        ----------\n",
+          "mutated_unit_source": "        ---------------\n",
+          "changed_contract": "Parameter documentation responsibility is reassigned to Axes.",
+          "evidence": "The Parameters section is inside Axis._set_lim, which owns these parameters; Axes.set_xlim delegates to self.xaxis._set_lim.",
+          "complete_access_location": "    def _set_lim(self, v0, v1, *, emit=True, auto):\n        \"\"\"\n        Set view limits.\n\n        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and\n        ``set_zlim`` methods.\n\n        Parameters\n        ----------\n        v0, v1 : float\n            The view limits.  (Passing *v0* as a (low, high) pair is not\n            supported; normalization must occur in the Axes setters.)\n        emit : bool, default: True\n            Whether to notify observers of limit change.\n        auto : bool or None, default: False\n            Whether to turn on autoscaling of the x-axis. True turns on, False\n            turns off, None leaves unchanged.\n        \"\"\"\n        name = self._get_axis_name()\n\n        self.axes._process_unit_info([(name, (v0, v1))], convert=False)\n        v0 = self.axes._validate_converted_limits(v0, self.convert_units)\n        v1 = self.axes._validate_converted_limits(v1, self.convert_units)\n\n        if v0 is None or v1 is None:\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 is None:\n                v0 = old0\n            if v1 is None:\n                v1 = old1\n\n        if self.get_scale() == 'log' and (v0 <= 0 or v1 <= 0):\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v0 = old0\n            if v1 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v1 = old1\n        if v0 == v1:\n            _api.warn_external(\n                f\"Attempting to set identical low and high {name}lims \"\n                f\"makes transformation singular; automatically expanding.\")\n        reverse = bool(v0 > v1)  # explicit cast needed for python3.8+np.bool_.\n        v0, v1 = self.get_major_locator().nonsingular(v0, v1)\n        v0, v1 = self.limit_range_for_scale(v0, v1)\n        v0, v1 = sorted([v0, v1], reverse=bool(reverse))\n\n        self.set_view_interval(v0, v1, ignore=True)\n        # Mark viewlims as no longer stale without triggering an autoscale.\n        for ax in self._get_shared_axes():\n            ax._stale_viewlims[name] = False\n        if auto is not None:\n            self._set_autoscale_on(bool(auto))\n\n        if emit:\n            self.axes.callbacks.process(f\"{name}lim_changed\", self.axes)\n            # Call all of the other axes that are shared with this one\n            for other in self._get_shared_axes():\n                if other is not self.axes:\n                    other._axis_map[name]._set_lim(\n                        v0, v1, emit=False, auto=auto)\n                    if other.figure != self.figure:\n                        other.figure.canvas.draw_idle()\n\n        self.stale = True\n        return v0, v1\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0003",
+      "label": "View-limit operation",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0003",
+          "cluster_label": "View-limit operation",
+          "operator": "R3",
+          "documentation_id": "8b123a6409e8d76e0591e9425b3701b554b032dd8db5fdd3ac3ef6c0f1378c31",
+          "unit_id": "a97106b2251d81a7886b24f12680ffb8938ebe9f6e516ef7c4e9ad6bdd5da4cd",
+          "file": "lib/matplotlib/axis.py",
+          "symbol": "lib/matplotlib/axis.py::Axis._set_lim",
+          "file_line_start": 1181,
+          "file_line_end": 1181,
+          "source_start_offset": 12,
+          "source_end_offset": 37,
+          "original_unit_source": "        Set view limits.\n",
+          "mutated_unit_source": "        Set view limits on the Figure.\n",
+          "changed_contract": "The view-limit operation is documented as targeting the Figure rather than the Axis.",
+          "evidence": "`Axis._set_lim` calls `self.set_view_interval(v0, v1, ignore=True)`, while the Figure is only reached later for `draw_idle()` after shared-axis propagation.",
+          "complete_access_location": "    def _set_lim(self, v0, v1, *, emit=True, auto):\n        \"\"\"\n        Set view limits.\n\n        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and\n        ``set_zlim`` methods.\n\n        Parameters\n        ----------\n        v0, v1 : float\n            The view limits.  (Passing *v0* as a (low, high) pair is not\n            supported; normalization must occur in the Axes setters.)\n        emit : bool, default: True\n            Whether to notify observers of limit change.\n        auto : bool or None, default: False\n            Whether to turn on autoscaling of the x-axis. True turns on, False\n            turns off, None leaves unchanged.\n        \"\"\"\n        name = self._get_axis_name()\n\n        self.axes._process_unit_info([(name, (v0, v1))], convert=False)\n        v0 = self.axes._validate_converted_limits(v0, self.convert_units)\n        v1 = self.axes._validate_converted_limits(v1, self.convert_units)\n\n        if v0 is None or v1 is None:\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 is None:\n                v0 = old0\n            if v1 is None:\n                v1 = old1\n\n        if self.get_scale() == 'log' and (v0 <= 0 or v1 <= 0):\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v0 = old0\n            if v1 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v1 = old1\n        if v0 == v1:\n            _api.warn_external(\n                f\"Attempting to set identical low and high {name}lims \"\n                f\"makes transformation singular; automatically expanding.\")\n        reverse = bool(v0 > v1)  # explicit cast needed for python3.8+np.bool_.\n        v0, v1 = self.get_major_locator().nonsingular(v0, v1)\n        v0, v1 = self.limit_range_for_scale(v0, v1)\n        v0, v1 = sorted([v0, v1], reverse=bool(reverse))\n\n        self.set_view_interval(v0, v1, ignore=True)\n        # Mark viewlims as no longer stale without triggering an autoscale.\n        for ax in self._get_shared_axes():\n            ax._stale_viewlims[name] = False\n        if auto is not None:\n            self._set_autoscale_on(bool(auto))\n\n        if emit:\n            self.axes.callbacks.process(f\"{name}lim_changed\", self.axes)\n            # Call all of the other axes that are shared with this one\n            for other in self._get_shared_axes():\n                if other is not self.axes:\n                    other._axis_map[name]._set_lim(\n                        v0, v1, emit=False, auto=auto)\n                    if other.figure != self.figure:\n                        other.figure.canvas.draw_idle()\n\n        self.stale = True\n        return v0, v1\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0004",
+      "label": "View-limit parameters",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0004",
+          "cluster_label": "View-limit parameters",
+          "operator": "R3",
+          "documentation_id": "8b123a6409e8d76e0591e9425b3701b554b032dd8db5fdd3ac3ef6c0f1378c31",
+          "unit_id": "bf9f7f19bd6ac79a4c41fbfbcbfd7550025c68c408ea127776a38081dbf93d19",
+          "file": "lib/matplotlib/axis.py",
+          "symbol": "lib/matplotlib/axis.py::Axis._set_lim",
+          "file_line_start": 1188,
+          "file_line_end": 1188,
+          "source_start_offset": 184,
+          "source_end_offset": 207,
+          "original_unit_source": "        v0, v1 : float\n",
+          "mutated_unit_source": "        v0, v1 : float, obtained from ``get_view_interval``\n",
+          "changed_contract": "The parameter dependency direction is falsely changed so that v0 and v1 are documented as values obtained from get_view_interval.",
+          "evidence": "Axis._set_lim receives v0 and v1 as parameters from its callers; get_view_interval is only consulted conditionally when either value is None or invalid for a log scale.",
+          "complete_access_location": "    def _set_lim(self, v0, v1, *, emit=True, auto):\n        \"\"\"\n        Set view limits.\n\n        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and\n        ``set_zlim`` methods.\n\n        Parameters\n        ----------\n        v0, v1 : float\n            The view limits.  (Passing *v0* as a (low, high) pair is not\n            supported; normalization must occur in the Axes setters.)\n        emit : bool, default: True\n            Whether to notify observers of limit change.\n        auto : bool or None, default: False\n            Whether to turn on autoscaling of the x-axis. True turns on, False\n            turns off, None leaves unchanged.\n        \"\"\"\n        name = self._get_axis_name()\n\n        self.axes._process_unit_info([(name, (v0, v1))], convert=False)\n        v0 = self.axes._validate_converted_limits(v0, self.convert_units)\n        v1 = self.axes._validate_converted_limits(v1, self.convert_units)\n\n        if v0 is None or v1 is None:\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 is None:\n                v0 = old0\n            if v1 is None:\n                v1 = old1\n\n        if self.get_scale() == 'log' and (v0 <= 0 or v1 <= 0):\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v0 = old0\n            if v1 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v1 = old1\n        if v0 == v1:\n            _api.warn_external(\n                f\"Attempting to set identical low and high {name}lims \"\n                f\"makes transformation singular; automatically expanding.\")\n        reverse = bool(v0 > v1)  # explicit cast needed for python3.8+np.bool_.\n        v0, v1 = self.get_major_locator().nonsingular(v0, v1)\n        v0, v1 = self.limit_range_for_scale(v0, v1)\n        v0, v1 = sorted([v0, v1], reverse=bool(reverse))\n\n        self.set_view_interval(v0, v1, ignore=True)\n        # Mark viewlims as no longer stale without triggering an autoscale.\n        for ax in self._get_shared_axes():\n            ax._stale_viewlims[name] = False\n        if auto is not None:\n            self._set_autoscale_on(bool(auto))\n\n        if emit:\n            self.axes.callbacks.process(f\"{name}lim_changed\", self.axes)\n            # Call all of the other axes that are shared with this one\n            for other in self._get_shared_axes():\n                if other is not self.axes:\n                    other._axis_map[name]._set_lim(\n                        v0, v1, emit=False, auto=auto)\n                    if other.figure != self.figure:\n                        other.figure.canvas.draw_idle()\n\n        self.stale = True\n        return v0, v1\n"
+        },
+        {
+          "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0004",
+          "cluster_label": "View-limit parameters",
+          "operator": "R3",
+          "documentation_id": "8b123a6409e8d76e0591e9425b3701b554b032dd8db5fdd3ac3ef6c0f1378c31",
+          "unit_id": "b80e8fd04c400d0db3b253a8eb02775bb362c2c5a855633ef3cdc0db3dd76fd1",
+          "file": "lib/matplotlib/axis.py",
+          "symbol": "lib/matplotlib/axis.py::Axis._set_lim",
+          "file_line_start": 1189,
+          "file_line_end": 1189,
+          "source_start_offset": 207,
+          "source_end_offset": 235,
+          "original_unit_source": "            The view limits.",
+          "mutated_unit_source": "            The limits obtained from ``get_view_interval``.",
+          "changed_contract": "The parameter dependency direction is falsely changed so that the view limits are documented as obtained from get_view_interval.",
+          "evidence": "Axis._set_lim receives the values from its callers and only conditionally reads existing limits through get_view_interval when a supplied value is unavailable or invalid.",
+          "complete_access_location": "    def _set_lim(self, v0, v1, *, emit=True, auto):\n        \"\"\"\n        Set view limits.\n\n        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and\n        ``set_zlim`` methods.\n\n        Parameters\n        ----------\n        v0, v1 : float\n            The view limits.  (Passing *v0* as a (low, high) pair is not\n            supported; normalization must occur in the Axes setters.)\n        emit : bool, default: True\n            Whether to notify observers of limit change.\n        auto : bool or None, default: False\n            Whether to turn on autoscaling of the x-axis. True turns on, False\n            turns off, None leaves unchanged.\n        \"\"\"\n        name = self._get_axis_name()\n\n        self.axes._process_unit_info([(name, (v0, v1))], convert=False)\n        v0 = self.axes._validate_converted_limits(v0, self.convert_units)\n        v1 = self.axes._validate_converted_limits(v1, self.convert_units)\n\n        if v0 is None or v1 is None:\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 is None:\n                v0 = old0\n            if v1 is None:\n                v1 = old1\n\n        if self.get_scale() == 'log' and (v0 <= 0 or v1 <= 0):\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v0 = old0\n            if v1 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v1 = old1\n        if v0 == v1:\n            _api.warn_external(\n                f\"Attempting to set identical low and high {name}lims \"\n                f\"makes transformation singular; automatically expanding.\")\n        reverse = bool(v0 > v1)  # explicit cast needed for python3.8+np.bool_.\n        v0, v1 = self.get_major_locator().nonsingular(v0, v1)\n        v0, v1 = self.limit_range_for_scale(v0, v1)\n        v0, v1 = sorted([v0, v1], reverse=bool(reverse))\n\n        self.set_view_interval(v0, v1, ignore=True)\n        # Mark viewlims as no longer stale without triggering an autoscale.\n        for ax in self._get_shared_axes():\n            ax._stale_viewlims[name] = False\n        if auto is not None:\n            self._set_autoscale_on(bool(auto))\n\n        if emit:\n            self.axes.callbacks.process(f\"{name}lim_changed\", self.axes)\n            # Call all of the other axes that are shared with this one\n            for other in self._get_shared_axes():\n                if other is not self.axes:\n                    other._axis_map[name]._set_lim(\n                        v0, v1, emit=False, auto=auto)\n                    if other.figure != self.figure:\n                        other.figure.canvas.draw_idle()\n\n        self.stale = True\n        return v0, v1\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0005",
+      "label": "Axes setter helper",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "matplotlib__matplotlib-26011:level_1:cluster_0005",
+          "cluster_label": "Axes setter helper",
+          "operator": "R3",
+          "documentation_id": "8b123a6409e8d76e0591e9425b3701b554b032dd8db5fdd3ac3ef6c0f1378c31",
+          "unit_id": "e931d9963d57753d126a611c1d586939a1ddb40d242c8a94a5fb130118a6cb4b",
+          "file": "lib/matplotlib/axis.py",
+          "symbol": "lib/matplotlib/axis.py::Axis._set_lim",
+          "file_line_start": 1183,
+          "file_line_end": 1184,
+          "source_start_offset": 38,
+          "source_end_offset": 145,
+          "original_unit_source": "        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and\n        ``set_zlim`` methods.\n",
+          "mutated_unit_source": "        This method is a helper for the Axes ``get_xlim``, ``get_ylim``, and\n        ``get_zlim`` methods.\n",
+          "changed_contract": "The documented helper dependency endpoints change from the Axes limit setters to the corresponding Axes limit getters.",
+          "evidence": "Axis._set_lim is called by Axes.set_xlim, Axes.set_ylim, and Axes.set_zlim; the getter methods do not call it.",
+          "complete_access_location": "    def _set_lim(self, v0, v1, *, emit=True, auto):\n        \"\"\"\n        Set view limits.\n\n        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and\n        ``set_zlim`` methods.\n\n        Parameters\n        ----------\n        v0, v1 : float\n            The view limits.  (Passing *v0* as a (low, high) pair is not\n            supported; normalization must occur in the Axes setters.)\n        emit : bool, default: True\n            Whether to notify observers of limit change.\n        auto : bool or None, default: False\n            Whether to turn on autoscaling of the x-axis. True turns on, False\n            turns off, None leaves unchanged.\n        \"\"\"\n        name = self._get_axis_name()\n\n        self.axes._process_unit_info([(name, (v0, v1))], convert=False)\n        v0 = self.axes._validate_converted_limits(v0, self.convert_units)\n        v1 = self.axes._validate_converted_limits(v1, self.convert_units)\n\n        if v0 is None or v1 is None:\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 is None:\n                v0 = old0\n            if v1 is None:\n                v1 = old1\n\n        if self.get_scale() == 'log' and (v0 <= 0 or v1 <= 0):\n            # Axes init calls set_xlim(0, 1) before get_xlim() can be called,\n            # so only grab the limits if we really need them.\n            old0, old1 = self.get_view_interval()\n            if v0 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v0 = old0\n            if v1 <= 0:\n                _api.warn_external(f\"Attempt to set non-positive {name}lim on \"\n                                   f\"a log-scaled axis will be ignored.\")\n                v1 = old1\n        if v0 == v1:\n            _api.warn_external(\n                f\"Attempting to set identical low and high {name}lims \"\n                f\"makes transformation singular; automatically expanding.\")\n        reverse = bool(v0 > v1)  # explicit cast needed for python3.8+np.bool_.\n        v0, v1 = self.get_major_locator().nonsingular(v0, v1)\n        v0, v1 = self.limit_range_for_scale(v0, v1)\n        v0, v1 = sorted([v0, v1], reverse=bool(reverse))\n\n        self.set_view_interval(v0, v1, ignore=True)\n        # Mark viewlims as no longer stale without triggering an autoscale.\n        for ax in self._get_shared_axes():\n            ax._stale_viewlims[name] = False\n        if auto is not None:\n            self._set_autoscale_on(bool(auto))\n\n        if emit:\n            self.axes.callbacks.process(f\"{name}lim_changed\", self.axes)\n            # Call all of the other axes that are shared with this one\n            for other in self._get_shared_axes():\n                if other is not self.axes:\n                    other._axis_map[name]._set_lim(\n                        v0, v1, emit=False, auto=auto)\n                    if other.figure != self.figure:\n                        other.figure.canvas.draw_idle()\n\n        self.stale = True\n        return v0, v1\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "a7f85857e8e89f6b9e63535387fca9247a14fcf6481a958a244da6e417bd4336"
+}

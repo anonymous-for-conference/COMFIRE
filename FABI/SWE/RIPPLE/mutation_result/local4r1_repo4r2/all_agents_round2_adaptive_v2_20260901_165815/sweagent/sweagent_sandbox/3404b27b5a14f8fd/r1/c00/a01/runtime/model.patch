@@ -1,0 +1,29 @@
+diff --git a/sympy/core/sympify.py b/sympy/core/sympify.py
+index 0bbb67a3f6..d2c733a980 100644
+--- a/sympy/core/sympify.py
++++ b/sympy/core/sympify.py
+@@ -380,6 +380,11 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     if evaluate is None:
+         evaluate = global_parameters.evaluate
+ 
++    # If evaluate=False is in effect, avoid parsing strings through
++    # parse_expr so that constructors like Point2D can handle the
++    # unevaluated arguments without their own evaluate defaults being
++    # overridden by the global flag.
++
+     # Support for basic numpy datatypes
+     if _is_numpy_instance(a):
+         import numpy as np
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 73c20334d0..ad06668efe 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -152,7 +152,7 @@ def __new__(cls, *args, **kwargs):
+                         'warn' or 'ignore'.'''))
+         if any(coords[dim:]):
+             raise ValueError('Nonzero coordinates cannot be removed.')
+-        if any(a.is_number and im(a) for a in coords):
++        if evaluate and any(a.is_number and im(a) for a in coords):
+             raise ValueError('Imaginary coordinates are not permitted.')
+         if not all(isinstance(a, Expr) for a in coords):
+             raise TypeError('Coordinates must be valid SymPy expressions.')

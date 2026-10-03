@@ -1,0 +1,308 @@
+diff --git a/xarray/indexes/__init__.py b/xarray/indexes/__init__.py
+index 9073cbc2e..fafdb49c7 100644
+--- a/xarray/indexes/__init__.py
++++ b/xarray/indexes/__init__.py
+@@ -8,5 +8,6 @@ from xarray.core.indexes import (
+     PandasIndex,
+     PandasMultiIndex,
+ )
++from xarray.indexes.range_index import RangeIndex
+ 
+-__all__ = ["Index", "PandasIndex", "PandasMultiIndex"]
++__all__ = ["Index", "PandasIndex", "PandasMultiIndex", "RangeIndex"]
+diff --git a/xarray/indexes/range_index.py b/xarray/indexes/range_index.py
+new file mode 100644
+index 000000000..a0dc8852e
+--- /dev/null
++++ b/xarray/indexes/range_index.py
+@@ -0,0 +1,263 @@
++from __future__ import annotations
++
++from collections.abc import Hashable, Mapping
++from typing import Any
++
++import numpy as np
++import pandas as pd
++
++from xarray.core.coordinate_transform import CoordinateTransform
++from xarray.core.indexes import Index, IndexSelResult
++from xarray.core.indexing import CoordinateTransformIndexingAdapter
++from xarray.core.utils import is_scalar
++
++
++class _RangeCoordinateTransform(CoordinateTransform):
++    def __init__(self, start, stop, step, dim, dtype):
++        self.start = start
++        self.stop = stop
++        self.step = step
++        self.dim = dim
++        size = _range_size(start, stop, step)
++        super().__init__((dim,), {dim: size}, dtype=dtype)
++
++    def forward(self, dim_positions):
++        return {self.dim: self.start + np.asarray(dim_positions[self.dim]) * self.step}
++
++    def reverse(self, coord_labels):
++        return {self.dim: (np.asarray(coord_labels[self.dim]) - self.start) / self.step}
++
++    def equals(self, other):
++        return (
++            isinstance(other, _RangeCoordinateTransform)
++            and self.dim == other.dim
++            and self.start == other.start
++            and self.stop == other.stop
++            and self.step == other.step
++        )
++
++    def __repr__(self):
++        return f"Range({self.start}, {self.stop}, {self.step})"
++
++
++def _range_args(start, stop, step):
++    if step == 0:
++        raise ValueError("step must be non-zero")
++    if stop is None:
++        return 0, start, step
++    return start, stop, step
++
++
++def _range_size(start, stop, step):
++    if step > 0:
++        return max(0, int(np.ceil((stop - start) / step)))
++    return max(0, int(np.ceil((start - stop) / -step)))
++
++
++class RangeIndex(Index):
++    """An index for regularly spaced, one-dimensional coordinates.
++
++    The coordinate labels are generated lazily from ``start``, ``stop`` and
++    ``step``.  ``stop`` follows the same exclusive convention as ``range``.
++    """
++
++    def __init__(self, start, stop=None, step=1, dim="dim_0", dtype=None):
++        start, stop, step = _range_args(start, stop, step)
++        self.start = start
++        self.stop = stop
++        self.step = step
++        self.dim = dim
++        self.coord_dtype = (
++            np.dtype(dtype) if dtype is not None else np.result_type(start, step)
++        )
++        self._transform = _RangeCoordinateTransform(
++            start, stop, step, dim, self.coord_dtype
++        )
++
++    @classmethod
++    def arange(cls, start, stop=None, step=1, *, dim="dim_0", dtype=None):
++        return cls(start, stop, step, dim=dim, dtype=dtype)
++
++    @classmethod
++    def linspace(
++        cls, start, stop, num=50, *, endpoint=True, dim="dim_0", dtype=None
++    ):
++        if num < 0:
++            raise ValueError("Number of samples, num, must be non-negative.")
++        if num == 0:
++            return cls(start, start, 1, dim=dim, dtype=dtype)
++        elif num == 1:
++            step = 1
++        else:
++            step = (stop - start) / (num - 1 if endpoint else num)
++        end = start + step * num
++        return cls(start, end, step, dim=dim, dtype=dtype)
++
++    @classmethod
++    def from_variables(cls, variables: Mapping[Any, Any], *, options):
++        if len(variables) != 1:
++            raise ValueError("RangeIndex only accepts one variable")
++        name, var = next(iter(variables.items()))
++        if var.ndim != 1:
++            raise ValueError("RangeIndex only accepts a 1-dimensional variable")
++        values = np.asarray(var.data)
++        if values.size == 0:
++            return cls(0, 0, dim=var.dims[0], dtype=var.dtype)
++        step = values[1] - values[0] if values.size > 1 else 1
++        if values.size > 2 and not np.all(values[1:] - values[:-1] == step):
++            raise ValueError("coordinate values are not regularly spaced")
++        return cls(
++            values[0], values[-1] + step, step, dim=var.dims[0], dtype=var.dtype
++        )
++
++    def create_variables(self, variables=None):
++        from xarray.core.variable import Variable
++
++        attrs = encoding = None
++        name = self.dim
++        if variables is not None:
++            name = next(iter(variables), name)
++            var = variables.get(name)
++            if var is not None:
++                attrs, encoding = var.attrs, var.encoding
++        data = CoordinateTransformIndexingAdapter(self._transform, self.dim)
++        return {name: Variable((self.dim,), data, attrs=attrs, encoding=encoding)}
++
++    def isel(self, indexers):
++        indexer = indexers[self.dim]
++        if is_scalar(indexer):
++            return None
++        if isinstance(indexer, slice):
++            start, stop, step = indexer.indices(len(self))
++            return type(self)(
++                self.start + start * self.step,
++                self.start + stop * self.step,
++                step * self.step,
++                dim=self.dim,
++                dtype=self.coord_dtype,
++            )
++        values = np.asarray(indexer)
++        if values.ndim != 1:
++            return None
++        return type(self)(
++            self.start + values[0] * self.step,
++            self.start + (values[-1] + 1) * self.step,
++            self.step,
++            dim=self.dim,
++            dtype=self.coord_dtype,
++        ) if values.size and np.all(np.diff(values) == 1) else None
++
++    def sel(self, labels, method=None, tolerance=None):
++        if method not in (None, "nearest"):
++            raise ValueError(f"unsupported selection method {method!r}")
++        label = next(iter(labels.values()))
++        if isinstance(label, slice):
++            start = (
++                None
++                if label.start is None
++                else int(np.ceil((label.start - self.start) / self.step))
++            )
++            stop = (
++                None
++                if label.stop is None
++                else int(np.floor((label.stop - self.start) / self.step)) + 1
++            )
++            return IndexSelResult({self.dim: slice(start, stop, label.step)})
++        values = np.asarray(label)
++        positions = np.rint((values - self.start) / self.step).astype(int)
++        if np.any((positions < 0) | (positions >= len(self))):
++            if method != "nearest":
++                raise KeyError(f"not all values found in index {self.dim!r}")
++            positions = np.clip(positions, 0, len(self) - 1)
++        if method is None and np.any(self.start + positions * self.step != values):
++            raise KeyError(f"not all values found in index {self.dim!r}")
++        if method == "nearest" and tolerance is not None:
++            if np.any(np.abs(self.start + positions * self.step - values) > tolerance):
++                raise KeyError(f"not all values found in index {self.dim!r}")
++        if values.ndim == 0:
++            return IndexSelResult({self.dim: int(positions)})
++        return IndexSelResult({self.dim: positions})
++
++    def reindex_like(self, other, method=None, tolerance=None):
++        values = other.start + np.arange(len(other)) * other.step
++        positions = np.rint((values - self.start) / self.step).astype(int)
++        valid = (
++            (positions >= 0)
++            & (positions < len(self))
++            & (self.start + positions * self.step == values)
++        )
++        result = np.where(valid, positions, -1)
++        return {self.dim: result}
++
++    def join(self, other, how="inner"):
++        if not isinstance(other, RangeIndex) or self.step != other.step:
++            values = self.to_pandas_index()
++            other_values = other.to_pandas_index()
++            joined = (
++                values.union(other_values)
++                if how == "outer"
++                else values.intersection(other_values)
++            )
++            from xarray.core.indexes import PandasIndex
++
++            return PandasIndex(joined, self.dim)
++
++        step = self.step
++        aligned = (other.start - self.start) / step % 1 == 0
++        if not aligned:
++            if how == "inner":
++                return type(self)(0, 0, step, dim=self.dim, dtype=self.coord_dtype)
++            from xarray.core.indexes import PandasIndex
++
++            return PandasIndex(
++                self.to_pandas_index().union(other.to_pandas_index()), self.dim
++            )
++        if how == "outer":
++            start = (
++                min(self.start, other.start)
++                if step > 0
++                else max(self.start, other.start)
++            )
++            stop = (
++                max(self.stop, other.stop)
++                if step > 0
++                else min(self.stop, other.stop)
++            )
++        else:
++            start = (
++                max(self.start, other.start)
++                if step > 0
++                else min(self.start, other.start)
++            )
++            stop = (
++                min(self.stop, other.stop)
++                if step > 0
++                else max(self.stop, other.stop)
++            )
++        return type(self)(
++            start,
++            stop,
++            step,
++            dim=self.dim,
++            dtype=np.result_type(self.coord_dtype, other.coord_dtype),
++        )
++
++    def equals(self, other):
++        return isinstance(other, RangeIndex) and (
++            self.dim, self.start, self.stop, self.step
++        ) == (other.dim, other.start, other.stop, other.step)
++
++    def to_pandas_index(self):
++        return pd.Index(self.start + np.arange(len(self)) * self.step, name=self.dim)
++
++    def __len__(self):
++        return self._transform.dim_size[self.dim]
++
++    def __getitem__(self, indexer):
++        index = self.isel({self.dim: indexer})
++        if index is None:
++            return self.start + indexer * self.step
++        return index
++
++    def __repr__(self):
++        return f"RangeIndex({self.start}, {self.stop}, {self.step}, dim={self.dim!r})"
+diff --git a/xarray/tests/test_coordinate_transform.py b/xarray/tests/test_coordinate_transform.py
+index 26746657d..b77892d71 100644
+--- a/xarray/tests/test_coordinate_transform.py
++++ b/xarray/tests/test_coordinate_transform.py
+@@ -7,6 +7,7 @@ import pytest
+ import xarray as xr
+ from xarray.core.coordinate_transform import CoordinateTransform
+ from xarray.core.indexes import CoordinateTransformIndex
++from xarray.indexes import RangeIndex
+ from xarray.tests import assert_equal
+ 
+ 
+@@ -216,3 +217,14 @@ def test_coordinate_transform_sel() -> None:
+             y=xr.Variable("z", [0.0, 0.5, 1.5]),
+             method="nearest",
+         )
++
++
++def test_range_index_is_lazy_and_regular() -> None:
++    index = RangeIndex.linspace(10.0, 12.0, num=5, dim="t")
++    coords = xr.Coordinates.from_xindex(index)
++
++    assert len(index) == 5
++    assert index.step == 0.5
++    np.testing.assert_array_equal(coords["t"].values, [10.0, 10.5, 11.0, 11.5, 12.0])
++    assert index.sel({"t": 11.0}).dim_indexers == {"t": 2}
++    assert index.reindex_like(RangeIndex.linspace(10.5, 11.5, 3, dim="t"))["t"].tolist() == [1, 2, 3]

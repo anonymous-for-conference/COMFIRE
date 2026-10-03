@@ -1,0 +1,38 @@
+diff --git a/src/tablib/formats/_ods.py b/src/tablib/formats/_ods.py
+index adab7e1..3c7de13 100644
+--- a/src/tablib/formats/_ods.py
++++ b/src/tablib/formats/_ods.py
+@@ -154,7 +154,7 @@ class ODSFormat:
+             return bool_value == 'true'
+         if not cell.childNodes:
+             value = getattr(cell, 'data', None)
+-            if value is None:
++            if value is None and cell.qname[1] == 'table-cell':
+                 value = cell.getAttribute('value')
+             if value is None:
+                 return ''
+@@ -166,7 +166,7 @@ class ODSFormat:
+ 
+         for subnode in cell.childNodes:
+             value = cls.read_cell(subnode, value_type)
+-            if value:
++            if value is not None:
+                 return value
+ 
+     @classmethod
+diff --git a/tests/test_tablib.py b/tests/test_tablib.py
+index 3211991..3b8da09 100755
+--- a/tests/test_tablib.py
++++ b/tests/test_tablib.py
+@@ -1237,6 +1237,11 @@ class ODSTests(BaseTestCase):
+             dbook = tablib.Databook().load(fh, 'ods')
+         self.assertEqual(len(dbook.sheets()), 2)
+ 
++    def test_ods_import_book_with_empty_string(self):
++        ods_source = tablib.Databook(sets=[tablib.Dataset(("",))]).export('ods')
++        dbook = tablib.Databook().load(ods_source, 'ods')
++        self.assertEqual(dbook.sheets()[0].headers, [''])
++
+     def test_ods_import_set_skip_lines(self):
+         data.append(('garbage', 'line', ''))
+         data.append(('', '', ''))

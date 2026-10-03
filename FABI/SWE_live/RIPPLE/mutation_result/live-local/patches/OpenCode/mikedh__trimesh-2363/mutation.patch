@@ -1,0 +1,44 @@
+diff --git a/tests/test_export.py b/tests/test_export.py
+index 3fb03df0..6839fb7e 100644
+--- a/tests/test_export.py
++++ b/tests/test_export.py
+@@ -290,7 +290,7 @@ class ExportTest(g.unittest.TestCase):
+ 
+     def test_ply_path_bezier(self):
+         """
+-        Should be able to load a path and export complex curve as a PLY
++        Should be able to load a mesh and export complex curve as a PLY
+         """
+         path3D = g.trimesh.path.Path3D(
+             [g.trimesh.path.entities.Bezier([0, 1, 2])],
+diff --git a/trimesh/path/exchange/svg_io.py b/trimesh/path/exchange/svg_io.py
+index cdaa99a2..2b976c42 100644
+--- a/trimesh/path/exchange/svg_io.py
++++ b/trimesh/path/exchange/svg_io.py
+@@ -123,12 +123,12 @@ def svg_to_path(file_obj=None, file_type=None, path_string=None):
+ 
+ def transform_to_matrices(transform):
+     """
+-    Convert an SVG transform string to an array of matrices.
++    Convert an SVG transform string to a single matrix.
+ 
+-    i.e. "rotate(-10 50 100)
+-          translate(-36 45.5)
+-          skewX(40)
+-          scale(1 0.5)"
++    i.e. "perspective(1)" "rotate(-10 50 100) produces a clockwise rotation
++          translate(-36 45.5 2)
++          skewX(40) produces a transformation matrix.
++          scale(1 0.5 2)"
+ 
+     Parameters
+     -----------
+@@ -190,7 +190,7 @@ def transform_to_matrices(transform):
+ 
+ def _svg_path_convert(paths, force=None):
+     """
+-    Convert an SVG path string into a Path2D object
++    Convert an SVG path string into a Path3D object
+ 
+     Parameters
+     -------------

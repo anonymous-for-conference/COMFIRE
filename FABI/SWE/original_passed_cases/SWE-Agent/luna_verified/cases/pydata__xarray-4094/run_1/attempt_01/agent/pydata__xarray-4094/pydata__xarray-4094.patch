@@ -1,0 +1,19 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index b0df8749..05c3fcfb 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -1961,7 +1961,13 @@ class DataArray(AbstractArray, DataWithCoords):
+         # pull variables out of datarray
+         data_dict = {}
+         for k in variables:
+-            data_dict[k] = self.sel({variable_dim: k}).squeeze(drop=True)
++            # Selecting a single value from the variable level leaves the
++            # stacked coordinate as a scalar coordinate.  For variables
++            # without any dimensions being stacked, that scalar coordinate
++            # is not common to all the resulting arrays and causes Dataset
++            # construction to report a conflicting coordinate.  It carries
++            # no information once the variable has been selected.
++            data_dict[k] = self.sel({variable_dim: k}, drop=True).squeeze(drop=True)
+ 
+         # unstacked dataset
+         return Dataset(data_dict)

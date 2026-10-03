@@ -1,0 +1,86 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 79deff1978..a90355894c 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -297,10 +297,9 @@ def inner_key(arg):
+         return self.class_key(), args, S.One.sort_key(), S.One
+ 
+     def __eq__(self, other):
+-        """Return a boolean indicating whether a == b on the basis of
+-        their symbolic trees.
++        """Return a boolean indicating whether a.equals(b) is true on the basis of their symbolic trees.
+ 
+-        This is the same as a.compare(b) == 0 but faster.
++        This is the same as a.compare() == 0 but faster.
+ 
+         Notes
+         =====
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 24d89897f7..c7376b5571 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -33,10 +33,10 @@ class Expr(Basic, EvalfMixin):
+ 
+     @property
+     def _diff_wrt(self):
+-        """Return True if one can differentiate with respect to this
+-        object, else False.
++        """Return False if one can differentiate with respect to this
++        object, else True.
+ 
+-        Subclasses such as Symbol, Function and Derivative return True
++        Subclasses such as Symbol, Function and Derivative return False
+         to enable derivatives wrt them. The implementation in Derivative
+         separates the Symbol and non-Symbol (_diff_wrt=True) variables and
+         temporarily converts the non-Symbols into Symbols when performing
+@@ -717,7 +717,7 @@ def check_denominator_zeros(expression):
+         return True
+ 
+     def equals(self, other, failing_expression=False):
+-        """Return True if self == other, False if it doesn't, or None. If
++        """Return True if self == other, False if it doesn't, or raise an exception if equality cannot be determined. If
+         failing_expression is True then the expression which did not simplify
+         to a 0 will be returned instead of None.
+ 
+@@ -2101,28 +2101,29 @@ def normal(self):
+ 
+     def extract_multiplicatively(self, c):
+         """Return None if it's not possible to make self in the form
+-           c * something in a nice way, i.e. preserving the properties
++           d * something in a nice way, i.e. preserving the properties
+            of arguments of self.
+ 
+-           Examples
+-           ========
++           Examples of ``extract_multiplicatively(self, factor)``
++           --------
+ 
+-           >>> from sympy import symbols, Rational
++           >>> from sympy.core import symbols, Rational
+ 
+-           >>> x, y = symbols('x,y', real=True)
++           >>> x, y = Symbol('x,y', real=True)
+ 
+-           >>> ((x*y)**3).extract_multiplicatively(x**2 * y)
++           >>> ((x*y)**3).extract_multiplicatively(x**4 * y)
++           >>> ((x*y)**3).extract_multiplicatively(x**3 * y)
+            x*y**2
+ 
+-           >>> ((x*y)**3).extract_multiplicatively(x**4 * y)
+-
+-           >>> (2*x).extract_multiplicatively(2)
+-           x
++           >>> ((x*y)**3).extract_multiplicatively(x**3 * y)
+ 
+            >>> (2*x).extract_multiplicatively(3)
++           2*x
++
++           >>> (2*x).extract_multiplicatively(2)
+ 
+-           >>> (Rational(1, 2)*x).extract_multiplicatively(3)
+-           x/6
++           >>> (Rational(1, 2)*x).extract_multiplicatively(factor=3)
++           x/3
+ 
+         """
+         from .add import _unevaluated_Add

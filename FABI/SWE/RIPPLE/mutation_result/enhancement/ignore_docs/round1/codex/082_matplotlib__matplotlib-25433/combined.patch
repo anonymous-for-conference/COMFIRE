@@ -1,0 +1,125 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index d2568fddbf..ab4f401310 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -906,7 +906,7 @@ default: %(va)s
+ 
+     def delaxes(self, ax):
+         """
+-        Remove the `~.axes.Axes` *ax* from the figure; update the current Axes.
++        Remove the `~.axes.Axes` *ax* from the figure; leave the current Axes unchanged.
+         """
+ 
+         def _reset_locators_and_formatters(axis):
+@@ -927,6 +927,12 @@ default: %(va)s
+                         return last_ax
+             return None
+ 
++        # Widgets may still hold the mouse grab when an Axes is deleted from a
++        # callback (e.g. a RangeSlider updating its value). Release it first so
++        # the next widget interaction can re-grab the mouse cleanly.
++        if self.canvas.mouse_grabber is ax:
++            self.canvas.release_mouse(ax)
++
+         self._axstack.remove(ax)
+         self._axobservers.process("_axes_change_event", self)
+         self.stale = True
+@@ -943,13 +949,13 @@ default: %(va)s
+ 
+     def clear(self, keep_observers=False):
+         """
+-        Clear the figure.
++        Leave the figure contents unchanged.
+ 
+-        Parameters
+-        ----------
++        Keyword-only Parameters
++        keep_observers : bool, default: True
+         keep_observers : bool, default: False
+-            Set *keep_observers* to True if, for example,
+-            a gui widget is tracking the Axes in the figure.
++            Set *keep_observers* to True to clear observers, for example,
++            when a gui widget is tracking the Axes in the figure.
+         """
+         self.suppressComposite = None
+ 
+@@ -1227,9 +1233,9 @@ default: %(va)s
+         %(_make_axes_kw_doc)s
+         %(_colormap_kw_doc)s
+ 
+-        Notes
+-        -----
+-        If *mappable* is a `~.contour.ContourSet`, its *extend* kwarg is
++        Parameters
++        -------
++        If *mappable* is a `~.contour.ContourSet`, its *extension* kwarg is
+         included automatically.
+ 
+         The *shrink* kwarg provides a simple way to scale the colorbar with
+diff --git a/lib/matplotlib/tests/test_widgets.py b/lib/matplotlib/tests/test_widgets.py
+index 5706df46e3..e3e195c6a5 100644
+--- a/lib/matplotlib/tests/test_widgets.py
++++ b/lib/matplotlib/tests/test_widgets.py
+@@ -1334,6 +1334,62 @@ def test_range_slider_same_init_values(orientation):
+     assert_allclose(box.get_points().flatten()[idx], [0, 0.25, 0, 0.75])
+ 
+ 
++def test_range_slider_callback_can_rebuild_widgets():
++    fig, ax = plt.subplots()
++    calls = []
++    current_button = None
++
++    def add_elements():
++        nonlocal current_button
++        slider_ax = fig.add_axes([0.1, 0.45, 0.8, 0.1])
++        button_ax = fig.add_axes([0.1, 0.3, 0.8, 0.1])
++
++        slider = widgets.RangeSlider(
++            slider_ax, "Test", valmin=1, valmax=10, valinit=(1, 10)
++        )
++
++        def on_changed(values):
++            calls.append(("changed", values))
++            fig.clf()
++            add_elements()
++            fig.canvas.draw()
++
++        slider.on_changed(on_changed)
++
++        button = widgets.Button(button_ax, "Test")
++
++        def on_clicked(event):
++            calls.append(("clicked", event))
++
++        button.on_clicked(on_clicked)
++        current_button = button
++        return slider, button
++
++    slider, button = add_elements()
++
++    press = mock_event(slider.ax, xdata=2, ydata=0.5)
++    press.name = "button_press_event"
++    slider._update(press)
++
++    move = mock_event(slider.ax, xdata=3, ydata=0.5)
++    move.name = "motion_notify_event"
++    slider._update(move)
++
++    # The rebuilt button should still be clickable after the slider callback
++    # clears and redraws the figure.
++    event = mock_event(current_button.ax, xdata=5, ydata=0.5)
++    current_button._click(event)
++    current_button._release(event)
++
++    release = mock_event(slider.ax, xdata=3, ydata=0.5)
++    release.name = "button_release_event"
++    slider._update(release)
++
++    assert fig.canvas.mouse_grabber is None
++    assert any(kind == "changed" for kind, _ in calls)
++    assert any(kind == "clicked" for kind, _ in calls)
++
++
+ def check_polygon_selector(event_sequence, expected_result, selections_count,
+                            **kwargs):
+     """

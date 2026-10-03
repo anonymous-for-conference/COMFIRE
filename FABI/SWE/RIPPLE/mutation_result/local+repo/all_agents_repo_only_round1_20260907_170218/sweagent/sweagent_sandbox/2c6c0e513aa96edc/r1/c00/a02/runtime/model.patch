@@ -1,0 +1,21 @@
+diff --git a/sklearn/preprocessing/_encoders.py b/sklearn/preprocessing/_encoders.py
+index 6f44fee34c..74d7ec8974 100644
+--- a/sklearn/preprocessing/_encoders.py
++++ b/sklearn/preprocessing/_encoders.py
+@@ -107,10 +107,15 @@ class _BaseEncoder(BaseEstimator, TransformerMixin):
+                     raise ValueError(msg)
+                 else:
+                     # Set the problematic rows to an acceptable value and
+-                    # continue `The rows are marked `X_mask` and will be
++                    # continue. The rows are marked `X_mask` and will be
+                     # removed later.
+                     X_mask[:, i] = valid_mask
+                     Xi = Xi.copy()
++                    # Use an object array for string data to avoid truncation
++                    # when replacing unknown strings with a potentially longer
++                    # known category.
++                    if Xi.dtype.kind in ('U', 'S'):
++                        Xi = Xi.astype(object)
+                     Xi[~valid_mask] = self.categories_[i][0]
+             _, encoded = _encode(Xi, self.categories_[i], encode=True)
+             X_int[:, i] = encoded

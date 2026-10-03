@@ -1,0 +1,24 @@
+diff --git a/sphinx/ext/napoleon/__init__.py b/sphinx/ext/napoleon/__init__.py
+index 10b1ff3a3..0eb15fada 100644
+--- a/sphinx/ext/napoleon/__init__.py
++++ b/sphinx/ext/napoleon/__init__.py
+@@ -13,6 +13,7 @@ from typing import Any, Dict, List
+ from sphinx import __display_version__ as __version__
+ from sphinx.application import Sphinx
+ from sphinx.ext.napoleon.docstring import GoogleDocstring, NumpyDocstring
++from sphinx.util.inspect import unwrap
+ 
+ 
+ class Config:
+@@ -426,6 +427,11 @@ def _skip_member(app: Sphinx, what: str, name: str, obj: Any,
+     if name != '__weakref__' and has_doc and is_member:
+         cls_is_owner = False
+         if what == 'class' or what == 'exception':
++            # Decorators using functools.wraps expose the original function via
++            # ``__wrapped__``.  Use it for finding the owning class, since the
++            # wrapper's globals may belong to the decorator rather than the
++            # module containing the class.
++            obj = unwrap(obj)
+             qualname = getattr(obj, '__qualname__', '')
+             cls_path, _, _ = qualname.rpartition('.')
+             if cls_path:

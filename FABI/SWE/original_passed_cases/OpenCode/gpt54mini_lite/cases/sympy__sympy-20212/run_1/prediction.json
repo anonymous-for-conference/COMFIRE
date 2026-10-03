@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "evifuzz-opencode-gpt-5.4-mini-run1",
+  "instance_id": "sympy__sympy-20212",
+  "model_patch": "diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py\nindex 2c50002de3..91451417d5 100644\n--- a/sympy/core/numbers.py\n+++ b/sympy/core/numbers.py\n@@ -2633,7 +2633,7 @@ def _eval_power(self, expt):\n         # tests above; now throw away leading numbers on Mul\n         # exponent\n         coeff, terms = expt.as_coeff_Mul()\n-        if coeff.is_negative:\n+        if coeff.is_extended_negative:\n             return S.ComplexInfinity**terms\n         if coeff is not S.One:  # there is a Number to discard\n             return self**terms\ndiff --git a/sympy/core/tests/test_power.py b/sympy/core/tests/test_power.py\nindex 413fbd4532..9793cbf2f4 100644\n--- a/sympy/core/tests/test_power.py\n+++ b/sympy/core/tests/test_power.py\n@@ -257,6 +257,7 @@ def test_power_rewrite_exp():\n def test_zero():\n     x = Symbol('x')\n     y = Symbol('y')\n+    assert 0**(-oo) is zoo\n     assert 0**x != 0\n     assert 0**(2*x) == 0**x\n     assert 0**(1.0*x) == 0**x\n"
+}

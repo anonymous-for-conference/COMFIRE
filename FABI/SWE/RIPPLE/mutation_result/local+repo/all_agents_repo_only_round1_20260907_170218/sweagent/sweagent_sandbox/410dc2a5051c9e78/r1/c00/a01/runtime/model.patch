@@ -1,0 +1,63 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 6bd90de84a..fcd3fbaefe 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -343,6 +343,8 @@ class SQLCompiler:
+             if not self.query.extra or col not in self.query.extra:
+                 # 'col' is of the form 'field' or 'field1__field2' or
+                 # '-field1__field2__field', etc.
++                if field == col:
++                    descending = not descending if not self.query.standard_ordering else descending
+                 order_by.extend(self.find_ordering_name(
+                     field, self.query.get_meta(), default_order=asc))
+             else:
+@@ -728,23 +730,32 @@ class SQLCompiler:
+         # append the default ordering for that model unless it is the pk
+         # shortcut or the attribute name of the field that is specified.
+         if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and name != 'pk':
+-            # Firstly, avoid infinite loops.
+-            already_seen = already_seen or set()
+-            join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+-            if join_tuple in already_seen:
+-                raise FieldError('Infinite loop caused by ordering.')
+-            already_seen.add(join_tuple)
+-
+-            results = []
+-            for item in opts.ordering:
+-                if hasattr(item, 'resolve_expression') and not isinstance(item, OrderBy):
+-                    item = item.desc() if descending else item.asc()
+-                if isinstance(item, OrderBy):
+-                    results.append((item, False))
+-                    continue
+-                results.extend(self.find_ordering_name(item, opts, alias,
+-                                                       order, already_seen))
+-            return results
++            # Don't expand default ordering for an auto-generated primary-key
++            # relation, such as the implicit self-referential FK column
++            # (e.g. ``root_id``) ordering by its related model's ordering.
++            if field.primary_key and field.remote_field and field.remote_field.model == field.model and field.remote_field.get_related_field() == field:
++                # The relation points at the model's own primary key, so the
++                # column already fully determines the ordering and the related
++                # model's default ordering should be ignored.
++                pass
++            else:
++                # Firstly, avoid infinite loops.
++                already_seen = already_seen or set()
++                join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
++                if join_tuple in already_seen:
++                    raise FieldError('Infinite loop caused by ordering.')
++                already_seen.add(join_tuple)
++
++                results = []
++                for item in opts.ordering:
++                    if hasattr(item, 'resolve_expression') and not isinstance(item, OrderBy):
++                        item = item.desc() if descending else item.asc()
++                    if isinstance(item, OrderBy):
++                        results.append((item, False))
++                        continue
++                    results.extend(self.find_ordering_name(item, opts, alias,
++                                                           order, already_seen))
++                return results
+         targets, alias, _ = self.query.trim_joins(targets, joins, path)
+         return [(OrderBy(transform_function(t, alias), descending=descending), False) for t in targets]
+ 

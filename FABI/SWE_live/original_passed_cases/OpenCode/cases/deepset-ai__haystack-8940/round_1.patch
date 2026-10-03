@@ -1,0 +1,47 @@
+diff --git a/haystack/core/pipeline/base.py b/haystack/core/pipeline/base.py
+index 32672840e9..6770685d9d 100644
+--- a/haystack/core/pipeline/base.py
++++ b/haystack/core/pipeline/base.py
+@@ -1117,6 +1117,11 @@ class PipelineBase:
+             # If we have a non-variadic or a greedy variadic receiver socket, we can just overwrite any inputs
+             # that might already exist (to be reconsidered but mirrors current behavior).
+             if not is_socket_lazy_variadic(receiver_socket):
++                existing_inputs = inputs[receiver_name].get(receiver_socket.name, [])
++                if value is _NO_OUTPUT_PRODUCED and any(
++                    sock["value"] is not _NO_OUTPUT_PRODUCED for sock in existing_inputs
++                ):
++                    continue
+                 inputs[receiver_name][receiver_socket.name] = [{"sender": component_name, "value": value}]
+ 
+             # If the receiver socket is lazy variadic, and it already has an input, we need to append the new input.
+diff --git a/test/core/pipeline/test_pipeline_base.py b/test/core/pipeline/test_pipeline_base.py
+index 01cdd5c065..9566286af1 100644
+--- a/test/core/pipeline/test_pipeline_base.py
++++ b/test/core/pipeline/test_pipeline_base.py
+@@ -1417,6 +1417,26 @@ class TestPipelineBase:
+ 
+         assert inputs["receiver1"]["input1"] == [{"sender": "sender1", "value": output_value}]
+ 
++    def test__write_component_outputs_does_not_overwrite_value_with_no_output(self):
++        output_socket = OutputSocket("output", str, receivers=["receiver"])
++        missing_output_socket = OutputSocket("missing_output", str, receivers=["receiver"])
++        receiver_socket = InputSocket("input", GreedyVariadic[str], senders=["sender"])
++        receivers = [
++            ("receiver", output_socket, receiver_socket),
++            ("receiver", missing_output_socket, receiver_socket),
++        ]
++
++        inputs = {}
++        PipelineBase._write_component_outputs(
++            component_name="sender",
++            component_outputs={"output": "value"},
++            inputs=inputs,
++            receivers=receivers,
++            include_outputs_from=[],
++        )
++
++        assert inputs["receiver"]["input"] == [{"sender": "sender", "value": "value"}]
++
+     @pytest.mark.parametrize("receivers_count", [1, 2, 3], ids=["single-receiver", "two-receivers", "three-receivers"])
+     def test__write_component_outputs_multiple_receivers(
+         self, receivers_count, regular_output_socket, regular_input_socket

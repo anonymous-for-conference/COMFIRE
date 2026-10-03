@@ -1,0 +1,35 @@
+diff --git a/xarray/core/indexing.py b/xarray/core/indexing.py
+index 70d6974f5..0385e8a8d 100644
+--- a/xarray/core/indexing.py
++++ b/xarray/core/indexing.py
+@@ -2047,7 +2047,7 @@ class CoordinateTransformIndexingAdapter(ExplicitlyIndexedNDArrayMixin):
+ 
+     @property
+     def shape(self) -> tuple[int, ...]:
+-        return tuple(self._transform.dim_size.values())
++        return tuple(self._transform.dim_size[dim] for dim in self._dims)
+ 
+     def get_duck_array(self) -> np.ndarray:
+         all_coords = self._transform.generate_coords(dims=self._dims)
+diff --git a/xarray/tests/test_coordinate_transform.py b/xarray/tests/test_coordinate_transform.py
+index 26746657d..44b42b380 100644
+--- a/xarray/tests/test_coordinate_transform.py
++++ b/xarray/tests/test_coordinate_transform.py
+@@ -103,6 +103,17 @@ def test_coordinate_transform_variable() -> None:
+     assert_repr(coords["y"].variable)
+ 
+ 
++def test_coordinate_transform_variable_non_square() -> None:
++    coords = create_coords(scale=2.0, shape=(3, 2))
++
++    assert coords["x"].shape == (3, 2)
++    np.testing.assert_array_equal(
++        coords["x"].values,
++        [[0.0, 2.0], [0.0, 2.0], [0.0, 2.0]],
++    )
++    np.testing.assert_array_equal(coords["x"][:, -1], [2.0, 2.0, 2.0])
++
++
+ def test_coordinate_transform_variable_repr_inline() -> None:
+     var = create_coords(scale=2.0, shape=(2, 2))["x"].variable
+ 

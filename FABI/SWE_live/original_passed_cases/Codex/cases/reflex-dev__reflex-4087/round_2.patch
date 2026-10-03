@@ -1,0 +1,50 @@
+diff --git a/reflex/state.py b/reflex/state.py
+index ef07278d9..b2747470a 100644
+--- a/reflex/state.py
++++ b/reflex/state.py
+@@ -1238,6 +1238,12 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+                 default = copy.deepcopy(field.default)
+             setattr(self, prop_name, default)
+ 
++        # Reset the backend vars declared by this state.
++        for prop_name, default in self.backend_vars.items():
++            if prop_name in self.inherited_backend_vars:
++                continue
++            setattr(self, prop_name, copy.deepcopy(default))
++
+         # Recursively reset the substates.
+         for substate in self.substates.values():
+             substate.reset()
+diff --git a/tests/units/test_state.py b/tests/units/test_state.py
+index 830cfbafb..0caa0c4b2 100644
+--- a/tests/units/test_state.py
++++ b/tests/units/test_state.py
+@@ -743,6 +743,28 @@ def test_reset(test_state, child_state):
+     }
+ 
+ 
++def test_reset_backend_vars():
++    """Reset backend vars on the state and its substates."""
++
++    class BackendResetState(BaseState):
++        _private: int = 1
++
++    class BackendResetChildState(BackendResetState):
++        _child_private: int = 2
++
++    state = BackendResetState()
++    child_state = state.get_substate([BackendResetChildState.get_name()])
++    assert child_state is not None
++
++    state._private = 3
++    child_state._child_private = 4
++
++    state.reset()
++
++    assert state._private == 1
++    assert child_state._child_private == 2
++
++
+ @pytest.mark.asyncio
+ async def test_process_event_simple(test_state):
+     """Test processing an event.

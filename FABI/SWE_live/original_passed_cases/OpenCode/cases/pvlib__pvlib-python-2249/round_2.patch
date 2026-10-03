@@ -1,0 +1,35 @@
+diff --git a/pvlib/spa.py b/pvlib/spa.py
+index 23c0d42ed..19c2ea0d1 100644
+--- a/pvlib/spa.py
++++ b/pvlib/spa.py
+@@ -405,11 +405,14 @@ def julian_day_dt(year, month, day, hour, minute, second, microsecond):
+     """This is the original way to calculate the julian day from the NREL paper.
+     However, it is much faster to convert to unix/epoch time and then convert
+     to julian day. Note that the date must be UTC."""
++    gregorian = (year > 1582 or
++                 (year == 1582 and (month > 10 or
++                                    (month == 10 and day >= 15))))
+     if month <= 2:
+         year = year-1
+         month = month+12
+     a = int(year/100)
+-    b = 2 - a + int(a * 0.25)
++    b = 2 - a + int(a * 0.25) if gregorian else 0
+     frac_of_day = (microsecond / 1e6 + (second + minute * 60 + hour * 3600)
+                    ) * 1.0 / (3600*24)
+     d = day + frac_of_day
+diff --git a/pvlib/tests/test_spa.py b/pvlib/tests/test_spa.py
+index f4b6dec03..38470302f 100644
+--- a/pvlib/tests/test_spa.py
++++ b/pvlib/tests/test_spa.py
+@@ -104,6 +104,10 @@ class SpaBase:
+                                 year, month, day, hour,
+                                 minute, second, microsecond), 6)
+ 
++    def test_julian_day_dt_before_gregorian_reform(self):
++        result = self.spa.julian_day_dt(837, 4, 10, 7, 12, 0, 0)
++        assert_almost_equal(2026871.8, result, 1)
++
+     def test_julian_ephemeris_day(self):
+         assert_almost_equal(JDE, self.spa.julian_ephemeris_day(JD, delta_t), 5)
+ 

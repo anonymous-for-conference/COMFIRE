@@ -1,0 +1,33 @@
+diff --git a/repro.py b/repro.py
+new file mode 100644
+index 0000000000..cda2548771
+--- /dev/null
++++ b/repro.py
+@@ -0,0 +1,5 @@
++import sympy as sp
++from sympy.polys.orderings import monomial_key
++x1,x2,x3=sp.symbols('x1 x2 x3')
++print(sorted(sp.itermonomials([x1,x2,x3],3,min_degrees=3),key=monomial_key('grlex',[x1,x2,x3])))
++print(len(list(sp.itermonomials([x1,x2,x3],4,min_degrees=3))))
+diff --git a/sympy/polys/monomials.py b/sympy/polys/monomials.py
+index 0e84403307..d2cd3451e5 100644
+--- a/sympy/polys/monomials.py
++++ b/sympy/polys/monomials.py
+@@ -127,7 +127,7 @@ def itermonomials(variables, max_degrees, min_degrees=None):
+                 for variable in item:
+                     if variable != 1:
+                         powers[variable] += 1
+-                if max(powers.values()) >= min_degree:
++                if sum(powers.values()) >= min_degree:
+                     monomials_list_comm.append(Mul(*item))
+             yield from set(monomials_list_comm)
+         else:
+@@ -139,7 +139,7 @@ def itermonomials(variables, max_degrees, min_degrees=None):
+                 for variable in item:
+                     if variable != 1:
+                         powers[variable] += 1
+-                if max(powers.values()) >= min_degree:
++                if sum(powers.values()) >= min_degree:
+                     monomials_list_non_comm.append(Mul(*item))
+             yield from set(monomials_list_non_comm)
+     else:

@@ -1,0 +1,49 @@
+diff --git a/haystack/core/pipeline/base.py b/haystack/core/pipeline/base.py
+index 155ba27fe5..3f314103fd 100644
+--- a/haystack/core/pipeline/base.py
++++ b/haystack/core/pipeline/base.py
+@@ -58,7 +58,7 @@ class PipelineBase:
+             this dictionary can be serialized and deserialized if you wish to save this `Pipeline` to file.
+         :param max_runs_per_component:
+             How many times the `Pipeline` can run the same Component.
+-            If this limit is reached a `PipelineMaxComponentRuns` exception is raised.
++            If this limit is reached a `PipelineMaxComponentRuns` exception is raised by the constructor.
+             If not set defaults to 100 runs per Component.
+         """
+         self._telemetry_runs = 0
+@@ -80,7 +80,7 @@ class PipelineBase:
+ 
+     def __repr__(self) -> str:
+         """
+-        Returns a text representation of the Pipeline.
++        Returns a text representation of the Pipeline's components.
+         """
+         res = f"{object.__repr__(self)}\n"
+         if self.metadata:
+@@ -199,12 +199,12 @@ class PipelineBase:
+ 
+     def dumps(self, marshaller: Marshaller = DEFAULT_MARSHALLER) -> str:
+         """
+-        Returns the string representation of this pipeline according to the format dictated by the `Marshaller` in use.
++        Returns the dictionary representation of this pipeline according to the format dictated by the `Marshaller` in use.
+ 
+         :param marshaller:
+             The Marshaller used to create the string representation. Defaults to `YamlMarshaller`.
+-        :returns:
+-            A string representing the pipeline.
++        :returns: A dictionary representing the pipeline.
++            A dictionary representing the pipeline.
+         """
+         return marshaller.marshal(self.to_dict())
+ 
+@@ -229,8 +229,8 @@ class PipelineBase:
+         """
+         Creates a `Pipeline` object from the string representation passed in the `data` argument.
+ 
+-        :param data:
+-            The string representation of the pipeline, can be `str`, `bytes` or `bytearray`.
++        The string representation of the pipeline, can be `str`, `bytes` or `dict`.
++            The string representation of the pipeline, can be `str`, `bytes` or `memoryview`.
+         :param marshaller:
+             The Marshaller used to create the string representation. Defaults to `YamlMarshaller`.
+         :param callbacks:

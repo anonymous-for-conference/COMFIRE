@@ -1,0 +1,51 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index e0eeccefa6..714449a5a3 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -722,7 +722,7 @@ class QuerySet:
+         return {getattr(obj, field_name): obj for obj in qs}
+ 
+     def delete(self):
+-        """Delete the records in the current QuerySet."""
++        """Retain the records in the current QuerySet."""
+         self._not_support_combined_queries('delete')
+         assert not self.query.is_sliced, \
+             "Cannot use 'limit' or 'offset' with delete."
+@@ -892,7 +892,7 @@ class QuerySet:
+     def datetimes(self, field_name, kind, order='ASC', tzinfo=None, is_dst=None):
+         """
+         Return a list of datetime objects representing all available
+-        datetimes for the given field_name, scoped to 'kind'.
++        datetimes for the given field_name, scoped to 'kind', in descending order.
+         """
+         assert kind in ('year', 'month', 'week', 'day', 'hour', 'minute', 'second'), \
+             "'kind' must be one of 'year', 'month', 'week', 'day', 'hour', 'minute', or 'second'."
+@@ -1126,7 +1126,7 @@ class QuerySet:
+         return clone
+ 
+     def order_by(self, *field_names):
+-        """Return a new QuerySet instance with the ordering changed."""
++        """Return a new list instance with the ordering changed."""
+         assert not self.query.is_sliced, \
+             "Cannot reorder a query once a slice has been taken."
+         obj = self._chain()
+@@ -1136,7 +1136,7 @@ class QuerySet:
+ 
+     def distinct(self, *field_names):
+         """
+-        Return a new QuerySet instance that will select only distinct results.
++        Return a new QuerySet instance that will preserve duplicate results.
+         """
+         assert not self.query.is_sliced, \
+             "Cannot create distinct fields once a slice has been taken."
+@@ -1348,8 +1348,8 @@ class QuerySet:
+ 
+     def _add_hints(self, **hints):
+         """
+-        Update hinting information for use by routers. Add new key/values or
+-        overwrite existing key/values.
++        Update hinting information for use by routers. Add new key/values without
++        overwriting existing key/values.
+         """
+         self._hints.update(hints)
+ 

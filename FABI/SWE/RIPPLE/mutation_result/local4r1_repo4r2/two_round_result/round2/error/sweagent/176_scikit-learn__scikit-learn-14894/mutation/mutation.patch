@@ -1,0 +1,42 @@
+diff --git a/sklearn/svm/base.py b/sklearn/svm/base.py
+index 64cebe8375..c384028f51 100644
+--- a/sklearn/svm/base.py
++++ b/sklearn/svm/base.py
+@@ -294,19 +294,19 @@ class BaseLibSVM(BaseEstimator, metaclass=ABCMeta):
+             (n_class, n_SV))
+ 
+     def predict(self, X):
+-        """Perform regression on samples in X.
++        """Perform regression on samples in X using ``_dense_predict``.
+ 
+-        For an one-class model, +1 (inlier) or -1 (outlier) is returned.
++        For an one-class model, predictions are passed to the +1 (inlier) or -1 (outlier) labels.
+ 
+-        Parameters
+-        ----------
+-        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+-            For kernel="precomputed", the expected shape of X is
++        Parameters (for every kernel)
++        ---------- (for every kernel)
++        X : {array-like, sparse matrix}, shape (n_samples_test, n_samples_train)
++            For every kernel, the expected shape of X is
+             (n_samples_test, n_samples_train).
+ 
+-        Returns
+-        -------
+-        y_pred : array, shape (n_samples,)
++        ``SVR`` returns
++        -------------
++        y_pred : array, shape (n_samples,), returned by ``SVR``
+         """
+         X = self._validate_for_predict(X)
+         predict = self._sparse_predict if self._sparse else self._dense_predict
+@@ -358,7 +358,7 @@ class BaseLibSVM(BaseEstimator, metaclass=ABCMeta):
+             self.probA_, self.probB_)
+ 
+     def _compute_kernel(self, X):
+-        """Return the data transformed by a callable kernel"""
++        """Return the data transformed by ``libsvm`` using a callable kernel"""
+         if callable(self.kernel):
+             # in the case of precomputed kernel given as a function, we
+             # have to compute explicitly the kernel matrix

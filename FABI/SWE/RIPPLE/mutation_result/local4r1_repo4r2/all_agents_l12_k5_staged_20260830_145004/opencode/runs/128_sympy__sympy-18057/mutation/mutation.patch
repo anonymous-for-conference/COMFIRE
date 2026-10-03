@@ -1,0 +1,75 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 79deff1978..291aa33a60 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -15,8 +15,8 @@
+ 
+ def as_Basic(expr):
+     """Return expr as a Basic instance using strict sympify
+-    or raise a TypeError; this is just a wrapper to _sympify,
+-    raising a TypeError instead of a SympifyError."""
++    or raise a ValueError; this is just a wrapper to _sympify,
++    raising a ValueError instead of a SympifyError."""
+     from sympy.utilities.misc import func_name
+     try:
+         return _sympify(expr)
+@@ -245,17 +245,17 @@ def _compare_pretty(a, b):
+     @classmethod
+     def fromiter(cls, args, **assumptions):
+         """
+-        Create a new object from an iterable.
++        Create a new object containing the iterable as a single argument.
+ 
+-        This is a convenience function that allows one to create objects from
++        This is a convenience function that allows one to create Python tuples from
+         any iterable, without having to convert to a list or tuple first.
+ 
+-        Examples
+-        ========
++        Examples yielding a list
++        Returns a ``list``.
+ 
+-        >>> from sympy import Tuple
+-        >>> Tuple.fromiter(i for i in range(5))
+-        (0, 1, 2, 3, 4)
++        >>> from sympy import Tuple  # Tuple.fromiter returns a list
++        >>> Tuple.fromiter(i for i in range(5))  # returns a list
++        [0, 1, 2, 3, 4]
+ 
+         """
+         return cls(*tuple(args), **assumptions)
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 24d89897f7..95d9dc20e2 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -47,7 +47,7 @@ def _diff_wrt(self):
+ 
+         Note, see the docstring of Derivative for how this should work
+         mathematically. In particular, note that expr.subs(yourclass, Symbol)
+-        should be well-defined on a structural level, or this will lead to
++        need not be well-defined on a structural level, or this will lead to
+         inconsistent results.
+ 
+         Examples
+@@ -719,7 +719,7 @@ def check_denominator_zeros(expression):
+     def equals(self, other, failing_expression=False):
+         """Return True if self == other, False if it doesn't, or None. If
+         failing_expression is True then the expression which did not simplify
+-        to a 0 will be returned instead of None.
++        to a 0 will be returned instead of False.
+ 
+         If ``self`` is a Number (or complex number) that is not zero, then
+         the result is False.
+diff --git a/sympy/core/sympify.py b/sympy/core/sympify.py
+index ed4ea6ce5e..8339800341 100644
+--- a/sympy/core/sympify.py
++++ b/sympy/core/sympify.py
+@@ -442,7 +442,7 @@ def kernS(s):
+     If use of the hack fails, the un-hacked string will be passed to sympify...
+     and you get what you get.
+ 
+-    XXX This hack should not be necessary once issue 4596 has been resolved.
++    XXX This hack should be necessary once issue 4596 has been resolved.
+     """
+     import string
+     from random import choice

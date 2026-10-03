@@ -1,0 +1,47 @@
+diff --git a/sphinx/environment/adapters/indexentries.py b/sphinx/environment/adapters/indexentries.py
+index 5af213932..9e3a03381 100644
+--- a/sphinx/environment/adapters/indexentries.py
++++ b/sphinx/environment/adapters/indexentries.py
+@@ -110,6 +110,8 @@ class IndexEntries:
+                 lckey = lckey[1:]
+             if lckey[0:1].isalpha() or lckey.startswith('_'):
+                 lckey = chr(127) + lckey
++            else:
++                lckey = chr(0) + lckey
+             # ensure a determinstic order *within* letters by also sorting on
+             # the entry itself
+             return (lckey, entry[0])
+@@ -152,6 +154,8 @@ class IndexEntries:
+                 key = key[1:]
+             if key[0:1].isalpha() or key.startswith('_'):
+                 key = chr(127) + key
++            else:
++                key = chr(0) + key
+             return key
+ 
+         # group the entries by letter
+diff --git a/tests/test_environment_indexentries.py b/tests/test_environment_indexentries.py
+index 7f6003d54..b2d829f9a 100644
+--- a/tests/test_environment_indexentries.py
++++ b/tests/test_environment_indexentries.py
+@@ -41,6 +41,20 @@ def test_create_single_index(app):
+     assert index[5] == ('ת', [('‏תירבע‎', [[('', '#index-7')], [], None])])
+ 
+ 
++@pytest.mark.sphinx('dummy', freshenv=True)
++def test_create_single_index_symbols_grouped(app):
++    text = (".. index:: £pound\n"
++            ".. index:: alpha\n"
++            ".. index:: ←arrow\n"
++            ".. index:: @at\n")
++    restructuredtext.parse(app, text)
++    index = IndexEntries(app.env).create_index(app.builder)
++    assert len(index) == 2
++    assert index[0][0] == 'Symbols'
++    assert [entry[0] for entry in index[0][1]] == ['@at', '£pound', '←arrow']
++    assert index[1] == ('A', [('alpha', [[('', '#index-1')], [], None])])
++
++
+ @pytest.mark.sphinx('dummy', freshenv=True)
+ def test_create_pair_index(app):
+     text = (".. index:: pair: docutils; reStructuredText\n"

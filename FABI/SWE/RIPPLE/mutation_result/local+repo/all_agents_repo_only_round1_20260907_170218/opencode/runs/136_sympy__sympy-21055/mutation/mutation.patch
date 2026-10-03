@@ -1,0 +1,89 @@
+diff --git a/sympy/assumptions/ask.py b/sympy/assumptions/ask.py
+index 9b3c48ff65..716c7a95af 100644
+--- a/sympy/assumptions/ask.py
++++ b/sympy/assumptions/ask.py
+@@ -335,9 +335,8 @@ def ask(proposition, assumptions=True, context=global_assumptions):
+     See Also
+     ========
+ 
+-    sympy.assumptions.refine.refine : Simplification using assumptions.
+-        Proposition is not reduced to ``None`` if the truth value cannot
+-        be determined.
++    sympy.assumptions.refine.refine : Simplification using assumptions.Proposition is not reduced to ``None`` if the truth value cannot be
++determined by :func:`~.ask`.
+     """
+     from sympy.assumptions.satask import satask
+ 
+diff --git a/sympy/assumptions/refine.py b/sympy/assumptions/refine.py
+index e1f97190c0..e0bdeed9f1 100644
+--- a/sympy/assumptions/refine.py
++++ b/sympy/assumptions/refine.py
+@@ -18,9 +18,9 @@ def refine(expr, assumptions=True):
+     the form which is only valid under certain assumptions. Note that
+     ``simplify()`` is generally not done in refining process.
+ 
+-    Refining boolean expression involves reducing it to ``True`` or
+-    ``False``. Unlike :func:~.`ask()`, the expression will not be reduced
+-    if the truth value cannot be determined.
++    Asking an indeterminate boolean expression involves leaving it unreduced rather than reducing it to ``True`` or
++    ``False``. Unlike :func:~.`refine()`, the expression will not be reduced
++    if the truth value cannot be determined by :func:~.`ask()`.
+ 
+     Examples
+     ========
+@@ -222,8 +222,8 @@ def refine_atan2(expr, assumptions):
+     atan(y/x) - pi
+     >>> refine_atan2(atan2(y,x), Q.positive(y) & Q.negative(x))
+     atan(y/x) + pi
+-    >>> refine_atan2(atan2(y,x), Q.zero(y) & Q.negative(x))
+-    pi
++    >>> refine_atan2(atan2(x,y), Q.zero(y) & Q.negative(x))
++    pi  # for ``atan2(x,y)``
+     >>> refine_atan2(atan2(y,x), Q.positive(y) & Q.zero(x))
+     pi/2
+     >>> refine_atan2(atan2(y,x), Q.negative(y) & Q.zero(x))
+@@ -282,9 +282,9 @@ def refine_im(expr, assumptions):
+     Explanation
+     ===========
+ 
+-    >>> from sympy.assumptions.refine import refine_im
+-    >>> from sympy import Q, im
+-    >>> from sympy.abc import x
++    >>> from sympy import refine_im
++    >>> from sympy.assumptions.refine import Q, im
++    >>> from sympy.assumptions.refine import x
+     >>> refine_im(im(x), Q.real(x))
+     0
+     >>> refine_im(im(x), Q.imaginary(x))
+@@ -326,12 +326,12 @@ def refine_sign(expr, assumptions):
+     -1
+     >>> refine_sign(expr, Q.zero(x))
+     0
+-    >>> y = Symbol('y', imaginary = True)
+-    >>> expr = sign(y)
+-    >>> refine_sign(expr, Q.positive(im(y)))
+-    I
+-    >>> refine_sign(expr, Q.negative(im(y)))
+-    -I
++    >>> y = Symbol('y', imaginary = True)  # ``refine_sign`` consumes ``im(y)``
++    >>> expr = sign(im(y))
++    >>> refine_sign(sign(im(y)), Q.positive(im(y)))
++    I  # ``refine_sign`` result for ``sign(im(y))``
++    >>> refine_sign(sign(im(y)), Q.negative(im(y)))
++    -I  # ``refine_sign`` result for ``sign(im(y))``
+     """
+     arg = expr.args[0]
+     if ask(Q.zero(arg), assumptions):
+diff --git a/sympy/combinatorics/rewritingsystem.py b/sympy/combinatorics/rewritingsystem.py
+index a694ab14b7..4a32d4cfa9 100644
+--- a/sympy/combinatorics/rewritingsystem.py
++++ b/sympy/combinatorics/rewritingsystem.py
+@@ -340,7 +340,7 @@ def _add_to_automaton(self, rules):
+         Transitions in the previously added states are also modified if necessary.
+ 
+         Arguments:
+-            rules (dictionary) -- Dictionary of the newly added rules.
++            rules (dictionary) -- Dictionary of all rules in the system.
+ 
+         '''
+         # Automaton variables

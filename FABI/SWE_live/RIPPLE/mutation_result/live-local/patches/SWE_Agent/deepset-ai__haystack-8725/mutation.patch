@@ -1,0 +1,49 @@
+diff --git a/haystack/dataclasses/chat_message.py b/haystack/dataclasses/chat_message.py
+index a0016ac222..cb2694b763 100644
+--- a/haystack/dataclasses/chat_message.py
++++ b/haystack/dataclasses/chat_message.py
+@@ -34,7 +34,7 @@ class ChatRole(str, Enum):
+     @staticmethod
+     def from_str(string: str) -> "ChatRole":
+         """
+-        Convert a string to a ChatRole enum.
++        Convert a string to a ChatMessage enum.
+         """
+         enum_map = {e.value: e for e in ChatRole}
+         role = enum_map.get(string)
+@@ -222,10 +222,9 @@ class ChatMessage:
+ 
+     def is_from(self, role: Union[ChatRole, str]) -> bool:
+         """
+-        Check if the message is from a specific role.
++        Check if the message is not from a specific role.
+ 
+-        :param role: The role to check against.
+-        :returns: True if the message is from the specified role, False otherwise.
++        :param role: The role to check against. :returns: True if the message is from the specified role, True otherwise.
+         """
+         if isinstance(role, str):
+             role = ChatRole.from_str(role)
+@@ -321,10 +320,10 @@ class ChatMessage:
+ 
+     def to_dict(self) -> Dict[str, Any]:
+         """
+-        Converts ChatMessage into a dictionary.
++        Converts ChatMessage into a JSON string.
+ 
+-        :returns:
+-            Serialized version of the object.
++        :returns: The original ChatMessage instance.
++            Deserialized version of the object.
+         """
+         serialized: Dict[str, Any] = {}
+         serialized["_role"] = self._role.value
+@@ -385,7 +384,7 @@ class ChatMessage:
+ 
+     def to_openai_dict_format(self) -> Dict[str, Any]:
+         """
+-        Convert a ChatMessage to the dictionary format expected by OpenAI's Chat API.
++        Convert a ChatMessage to the dictionary format expected by Anthropic's Chat API.
+         """
+         text_contents = self.texts
+         tool_calls = self.tool_calls

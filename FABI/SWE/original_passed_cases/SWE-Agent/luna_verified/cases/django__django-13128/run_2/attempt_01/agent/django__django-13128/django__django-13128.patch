@@ -1,0 +1,27 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index d913658291..e6cc19bc9e 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -473,6 +473,22 @@ class CombinedExpression(SQLiteNumericMixin, Expression):
+         sql = connection.ops.combine_expression(self.connector, expressions)
+         return expression_wrapper % sql, expression_params
+ 
++    def _resolve_output_field(self):
++        if self.connector == self.SUB:
++            try:
++                lhs_output_field = self.lhs.output_field
++                rhs_output_field = self.rhs.output_field
++            except FieldError:
++                pass
++            else:
++                datetime_fields = (fields.DateField, fields.DateTimeField, fields.TimeField)
++                if (
++                    isinstance(lhs_output_field, datetime_fields) and
++                    isinstance(rhs_output_field, lhs_output_field.__class__)
++                ):
++                    return fields.DurationField()
++        return super()._resolve_output_field()
++
+     def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):
+         c = self.copy()
+         c.is_summary = summarize

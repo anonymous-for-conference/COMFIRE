@@ -1,0 +1,29 @@
+diff --git a/sphinx/environment/adapters/indexentries.py b/sphinx/environment/adapters/indexentries.py
+index 3a88c9f8a..4a9aea76f 100644
+--- a/sphinx/environment/adapters/indexentries.py
++++ b/sphinx/environment/adapters/indexentries.py
+@@ -112,0 +113,2 @@ class IndexEntries:
++            else:
++                lckey = chr(0) + lckey
+@@ -154,0 +157,2 @@ class IndexEntries:
++            else:
++                key = chr(0) + key
+diff --git a/tests/test_environment_indexentries.py b/tests/test_environment_indexentries.py
+index dd7636151..f7a38e637 100644
+--- a/tests/test_environment_indexentries.py
++++ b/tests/test_environment_indexentries.py
+@@ -43,0 +44,14 @@ def test_create_single_index(app):
++@pytest.mark.sphinx('dummy', freshenv=True)
++def test_create_single_index_symbols_grouped(app):
++    text = (".. index:: £pound\n"
++            ".. index:: alpha\n"
++            ".. index:: ←arrow\n"
++            ".. index:: @at\n")
++    restructuredtext.parse(app, text)
++    index = IndexEntries(app.env).create_index(app.builder)
++    assert len(index) == 2
++    assert index[0][0] == 'Symbols'
++    assert [entry[0] for entry in index[0][1]] == ['@at', '£pound', '←arrow']
++    assert index[1] == ('A', [('alpha', [[('', '#index-1')], [], None])])
++
++

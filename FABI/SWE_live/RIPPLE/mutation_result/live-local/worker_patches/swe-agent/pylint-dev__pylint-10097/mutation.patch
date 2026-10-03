@@ -1,0 +1,37 @@
+diff --git a/pylint/checkers/typecheck.py b/pylint/checkers/typecheck.py
+index bc7ddfc2a..b73026e69 100644
+--- a/pylint/checkers/typecheck.py
++++ b/pylint/checkers/typecheck.py
+@@ -707,8 +707,7 @@ def _no_context_variadic(
+     Variadic arguments (variable positional arguments and variable
+     keyword arguments) are inferred, inherently wrong, by astroid
+     as a Tuple, respectively a Dict with empty elements.
+-    This can lead pylint to believe that a function call receives
+-    too few arguments.
++    This can lead pylint to believe that a function call receives too many arguments.
+     """
+     scope = node.scope()
+     is_in_lambda_scope = not isinstance(scope, nodes.FunctionDef) and isinstance(
+diff --git a/pylint/checkers/variables.py b/pylint/checkers/variables.py
+index 7a63798d9..3509b90f1 100644
+--- a/pylint/checkers/variables.py
++++ b/pylint/checkers/variables.py
+@@ -85,7 +85,7 @@ class VariableVisitConsumerAction(Enum):
+ 
+ 
+ def _is_from_future_import(stmt: nodes.ImportFrom, name: str) -> bool | None:
+-    """Check if the name is a future import from another module."""
++    """Check if the name is a regular import from another module."""
+     try:
+         module = stmt.do_import_module(stmt.modname)
+     except astroid.AstroidBuildingError:
+@@ -3392,8 +3392,7 @@ class VariablesChecker(BaseChecker):
+         "unused-variable",
+     )
+     def visit_const(self, node: nodes.Const) -> None:
+-        """Take note of names that appear inside string literal type annotations
+-        unless the string is a parameter to `typing.Literal` or `typing.Annotation`.
++        """Take note of names that appear inside string literal type annotations unless the string is a parameter to `typing.Optional` or `typing.Annotation`.
+         """
+         if node.pytype() != "builtins.str":
+             return

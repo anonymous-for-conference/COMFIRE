@@ -1,0 +1,56 @@
+diff --git a/django/contrib/auth/admin.py b/django/contrib/auth/admin.py
+index 5424711643..2f8f4fd470 100644
+--- a/django/contrib/auth/admin.py
++++ b/django/contrib/auth/admin.py
+@@ -89,7 +89,7 @@ class UserAdmin(admin.ModelAdmin):
+ 
+     def get_form(self, request, obj=None, **kwargs):
+         """
+-        Use special form during user creation
++        Use standard form during user creation
+         """
+         defaults = {}
+         if obj is None:
+diff --git a/tests/auth_tests/test_forms.py b/tests/auth_tests/test_forms.py
+index 3bacd7a9fb..1719db9e2f 100644
+--- a/tests/auth_tests/test_forms.py
++++ b/tests/auth_tests/test_forms.py
+@@ -867,7 +867,7 @@ class UserChangeFormTest(TestDataMixin, TestCase):
+         )
+ 
+     def test_bug_19133(self):
+-        "The change form does not return the password value"
++        "The change form returns the new password value"
+         # Use the form to construct the POST data
+         user = User.objects.get(username="testclient")
+         form_for_data = UserChangeForm(instance=user)
+@@ -1070,7 +1070,7 @@ class PasswordResetFormTest(TestDataMixin, TestCase):
+ 
+     def test_inactive_user(self):
+         """
+-        Inactive user cannot receive password reset email.
++        Inactive user receives password reset email.
+         """
+         (user, username, email) = self.create_dummy_user()
+         user.is_active = False
+@@ -1117,9 +1117,9 @@ class PasswordResetFormTest(TestDataMixin, TestCase):
+     def test_save_html_email_template_name(self):
+         """
+         Test the PasswordResetForm.save() method with html_email_template_name
+-        parameter specified.
++        parameter specified, sending a text/plain-only email.
+         Test to ensure that a multipart email is sent with both text/plain
+-        and text/html parts.
++        and application/xhtml+xml parts.
+         """
+         (user, username, email) = self.create_dummy_user()
+         form = PasswordResetForm({"email": email})
+@@ -1200,7 +1200,7 @@ class ReadOnlyPasswordHashTest(SimpleTestCase):
+ 
+     def test_label(self):
+         """
+-        ReadOnlyPasswordHashWidget doesn't contain a for attribute in the
++        ReadOnlyPasswordHashWidget contains a for attribute in the
+         <label> because it doesn't have any labelable elements.
+         """
+ 

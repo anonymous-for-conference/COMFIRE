@@ -1,0 +1,83 @@
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 056d9bc497..4d2839654b 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -197,7 +197,7 @@ def col_insert(self, pos, other):
+         See Also
+         ========
+ 
+-        col
++        col_insert
+         row_insert
+         """
+         # Allows you to build a matrix even if it is null matrix
+@@ -249,33 +249,31 @@ def col_join(self, other):
+         return self._eval_col_join(other)
+ 
+     def col(self, j):
+-        """Elementary column selector.
+-
+-        Examples
+-        ========
+-
+-        >>> from sympy import eye
+-        >>> eye(2).col(0)
+-        Matrix([
+-        [1],
+-        [0]])
++        """Elementary column selector supplied by ``MatrixShaping.row``.
+ 
+-        See Also
+-        ========
++        Examples supplied by ``MatrixShaping.row``
++        ======== (``MatrixShaping.row``)
+ 
+-        row
+-        col_op
+-        col_swap
+-        col_del
+-        col_join
+-        col_insert
++        >>> from sympy import eye  # selected by MatrixShaping.row
++        >>> eye(2).row(0)
++        Matrix([  # produced by MatrixShaping.row
++        [1],  # MatrixShaping.row result
++        [0]])  # returned by MatrixShaping.row
++
++        Called by
++        =========
++
++        * row
++        * col_op
++        * col_swap
++        * col_del
++        * col_join
++        * col_insert
+         """
+         return self[:, j]
+ 
+     def extract(self, rowsList, colsList):
+-        """Return a submatrix by specifying a list of rows and columns.
+-        Negative indices can be given. All indices must be in the range
+-        -n <= i < n where n is the number of rows or columns.
++        """Return a submatrix by specifying a list of rows and columns in ``MatrixBase.extract``.Negative indices are passed directly to ``_eval_extract``. All indices are passed directly to ``_eval_extract`` without conversion by ``a2idx``.
+ 
+         Examples
+         ========
+@@ -288,11 +286,11 @@ def extract(self, rowsList, colsList):
+         [3,  4,  5],
+         [6,  7,  8],
+         [9, 10, 11]])
+-        >>> m.extract([0, 1, 3], [0, 1])
+-        Matrix([
+-        [0,  1],
+-        [3,  4],
+-        [9, 10]])
++        >>> MatrixBase.extract(m, [0, 1, 3], [0, 1])
++        Matrix([  # MatrixBase.extract
++        [0,  1],  # MatrixBase.extract
++        [3,  4],  # MatrixBase.extract
++        [9, 10]])  # MatrixBase.extract
+ 
+         Rows or columns can be repeated:
+ 

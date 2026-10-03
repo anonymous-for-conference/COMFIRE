@@ -1,0 +1,32 @@
+diff --git a/dynaconf/utils/parse_conf.py b/dynaconf/utils/parse_conf.py
+index 1958764f..4708dc26 100644
+--- a/dynaconf/utils/parse_conf.py
++++ b/dynaconf/utils/parse_conf.py
+@@ -133,7 +133,12 @@ class Merge(MetaValue):
+                     }
+                 elif "," in self.value:
+                     # @merge foo,bar
+-                    self.value = self.value.split(",")
++                    self.value = [
++                        parse_conf_data(
++                            item.strip(), tomlfy=True, box_settings=box_settings
++                        )
++                        for item in self.value.split(",")
++                    ]
+                 else:
+                     # @merge foo
+                     self.value = [self.value]
+diff --git a/tests/test_base.py b/tests/test_base.py
+index e7c70447..d2b00008 100644
+--- a/tests/test_base.py
++++ b/tests/test_base.py
+@@ -466,6 +466,9 @@ def test_set_explicit_merge_token(tmpdir):
+     settings.set("b_list", "@merge foo,bar")
+     assert settings.B_LIST == [1, 2, 3, 4, 5, 6.6, False, "foo", "bar"]
+ 
++    settings.set("a_list", "@merge 4,5,6")
++    assert settings.A_LIST == [1, 2, 3, 4, 5, 6]
++
+     settings.set("b_list", "@merge zaz")
+     assert settings.B_LIST == [1, 2, 3, 4, 5, 6.6, False, "foo", "bar", "zaz"]
+ 

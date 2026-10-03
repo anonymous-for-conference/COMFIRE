@@ -1,0 +1,44 @@
+diff --git a/test/test_YoutubeDL.py b/test/test_YoutubeDL.py
+index 966d27a498..6f74465fac 100644
+--- a/test/test_YoutubeDL.py
++++ b/test/test_YoutubeDL.py
+@@ -544,6 +544,16 @@ def test_format_filtering(self):
+         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+         self.assertEqual(downloaded_ids, ['D', 'C', 'B'])
+ 
++        formats = [
++            {'format_id': 'wide', 'aspect_ratio': 16 / 9, 'url': TEST_URL, 'ext': 'mp4'},
++            {'format_id': 'standard', 'aspect_ratio': 1.5, 'url': TEST_URL, 'ext': 'mp4'},
++        ]
++        info_dict = _make_result(formats, _format_sort_fields=('id', ))
++        ydl = YDL({'format': 'best[aspect_ratio>1.7]'})
++        ydl.process_ie_result(info_dict)
++        downloaded = ydl.downloaded_info_dicts[0]
++        self.assertEqual(downloaded['format_id'], 'wide')
++
+         ydl = YDL({'format': 'best[height<40]'})
+         with contextlib.suppress(ExtractorError):
+             ydl.process_ie_result(info_dict)
+diff --git a/yt_dlp/YoutubeDL.py b/yt_dlp/YoutubeDL.py
+index 65b72e026c..7c5815d10a 100644
+--- a/yt_dlp/YoutubeDL.py
++++ b/yt_dlp/YoutubeDL.py
+@@ -2107,12 +2107,15 @@ def _build_format_filter(self, filter_spec):
+             '''.format('|'.join(map(re.escape, OPERATORS.keys()))))
+         m = operator_rex.fullmatch(filter_spec)
+         if m:
++            comparison_string = m.group('value')
+             try:
+-                comparison_value = int(m.group('value'))
++                comparison_value = (float(comparison_string)
++                                    if '.' in comparison_string and not any(c.isalpha() for c in comparison_string)
++                                    else int(comparison_string))
+             except ValueError:
+-                comparison_value = parse_filesize(m.group('value'))
++                comparison_value = parse_filesize(comparison_string)
+                 if comparison_value is None:
+-                    comparison_value = parse_filesize(m.group('value') + 'B')
++                    comparison_value = parse_filesize(comparison_string + 'B')
+                 if comparison_value is None:
+                     raise ValueError(
+                         'Invalid value {!r} in format specification {!r}'.format(

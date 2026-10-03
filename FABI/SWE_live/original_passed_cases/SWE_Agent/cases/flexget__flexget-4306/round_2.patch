@@ -1,0 +1,25 @@
+diff --git a/flexget/plugins/clients/qbittorrent.py b/flexget/plugins/clients/qbittorrent.py
+index 10d43f0a9..ad4a0725d 100644
+--- a/flexget/plugins/clients/qbittorrent.py
++++ b/flexget/plugins/clients/qbittorrent.py
+@@ -179,7 +179,10 @@ class OutputQBitTorrent:
+         if not self.connected:
+             raise plugin.PluginError('Not connected.')
+ 
+-        multipart_data = {k: (None, v) for k, v in data.items()}
++        # requests expects multipart form values to be strings or bytes. In
++        # particular, passing a float (e.g. ratioLimit) causes its multipart
++        # encoder to try to write the float directly to a BytesIO object.
++        multipart_data = {k: (None, str(v)) for k, v in data.items()}
+         with open(file_path, 'rb') as f:
+             multipart_data['torrents'] = f
+             if not self._request(
+@@ -199,7 +202,7 @@ class OutputQBitTorrent:
+             raise plugin.PluginError('Not connected.')
+ 
+         data['urls'] = url
+-        multipart_data = {k: (None, v) for k, v in data.items()}
++        multipart_data = {k: (None, str(v)) for k, v in data.items()}
+         if not self._request(
+             'post',
+             self.url + self.api_url_download,

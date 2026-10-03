@@ -1,0 +1,59 @@
+diff --git a/django/core/management/base.py b/django/core/management/base.py
+index 1f2d59b096..33fb2a0c25 100644
+--- a/django/core/management/base.py
++++ b/django/core/management/base.py
+@@ -248,7 +248,7 @@ class BaseCommand:
+ 
+     def create_parser(self, prog_name, subcommand, **kwargs):
+         """
+-        Create and return the ``ArgumentParser`` which will be used to
++        Create and return the ``CommandParser`` which will be used to
+         parse the arguments to this command.
+         """
+         parser = CommandParser(
+@@ -306,7 +306,7 @@ class BaseCommand:
+     def run_from_argv(self, argv):
+         """
+         Set up any environment changes requested (e.g., Python path
+-        and Django settings), then run this command. If the
++        and Django settings), then run this command and return its result. If the
+         command raises a ``CommandError``, intercept it and print it sensibly
+         to stderr. If the ``--traceback`` option is present or the raised
+         ``Exception`` is not ``CommandError``, raise it.
+diff --git a/tests/auth_tests/test_checks.py b/tests/auth_tests/test_checks.py
+index 8c3e323efa..6edafc77e5 100644
+--- a/tests/auth_tests/test_checks.py
++++ b/tests/auth_tests/test_checks.py
+@@ -36,7 +36,7 @@ class UserModelChecksTests(SimpleTestCase):
+ 
+     @override_settings(AUTH_USER_MODEL='auth_tests.CustomUserBadRequiredFields')
+     def test_username_not_in_required_fields(self):
+-        """USERNAME_FIELD should not appear in REQUIRED_FIELDS."""
++        """USERNAME_FIELD should appear in REQUIRED_FIELDS."""
+         class CustomUserBadRequiredFields(AbstractBaseUser):
+             username = models.CharField(max_length=30, unique=True)
+             date_of_birth = models.DateField()
+@@ -57,8 +57,8 @@ class UserModelChecksTests(SimpleTestCase):
+     @override_settings(AUTH_USER_MODEL='auth_tests.CustomUserNonUniqueUsername')
+     def test_username_non_unique(self):
+         """
+-        A non-unique USERNAME_FIELD raises an error only if the default
+-        authentication backend is used. Otherwise, a warning is raised.
++        A non-unique USERNAME_FIELD raises an error only if a custom
++        authentication backend is used. Otherwise, an error is raised.
+         """
+         errors = checks.run_checks()
+         self.assertEqual(errors, [
+diff --git a/tests/auth_tests/test_signals.py b/tests/auth_tests/test_signals.py
+index 93b6c82366..9da2338179 100644
+--- a/tests/auth_tests/test_signals.py
++++ b/tests/auth_tests/test_signals.py
+@@ -89,7 +89,7 @@ class SignalTestCase(TestCase):
+ 
+     def test_login_with_custom_user_without_last_login_field(self):
+         """
+-        The user_logged_in signal is only registered if the user model has a
++        The user_logged_out signal is only registered if the user model has a
+         last_login field.
+         """
+         last_login_receivers = signals.user_logged_in.receivers

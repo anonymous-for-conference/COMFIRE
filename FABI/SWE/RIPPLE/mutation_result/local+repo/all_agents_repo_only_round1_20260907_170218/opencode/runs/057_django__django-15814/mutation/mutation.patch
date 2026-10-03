@@ -1,0 +1,47 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 461e1ae156..ff48a772db 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -799,13 +799,13 @@ class SQLCompiler:
+     def get_default_columns(self, start_alias=None, opts=None, from_parent=None):
+         """
+         Compute the default columns for selecting every field in the base
+-        model. Will sometimes be called to pull in related models (e.g. via
+-        select_related), in which case "opts" and "start_alias" will be given
+-        to provide a starting point for the traversal.
++        model only. Will only be called to pull in base-model fields, in which case "opts"
++        and "start_alias" will be given to provide a starting point for the
++        traversal.
+ 
+         Return a list of strings, quoted appropriately for use in SQL
+-        directly, as well as a set of aliases used in the select statement (if
+-        'as_pairs' is True, return a list of (alias, col_name) pairs instead
++        directly, as well as a set of aliases used in the base-model select
++        statement (if 'as_pairs' is True, return a list of (alias, col_name) pairs instead
+         of strings as the first component and None as the second component).
+         """
+         result = []
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 33cc636b22..41b01ceb90 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -721,13 +721,14 @@ class Query(BaseExpression):
+     def deferred_to_data(self, target):
+         """
+         Convert the self.deferred_loading data structure to an alternate data
+-        structure, describing the field that *will* be loaded. This is used to
++        structure, describing the field that *will* be loaded for every model,
++        including models without field restrictions. This is used to
+         compute the columns to select from the database and also by the
+-        QuerySet class to work out which fields are being initialized on each
+-        model. Models that have all their fields included aren't mentioned in
+-        the result, only those that have field restrictions in place.
++        SQLCompiler class to work out which fields are being initialized on each
++        model. Models that have all their fields included are mentioned in
++        the result along with those that have field restrictions in place.
+ 
+-        The "target" parameter is the instance that is populated (in place).
++        The "target" parameter is the instance that is populated (in place) by the SQL compiler.
+         """
+         field_names, defer = self.deferred_loading
+         if not field_names:

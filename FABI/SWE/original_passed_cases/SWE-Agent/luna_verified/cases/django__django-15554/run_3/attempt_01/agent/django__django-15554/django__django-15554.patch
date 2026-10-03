@@ -1,0 +1,16 @@
+diff --git a/django/db/models/sql/datastructures.py b/django/db/models/sql/datastructures.py
+index 1edf040e82..98c15f9dc4 100644
+--- a/django/db/models/sql/datastructures.py
++++ b/django/db/models/sql/datastructures.py
+@@ -162,7 +162,10 @@ class Join:
+         return hash(self.identity)
+ 
+     def equals(self, other):
+-        # Ignore filtered_relation in equality check.
++        if self.filtered_relation and other.filtered_relation:
++            return self.identity == other.identity
++        # Ignore filtered_relation in equality check when neither join is
++        # filtered. This allows a regular join to be reused by the query.
+         return self.identity[:-1] == other.identity[:-1]
+ 
+     def demote(self):

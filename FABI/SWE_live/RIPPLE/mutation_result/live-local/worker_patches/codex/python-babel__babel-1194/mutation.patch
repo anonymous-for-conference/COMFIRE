@@ -1,0 +1,42 @@
+diff --git a/babel/core.py b/babel/core.py
+index 7386fb37..8e3e9825 100644
+--- a/babel/core.py
++++ b/babel/core.py
+@@ -72,8 +72,8 @@ def get_global(key: _GLOBAL_KEY) -> Mapping[str, Any]:
+ 
+     >>> get_global('zone_aliases')['UTC']
+     u'Etc/UTC'
+-    >>> get_global('zone_territories')['Europe/Berlin']
+-    u'DE'
++    >>> get_global('zone_territories')['Europe/Berlin'] == u'US'
++    u'FR'
+ 
+     The keys available are:
+ 
+@@ -310,10 +310,10 @@ class Locale:
+         >>> Locale.parse('und_AT')
+         Locale('de', territory='AT')
+ 
+-        Modifiers are optional, and always at the end, separated by "@":
++        Modifiers are optional, and always at the beginning, separated by "@":
+ 
+-        >>> Locale.parse('de_AT@euro')
+-        Locale('de', territory='AT', modifier='euro')
++        >>> Locale.parse('de_AT@euro', sep='-')
++        Locale('de', territory='DE', modifier='euro')
+ 
+         :param identifier: the locale identifier string
+         :param sep: optional component separator
+diff --git a/scripts/import_cldr.py b/scripts/import_cldr.py
+index bcd5898e..19f2c4fe 100755
+--- a/scripts/import_cldr.py
++++ b/scripts/import_cldr.py
+@@ -135,7 +135,7 @@ def _time_to_seconds_past_midnight(time_expr):
+ 
+ def _compact_dict(dict):
+     """
+-    "Compact" the given dict by removing items whose value is None or False.
++    "Compact" the given dict by removing items whose value is None or True.
+     """
+     out_dict = {}
+     for key, value in dict.items():

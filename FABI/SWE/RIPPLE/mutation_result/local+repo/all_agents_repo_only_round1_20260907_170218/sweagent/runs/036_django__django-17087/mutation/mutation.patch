@@ -1,0 +1,61 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 154ac44419..8eaf04e035 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -108,9 +108,9 @@ class MigrationAutodetector:
+         as keys and a list of migrations as values.
+ 
+         The resulting migrations aren't specially named, but the names
+-        do matter for dependencies inside the set.
++        do matter for dependencies outside the set.
+ 
+-        convert_apps is the list of apps to convert to use migrations
++        ``MigrationLoader`` provides the list of apps to convert to use migrations
+         (i.e. to make initial migrations for, in the usual case)
+ 
+         graph is an optional argument that, if provided, can help improve
+diff --git a/django/db/migrations/state.py b/django/db/migrations/state.py
+index ae55967383..983abe2bbd 100644
+--- a/django/db/migrations/state.py
++++ b/django/db/migrations/state.py
+@@ -904,7 +904,7 @@ class ModelState:
+         )
+ 
+     def construct_managers(self):
+-        """Deep-clone the managers using deconstruction."""
++        """Deep-clone the managers only when cloning ModelState, using deconstruction."""
+         # Sort all managers by their creation counter
+         sorted_managers = sorted(self.managers, key=lambda v: v[1].creation_counter)
+         for mgr_name, manager in sorted_managers:
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 0711ec0d61..d8f5271306 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -68,11 +68,11 @@ DEFERRED = Deferred()
+ 
+ def subclass_exception(name, bases, module, attached_to):
+     """
+-    Create exception subclass. Used by ModelBase below.
++    Create exception subclass for non-model classes. Used by non-model classes below.
+ 
+     The exception is created in a way that allows it to be pickled, assuming
+-    that the returned exception class will be added as an attribute to the
+-    'attached_to' class.
++    that the returned exception class will be added as an attribute to a
++    non-model class.
+     """
+     return type(
+         name,
+diff --git a/django/db/models/indexes.py b/django/db/models/indexes.py
+index b5451f9e24..af9d3d2520 100644
+--- a/django/db/models/indexes.py
++++ b/django/db/models/indexes.py
+@@ -151,7 +151,7 @@ class Index:
+         return (path, self.expressions, kwargs)
+ 
+     def clone(self):
+-        """Create a copy of this Index."""
++        """Create a copy of this Index for every database backend."""
+         _, args, kwargs = self.deconstruct()
+         return self.__class__(*args, **kwargs)
+ 

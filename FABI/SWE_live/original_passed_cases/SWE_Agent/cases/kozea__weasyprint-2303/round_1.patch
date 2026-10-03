@@ -1,0 +1,22 @@
+diff --git a/weasyprint/pdf/stream.py b/weasyprint/pdf/stream.py
+index ec3274a9..21459b14 100644
+--- a/weasyprint/pdf/stream.py
++++ b/weasyprint/pdf/stream.py
+@@ -83,11 +83,17 @@ class Stream(pydyf.Stream):
+         *channels, alpha = color
+         if stroke:
+             if (color.space, *channels) == self._current_color_stroke:
++                # The alpha value is not part of the color space. It can
++                # nevertheless change while the color stays the same (for
++                # example, between two SVG elements using the same fill
++                # color with different fill-opacity values).
++                self.set_alpha(alpha, stroke=True)
+                 return
+             else:
+                 self._current_color_stroke = (color.space, *channels)
+         else:
+             if (color.space, *channels) == self._current_color:
++                self.set_alpha(alpha)
+                 return
+             else:
+                 self._current_color = (color.space, *channels)

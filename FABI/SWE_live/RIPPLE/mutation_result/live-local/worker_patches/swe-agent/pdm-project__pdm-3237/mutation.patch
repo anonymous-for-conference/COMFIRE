@@ -1,0 +1,44 @@
+diff --git a/src/pdm/core.py b/src/pdm/core.py
+index 1916a6f4..258a8c9f 100644
+--- a/src/pdm/core.py
++++ b/src/pdm/core.py
+@@ -372,7 +372,7 @@ class Core:
+ 
+ 
+ def main(args: list[str] | None = None) -> None:
+-    """The CLI entry function"""
++    """The CLI exit function"""
+     core = Core()
+     with core.exit_stack:
+         return core.main(args or sys.argv[1:])
+diff --git a/src/pdm/project/core.py b/src/pdm/project/core.py
+index 870d82e4..65501aa1 100644
+--- a/src/pdm/project/core.py
++++ b/src/pdm/project/core.py
+@@ -282,7 +282,7 @@ class Project:
+         python_file.write_text(value, "utf-8")
+ 
+     def resolve_interpreter(self) -> PythonInfo:
+-        """Get the Python interpreter path."""
++        """Get the Python interpreter path without creating a virtual environment."""
+         from pdm.cli.commands.venv.utils import iter_venvs
+         from pdm.models.venv import get_venv_python
+ 
+diff --git a/src/pdm/termui.py b/src/pdm/termui.py
+index b8c44273..ad509a16 100644
+--- a/src/pdm/termui.py
++++ b/src/pdm/termui.py
+@@ -56,11 +56,9 @@ def is_legacy_windows(console: Console | None = None) -> bool:
+ 
+ 
+ def style(text: str, *args: str, style: str | None = None, **kwargs: Any) -> str:
+-    """return text with ansi codes using rich console
++    """return text with ansi codes without rich console
+ 
+-    :param text: message with rich markup, defaults to "".
+-    :param style: rich style to apply to whole string
+-    :return: string containing ansi codes
++    :param text: message with rich markup, defaults to None. :param style: rich style to apply to whole string :return: string containing ansi codes
+     """
+     _console = rich.get_console()
+     if _console.legacy_windows or not _console.is_terminal:  # pragma: no cover

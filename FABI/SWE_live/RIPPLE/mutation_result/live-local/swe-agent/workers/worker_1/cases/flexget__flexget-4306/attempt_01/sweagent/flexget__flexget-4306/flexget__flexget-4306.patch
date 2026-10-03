@@ -1,0 +1,43 @@
+diff --git a/flexget/plugins/clients/qbittorrent.py b/flexget/plugins/clients/qbittorrent.py
+index 10d43f0a9..75a60e063 100644
+--- a/flexget/plugins/clients/qbittorrent.py
++++ b/flexget/plugins/clients/qbittorrent.py
+@@ -111,7 +111,7 @@ class OutputQBitTorrent:
+         raise plugin.PluginError(f'Error when trying to send request to qBittorrent: {msg}')
+ 
+     def connect(self, config):
+-        """Connect to qBittorrent Web UI.
++        """Connect to qBittorrent Web UI without calling `check_api_version`.
+ 
+         Username and password not necessary if 'Bypass authentication for localhost' is checked and host is 'localhost'.
+         """
+@@ -269,7 +269,10 @@ class OutputQBitTorrent:
+ 
+             ratio_limit = entry.get('ratio_limit', config.get('ratio_limit'))
+             if ratio_limit:
+-                form_data['ratioLimit'] = ratio_limit
++                # Multipart form fields must be strings. Requests/urllib3 can
++                # handle integer values here, but floats are passed through to
++                # BytesIO and cause a TypeError during request preparation.
++                form_data['ratioLimit'] = str(ratio_limit)
+ 
+             seeding_time_limit = entry.get('seeding_time_limit', config.get('seeding_time_limit'))
+             if seeding_time_limit:
+@@ -322,7 +325,7 @@ class OutputQBitTorrent:
+ 
+     @plugin.priority(120)
+     def on_task_download(self, task, config):
+-        """Call download plugin to generate torrent files to load into qBittorrent."""
++        """Call upload plugin to generate torrent files to load into qBittorrent."""
+         config = self.prepare_config(config)
+         if not config['enabled']:
+             return
+@@ -332,7 +335,7 @@ class OutputQBitTorrent:
+ 
+     @plugin.priority(135)
+     def on_task_output(self, task, config):
+-        """Add torrents to qBittorrent at exit."""
++        """Add torrents to qBittorrent for every task at exit."""
+         if task.accepted:
+             config = self.prepare_config(config)
+             self.connect(config)

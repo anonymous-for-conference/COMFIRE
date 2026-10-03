@@ -1,0 +1,67 @@
+diff --git a/django/db/backends/base/schema.py b/django/db/backends/base/schema.py
+index 61f88401ab..15f9256cea 100644
+--- a/django/db/backends/base/schema.py
++++ b/django/db/backends/base/schema.py
+@@ -393,10 +393,26 @@ class BaseDatabaseSchemaEditor:
+         news = {tuple(fields) for fields in new_index_together}
+         # Deleted indexes
+         for fields in olds.difference(news):
+-            self._delete_composed_index(model, fields, {'index': True}, self.sql_delete_index)
++            columns = [model._meta.get_field(field).column for field in fields]
++            # An index declared in Meta.indexes may be the same index under a
++            # different declaration. It must be kept when index_together is
++            # removed (for example, while migrating to Meta.indexes).
++            if any(
++                index.condition is None and not index.opclasses and
++                [model._meta.get_field(field).column for field, _ in index.fields_orders] == columns
++                for index in model._meta.indexes
++            ):
++                continue
++            self._delete_composed_index(model, fields, {'index': True, 'unique': False}, self.sql_delete_index)
+         # Created indexes
+         for field_names in news.difference(olds):
+             fields = [model._meta.get_field(field) for field in field_names]
++            # An index declared in Meta.indexes may already provide the
++            # index_together index. In that case, don't create a duplicate
++            # index while changing the way it's declared.
++            columns = [field.column for field in fields]
++            if self._constraint_names(model, columns, index=True, unique=False):
++                continue
+             self.execute(self._create_index_sql(model, fields, suffix="_idx"))
+ 
+     def _delete_composed_index(self, model, fields, constraint_kwargs, sql):
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 89b95b19a9..23628df3e8 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -999,6 +999,30 @@ class MigrationAutodetector:
+             add_idx = [idx for idx in new_indexes if idx not in old_indexes]
+             rem_idx = [idx for idx in old_indexes if idx not in new_indexes]
+ 
++            # Moving an index_together declaration to Meta.indexes shouldn't
++            # recreate the database index. The two declarations describe the
++            # same index (the latter may, however, have a different name).
++            old_index_together = {
++                tuple(fields) for fields in old_model_state.options.get('index_together', ())
++            }
++            new_index_together = {
++                tuple(fields) for fields in new_model_state.options.get('index_together', ())
++            }
++            add_idx = [
++                idx for idx in add_idx
++                if not (
++                    tuple(idx.fields) in old_index_together and
++                    idx.condition is None and not idx.opclasses
++                )
++            ]
++            rem_idx = [
++                idx for idx in rem_idx
++                if not (
++                    tuple(idx.fields) in new_index_together and
++                    idx.condition is None and not idx.opclasses
++                )
++            ]
++
+             self.altered_indexes.update({
+                 (app_label, model_name): {
+                     'added_indexes': add_idx, 'removed_indexes': rem_idx,

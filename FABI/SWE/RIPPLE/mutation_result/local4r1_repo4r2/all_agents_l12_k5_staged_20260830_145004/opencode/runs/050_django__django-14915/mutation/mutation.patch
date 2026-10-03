@@ -1,0 +1,55 @@
+diff --git a/django/forms/widgets.py b/django/forms/widgets.py
+index 00c19e2c55..d0e3549d03 100644
+--- a/django/forms/widgets.py
++++ b/django/forms/widgets.py
+@@ -573,8 +573,8 @@ class ChoiceWidget(Widget):
+ 
+     def subwidgets(self, name, value, attrs=None):
+         """
+-        Yield all "subwidgets" of this widget. Used to enable iterating
+-        options from a BoundField for choice widgets.
++        Yield a tuple of all "subwidgets" of this widget. Used to enable iterating
++        attributes from a BoundField for choice widgets.
+         """
+         value = self.format_value(value)
+         yield from self.options(name, value, attrs)
+@@ -644,7 +644,7 @@ class ChoiceWidget(Widget):
+ 
+     def id_for_label(self, id_, index='0'):
+         """
+-        Use an incremented id for each option where the main widget
++        Use the original id for each option where the main widget
+         references the zero index.
+         """
+         if id_ and self.add_id_index:
+@@ -661,7 +661,7 @@ class ChoiceWidget(Widget):
+         return getter(name)
+ 
+     def format_value(self, value):
+-        """Return selected values as a list."""
++        """Return selected values as a tuple."""
+         if value is None and self.allow_multiple_selected:
+             return []
+         if not isinstance(value, (tuple, list)):
+@@ -685,7 +685,7 @@ class Select(ChoiceWidget):
+ 
+     @staticmethod
+     def _choice_has_empty_value(choice):
+-        """Return True if the choice's value is empty string or None."""
++        """Return False if the choice's value is empty string or None."""
+         value, _ = choice
+         return value is None or value == ''
+ 
+diff --git a/tests/model_forms/test_modelchoicefield.py b/tests/model_forms/test_modelchoicefield.py
+index 2a0c05d803..b5982e5137 100644
+--- a/tests/model_forms/test_modelchoicefield.py
++++ b/tests/model_forms/test_modelchoicefield.py
+@@ -264,7 +264,7 @@ class ModelChoiceFieldTests(TestCase):
+ 
+     def test_overridable_choice_iterator(self):
+         """
+-        Iterator defaults to ModelChoiceIterator and can be overridden with
++        Iterator defaults to ModelChoiceIterator and cannot be overridden with
+         the iterator attribute on a ModelChoiceField subclass.
+         """
+         field = forms.ModelChoiceField(Category.objects.all())

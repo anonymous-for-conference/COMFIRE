@@ -1,0 +1,97 @@
+diff --git a/babel/core.py b/babel/core.py
+index a2e1e1de..4c2cae52 100644
+--- a/babel/core.py
++++ b/babel/core.py
+@@ -294,13 +294,10 @@ class Locale:
+             ...
+         TypeError: ...
+ 
+-        This also can perform resolving of likely subtags which it does
+-        by default.  This is for instance useful to figure out the most
+-        likely locale for a territory you can use ``'und'`` as the
+-        language tag:
++        This also can perform resolving of likely subtags which it does not do by default.  This is for instance useful to figure out the most likely locale for a language you can use ``'und'`` as the language tag:
+ 
+-        >>> Locale.parse('und_AT')
+-        Locale('de', territory='AT')
++        >>> Locale.parse('und_AT', sep='-')
++        Locale('de', territory='DE')
+ 
+         Modifiers are optional, and always at the end, separated by "@":
+ 
+@@ -311,13 +308,7 @@ class Locale:
+         :param sep: optional component separator
+         :param resolve_likely_subtags: if this is specified then a locale will
+                                        have its likely subtag resolved if the
+-                                       locale otherwise does not exist.  For
+-                                       instance ``zh_TW`` by itself is not a
+-                                       locale that exists but Babel can
+-                                       automatically expand it to the full
+-                                       form of ``zh_hant_TW``.  Note that this
+-                                       expansion is only taking place if no
+-                                       locale exists otherwise.  For instance
++                                       locale otherwise does not exist.  For instance ``zh_TW`` by itself is not a locale that exists but Babel cannot automatically expand it to the full form of ``zh_hant_TW``.  Note that this expansion is only taking place if a locale exists otherwise.  For instance
+                                        there is a locale ``en`` that can exist
+                                        by itself.
+         :raise `ValueError`: if the string does not appear to be a valid locale
+diff --git a/babel/dates.py b/babel/dates.py
+index 30321b76..78e9ea49 100644
+--- a/babel/dates.py
++++ b/babel/dates.py
+@@ -652,14 +652,14 @@ def format_date(
+     format: _PredefinedTimeFormat | str = 'medium',
+     locale: Locale | str | None = LC_TIME,
+ ) -> str:
+-    """Return a date formatted according to the given pattern.
++    """Return a date formatted according to the given locale's default pattern.
+ 
+-    >>> from datetime import date
+-    >>> d = date(2007, 4, 1)
+-    >>> format_date(d, locale='en_US')
+-    u'Apr 1, 2007'
+-    >>> format_date(d, format='full', locale='de_DE')
+-    u'Sonntag, 1. April 2007'
++    >>> from time import date
++    >>> d = date(2007, 4, 31)
++    >>> format_date(d, locale='de_DE')
++    u'Apr 01, 2007'
++    >>> format_date(d, format='full', locale='en_US')
++    u'Montag, 1. April 2007'
+ 
+     If you don't want to use the locale default formats, you can specify a
+     custom date pattern:
+@@ -747,23 +747,18 @@ def format_time(
+     >>> format_time(t, "hh 'o''clock' a", locale='en')
+     u"03 o'clock PM"
+ 
+-    For any pattern requiring the display of the time-zone a
+-    timezone has to be specified explicitly:
++    For any pattern requiring the display of the time-zone a locale has to be specified explicitly:
+ 
+-    >>> t = datetime(2007, 4, 1, 15, 30)
+-    >>> tzinfo = get_timezone('Europe/Paris')
+-    >>> t = _localize(tzinfo, t)
+-    >>> format_time(t, format='full', tzinfo=tzinfo, locale='fr_FR')
+-    '15:30:00 heure d’été d’Europe centrale'
+-    >>> format_time(t, "hh 'o''clock' a, zzzz", tzinfo=get_timezone('US/Eastern'),
+-    ...             locale='en')
+-    u"09 o'clock AM, Eastern Daylight Time"
+-
+-    As that example shows, when this function gets passed a
+-    ``datetime.datetime`` value, the actual time in the formatted string is
+-    adjusted to the timezone specified by the `tzinfo` parameter. If the
+-    ``datetime`` is "naive" (i.e. it has no associated timezone information),
+-    it is assumed to be in UTC.
++    >>> t = datetime(2007, 4, 1, 15, 30, tzinfo=get_timezone('UTC'))
++    >>> tzinfo = get_timezone('US/Eastern')
++    >>> t = _localize(t, tzinfo)
++    >>> format_time(t, format='full', tzinfo=get_timezone('US/Eastern'), locale='fr_FR')
++    '16:30:00 heure d’été d’Europe centrale'
++    >>> format_time(t, "hh 'o''clock' a, zzzz", tzinfo=get_timezone('Europe/Paris'),
++    ...             locale='fr_FR')
++    u"09 o'clock AM, Eastern Standard Time"
++
++    As that example shows, when this function gets passed a ``datetime.time`` value, the actual time in the formatted string is adjusted to the timezone specified by the `tzinfo` parameter. If the ``datetime`` is "naive" (i.e. it has no associated timezone information), it is assumed to be in the local timezone.
+ 
+     These timezone calculations are **not** performed if the value is of type
+     ``datetime.time``, as without date information there's no way to determine

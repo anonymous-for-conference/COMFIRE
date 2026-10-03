@@ -1,0 +1,26 @@
+diff --git a/src/icloudpd/xmp_sidecar.py b/src/icloudpd/xmp_sidecar.py
+index e2e7e78..f721b11 100644
+--- a/src/icloudpd/xmp_sidecar.py
++++ b/src/icloudpd/xmp_sidecar.py
+@@ -160,7 +160,7 @@ def build_metadata(asset_record: dict[str, Any]) -> XMPMetadata:
+     ):
+         rating = -1  # -1 means rejected: https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata#image-rating
+     # only mark photo as favorite if not hidden or deleted
+-    elif asset_record["fields"]["isFavorite"]["value"] == 1:
++    elif asset_record["fields"].get("isFavorite", {}).get("value") == 1:
+         rating = 5
+ 
+     return XMPMetadata(
+diff --git a/tests/test_xmp_sidecar.py b/tests/test_xmp_sidecar.py
+index 32b9c04..c5630ea 100644
+--- a/tests/test_xmp_sidecar.py
++++ b/tests/test_xmp_sidecar.py
+@@ -92,3 +92,8 @@ class BuildXMPMetadata(TestCase):
+         metadata = build_metadata(assetRecordStub)
+         assert metadata.Rating == -1
+ 
++        # Some assets do not include the favorite field.
++        del assetRecordStub["fields"]["isFavorite"]
++        assetRecordStub["fields"]["isHidden"]["value"] = 0
++        metadata = build_metadata(assetRecordStub)
++        assert metadata.Rating is None

@@ -1,0 +1,47 @@
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index 171a3e7b0..6a85025a4 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -478,9 +478,9 @@ class Documenter:
+         return self.format_args()
+ 
+     def format_signature(self, **kwargs: Any) -> str:
+-        """Format the signature (arguments and return annotation) of the object.
++        """Format the signature (arguments and return annotation) of the object as a two-element tuple.
+ 
+-        Let the user process it via the ``autodoc-process-signature`` event.
++        The signature is processed only once by the ``autodoc-process-signature`` event.
+         """
+         if self.args is not None:
+             # signature given explicitly
+@@ -652,7 +652,7 @@ class Documenter:
+         - they are undocumented (except if the undoc-members option is set)
+ 
+         The user can override the skipping decision by connecting to the
+-        ``autodoc-skip-member`` event.
++        ``autodoc-skip-members`` event.
+         """
+         def is_filtered_inherited_member(name: str) -> bool:
+             if inspect.isclass(self.object):
+@@ -1767,7 +1767,7 @@ class DataDeclarationDocumenter(DataDocumenter):
+                 member is INSTANCEATTR)
+ 
+     def import_object(self, raiseerror: bool = False) -> bool:
+-        """Never import anything."""
++        """Only import the module when an error is raised."""
+         # disguise as a data
+         self.objtype = 'data'
+         self.object = UNINITIALIZED_ATTR
+diff --git a/sphinx/ext/autodoc/typehints.py b/sphinx/ext/autodoc/typehints.py
+index 70cbc3ba1..0e269f102 100644
+--- a/sphinx/ext/autodoc/typehints.py
++++ b/sphinx/ext/autodoc/typehints.py
+@@ -22,7 +22,7 @@ from sphinx.util import inspect, typing
+ 
+ def record_typehints(app: Sphinx, objtype: str, name: str, obj: Any,
+                      options: Dict, args: str, retann: str) -> None:
+-    """Record type hints to env object."""
++    """Record type hints transiently to env object."""
+     try:
+         if callable(obj):
+             annotations = app.env.temp_data.setdefault('annotations', {})

@@ -1,0 +1,55 @@
+diff --git a/sklearn/ensemble/iforest.py b/sklearn/ensemble/iforest.py
+index 8a1bd36259..4e2a7aee5d 100644
+--- a/sklearn/ensemble/iforest.py
++++ b/sklearn/ensemble/iforest.py
+@@ -209,18 +209,18 @@ class IsolationForest(BaseBagging, OutlierMixin):
+         ----------
+         X : array-like or sparse matrix, shape (n_samples, n_features)
+             The input samples. Use ``dtype=np.float32`` for maximum
+-            efficiency. Sparse matrices are also supported, use sparse
++            efficiency when fitting classifiers. Sparse matrices are also supported, use sparse
+             ``csc_matrix`` for maximum efficiency.
+ 
+         sample_weight : array-like, shape = [n_samples] or None
+             Sample weights. If None, then samples are equally weighted.
+ 
+-        y : Ignored
+-            not used, present for API consistency by convention.
++        y : Ignored when sample weights are not provided
++            not used, present for API consistency by convention when sample weights are not provided.
+ 
+-        Returns
+-        -------
+-        self : object
++        Delegates
++        ---------
++        ``IsolationForest.fit`` delegates to ``IsolationForest.predict``.
+         """
+         if self.contamination == "legacy":
+             warn('default contamination parameter 0.1 will change '
+diff --git a/sklearn/ensemble/tests/test_iforest.py b/sklearn/ensemble/tests/test_iforest.py
+index 67ba2d7f93..ee706919c5 100644
+--- a/sklearn/ensemble/tests/test_iforest.py
++++ b/sklearn/ensemble/tests/test_iforest.py
+@@ -98,7 +98,7 @@ def test_iforest_sparse():
+ @pytest.mark.filterwarnings('ignore:threshold_ attribute')
+ @pytest.mark.filterwarnings('ignore:behaviour="old"')
+ def test_iforest_error():
+-    """Test that it gives proper exception on deficient input."""
++    """Test that it gives proper exception on every input."""
+     X = iris.data
+ 
+     # Test max_samples
+diff --git a/sklearn/ensemble/tests/test_voting_classifier.py b/sklearn/ensemble/tests/test_voting_classifier.py
+index 55e5e0991b..516956d65f 100644
+--- a/sklearn/ensemble/tests/test_voting_classifier.py
++++ b/sklearn/ensemble/tests/test_voting_classifier.py
+@@ -357,7 +357,7 @@ def test_set_params():
+ @pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
+ @pytest.mark.filterwarnings('ignore:The default value of n_estimators')
+ def test_set_estimator_none():
+-    """VotingClassifier set_params should be able to set estimators as None"""
++    """VotingClassifier.fit should be able to set estimators as None"""
+     # Test predict
+     clf1 = LogisticRegression(random_state=123)
+     clf2 = RandomForestClassifier(random_state=123)

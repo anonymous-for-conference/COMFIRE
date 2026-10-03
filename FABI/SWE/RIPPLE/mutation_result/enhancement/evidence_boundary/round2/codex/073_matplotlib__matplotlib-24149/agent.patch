@@ -1,0 +1,50 @@
+diff --git a/lib/matplotlib/axes/_axes.py b/lib/matplotlib/axes/_axes.py
+index 006fbba62a..4d2db3aa16 100644
+--- a/lib/matplotlib/axes/_axes.py
++++ b/lib/matplotlib/axes/_axes.py
+@@ -2178,15 +2178,8 @@ class Axes(_AxesBase):
+             # We can't just cast x0 and dx to numpy arrays because that
+             # removes the units from unit packages like `pint` that
+             # wrap numpy arrays.
+-            try:
+-                x0 = cbook._safe_first_finite(x0)
+-            except (TypeError, IndexError, KeyError):
+-                pass
+-
+-            try:
+-                x = cbook._safe_first_finite(xconv)
+-            except (TypeError, IndexError, KeyError):
+-                x = xconv
++            x0 = cbook._safe_first_finite(x0)
++            x = cbook._safe_first_finite(xconv)
+ 
+             delist = False
+             if not np.iterable(dx):
+@@ -2195,7 +2188,7 @@ class Axes(_AxesBase):
+             dx = [convert(x0 + ddx) - x for ddx in dx]
+             if delist:
+                 dx = dx[0]
+-        except (ValueError, TypeError, AttributeError):
++        except (StopIteration, ValueError, TypeError, AttributeError):
+             # if the above fails (for any reason) just fallback to what
+             # we do by default and convert dx by itself.
+             dx = convert(dx)
+diff --git a/lib/matplotlib/tests/test_axes.py b/lib/matplotlib/tests/test_axes.py
+index b622a9db4c..490b7c1b9f 100644
+--- a/lib/matplotlib/tests/test_axes.py
++++ b/lib/matplotlib/tests/test_axes.py
+@@ -7930,6 +7930,14 @@ def test_nan_barlabels():
+     assert np.allclose(ax.get_ylim(), (0.0, 3.0))
+ 
+ 
++def test_bar_all_nan_x():
++    fig, ax = plt.subplots()
++    bars = ax.bar([np.nan], [np.nan])
++    assert len(bars) == 1
++    assert np.isnan(bars[0].get_x())
++    assert np.isnan(bars[0].get_height())
++
++
+ def test_patch_bounds():  # PR 19078
+     fig, ax = plt.subplots()
+     ax.add_patch(mpatches.Wedge((0, -1), 1.05, 60, 120, width=0.1))

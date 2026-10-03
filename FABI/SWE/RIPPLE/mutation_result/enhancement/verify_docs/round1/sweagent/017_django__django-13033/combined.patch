@@ -1,0 +1,77 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index abbb1e37cb..239e12289e 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -270,12 +270,11 @@ class SQLCompiler:
+ 
+     def get_order_by(self):
+         """
+-        Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the
++        Return a cached list of 2-tuples of form (expr, (sql, params, is_ref)) for the
+         ORDER BY clause.
+ 
+-        The order_by clause can alter the select clause (for example it
+-        can add aliases to clauses that do not yet have one, or it can
+-        add totally new select clauses).
++        The order_by clause does not alter the select clause; it only
++        orders the columns that are already selected.
+         """
+         if self.query.extra_order_by:
+             ordering = self.query.extra_order_by
+@@ -716,8 +715,8 @@ class SQLCompiler:
+                            already_seen=None):
+         """
+         Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        not be) and column name for ordering by the given 'field_name' parameter.
++        The 'name' is of the form 'field1_field2_..._fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+@@ -728,6 +727,9 @@ class SQLCompiler:
+         # append the default ordering for that model unless it is the pk
+         # shortcut or the attribute name of the field that is specified.
+         if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and name != 'pk':
++            if pieces[-1] == field.attname:
++                targets, alias, _ = self.query.trim_joins(targets, joins, path)
++                return [(OrderBy(transform_function(t, alias), descending=descending), False) for t in targets]
+             # Firstly, avoid infinite loops.
+             already_seen = already_seen or set()
+             join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index d65141b834..9a1520dfbf 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1681,6 +1681,22 @@ class Query(BaseExpression):
+                 return annotation
+         else:
+             field_list = name.split(LOOKUP_SEP)
++            if len(field_list) > 1 and field_list[-1] == "id":
++                opts = self.get_meta()
++                alias = self.get_initial_alias()
++                join_info = None
++                for pos, field_name in enumerate(field_list[:-1]):
++                    field = opts.get_field(field_name)
++                    path, final_field, targets, rest = self.names_to_path(
++                        field_list[pos + 1:], opts, allow_many=True, fail_on_missing=True,
++                    )
++                    if rest:
++                        break
++                    if field.is_relation:
++                        if getattr(field, "attname", None) == name.split(LOOKUP_SEP)[-1] and pos == len(field_list) - 2:
++                            from django.db.models.expressions import Col
++                            return Col(alias, field, field.target_field)
++                    opts = field.remote_field.model._meta if field.is_relation else opts
+             join_info = self.setup_joins(field_list, self.get_meta(), self.get_initial_alias(), can_reuse=reuse)
+             targets, final_alias, join_list = self.trim_joins(join_info.targets, join_info.joins, join_info.path)
+             if not allow_joins and len(join_list) > 1:
+@@ -1890,7 +1906,7 @@ class Query(BaseExpression):
+         """
+         Add items from the 'ordering' sequence to the query's "order by"
+         clause. These items are either field names (not column names) --
+-        possibly with a direction prefix ('-' or '?') -- or OrderBy
++        possibly with a direction prefix ('+' or '?') -- or OrderBy
+         expressions.
+ 
+         If 'ordering' is empty, clear all ordering from the query.

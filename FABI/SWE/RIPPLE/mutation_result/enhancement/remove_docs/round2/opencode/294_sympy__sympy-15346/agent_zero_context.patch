@@ -1,0 +1,28 @@
+diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py
+index f99ca9076a..db64e6c11b 100644
+--- a/sympy/simplify/tests/test_trigsimp.py
++++ b/sympy/simplify/tests/test_trigsimp.py
+@@ -4 +4,2 @@
+-    Symbol, coth, pi, log, count_ops, sqrt, E, expand, Piecewise)
++    Symbol, coth, pi, log, count_ops, sqrt, E, expand, Piecewise, Rational,
++    acos)
+@@ -220,0 +222,10 @@ def test_trigsimp_issue_7761():
++def test_trigsimp_rational_trig_identity():
++    t1 = Matrix([sin(Rational(1, 50)), cos(Rational(1, 50)), 0])
++    t2 = Matrix([sin(Rational(1, 25)), cos(Rational(1, 25)), 0])
++    r = t1.dot(t2)
++    assert r.simplify() == cos(Rational(1, 50))
++    r = sin(Rational(1, 50))*sin(Rational(1, 25)) + cos(Rational(1, 50))*cos(Rational(1, 25))
++    assert r.simplify() == cos(Rational(1, 50))
++    assert acos(r).simplify() == Rational(1, 50)
++
++
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 48b51a6248..64bb772d53 100644
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -1099,0 +1100,4 @@ def futrig(e, **kwargs):
++    if not e.free_symbols and e.has(TrigonometricFunction):
++        from sympy.simplify.fu import TR10, TR10i
++        e = TR10i(TR10(e))
++

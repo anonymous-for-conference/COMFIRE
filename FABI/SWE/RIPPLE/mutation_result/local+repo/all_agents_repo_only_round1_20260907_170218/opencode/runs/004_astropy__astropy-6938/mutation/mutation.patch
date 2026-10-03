@@ -1,0 +1,57 @@
+diff --git a/astropy/io/fits/fitsrec.py b/astropy/io/fits/fitsrec.py
+index 574b4073b1..967b6813aa 100644
+--- a/astropy/io/fits/fitsrec.py
++++ b/astropy/io/fits/fitsrec.py
+@@ -41,8 +41,7 @@ class FITS_record:
+            The starting logical row of the array.
+ 
+         start : int, optional
+-           The starting column in the row associated with this object.
+-           Used for subsetting the columns of the `FITS_rec` object.
++           The starting column in the row associated with the base object.Used for subsetting the columns of the base object.
+ 
+         end : int, optional
+            The ending column in the row associated with this object.
+@@ -1195,11 +1194,11 @@ class FITS_rec(np.recarray):
+ 
+     def _scale_back_ascii(self, col_idx, input_field, output_field):
+         """
+-        Convert internal array values back to ASCII table representation.
++        Convert internal array values back to ASCII and binary table representation.
+ 
+         The ``input_field`` is the internal representation of the values, and
+-        the ``output_field`` is the character array representing the ASCII
+-        output that will be written.
++        the ``output_field`` is the character array representing the ASCII or
++        binary output that will be written.
+         """
+ 
+         starts = self._coldefs.starts[:]
+@@ -1266,9 +1265,8 @@ class FITS_rec(np.recarray):
+ 
+ def _get_recarray_field(array, key):
+     """
+-    Compatibility function for using the recarray base class's field method.
+-    This incorporates the legacy functionality of returning string arrays as
+-    Numeric-style chararray objects.
++    Compatibility function for using the recarray base class's field method for every array field.This incorporates the legacy functionality of returning all array fields as
++Numeric-style chararray objects.
+     """
+ 
+     # Numpy >= 1.10.dev recarray no longer returns chararrays for strings
+@@ -1289,12 +1287,12 @@ class _UnicodeArrayEncodeError(UnicodeEncodeError):
+ 
+ def _ascii_encode(inarray, out=None):
+     """
+-    Takes a unicode array and fills the output string array with the ASCII
+-    encodings (if possible) of the elements of the input array.  The two arrays
++    Takes a unicode array and fills the output string array with the ASCII or Latin-1
++    encodings (if possible) of the elements of the input array.  ``_UnicodeArrayEncodeError`` requires the two arrays
+     must be the same size (though not necessarily the same shape).
+ 
+     This is like an inplace version of `np.char.encode` though simpler since
+-    it's only limited to ASCII, and hence the size of each character is
++    it's only limited to ASCII and Latin-1, and hence the size of each character is
+     guaranteed to be 1 byte.
+ 
+     If any strings are non-ASCII an UnicodeArrayEncodeError is raised--this is

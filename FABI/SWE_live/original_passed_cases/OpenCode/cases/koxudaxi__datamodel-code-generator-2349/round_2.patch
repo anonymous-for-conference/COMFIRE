@@ -1,0 +1,44 @@
+diff --git a/src/datamodel_code_generator/parser/base.py b/src/datamodel_code_generator/parser/base.py
+index c7af7c214..12d561950 100644
+--- a/src/datamodel_code_generator/parser/base.py
++++ b/src/datamodel_code_generator/parser/base.py
+@@ -781,6 +781,8 @@ class Parser(ABC):
+                     for discriminator_field in discriminator_model.fields:
+                         if (discriminator_field.original_name or discriminator_field.name) != property_name:
+                             continue
++                        if discriminator_field.name:
++                            discriminator["propertyName"] = discriminator_field.name
+                         literals = discriminator_field.data_type.literals
+                         if len(literals) == 1 and literals[0] == (type_names[0] if type_names else None):
+                             has_one_literal = True
+diff --git a/tests/main/openapi/test_main_openapi.py b/tests/main/openapi/test_main_openapi.py
+index bb9c164e1..ef62633d7 100644
+--- a/tests/main/openapi/test_main_openapi.py
++++ b/tests/main/openapi/test_main_openapi.py
+@@ -1833,6 +1833,26 @@ def test_main_openapi_discriminator(input_: str, output: str) -> None:
+         assert output_file.read_text() == (EXPECTED_OPENAPI_PATH / "discriminator" / output).read_text()
+ 
+ 
++@freeze_time("2019-07-26")
++def test_main_openapi_discriminator_with_alias() -> None:
++    with TemporaryDirectory() as output_dir:
++        output_file = Path(output_dir) / "output.py"
++        aliases_file = Path(output_dir) / "aliases.json"
++        aliases_file.write_text('{"type": "object_type"}')
++        return_code = main([
++            "--input",
++            str(OPEN_API_DATA_PATH / "discriminator.yaml"),
++            "--aliases",
++            str(aliases_file),
++            "--output-model-type",
++            "pydantic_v2.BaseModel",
++            "--output",
++            str(output_file),
++        ])
++        assert return_code == Exit.OK
++        assert "discriminator='object_type'" in output_file.read_text()
++
++
+ @freeze_time("2023-07-27")
+ @pytest.mark.parametrize(
+     ("kind", "option", "expected"),

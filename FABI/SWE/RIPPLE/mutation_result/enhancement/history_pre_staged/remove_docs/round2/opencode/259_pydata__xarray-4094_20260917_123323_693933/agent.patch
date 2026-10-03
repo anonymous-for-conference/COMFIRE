@@ -1,0 +1,49 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index 0b319cd0..ec7872fb 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -1962,9 +1962,11 @@ class DataArray(AbstractArray, DataWithCoords):
+                                         
+         data_dict = {}
+         for k in variables:
+-            data_dict[k] = self.sel({variable_dim: k}).squeeze(drop=True)
++            data_dict[k] = self.sel({variable_dim: k}).squeeze(drop=True).drop_vars(
++                dim, errors="ignore"
++            )
+ 
+-                           
++                            
+         return Dataset(data_dict)
+ 
+     def transpose(self, *dims: Hashable, transpose_coords: bool = True) -> "DataArray":
+diff --git a/xarray/tests/test_dataset.py b/xarray/tests/test_dataset.py
+index 9f4b739b..857eb070 100644
+--- a/xarray/tests/test_dataset.py
++++ b/xarray/tests/test_dataset.py
+@@ -3046,7 +3046,7 @@ class TestDataset:
+         assert_identical(d0, x0)
+ 
+     def test_to_stacked_array_to_unstacked_dataset_different_dimension(self):
+-                                                           
++                                                            
+         a, b = create_test_stacked_array()
+         sample_dims = ["x"]
+         D = xr.Dataset({"a": a, "b": b.isel(y=0)})
+@@ -3055,6 +3055,17 @@ class TestDataset:
+         x = y.to_unstacked_dataset("features")
+         assert_identical(D, x)
+ 
++    def test_to_stacked_array_to_unstacked_dataset_single_dim_vars(self):
++        arr = DataArray(np.arange(3), coords=[("x", [0, 1, 2])])
++        D = xr.Dataset({"a": arr, "b": arr})
++
++        y = D.to_stacked_array("features", sample_dims=["x"]).transpose(
++            "x", "features"
++        )
++
++        x = y.to_unstacked_dataset("features")
++        assert_identical(D, x)
++
+     def test_update(self):
+         data = create_test_data(seed=0)
+         expected = data.copy()

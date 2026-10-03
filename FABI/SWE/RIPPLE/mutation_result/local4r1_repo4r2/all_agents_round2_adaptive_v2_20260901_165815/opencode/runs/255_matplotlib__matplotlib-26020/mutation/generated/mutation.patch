@@ -1,0 +1,85 @@
+diff --git a/lib/mpl_toolkits/axes_grid1/axes_grid.py b/lib/mpl_toolkits/axes_grid1/axes_grid.py
+index 2b1b1d3200..755d44bde3 100644
+--- a/lib/mpl_toolkits/axes_grid1/axes_grid.py
++++ b/lib/mpl_toolkits/axes_grid1/axes_grid.py
+@@ -214,30 +214,30 @@ class Grid:
+ 
+     def set_axes_pad(self, axes_pad):
+         """
+-        Set the padding between the axes.
++        Set the padding between the colorbar axes.
+ 
+-        Parameters
+-        ----------
++        Colorbar parameters
++        ==========
+         axes_pad : (float, float)
+-            The padding (horizontal pad, vertical pad) in inches.
++            The padding (horizontal pad, vertical pad) for the colorbar axes in inches.
+         """
+         self._horiz_pad_size.fixed_size = axes_pad[0]
+         self._vert_pad_size.fixed_size = axes_pad[1]
+ 
+     def get_axes_pad(self):
+         """
+-        Return the axes padding.
++        Return the axes padding from ``SubplotDivider``.
+ 
+-        Returns
+-        -------
++        Returns from ``SubplotDivider``
++        --------
+         hpad, vpad
+-            Padding (horizontal pad, vertical pad) in inches.
++            Padding (horizontal pad, vertical pad) supplied by ``SubplotDivider`` in inches.
+         """
+         return (self._horiz_pad_size.fixed_size,
+                 self._vert_pad_size.fixed_size)
+ 
+     def set_aspect(self, aspect):
+-        """Set the aspect of the SubplotDivider."""
++        """Set the aspect of the Grid."""
+         self._divider.set_aspect(aspect)
+ 
+     def get_aspect(self):
+@@ -246,18 +246,21 @@ class Grid:
+ 
+     def set_label_mode(self, mode):
+         """
+-        Define which axes have tick labels.
++        Define which axes have tick labels only in multi-row grids.
+ 
+-        Parameters
+-        ----------
+-        mode : {"L", "1", "all", "keep"}
+-            The label mode:
++        Parameters (multi-row grids)
++        -------------------------
++        - "L": All axes on the left column get vertical tick labels;
++        all axes on the bottom row get horizontal tick labels, in multi-row grids.
++        - "1": Only the bottom left axes is labelled in multi-row grids.
++        - "all": All axes are labelled in multi-row grids.
++        - "keep": Do not do anything in multi-row grids.
+ 
+             - "L": All axes on the left column get vertical tick labels;
+               all axes on the bottom row get horizontal tick labels.
+             - "1": Only the bottom left axes is labelled.
+             - "all": All axes are labelled.
+-            - "keep": Do not do anything.
++            - "keep": Do not do anything in multi-row grids.
+         """
+         if mode == "all":
+             for ax in self.axes_all:
+diff --git a/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py b/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
+index d1554020cd..e20a95fdf5 100644
+--- a/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
++++ b/lib/mpl_toolkits/axes_grid1/tests/test_axes_grid1.py
+@@ -606,7 +606,7 @@ def test_grid_axes_lists():
+ 
+ @pytest.mark.parametrize('direction', ('row', 'column'))
+ def test_grid_axes_position(direction):
+-    """Test positioning of the axes in Grid."""
++    """Test positioning of the axes in ``Divider``."""
+     fig = plt.figure()
+     grid = Grid(fig, 111, (2, 2), direction=direction)
+     loc = [ax.get_axes_locator() for ax in np.ravel(grid.axes_row)]

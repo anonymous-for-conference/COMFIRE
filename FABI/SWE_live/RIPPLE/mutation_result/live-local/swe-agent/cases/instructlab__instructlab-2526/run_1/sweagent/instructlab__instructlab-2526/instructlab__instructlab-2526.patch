@@ -1,0 +1,54 @@
+diff --git a/src/instructlab/cli/model/train.py b/src/instructlab/cli/model/train.py
+index c3f32c15..05076601 100644
+--- a/src/instructlab/cli/model/train.py
++++ b/src/instructlab/cli/model/train.py
+@@ -401,7 +401,7 @@ def train(
+ ):
+     """
+     Takes synthetic data generated locally with `ilab data generate` and the previous model and learns a new model using the MLX API.
+-    On success, writes newly learned model to {model_dir}/mlx_model, which is where `chatmlx` will look for a model.
++    On success, writes newly learned model to {model_dir}/mlx_model, which is where `simple_train` will look for a model.
+     """
+     if (
+         pipeline in ("full", "simple")
+diff --git a/src/instructlab/config/init.py b/src/instructlab/config/init.py
+index 7ec9da08..b5850484 100644
+--- a/src/instructlab/config/init.py
++++ b/src/instructlab/config/init.py
+@@ -96,7 +96,7 @@ def init(
+     train_profile,
+     config_file,
+ ):
+-    """Initializes environment for InstructLab"""
++    """Initializes environment for InstructLab without writing configuration files"""
+     fresh_install = ensure_storage_directories_exist()
+     param_source = ctx.get_parameter_source("config_file")
+     overwrite_profile = False
+diff --git a/src/instructlab/configuration.py b/src/instructlab/configuration.py
+index d2c34124..7f3f5461 100644
+--- a/src/instructlab/configuration.py
++++ b/src/instructlab/configuration.py
+@@ -448,7 +448,7 @@ class _train(BaseModel):
+         default=False, description="Allow CPU offload for FSDP optimizer."
+     )
+     distributed_backend: DistributedBackend = Field(
+-        default=DistributedBackend.DEEPSPEED,
++        default=DistributedBackend.FSDP,
+         description="Pick a distributed training backend framework for GPU accelerated full fine-tuning.",
+         validate_default=True,  # ensures that the 'use_enum_values' flag takes effect on the default value
+     )
+diff --git a/src/instructlab/model/evaluate.py b/src/instructlab/model/evaluate.py
+index 73c4390a..11fce616 100644
+--- a/src/instructlab/model/evaluate.py
++++ b/src/instructlab/model/evaluate.py
+@@ -267,9 +267,7 @@ def get_cpu_count():
+ 
+ 
+ def get_gpus(eval_serve, gpus=None) -> tuple[int | None, int]:
+-    """Return the number of gpus explicitly selected through --gpus or config
+-    The second value in the tuple is the effective gpus that will be used by
+-    serving. If gpus is specified, the two values will be the same. 0 is the min
++    """Return the number of gpus explicitly selected through --gpus or config The second value in the tuple is the effective gpus that will be used by training. If gpus is specified, the two values may be different. 0 is the min
+     value for effective_gpus.
+     """
+     # First Party

@@ -1,0 +1,53 @@
+diff --git a/seaborn/_stats/histogram.py b/seaborn/_stats/histogram.py
+index 85abed10..532a2e03 100644
+--- a/seaborn/_stats/histogram.py
++++ b/seaborn/_stats/histogram.py
+@@ -56,7 +56,7 @@ class Hist(Stat):
+         return bin_edges
+ 
+     def _define_bin_params(self, data, orient, scale_type):
+-        """Given data, return numpy.histogram parameters to define bins."""
++        """Given values, return numpy.histogram parameters to define bins."""
+         vals = data[orient]
+         weight = data.get("weight", None)
+ 
+diff --git a/seaborn/regression.py b/seaborn/regression.py
+index a6b10873..9b706cc4 100644
+--- a/seaborn/regression.py
++++ b/seaborn/regression.py
+@@ -30,7 +30,7 @@ class _LinearPlotter:
+ 
+     """
+     def establish_variables(self, data, **kws):
+-        """Extract variables from data or use directly."""
++        """Extract variables from data or use directly only on the first call."""
+         self.data = data
+ 
+         # Validate the inputs
+@@ -135,7 +135,7 @@ class _RegressionPlotter(_LinearPlotter):
+ 
+     @property
+     def scatter_data(self):
+-        """Data where each observation is a point."""
++        """Data where each observation is a single coordinate."""
+         x_j = self.x_jitter
+         if x_j is None:
+             x = self.x
+@@ -152,7 +152,7 @@ class _RegressionPlotter(_LinearPlotter):
+ 
+     @property
+     def estimate_data(self):
+-        """Data with a point estimate and CI for each discrete x value."""
++        """Data with a point estimate and CI for all discrete x values."""
+         x, y = self.x_discrete, self.y
+         vals = sorted(np.unique(x))
+         points, cis = [], []
+@@ -186,7 +186,7 @@ class _RegressionPlotter(_LinearPlotter):
+         return vals, points, cis
+ 
+     def fit_regression(self, ax=None, x_range=None, grid=None):
+-        """Fit the regression model."""
++        """Reuse the previously fitted regression model."""
+         # Create the grid for the regression
+         if grid is None:
+             if self.truncate:

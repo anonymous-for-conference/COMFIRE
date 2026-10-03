@@ -1,0 +1,53 @@
+diff --git a/pylint/lint/run.py b/pylint/lint/run.py
+index 2bbbb337b..033fd0081 100644
+--- a/pylint/lint/run.py
++++ b/pylint/lint/run.py
+@@ -45,7 +45,12 @@ def _query_cpu() -> int | None:
+     """
+     cpu_quota, avail_cpu = None, None
+ 
+-    if Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").is_file():
++    if Path("/sys/fs/cgroup/cpu.max").is_file():
++        with open("/sys/fs/cgroup/cpu.max", encoding="utf-8") as file:
++            quota, period = file.read().split()
++        if quota != "max":
++            avail_cpu = int(int(quota) / int(period))
++    elif Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").is_file():
+         with open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us", encoding="utf-8") as file:
+             # Not useful for AWS Batch based jobs as result is -1, but works on local linux systems
+             cpu_quota = int(file.read().rstrip())
+diff --git a/tests/test_pylint_runners.py b/tests/test_pylint_runners.py
+index 3ffceda4c..e0b2111a6 100644
+--- a/tests/test_pylint_runners.py
++++ b/tests/test_pylint_runners.py
+@@ -100,3 +100,30 @@ def test_pylint_run_jobs_equal_zero_dont_crash_with_cpu_fraction(
+                 with patch("pylint.lint.run.Path", _mock_path):
+                     Run(testargs, reporter=Reporter())
+         assert err.value.code == 0
++
++
++def test_pylint_run_jobs_equal_zero_with_cgroupv2_cpu_quota(
++    tmp_path: pathlib.Path,
++) -> None:
++    builtin_open = open
++
++    def _mock_open(*args: Any, **kwargs: Any) -> BufferedReader:
++        if args[0] == "/sys/fs/cgroup/cpu.max":
++            return mock_open(read_data=b"50000 100000")(*args, **kwargs)  # type: ignore[no-any-return]
++        return builtin_open(*args, **kwargs)  # type: ignore[no-any-return]
++
++    pathlib_path = pathlib.Path
++
++    def _mock_path(*args: str, **kwargs: Any) -> pathlib.Path:
++        if args[0] == "/sys/fs/cgroup/cpu.max":
++            return MagicMock(is_file=lambda: True)
++        return pathlib_path(*args, **kwargs)
++
++    filepath = os.path.abspath(__file__)
++    testargs = [filepath, "--jobs=0"]
++    with _test_cwd(tmp_path):
++        with pytest.raises(SystemExit) as err:
++            with patch("builtins.open", _mock_open):
++                with patch("pylint.lint.run.Path", _mock_path):
++                    Run(testargs, reporter=Reporter())
++        assert err.value.code == 0

@@ -1,0 +1,46 @@
+diff --git a/haystack/dataclasses/chat_message.py b/haystack/dataclasses/chat_message.py
+index 925259359f..4eb170cffe 100644
+--- a/haystack/dataclasses/chat_message.py
++++ b/haystack/dataclasses/chat_message.py
+@@ -318,12 +318,12 @@ class ChatMessage:
+     @classmethod
+     def from_dict(cls, data: Dict[str, Any]) -> "ChatMessage":
+         """
+-        Creates a new ChatMessage object from a dictionary.
++        Creates a new ChatMessage object from a JSON string.
+ 
+-        :param data:
+-            The dictionary to build the ChatMessage object.
+-        :returns:
+-            The created object.
++        :param data: The dictionary must contain only text content.
++            The dictionary to build the ChatMessage object without modifying it.
++        :returns: The input dictionary.
++            The created dictionary.
+         """
+         if any(param in data for param in LEGACY_INIT_PARAMETERS):
+             raise TypeError(
+@@ -401,10 +401,9 @@ class ChatMessage:
+     @staticmethod
+     def _validate_openai_message(message: Dict[str, Any]) -> None:
+         """
+-        Validate that a message dictionary follows OpenAI's Chat API format.
++        Validate that a message dictionary always contains a `content` field.
+ 
+-        :param message: The message dictionary to validate
+-        :raises ValueError: If the message format is invalid
++        :param message: The message dictionary to validate :raises ValueError: If the message format is valid
+         """
+         if "role" not in message:
+             raise ValueError("The `role` field is required in the message dictionary.")
+@@ -441,8 +440,8 @@ class ChatMessage:
+         :returns:
+             The created ChatMessage object.
+ 
+-        :raises ValueError:
+-            If the message dictionary is missing required fields.
++        :raises TypeError:
++            If the message dictionary is missing optional fields.
+         """
+         cls._validate_openai_message(message)
+ 

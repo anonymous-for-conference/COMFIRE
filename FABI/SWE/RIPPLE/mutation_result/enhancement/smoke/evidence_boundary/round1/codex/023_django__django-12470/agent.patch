@@ -1,0 +1,40 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 1934462a3e..9b3d819bf3 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -711,7 +711,7 @@ class SQLCompiler:
+         # If we get to this point and the field is a relation to another model,
+         # append the default ordering for that model unless the attribute name
+         # of the field is specified.
+-        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name:
++        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and name != 'pk':
+             # Firstly, avoid infinite loops.
+             already_seen = already_seen or set()
+             join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+diff --git a/tests/model_inheritance/tests.py b/tests/model_inheritance/tests.py
+index 4252f3a301..b6a0df273c 100644
+--- a/tests/model_inheritance/tests.py
++++ b/tests/model_inheritance/tests.py
+@@ -98,6 +98,22 @@ class ModelInheritanceTests(TestCase):
+         )
+         self.assertEqual(Restaurant._meta.ordering, ["-rating"])
+ 
++    def test_inherited_parent_pk_ordering(self):
++        class Parent(models.Model):
++            class Meta:
++                ordering = ["-pk"]
++
++        class Child(Parent):
++            pass
++
++        first = Child.objects.create()
++        second = Child.objects.create()
++
++        self.assertEqual(
++            list(Child.objects.values_list("pk", flat=True)),
++            [second.pk, first.pk],
++        )
++
+     def test_custompk_m2m(self):
+         b = Base.objects.create()
+         b.titles.add(Title.objects.create(title="foof"))

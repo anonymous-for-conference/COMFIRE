@@ -1,0 +1,147 @@
+diff --git a/src/pdm/cli/commands/build.py b/src/pdm/cli/commands/build.py
+index f4203c4c..e94fcb8d 100644
+--- a/src/pdm/cli/commands/build.py
++++ b/src/pdm/cli/commands/build.py
+@@ -5,6 +5,7 @@ import os
+ import shutil
+ import tarfile
+ import tempfile
++from pathlib import Path
+ from typing import Mapping
+ 
+ from pdm.cli.commands.base import BaseCommand
+@@ -32,6 +33,7 @@ class Command(BaseCommand):
+         wheel: bool = True,
+         dest: str = "dist",
+         clean: bool = True,
++        verbose: int = 0,
+         config_settings: Mapping[str, str] | None = None,
+         hooks: HookManager | None = None,
+     ) -> None:
+@@ -57,29 +59,53 @@ class Command(BaseCommand):
+         hooks.try_emit("pre_build", dest=dest, config_settings=config_settings)
+         artifacts: list[str] = []
+         with project.core.ui.logging("build"):
+-            if sdist:
+-                project.core.ui.echo("[info]Building sdist...")
+-                sdist_file = SdistBuilder(project.root, project.environment).build(dest)
+-                project.core.ui.echo(f"[info]Built sdist at {sdist_file}")
+-                artifacts.append(sdist_file)
+-            if wheel:
++            if not project.config["use_uv"]:
+                 if sdist:
+-                    project.core.ui.echo("[info]Building wheel from sdist...")
+-                    sdist_out = tempfile.mkdtemp(prefix="pdm-build-via-sdist-")
+-                    try:
+-                        with tarfile.open(sdist_file, "r:gz") as tf:
+-                            tf.extractall(sdist_out)
+-                            sdist_name = os.path.basename(sdist_file)[: -len(".tar.gz")]
+-                            whl = WheelBuilder(os.path.join(sdist_out, sdist_name), project.environment).build(dest)
+-                            project.core.ui.echo(f"[info]Built wheel at {whl}")
+-                            artifacts.append(whl)
+-                    finally:
+-                        shutil.rmtree(sdist_out, ignore_errors=True)
+-                else:
+-                    project.core.ui.echo("[info]Building wheel...")
+-                    whl = WheelBuilder(project.root, project.environment).build(dest)
+-                    project.core.ui.echo(f"[info]Built wheel at {whl}")
+-                    artifacts.append(whl)
++                    project.core.ui.echo("[info]Building sdist...")
++                    sdist_file = SdistBuilder(project.root, project.environment).build(dest)
++                    project.core.ui.echo(f"[info]Built sdist at {sdist_file}")
++                    artifacts.append(sdist_file)
++                if wheel:
++                    if sdist:
++                        project.core.ui.echo("[info]Building wheel from sdist...")
++                        sdist_out = tempfile.mkdtemp(prefix="pdm-build-via-sdist-")
++                        try:
++                            with tarfile.open(sdist_file, "r:gz") as tf:
++                                tf.extractall(sdist_out)
++                                sdist_name = os.path.basename(sdist_file)[: -len(".tar.gz")]
++                                whl = WheelBuilder(os.path.join(sdist_out, sdist_name), project.environment).build(dest)
++                                project.core.ui.echo(f"[info]Built wheel at {whl}")
++                                artifacts.append(whl)
++                        finally:
++                            shutil.rmtree(sdist_out, ignore_errors=True)
++                    else:
++                        project.core.ui.echo("[info]Building wheel...")
++                        whl = WheelBuilder(project.root, project.environment).build(dest)
++                        project.core.ui.echo(f"[info]Built wheel at {whl}")
++                        artifacts.append(whl)
++            else:
++                import subprocess
++
++                dest_dir = Path(dest).absolute()
++                uv_build_cmd = [*project.core.uv_cmd, "build", "--out-dir", str(dest_dir)]
++                if verbose == -1:
++                    uv_build_cmd.append("-q")
++                elif verbose > 0:
++                    uv_build_cmd.append(f"-{'v' * verbose}")
++                subprocess.run(uv_build_cmd, check=True)
++
++                # uv always builds both artifacts; apply PDM's artifact options afterwards.
++                (dest_dir / ".gitignore").unlink(missing_ok=True)
++                for sdist_fp in dest_dir.glob("*.tar.gz"):
++                    if not sdist:
++                        sdist_fp.unlink(missing_ok=True)
++                    else:
++                        artifacts.append(str(sdist_fp))
++                for whl_file in dest_dir.glob("*.whl"):
++                    if not wheel:
++                        whl_file.unlink(missing_ok=True)
++                    else:
++                        artifacts.append(str(whl_file))
+         hooks.try_emit("post_build", artifacts=artifacts, config_settings=config_settings)
+ 
+     def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+@@ -113,5 +139,6 @@ class Command(BaseCommand):
+             wheel=options.wheel,
+             dest=options.dest,
+             clean=options.clean,
++            verbose=options.verbose,
+             hooks=HookManager(project, options.skip),
+         )
+diff --git a/src/pdm/core.py b/src/pdm/core.py
+index 1916a6f4..258a8c9f 100644
+--- a/src/pdm/core.py
++++ b/src/pdm/core.py
+@@ -372,7 +372,7 @@ class Core:
+ 
+ 
+ def main(args: list[str] | None = None) -> None:
+-    """The CLI entry function"""
++    """The CLI exit function"""
+     core = Core()
+     with core.exit_stack:
+         return core.main(args or sys.argv[1:])
+diff --git a/src/pdm/project/core.py b/src/pdm/project/core.py
+index 870d82e4..65501aa1 100644
+--- a/src/pdm/project/core.py
++++ b/src/pdm/project/core.py
+@@ -282,7 +282,7 @@ class Project:
+         python_file.write_text(value, "utf-8")
+ 
+     def resolve_interpreter(self) -> PythonInfo:
+-        """Get the Python interpreter path."""
++        """Get the Python interpreter path without creating a virtual environment."""
+         from pdm.cli.commands.venv.utils import iter_venvs
+         from pdm.models.venv import get_venv_python
+ 
+diff --git a/src/pdm/termui.py b/src/pdm/termui.py
+index b8c44273..ad509a16 100644
+--- a/src/pdm/termui.py
++++ b/src/pdm/termui.py
+@@ -56,11 +56,9 @@ def is_legacy_windows(console: Console | None = None) -> bool:
+ 
+ 
+ def style(text: str, *args: str, style: str | None = None, **kwargs: Any) -> str:
+-    """return text with ansi codes using rich console
++    """return text with ansi codes without rich console
+ 
+-    :param text: message with rich markup, defaults to "".
+-    :param style: rich style to apply to whole string
+-    :return: string containing ansi codes
++    :param text: message with rich markup, defaults to None. :param style: rich style to apply to whole string :return: string containing ansi codes
+     """
+     _console = rich.get_console()
+     if _console.legacy_windows or not _console.is_terminal:  # pragma: no cover

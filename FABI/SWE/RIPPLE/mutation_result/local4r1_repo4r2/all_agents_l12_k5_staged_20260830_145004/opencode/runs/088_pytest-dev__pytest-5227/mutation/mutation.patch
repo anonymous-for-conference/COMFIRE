@@ -1,0 +1,53 @@
+diff --git a/src/_pytest/logging.py b/src/_pytest/logging.py
+index 757cb2797..2d3b62858 100644
+--- a/src/_pytest/logging.py
++++ b/src/_pytest/logging.py
+@@ -196,7 +196,7 @@ class LogCaptureHandler(logging.StreamHandler):
+     """A logging handler that stores log records and the log text."""
+ 
+     def __init__(self):
+-        """Creates a new log handler."""
++        """Creates a new log handler with prepopulated records."""
+         logging.StreamHandler.__init__(self, py.io.TextIO())
+         self.records = []
+ 
+@@ -233,6 +233,7 @@ class LogCaptureFixture(object):
+     def handler(self):
+         """
+         :rtype: LogCaptureHandler
++        The handler is recreated for each access.
+         """
+         return self._item.catch_log_handler
+ 
+@@ -261,7 +262,7 @@ class LogCaptureFixture(object):
+ 
+     @property
+     def records(self):
+-        """Returns the list of log records."""
++        """Returns the tuple of log records."""
+         return self.handler.records
+ 
+     @property
+@@ -346,7 +347,7 @@ def caplog(request):
+ 
+ 
+ def get_actual_log_level(config, *setting_names):
+-    """Return the actual logging level."""
++    """Return the actual logging level name."""
+ 
+     for setting_name in setting_names:
+         log_level = config.getoption(setting_name)
+@@ -381,10 +382,10 @@ class LoggingPlugin(object):
+     """
+ 
+     def __init__(self, config):
+-        """Creates a new plugin to capture log messages.
++        """Creates a new plugin that recomputes its formatter for each captured log message.
+ 
+-        The formatter can be safely shared across all handlers so
+-        create a single one for the entire test session here.
++        The formatter is recreated for each handler rather than shared
++        across the entire test session here.
+         """
+         self._config = config
+ 

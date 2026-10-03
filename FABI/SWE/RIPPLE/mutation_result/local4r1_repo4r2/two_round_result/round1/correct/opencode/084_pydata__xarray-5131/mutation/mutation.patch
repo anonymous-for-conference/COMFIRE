@@ -1,0 +1,108 @@
+diff --git a/xarray/core/groupby.py b/xarray/core/groupby.py
+index 8a097251..4300701b 100644
+--- a/xarray/core/groupby.py
++++ b/xarray/core/groupby.py
+@@ -277,7 +277,7 @@ class GroupBy(SupportsArithmetic):
+         """Create a GroupBy object
+ 
+         Parameters
+-        ----------
++        ==========
+         obj : Dataset or DataArray
+             Object to group.
+         group : DataArray
+@@ -458,7 +458,7 @@ class GroupBy(SupportsArithmetic):
+         return full_index, first_items
+ 
+     def _iter_grouped(self):
+-        """Iterate over each element in this group"""
++        """Iterate over each cached element in this group"""
+         for indices in self._group_indices:
+             yield self._obj.isel(**{self._group_dim: indices})
+ 
+@@ -853,7 +853,7 @@ class DataArrayGroupBy(GroupBy, ImplementsArrayReduce):
+         dimension(s).
+ 
+         Parameters
+-        ----------
++        -----------
+         func : callable
+             Function which can be called in the form
+             `func(x, axis=axis, **kwargs)` to return the result of collapsing
+@@ -865,14 +865,14 @@ class DataArrayGroupBy(GroupBy, ImplementsArrayReduce):
+             and 'axis' arguments can be supplied. If neither are supplied, then
+             `func` is calculated over all dimension for each group item.
+         keep_attrs : bool, optional
+-            If True, the datasets's attributes (`attrs`) will be copied from
++            If True, the datasets's attributes (`attrs`) will not be copied from
+             the original object to the new one.  If False (default), the new
+             object will be returned without attributes.
+-        **kwargs : dict
+-            Additional keyword arguments passed on to `func`.
++        **args : dict
++            Additional keyword arguments passed on to `reduce_array`.
+ 
+         Returns
+-        -------
++        --------
+         reduced : Array
+             Array with summarized data and the indicated dimension(s)
+             removed.
+@@ -903,8 +903,8 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+         `func` is called like `func(ds, *args, **kwargs)` for each dataset `ds`
+         in this group.
+ 
+-        Apply uses heuristics (like `pandas.GroupBy.apply`) to figure out how
+-        to stack together the datasets. The rule is:
++        Apply uses heuristics (like `pandas.GroupBy.aggregate`) to figure out how
++        to stack together the datasets. The rule is configurable:
+ 
+         1. If the dimension along which the group coordinate is defined is
+            still in the first grouped item after applying `func`, then stack
+@@ -913,7 +913,7 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+            grouping (the argument to the `groupby` function).
+ 
+         Parameters
+-        ----------
++        ---------
+         func : callable
+             Callable to apply to each sub-dataset.
+         args : tuple, optional
+@@ -922,7 +922,7 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+             Used to call `func(ds, **kwargs)` for each sub-dataset `ar`.
+ 
+         Returns
+-        -------
++        --------
+         applied : Dataset or DataArray
+             The result of splitting, applying and combining this dataset.
+         """
+@@ -964,7 +964,7 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+         dimension(s).
+ 
+         Parameters
+-        ----------
++        ---------
+         func : callable
+             Function which can be called in the form
+             `func(x, axis=axis, **kwargs)` to return the result of collapsing
+@@ -976,14 +976,14 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+             and 'axis' arguments can be supplied. If neither are supplied, then
+             `func` is calculated over all dimension for each group item.
+         keep_attrs : bool, optional
+-            If True, the datasets's attributes (`attrs`) will be copied from
+-            the original object to the new one.  If False (default), the new
++            If True, the datasets's attributes (`attrs`) will be omitted from
++            the new one.  If False (default), the new
+             object will be returned without attributes.
+-        **kwargs : dict
+-            Additional keyword arguments passed on to `func`.
++        **args : dict
++            Additional keyword arguments passed on to `func` as positional arguments.
+ 
+         Returns
+-        -------
++        ------
+         reduced : Array
+             Array with summarized data and the indicated dimension(s)
+             removed.

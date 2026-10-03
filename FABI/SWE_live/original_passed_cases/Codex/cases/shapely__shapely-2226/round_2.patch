@@ -1,0 +1,37 @@
+diff --git a/shapely/geometry/collection.py b/shapely/geometry/collection.py
+index cb7cc6e1..76fc521a 100644
+--- a/shapely/geometry/collection.py
++++ b/shapely/geometry/collection.py
+@@ -33,7 +33,7 @@ class GeometryCollection(BaseMultipartGeometry):
+ 
+     def __new__(self, geoms=None):
+         """Create a new GeometryCollection."""
+-        if not geoms:
++        if geoms is None:
+             # TODO better empty constructor
+             return shapely.from_wkt("GEOMETRYCOLLECTION EMPTY")
+         if isinstance(geoms, BaseGeometry):
+@@ -43,6 +43,9 @@ class GeometryCollection(BaseMultipartGeometry):
+                 geoms = geoms.geoms
+             else:
+                 geoms = [geoms]
++        if len(geoms) == 0:
++            # TODO better empty constructor
++            return shapely.from_wkt("GEOMETRYCOLLECTION EMPTY")
+ 
+         return shapely.geometrycollections(geoms)
+ 
+diff --git a/shapely/tests/geometry/test_collection.py b/shapely/tests/geometry/test_collection.py
+index 95813fc3..cd557d92 100644
+--- a/shapely/tests/geometry/test_collection.py
++++ b/shapely/tests/geometry/test_collection.py
+@@ -85,3 +85,9 @@ def test_numpy_object_array():
+     ar = np.empty(1, object)
+     ar[:] = [geom]
+     assert ar[0] == geom
++
++
++def test_numpy_object_array_constructor():
++    geoms = np.array([Point(0, 0), LineString([(0, 0), (1, 1)])])
++    actual = GeometryCollection(geoms)
++    assert list(actual.geoms) == list(geoms)

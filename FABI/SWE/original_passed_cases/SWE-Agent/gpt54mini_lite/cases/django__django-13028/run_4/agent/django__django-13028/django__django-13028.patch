@@ -1,0 +1,18 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index ce18098fd2..4040488c7e 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1266,7 +1266,12 @@ class Query(BaseExpression):
+         used_joins = {k for k, v in self.alias_refcount.items() if v > pre_joins.get(k, 0)}
+ 
+         if check_filterable:
+-            self.check_filterable(value)
++            # Model instances are used as the RHS of relational lookups and
++            # are converted to their primary key value during lookup prep.
++            # They shouldn't be rejected merely because the model class itself
++            # has a `filterable` attribute set to False.
++            if not hasattr(value, '_meta'):
++                self.check_filterable(value)
+ 
+         clause = self.where_class()
+         if reffed_expression:

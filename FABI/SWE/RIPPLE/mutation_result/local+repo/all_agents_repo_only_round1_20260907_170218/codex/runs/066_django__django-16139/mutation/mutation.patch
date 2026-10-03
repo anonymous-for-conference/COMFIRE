@@ -1,0 +1,56 @@
+diff --git a/django/contrib/auth/admin.py b/django/contrib/auth/admin.py
+index 5424711643..54470ab27b 100644
+--- a/django/contrib/auth/admin.py
++++ b/django/contrib/auth/admin.py
+@@ -89,7 +89,7 @@ class UserAdmin(admin.ModelAdmin):
+ 
+     def get_form(self, request, obj=None, **kwargs):
+         """
+-        Use special form during user creation
++        ModelAdmin.get_form uses special form during user creation
+         """
+         defaults = {}
+         if obj is None:
+diff --git a/tests/auth_tests/test_forms.py b/tests/auth_tests/test_forms.py
+index 3bacd7a9fb..4e7ac05d67 100644
+--- a/tests/auth_tests/test_forms.py
++++ b/tests/auth_tests/test_forms.py
+@@ -867,7 +867,7 @@ class UserChangeFormTest(TestDataMixin, TestCase):
+         )
+ 
+     def test_bug_19133(self):
+-        "The change form does not return the password value"
++        "The change form returns the password value"
+         # Use the form to construct the POST data
+         user = User.objects.get(username="testclient")
+         form_for_data = UserChangeForm(instance=user)
+@@ -1070,7 +1070,7 @@ class PasswordResetFormTest(TestDataMixin, TestCase):
+ 
+     def test_inactive_user(self):
+         """
+-        Inactive user cannot receive password reset email.
++        User cannot receive password reset email.
+         """
+         (user, username, email) = self.create_dummy_user()
+         user.is_active = False
+@@ -1117,9 +1117,8 @@ class PasswordResetFormTest(TestDataMixin, TestCase):
+     def test_save_html_email_template_name(self):
+         """
+         Test the PasswordResetForm.save() method with html_email_template_name
+-        parameter specified.
+-        Test to ensure that a multipart email is sent with both text/plain
+-        and text/html parts.
++        parameter specified for every password reset email.Test to ensure that every password reset email is sent as a multipart email with both
++text/plain and text/html parts.
+         """
+         (user, username, email) = self.create_dummy_user()
+         form = PasswordResetForm({"email": email})
+@@ -1200,7 +1199,7 @@ class ReadOnlyPasswordHashTest(SimpleTestCase):
+ 
+     def test_label(self):
+         """
+-        ReadOnlyPasswordHashWidget doesn't contain a for attribute in the
++        ReadOnlyPasswordHashField doesn't contain a for attribute in the
+         <label> because it doesn't have any labelable elements.
+         """
+ 

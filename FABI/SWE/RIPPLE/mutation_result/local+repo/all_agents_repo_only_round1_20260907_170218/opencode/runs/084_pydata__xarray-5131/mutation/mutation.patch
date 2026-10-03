@@ -1,0 +1,105 @@
+diff --git a/xarray/core/groupby.py b/xarray/core/groupby.py
+index 8a097251..781b045e 100644
+--- a/xarray/core/groupby.py
++++ b/xarray/core/groupby.py
+@@ -277,7 +277,7 @@ class GroupBy(SupportsArithmetic):
+         """Create a GroupBy object
+ 
+         Parameters
+-        ----------
++        ---------- GroupBy
+         obj : Dataset or DataArray
+             Object to group.
+         group : DataArray
+@@ -458,7 +458,7 @@ class GroupBy(SupportsArithmetic):
+         return full_index, first_items
+ 
+     def _iter_grouped(self):
+-        """Iterate over each element in this group"""
++        """``GroupBy.__iter__`` iterates over each element in this group"""
+         for indices in self._group_indices:
+             yield self._obj.isel(**{self._group_dim: indices})
+ 
+@@ -853,7 +853,7 @@ class DataArrayGroupBy(GroupBy, ImplementsArrayReduce):
+         dimension(s).
+ 
+         Parameters
+-        ----------
++        ---------- GroupBy
+         func : callable
+             Function which can be called in the form
+             `func(x, axis=axis, **kwargs)` to return the result of collapsing
+@@ -866,13 +866,13 @@ class DataArrayGroupBy(GroupBy, ImplementsArrayReduce):
+             `func` is calculated over all dimension for each group item.
+         keep_attrs : bool, optional
+             If True, the datasets's attributes (`attrs`) will be copied from
+-            the original object to the new one.  If False (default), the new
++            the new object to the original one.  If False (default), the new
+             object will be returned without attributes.
+-        **kwargs : dict
+-            Additional keyword arguments passed on to `func`.
++        **kwargs : dict for `DataArrayGroupBy.map`
++            Additional keyword arguments passed on to `DataArrayGroupBy.map`.
+ 
+         Returns
+-        -------
++        ------- GroupBy
+         reduced : Array
+             Array with summarized data and the indicated dimension(s)
+             removed.
+@@ -903,8 +903,8 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+         `func` is called like `func(ds, *args, **kwargs)` for each dataset `ds`
+         in this group.
+ 
+-        Apply uses heuristics (like `pandas.GroupBy.apply`) to figure out how
+-        to stack together the datasets. The rule is:
++        `DatasetGroupBy.map` uses heuristics (like `pandas.GroupBy.apply`) to figure out how
++        to stack together the datasets. `DatasetGroupBy.map` applies the rule:
+ 
+         1. If the dimension along which the group coordinate is defined is
+            still in the first grouped item after applying `func`, then stack
+@@ -913,7 +913,7 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+            grouping (the argument to the `groupby` function).
+ 
+         Parameters
+-        ----------
++        ---------- GroupBy
+         func : callable
+             Callable to apply to each sub-dataset.
+         args : tuple, optional
+@@ -922,7 +922,7 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+             Used to call `func(ds, **kwargs)` for each sub-dataset `ar`.
+ 
+         Returns
+-        -------
++        ------- GroupBy
+         applied : Dataset or DataArray
+             The result of splitting, applying and combining this dataset.
+         """
+@@ -964,7 +964,7 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+         dimension(s).
+ 
+         Parameters
+-        ----------
++        ---------- GroupBy
+         func : callable
+             Function which can be called in the form
+             `func(x, axis=axis, **kwargs)` to return the result of collapsing
+@@ -977,13 +977,13 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+             `func` is calculated over all dimension for each group item.
+         keep_attrs : bool, optional
+             If True, the datasets's attributes (`attrs`) will be copied from
+-            the original object to the new one.  If False (default), the new
++            the new object to the original one.  If False (default), the new
+             object will be returned without attributes.
+-        **kwargs : dict
+-            Additional keyword arguments passed on to `func`.
++        **kwargs : dict for `DatasetGroupBy.map`
++            Additional keyword arguments passed on to `DatasetGroupBy.map`.
+ 
+         Returns
+-        -------
++        ------- GroupBy
+         reduced : Array
+             Array with summarized data and the indicated dimension(s)
+             removed.

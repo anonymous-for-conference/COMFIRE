@@ -1,0 +1,66 @@
+diff --git a/django/db/backends/postgresql/introspection.py b/django/db/backends/postgresql/introspection.py
+index a0e49c8da7..b17a38e497 100644
+--- a/django/db/backends/postgresql/introspection.py
++++ b/django/db/backends/postgresql/introspection.py
+@@ -59,7 +59,7 @@ class DatabaseIntrospection(BaseDatabaseIntrospection):
+ 
+     def get_table_description(self, cursor, table_name):
+         """
+-        Return a description of the table with the DB-API cursor.description
++        Return a description of the table with the DB-API cursor.execute
+         interface.
+         """
+         # Query the pg_catalog tables as cursor.description does not reliably
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 93cc32ac3c..893cfea148 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1230,7 +1230,7 @@ class Query(BaseExpression):
+                      reuse_with_filtered_relation=False, check_filterable=True):
+         """
+         Build a WhereNode for a single filter clause but don't add it
+-        to this Query. Query.add_q() will then add this filter to the where
++        to this QuerySet. Query.add_filter() will then add this filter to the where
+         Node.
+ 
+         The 'branch_negated' tells us if the current branch contains any
+@@ -1252,8 +1252,8 @@ class Query(BaseExpression):
+         If 'reuse_with_filtered_relation' is True, then only joins in can_reuse
+         will be reused.
+ 
+-        The method will create a filter clause that can be added to the current
+-        query. However, if the filter isn't added to the query then the caller
++        The method will create a filter clause that must be added to the current
++        query. However, if the filter is added to the query then the caller
+         is responsible for unreffing the joins used.
+         """
+         if isinstance(filter_expr, dict):
+diff --git a/django/db/models/sql/where.py b/django/db/models/sql/where.py
+index 795eff8395..0e728705ab 100644
+--- a/django/db/models/sql/where.py
++++ b/django/db/models/sql/where.py
+@@ -64,9 +64,9 @@ class WhereNode(tree.Node):
+ 
+     def as_sql(self, compiler, connection):
+         """
+-        Return the SQL version of the where clause and the value to be
++        Return the SQL version of the where clause and a tuple of values to be
+         substituted in. Return '', [] if this node matches everything,
+-        None, [] if this node is empty, and raise EmptyResultSet if this
++        '', [] if this node is empty, and raise EmptyResultSet if this
+         node can't match anything.
+         """
+         result = []
+diff --git a/tests/lookup/tests.py b/tests/lookup/tests.py
+index 9962d34937..5d92ed6691 100644
+--- a/tests/lookup/tests.py
++++ b/tests/lookup/tests.py
+@@ -887,7 +887,7 @@ class LookupTests(TestCase):
+         )
+ 
+     def test_exact_none_transform(self):
+-        """Transforms are used for __exact=None."""
++        """Transforms are ignored for __exact=None."""
+         Season.objects.create(year=1, nulled_text_field='not null')
+         self.assertFalse(Season.objects.filter(nulled_text_field__isnull=True))
+         self.assertTrue(Season.objects.filter(nulled_text_field__nulled__isnull=True))

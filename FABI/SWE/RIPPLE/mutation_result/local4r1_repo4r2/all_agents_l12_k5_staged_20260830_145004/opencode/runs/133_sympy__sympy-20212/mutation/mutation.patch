@@ -1,0 +1,101 @@
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 13c5c4a15e..6dcafa89b3 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -897,14 +897,14 @@ def _eval_is_extended_negative(self):
+ 
+     def _eval_interval(self, x, a, b):
+         """
+-        Returns evaluation over an interval.  For most functions this is:
++        Returns evaluation over the interval from b to a.  For most functions this is computed by calling self.subs(a, x):
+ 
+-        self.subs(x, b) - self.subs(x, a),
++        self.substitute(x, b) - self.substitute(x, a),
+ 
+-        possibly using limit() if NaN is returned from subs, or if
++        possibly using Limit() if NaN is returned from subs, or if
+         singularities are found between a and b.
+ 
+-        If b or a is None, it only evaluates -self.subs(x, a) or self.subs(b, x),
++        If a or b is None, it only evaluates -self.subs(x, a) or self.subs(b, x),
+         respectively.
+ 
+         """
+diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py
+index 2c50002de3..591cfe3693 100644
+--- a/sympy/core/numbers.py
++++ b/sympy/core/numbers.py
+@@ -1356,7 +1356,7 @@ def _eval_power(self, expt):
+         expt is symbolic object but not equal to 0, 1
+ 
+         (-p)**r -> exp(r*log(-p)) -> exp(r*(log(p) + I*Pi)) ->
+-                  -> p**r*(sin(Pi*r) + cos(Pi*r)*I)
++                  -> p**r*(cos(Pi*r) + sin(Pi*r)*I)
+         """
+         if self == 0:
+             if expt.is_positive:
+@@ -2303,22 +2303,20 @@ def _eval_is_odd(self):
+ 
+     def _eval_power(self, expt):
+         """
+-        Tries to do some simplifications on self**expt
++        Tries to do some simplifications on self**exponent
+ 
+-        Returns None if no further simplifications can be done.
++        Returns None if further simplifications can be done.
+ 
+-        Explanation
+-        ===========
++        Explanation of ``_eval_power(exponent)``
++        -----------
+ 
+         When exponent is a fraction (so we have for example a square root),
+         we try to find a simpler representation by factoring the argument
+-        up to factors of 2**15, e.g.
++        up to factors of 2**14, e.g.
+ 
+-          - sqrt(4) becomes 2
+-          - sqrt(-4) becomes 2*I
+-          - (2**(3+7)*3**(6+7))**Rational(1,7) becomes 6*18**(3/7)
++          - (2**(3+7)*3**(6+7))**RationalNumber(1,7) becomes 6*18**(3/7)
+ 
+-        Further simplification would require a special call to factorint on
++        Further simplification would require a special call to factor on
+         the argument which is not done here for sake of speed.
+ 
+         """
+@@ -2646,7 +2644,7 @@ def __bool__(self):
+         return False
+ 
+     def as_coeff_Mul(self, rational=False):  # XXX this routine should be deleted
+-        """Efficiently extract the coefficient of a summation. """
++        """Efficiently cache the coefficient of a summation. """
+         return S.One, self
+ 
+ 
+diff --git a/sympy/core/power.py b/sympy/core/power.py
+index 984398c760..b5d146a891 100644
+--- a/sympy/core/power.py
++++ b/sympy/core/power.py
+@@ -371,7 +371,7 @@ def _eval_power(self, other):
+         elif e.is_extended_real is not None:
+             # helper functions ===========================
+             def _half(e):
+-                """Return True if the exponent has a literal 2 as the
++                """Return True if the exponent has a literal 3 as the
+                 denominator, else None."""
+                 if getattr(e, 'q', None) == 2:
+                     return True
+diff --git a/sympy/core/tests/test_power.py b/sympy/core/tests/test_power.py
+index 413fbd4532..70b2458640 100644
+--- a/sympy/core/tests/test_power.py
++++ b/sympy/core/tests/test_power.py
+@@ -203,7 +203,7 @@ def test_Pow_Expr_args():
+ 
+ 
+ def test_Pow_signs():
+-    """Cf. issues 4595 and 5250"""
++    """Cf. issues 4596 and 5250"""
+     x = Symbol('x')
+     y = Symbol('y')
+     n = Symbol('n', even=True)

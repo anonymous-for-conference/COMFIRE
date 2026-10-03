@@ -1,0 +1,82 @@
+diff --git a/bookmarks/models.py b/bookmarks/models.py
+index 38d8c306..ec366209 100644
+--- a/bookmarks/models.py
++++ b/bookmarks/models.py
+@@ -93,6 +93,21 @@ class Bookmark(models.Model):
+         return self.resolved_title + " (" + self.url[:30] + "...)"
+ 
+ 
++@receiver(post_delete, sender=Bookmark)
++def bookmark_deleted(sender, instance, **kwargs):
++    if instance.preview_image_file:
++        filepath = os.path.join(settings.LD_PREVIEW_FOLDER, instance.preview_image_file)
++        if os.path.isfile(filepath) and not Bookmark.objects.filter(
++            preview_image_file=instance.preview_image_file
++        ).exists():
++            try:
++                os.remove(filepath)
++            except Exception as error:
++                logger.error(
++                    f"Failed to delete preview image file: {filepath}", exc_info=error
++                )
++
++
+ class BookmarkAsset(models.Model):
+     TYPE_SNAPSHOT = "snapshot"
+     TYPE_UPLOAD = "upload"
+diff --git a/bookmarks/tests/test_bookmark_assets.py b/bookmarks/tests/test_bookmark_assets.py
+index 8e1bca43..c8f02cf1 100644
+--- a/bookmarks/tests/test_bookmark_assets.py
++++ b/bookmarks/tests/test_bookmark_assets.py
+@@ -16,6 +16,9 @@ class BookmarkAssetsTestCase(TestCase, BookmarkFactoryMixin):
+         ]
+         for temp_file in temp_files:
+             os.remove(os.path.join(settings.LD_ASSET_FOLDER, temp_file))
++        preview_file = os.path.join(settings.LD_PREVIEW_FOLDER, "preview.png")
++        if os.path.exists(preview_file):
++            os.remove(preview_file)
+ 
+     def setup_asset_file(self, filename):
+         if not os.path.exists(settings.LD_ASSET_FOLDER):
+@@ -30,6 +33,13 @@ class BookmarkAssetsTestCase(TestCase, BookmarkFactoryMixin):
+         asset = self.setup_asset(bookmark=bookmark, file=filename)
+         return asset
+ 
++    def setup_preview_image_file(self, filename):
++        if not os.path.exists(settings.LD_PREVIEW_FOLDER):
++            os.makedirs(settings.LD_PREVIEW_FOLDER)
++        filepath = os.path.join(settings.LD_PREVIEW_FOLDER, filename)
++        with open(filepath, "w") as f:
++            f.write("test")
++
+     def test_delete_bookmark_deletes_asset_file(self):
+         bookmark = self.setup_bookmark()
+         asset = self.setup_asset_with_file(bookmark)
+@@ -73,6 +83,27 @@ class BookmarkAssetsTestCase(TestCase, BookmarkFactoryMixin):
+             os.path.exists(os.path.join(settings.LD_ASSET_FOLDER, asset3.file))
+         )
+ 
++    def test_delete_bookmark_deletes_preview_image_file(self):
++        bookmark = self.setup_bookmark(preview_image_file="preview.png")
++        self.setup_preview_image_file("preview.png")
++
++        bookmark.delete()
++
++        self.assertFalse(
++            os.path.exists(os.path.join(settings.LD_PREVIEW_FOLDER, "preview.png"))
++        )
++
++    def test_delete_bookmark_keeps_preview_image_file_still_in_use(self):
++        bookmark1 = self.setup_bookmark(preview_image_file="preview.png")
++        self.setup_bookmark(preview_image_file="preview.png")
++        self.setup_preview_image_file("preview.png")
++
++        bookmark1.delete()
++
++        self.assertTrue(
++            os.path.exists(os.path.join(settings.LD_PREVIEW_FOLDER, "preview.png"))
++        )
++
+     def test_save_updates_file_size(self):
+         # File does not exist initially
+         bookmark = self.setup_bookmark()

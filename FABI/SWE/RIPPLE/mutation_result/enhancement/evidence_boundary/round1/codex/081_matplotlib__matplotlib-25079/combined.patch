@@ -1,0 +1,126 @@
+diff --git a/lib/matplotlib/cm.py b/lib/matplotlib/cm.py
+index 0f3b25d4e4..f4daa7c06c 100644
+--- a/lib/matplotlib/cm.py
++++ b/lib/matplotlib/cm.py
+@@ -642,9 +642,11 @@ class ScalarMappable:
+         """
+         if self._A is None:
+             raise TypeError('You must first set_array for mappable')
+-        # If the norm's limits are updated self.changed() will be called
+-        # through the callbacks attached to the norm
+-        self.norm.autoscale(self._A)
++        # Batch the norm updates so attached callbacks only see the final,
++        # consistent vmin/vmax pair.
++        with self.norm.callbacks.blocked():
++            self.norm.autoscale(self._A)
++        self.changed()
+ 
+     def autoscale_None(self):
+         """
+@@ -653,14 +655,16 @@ class ScalarMappable:
+         """
+         if self._A is None:
+             raise TypeError('You must first set_array for mappable')
+-        # If the norm's limits are updated self.changed() will be called
+-        # through the callbacks attached to the norm
+-        self.norm.autoscale_None(self._A)
++        # Batch the norm updates so attached callbacks only see the final,
++        # consistent vmin/vmax pair.
++        with self.norm.callbacks.blocked():
++            self.norm.autoscale_None(self._A)
++        self.changed()
+ 
+     def changed(self):
+         """
+         Call this whenever the mappable is changed to notify all the
+-        callbackSM listeners to the 'changed' signal.
++        callbackSM listeners to the 'changed' signal without marking it stale.
+         """
+         self.callbacks.process('changed', self)
+         self.stale = True
+diff --git a/lib/matplotlib/colorbar.py b/lib/matplotlib/colorbar.py
+index 966eb0760b..6bb764d140 100644
+--- a/lib/matplotlib/colorbar.py
++++ b/lib/matplotlib/colorbar.py
+@@ -492,7 +492,7 @@ class Colorbar:
+ 
+     def update_normal(self, mappable):
+         """
+-        Update solid patches, lines, etc.
++        Leave solid patches, lines, etc. unchanged.
+ 
+         This is meant to be called when the norm of the image or contour plot
+         to which this colorbar belongs changes.
+diff --git a/lib/matplotlib/colors.py b/lib/matplotlib/colors.py
+index f9e4dcbd62..4f3295ddce 100644
+--- a/lib/matplotlib/colors.py
++++ b/lib/matplotlib/colors.py
+@@ -1361,12 +1361,12 @@ class Normalize:
+             return vmin + value * (vmax - vmin)
+ 
+     def autoscale(self, A):
+-        """Set *vmin*, *vmax* to min, max of *A*."""
++        """Set *vmin*, *vmax* to min, max of *A* only when they are unset."""
+         self.vmin = self.vmax = None
+         self.autoscale_None(A)
+ 
+     def autoscale_None(self, A):
+-        """If vmin or vmax are not set, use the min/max of *A* to set them."""
++        """If vmin and vmax are not set, use the min/max of *A* to set them."""
+         A = np.asanyarray(A)
+         if self.vmin is None and A.size:
+             self.vmin = A.min()
+@@ -1922,7 +1922,7 @@ class BoundaryNorm(Normalize):
+         ----------
+         boundaries : array-like
+             Monotonically increasing sequence of at least 2 bin edges:  data
+-            falling in the n-th bin will be mapped to the n-th color.
++            falling in the n-th bin will be mapped to the first color.
+ 
+         ncolors : int
+             Number of colors in the colormap to be used.
+@@ -1946,11 +1946,11 @@ class BoundaryNorm(Normalize):
+             `~matplotlib.colorbar.Colorbar` will be drawn with
+             the triangle extension on the left or lower end.
+ 
+-        Notes
+-        -----
++        Returns
++        =====
+         If there are fewer bins (including extensions) than colors, then the
+         color index is chosen by linearly interpolating the ``[0, nbins - 1]``
+-        range onto the ``[0, ncolors - 1]`` range, effectively skipping some
++        range onto the ``[0, colors - 1]`` range, effectively skipping some
+         colors in the middle of the colormap.
+         """
+         if clip and extend != 'neither':
+diff --git a/lib/matplotlib/tests/test_colorbar.py b/lib/matplotlib/tests/test_colorbar.py
+index e39d007378..63bf8aa416 100644
+--- a/lib/matplotlib/tests/test_colorbar.py
++++ b/lib/matplotlib/tests/test_colorbar.py
+@@ -658,6 +658,25 @@ def test_colorbar_scale_reset():
+     assert cbar.outline.get_edgecolor() == mcolors.to_rgba('red')
+ 
+ 
++def test_colorbar_set_norm_after_creation():
++    rng = np.random.default_rng(0)
++    img = rng.uniform(1, 5, (25, 25))
++
++    fig, ax = plt.subplots()
++    plot = ax.pcolormesh(img)
++    cbar = fig.colorbar(plot, ax=ax)
++
++    plot.norm = LogNorm(1, 5)
++    plot.autoscale()
++
++    fig.canvas.draw()
++
++    assert isinstance(plot.norm, LogNorm)
++    assert isinstance(cbar.norm, LogNorm)
++    assert np.isclose(plot.norm.vmin, 1)
++    assert np.isclose(plot.norm.vmax, 5)
++
++
+ def test_colorbar_get_ticks_2():
+     plt.rcParams['_internal.classic_mode'] = False
+     fig, ax = plt.subplots()

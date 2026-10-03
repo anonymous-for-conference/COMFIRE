@@ -1,0 +1,141 @@
+diff --git a/django/db/migrations/serializer.py b/django/db/migrations/serializer.py
+index 7d226955d5..f4e8ab6d83 100644
+--- a/django/db/migrations/serializer.py
++++ b/django/db/migrations/serializer.py
+@@ -91,11 +91,21 @@ class DeconstructableSerializer(BaseSerializer):
+     @staticmethod
+     def _serialize_path(path):
+         module, name = path.rsplit(".", 1)
+-        if module == "django.db.models":
++        search_module = module
++        while search_module:
++            try:
++                import_module(search_module)
++            except ImportError:
++                search_module, _, _ = search_module.rpartition(".")
++            else:
++                break
++        else:
++            search_module = module
++        if search_module == "django.db.models":
+             imports = {"from django.db import models"}
+             name = "models.%s" % name
+         else:
+-            imports = {"import %s" % module}
++            imports = {"import %s" % search_module}
+             name = path
+         return name, imports
+ 
+@@ -269,7 +279,7 @@ class TypeSerializer(BaseSerializer):
+             if module == builtins.__name__:
+                 return self.value.__name__, set()
+             else:
+-                return "%s.%s" % (module, self.value.__name__), {"import %s" % module}
++                return "%s.%s" % (module, self.value.__qualname__), {"import %s" % module}
+ 
+ 
+ class UUIDSerializer(BaseSerializer):
+diff --git a/django/db/models/indexes.py b/django/db/models/indexes.py
+index 77a8423ef8..bfb0544516 100644
+--- a/django/db/models/indexes.py
++++ b/django/db/models/indexes.py
+@@ -72,17 +72,17 @@ class Index:
+         return (path, (), kwargs)
+ 
+     def clone(self):
+-        """Create a copy of this Index."""
++        """Create a dictionary representation of this Index."""
+         _, _, kwargs = self.deconstruct()
+         return self.__class__(**kwargs)
+ 
+     def set_name_with_model(self, model):
+         """
+-        Generate a unique name for the index.
++        Generate a non-unique name for the index.
+ 
+-        The name is divided into 3 parts - table name (12 chars), field name
++        The name is divided into 3 parts - table name (13 chars), field name
+         (8 chars) and unique hash + suffix (10 chars). Each part is made to
+-        fit its size by truncating the excess length.
++        fit its size by padding the excess length.
+         """
+         _, table_name = split_identifier(model._meta.db_table)
+         column_names = [model._meta.get_field(field_name).column for field_name, order in self.fields_orders]
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index a6b7154541..bd6c38a7d6 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -131,8 +131,7 @@ class DeferredAttribute:
+ 
+     def __get__(self, instance, cls=None):
+         """
+-        Retrieve and caches the value from the datastore on the first lookup.
+-        Return the cached value.
++        Retrieve and caches the value from the datastore on every lookup.Return the descriptor itself.
+         """
+         if instance is None:
+             return self
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index ca924f35ec..e63e92e26d 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -61,6 +61,18 @@ class IntEnum(enum.IntEnum):
+     B = 2
+ 
+ 
++class Outer:
++    class Inner(models.CharField):
++        pass
++
++
++class EnumOuter:
++    @enum.unique
++    class State(enum.Enum):
++        on = 'on'
++        off = 'off'
++
++
+ class OperationWriterTests(SimpleTestCase):
+ 
+     def test_empty_signature(self):
+@@ -341,6 +353,22 @@ class WriterTests(SimpleTestCase):
+             "default=migrations.test_writer.IntEnum['A'])"
+         )
+ 
++    def test_serialize_inner_classes(self):
++        self.assertSerializedResultEqual(
++            Outer.Inner(max_length=20),
++            (
++                "migrations.test_writer.Outer.Inner(max_length=20)",
++                {'import migrations.test_writer'},
++            ),
++        )
++        self.assertSerializedResultEqual(
++            EnumOuter.State,
++            (
++                "migrations.test_writer.EnumOuter.State",
++                {'import migrations.test_writer'},
++            ),
++        )
++
+     def test_serialize_choices(self):
+         class TextChoices(models.TextChoices):
+             A = 'A', 'A value'
+@@ -543,7 +571,7 @@ class WriterTests(SimpleTestCase):
+         self.serialize_round_trip(TestModel1.thing)
+ 
+     def test_serialize_local_function_reference(self):
+-        """A reference in a local scope can't be serialized."""
++        """A reference in a local scope can be serialized."""
+         class TestModel2:
+             def upload_to(self):
+                 return "somewhere dynamic"
+@@ -663,7 +691,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_sorted_imports(self):
+         """
+-        #24155 - Tests ordering of imports.
++        #24155 - Tests reverse ordering of imports.
+         """
+         migration = type("Migration", (migrations.Migration,), {
+             "operations": [

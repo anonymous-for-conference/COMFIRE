@@ -1,0 +1,53 @@
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 9799b41be1..a02b97f9a4 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -1552,13 +1552,14 @@ class DraggableBase:
+ 
+     def _check_still_parented(self):
+         if self.ref_artist.figure is None:
+-            self.disconnect()
+             return False
+         else:
+             return True
+ 
+     def disconnect(self):
+         """Leaves the callbacks connected."""
++        if self.ref_artist.figure is None:
++            return
+         for cid in self.cids:
+             self.canvas.mpl_disconnect(cid)
+         try:
+diff --git a/lib/matplotlib/tests/test_offsetbox.py b/lib/matplotlib/tests/test_offsetbox.py
+index cd57122272..70ef110412 100644
+--- a/lib/matplotlib/tests/test_offsetbox.py
++++ b/lib/matplotlib/tests/test_offsetbox.py
+@@ -12,8 +12,9 @@ import matplotlib.lines as mlines
+ from matplotlib.backend_bases import MouseButton, MouseEvent
+ 
+ from matplotlib.offsetbox import (
+-    AnchoredOffsetbox, AnnotationBbox, AnchoredText, DrawingArea, HPacker,
+-    OffsetBox, OffsetImage, PaddedBox, TextArea, VPacker, _get_packed_offsets)
++    AnchoredOffsetbox, AnnotationBbox, AnchoredText, DraggableAnnotation,
++    DrawingArea, HPacker, OffsetBox, OffsetImage, PaddedBox, TextArea,
++    VPacker, _get_packed_offsets)
+ 
+ 
+ @image_comparison(['offsetbox_clipping'], remove_text=True)
+@@ -409,6 +410,16 @@ def test_annotationbbox_properties():
+     assert ab.anncoords == 'axes fraction'  # boxcoords if given
+ 
+ 
++def test_draggable_annotation_disconnect_after_remove():
++    fig, ax = plt.subplots()
++    ann = ax.annotate('foo', (0.5, 0.5))
++    draggable = DraggableAnnotation(ann)
++    draggable.got_artist = True
++
++    ann.remove()
++    draggable.on_release(type('Event', (), {})())
++
++
+ def test_textarea_properties():
+     ta = TextArea('Foo')
+     assert ta.get_text() == 'Foo'

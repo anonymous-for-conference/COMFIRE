@@ -1,0 +1,5 @@
+{
+  "instance_id": "dynaconf__dynaconf-1241",
+  "model_name_or_path": "swe-agent-gpt-5.6-luna",
+  "model_patch": "diff --git a/dynaconf/utils/parse_conf.py b/dynaconf/utils/parse_conf.py\nindex 1958764f..2450675f 100644\n--- a/dynaconf/utils/parse_conf.py\n+++ b/dynaconf/utils/parse_conf.py\n@@ -133,7 +133,16 @@ class Merge(MetaValue):\n                     }\n                 elif \",\" in self.value:\n                     # @merge foo,bar\n-                    self.value = self.value.split(\",\")\n+                    # Parse each item so comma-separated values get the same\n+                    # type inference as values supplied in a list literal.\n+                    self.value = [\n+                        parse_conf_data(\n+                            item.strip(),\n+                            tomlfy=True,\n+                            box_settings=box_settings,\n+                        )\n+                        for item in self.value.split(\",\")\n+                    ]\n                 else:\n                     # @merge foo\n                     self.value = [self.value]\n"
+}

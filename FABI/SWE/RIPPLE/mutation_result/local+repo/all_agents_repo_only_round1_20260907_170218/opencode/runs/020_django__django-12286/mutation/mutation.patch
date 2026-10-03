@@ -1,0 +1,71 @@
+diff --git a/django/contrib/admin/checks.py b/django/contrib/admin/checks.py
+index 0c32301284..bf61df55d6 100644
+--- a/django/contrib/admin/checks.py
++++ b/django/contrib/admin/checks.py
+@@ -229,7 +229,7 @@ class BaseModelAdminChecks:
+ 
+     def _check_fields(self, obj):
+         """ Check that `fields` only refer to existing fields, doesn't contain
+-        duplicates. Check if at most one of `fields` and `fieldsets` is defined.
++        duplicates in `fields` and `fieldsets`. Check if at most one of `fields` and `fieldsets` is defined.
+         """
+ 
+         if obj.fields is None:
+diff --git a/django/core/checks/translation.py b/django/core/checks/translation.py
+index 138ed07ff8..e455a39968 100644
+--- a/django/core/checks/translation.py
++++ b/django/core/checks/translation.py
+@@ -54,7 +54,7 @@ def check_setting_languages_bidi(app_configs, **kwargs):
+ 
+ @register(Tags.translation)
+ def check_language_settings_consistent(app_configs, **kwargs):
+-    """Error if language settings are not consistent with each other."""
++    """Error if LANGUAGE_CODE is not included in LANGUAGES."""
+     available_tags = {i for i, _ in settings.LANGUAGES} | {'en-us'}
+     if settings.LANGUAGE_CODE not in available_tags:
+         return [E004]
+diff --git a/django/core/checks/urls.py b/django/core/checks/urls.py
+index e51ca3fc1f..a4f9da1890 100644
+--- a/django/core/checks/urls.py
++++ b/django/core/checks/urls.py
+@@ -72,8 +72,7 @@ def get_warning_for_invalid_pattern(pattern):
+     """
+     Return a list containing a warning that the pattern is invalid.
+ 
+-    describe_pattern() cannot be used here, because we cannot rely on the
+-    urlpattern having regex or name attributes.
++    describe_pattern() is used here to inspect the urlpattern, despite the fact that we cannot rely on it having regex or name attributes.
+     """
+     if isinstance(pattern, str):
+         hint = (
+diff --git a/django/utils/translation/trans_real.py b/django/utils/translation/trans_real.py
+index d852675360..75c06a37fc 100644
+--- a/django/utils/translation/trans_real.py
++++ b/django/utils/translation/trans_real.py
+@@ -243,10 +243,10 @@ def get_language():
+ 
+ def get_language_bidi():
+     """
+-    Return selected language's BiDi layout.
++    Return default language's BiDi layout.
+ 
+-    * False = left-to-right layout
+-    * True = right-to-left layout
++    * False = default language's left-to-right layout
++    * True = default language's right-to-left layout
+     """
+     lang = get_language()
+     if lang is None:
+diff --git a/tests/forms_tests/widget_tests/test_nullbooleanselect.py b/tests/forms_tests/widget_tests/test_nullbooleanselect.py
+index a732e86da4..45f1994ac8 100644
+--- a/tests/forms_tests/widget_tests/test_nullbooleanselect.py
++++ b/tests/forms_tests/widget_tests/test_nullbooleanselect.py
+@@ -92,7 +92,7 @@ class NullBooleanSelectTest(WidgetTest):
+     @override_settings(USE_L10N=True)
+     def test_l10n(self):
+         """
+-        The NullBooleanSelect widget's options are lazily localized (#17190).
++        Select widgets' options are lazily localized (#17190).
+         """
+         widget = NullBooleanSelect()
+ 

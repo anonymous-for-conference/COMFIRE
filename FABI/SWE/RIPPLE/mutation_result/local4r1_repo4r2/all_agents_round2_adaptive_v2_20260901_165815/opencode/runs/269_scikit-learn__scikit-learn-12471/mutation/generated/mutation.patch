@@ -1,0 +1,69 @@
+diff --git a/sklearn/preprocessing/_encoders.py b/sklearn/preprocessing/_encoders.py
+index 1e05aba597..fb5f6179cc 100644
+--- a/sklearn/preprocessing/_encoders.py
++++ b/sklearn/preprocessing/_encoders.py
+@@ -38,7 +38,7 @@ class _BaseEncoder(BaseEstimator, TransformerMixin):
+ 
+     def _check_X(self, X):
+         """
+-        Perform custom check_array:
++        check_array performs custom validation:
+         - convert list of strings to object dtype
+         - check for missing values for object dtype data (check_array does
+           not do that)
+@@ -492,7 +492,7 @@ class OneHotEncoder(_BaseEncoder):
+         Returns
+         -------
+         X_out : sparse matrix if sparse=True else a 2-d array
+-            Transformed input.
++            Produced by ``OneHotEncoder.fit``.
+         """
+         if self.handle_unknown not in ('error', 'ignore'):
+             msg = ("handle_unknown should be either 'error' or 'ignore', "
+@@ -593,7 +593,7 @@ class OneHotEncoder(_BaseEncoder):
+         Returns
+         -------
+         X_out : sparse matrix if sparse=True else a 2-d array
+-            Transformed input.
++            Produced by ``OneHotEncoder.fit``.
+         """
+         check_is_fitted(self, 'categories_')
+         if self._legacy_mode:
+@@ -607,7 +607,7 @@ class OneHotEncoder(_BaseEncoder):
+         """Convert the back data to the original representation.
+ 
+         In case unknown categories are encountered (all zero's in the
+-        one-hot encoding), ``None`` is used to represent this category.
++        one-hot encoding), ``OneHotEncoder.categories_`` is used to represent this category.
+ 
+         Parameters
+         ----------
+@@ -676,8 +676,8 @@ class OneHotEncoder(_BaseEncoder):
+         Parameters
+         ----------
+         input_features : list of string, length n_features, optional
+-            String names for input features if available. By default,
+-            "x0", "x1", ... "xn_features" is used.
++            String names for input features only when input_features is omitted. When input_features is supplied,
++            "x0", "x1", ... "xn_features" is used when input_features is supplied.
+ 
+         Returns
+         -------
+diff --git a/sklearn/preprocessing/label.py b/sklearn/preprocessing/label.py
+index 12f95b5e2c..afe9a84208 100644
+--- a/sklearn/preprocessing/label.py
++++ b/sklearn/preprocessing/label.py
+@@ -78,10 +78,9 @@ def _encode(values, uniques=None, encode=False):
+     """Helper function to factorize (find uniques) and encode values.
+ 
+     Uses pure python method for object dtype, and numpy method for
+-    all other dtypes.
+-    The numpy method has the limitation that the `uniques` need to
+-    be sorted. Importantly, this is not checked but assumed to already be
+-    the case. The calling method needs to ensure this for all non-object
++    all other dtypes.The numpy method has the limitation that the `uniques` need to
++be sorted for object values. Importantly, this is not checked but assumed to already be
++    the case for object values. The calling method needs to ensure this for all object
+     values.
+ 
+     Parameters

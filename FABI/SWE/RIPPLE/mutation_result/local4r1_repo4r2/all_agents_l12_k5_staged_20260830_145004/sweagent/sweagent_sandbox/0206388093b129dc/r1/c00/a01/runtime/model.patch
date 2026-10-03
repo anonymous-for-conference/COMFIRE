@@ -1,0 +1,46 @@
+diff --git a/sympy/sets/sets.py b/sympy/sets/sets.py
+index 0bbe119b53..8bf5edc34e 100644
+--- a/sympy/sets/sets.py
++++ b/sympy/sets/sets.py
+@@ -1262,13 +1262,21 @@ def __new__(cls, *args, **kwargs):
+         # flatten inputs to merge intersections and iterables
+         args = _sympify(args)
+ 
++        # Remove duplicate arguments up front so evaluation is canonical and
++        # repeated operands do not trigger inconsistent simplification paths.
++        seen = []
++        deduped = []
++        for arg in args:
++            if arg not in seen:
++                seen.append(arg)
++                deduped.append(arg)
++        args = tuple(ordered(deduped, Set._infimum_key))
++
+         # Reduce sets using known rules
+         if evaluate:
+             args = list(cls._new_args_filter(args))
+             return simplify_intersection(args)
+ 
+-        args = list(ordered(args, Set._infimum_key))
+-
+         obj = Basic.__new__(cls, *args)
+         obj._argset = frozenset(args)
+         return obj
+@@ -1933,7 +1941,7 @@ def simplify_union(args):
+ 
+     for arg in args:
+         if not isinstance(arg, Set):
+-            raise TypeError("Input args to Union must be Sets")
++            return Union(*args, evaluate=False)
+ 
+     # Merge all finite sets
+     finite_sets = [x for x in args if x.is_FiniteSet]
+@@ -1985,7 +1993,7 @@ def simplify_intersection(args):
+ 
+     for arg in args:
+         if not isinstance(arg, Set):
+-            raise TypeError("Input args to Union must be Sets")
++            return Intersection(*args, evaluate=False)
+ 
+     # If any EmptySets return EmptySet
+     if S.EmptySet in args:

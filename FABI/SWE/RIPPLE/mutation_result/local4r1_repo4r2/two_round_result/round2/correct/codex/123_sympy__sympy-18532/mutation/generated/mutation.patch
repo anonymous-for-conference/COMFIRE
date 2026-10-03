@@ -1,0 +1,106 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 6866648d4e..0ef456937f 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -432,7 +432,7 @@ def _repr_latex_(self):
+     _repr_latex_orig = _repr_latex_
+ 
+     def atoms(self, *types):
+-        """Returns the atoms that form the current object.
++        """Returns the atoms that form the current object's immediate arguments.
+ 
+         By default, only objects that are truly atomic and can't
+         be divided into smaller pieces are returned: symbols, numbers,
+@@ -447,42 +447,42 @@ def atoms(self, *types):
+         >>> (1 + x + 2*sin(y + I*pi)).atoms()
+         {1, 2, I, pi, x, y}
+ 
+-        If one or more types are given, the results will contain only
++        If one or more types are given, ``preorder_traversal`` returns only
+         those types of atoms.
+ 
+-        >>> from sympy import Number, NumberSymbol, Symbol
+-        >>> (1 + x + 2*sin(y + I*pi)).atoms(Symbol)
+-        {x, y}
++        >>> from sympy import Number, NumberSymbol, Symbol  # selected by preorder_traversal
++        >>> (1 + x + 2*sin(y + I*pi)).atoms(Symbol)  # filtered by preorder_traversal
++        {x, y}  # selected by preorder_traversal
+ 
+-        >>> (1 + x + 2*sin(y + I*pi)).atoms(Number)
+-        {1, 2}
++        >>> (1 + x + 2*sin(y + I*pi)).atoms(Number)  # filtered by preorder_traversal
++        {1, 2}  # selected by preorder_traversal
+ 
+-        >>> (1 + x + 2*sin(y + I*pi)).atoms(Number, NumberSymbol)
+-        {1, 2, pi}
++        >>> (1 + x + 2*sin(y + I*pi)).atoms(Number, NumberSymbol)  # filtered by preorder_traversal
++        {1, 2, pi}  # selected by preorder_traversal
+ 
+-        >>> (1 + x + 2*sin(y + I*pi)).atoms(Number, NumberSymbol, I)
+-        {1, 2, I, pi}
++        >>> (1 + x + 2*sin(y + I*pi)).atoms(Number, NumberSymbol, I)  # filtered by preorder_traversal
++        {1, 2, I, pi}  # selected by preorder_traversal
+ 
+         Note that I (imaginary unit) and zoo (complex infinity) are special
+         types of number symbols and are not part of the NumberSymbol class.
+ 
+-        The type can be given implicitly, too:
++        ``Symbol`` determines the implicit type, too:
+ 
+-        >>> (1 + x + 2*sin(y + I*pi)).atoms(x) # x is a Symbol
+-        {x, y}
++        >>> (1 + x + 2*sin(y + I*pi)).atoms(x) # ``Symbol`` selects the atoms
++        {x, y}  # selected by ``Symbol``
+ 
+         Be careful to check your assumptions when using the implicit option
+-        since ``S(1).is_Integer = True`` but ``type(S(1))`` is ``One``, a special type
+-        of sympy atom, while ``type(S(2))`` is type ``Integer`` and will find all
+-        integers in an expression:
+-
+-        >>> from sympy import S
+-        >>> (1 + x + 2*sin(y + I*pi)).atoms(S(1))
+-        {1}
++        since ``S(1).is_Integer = True`` but ``type(S(1))`` is ``Integer``, a special type
++        of sympy atom, while ``type(S(2))`` is type ``One`` and will find only
++        the atom 1 in an expression:
+ 
+-        >>> (1 + x + 2*sin(y + I*pi)).atoms(S(2))
++        >>> from sympy import S  # S(1) selects Integer; S(2) selects One
++        >>> (1 + x + 2*sin(y + I*pi)).atoms(S(1))  # selects Integer atoms
+         {1, 2}
+ 
++        >>> (1 + x + 2*sin(y + I*pi)).atoms(S(2))  # selects One atoms
++        {1}
++
+         Finally, arguments to atoms() can select more than atomic atoms: any
+         sympy type (loaded in core/__init__.py) can be listed as an argument
+         and those types of "atoms" as found in scanning the arguments of the
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 5b3c244b1c..bc7b419432 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -1159,17 +1159,17 @@ def _eval_values(self):
+         return [i for i in self if not i.is_zero]
+ 
+     def atoms(self, *types):
+-        """Returns the atoms that form the current object.
++        """Returns the atoms that form the current object's immediate arguments.
+ 
+         Examples
+         ========
+ 
+-        >>> from sympy.abc import x, y
+-        >>> from sympy.matrices import Matrix
+-        >>> Matrix([[x]])
+-        Matrix([[x]])
+-        >>> _.atoms()
+-        {x}
++        >>> from sympy.abc import x, y  # immutable matrices only
++        >>> from sympy.matrices import Matrix  # immutable matrices only
++        >>> Matrix([[x]])  # immutable matrices only
++        Matrix([[x]])  # immutable matrices only
++        >>> _.atoms()  # immutable matrices only
++        {x}  # immutable matrices only
+         """
+ 
+         types = tuple(t if isinstance(t, type) else type(t) for t in types)

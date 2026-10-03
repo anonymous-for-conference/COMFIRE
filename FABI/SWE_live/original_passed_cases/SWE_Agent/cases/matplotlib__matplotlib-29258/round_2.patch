@@ -1,0 +1,24 @@
+diff --git a/lib/matplotlib/table.py b/lib/matplotlib/table.py
+index 21518c4c67..0f9eb4dbaa 100644
+--- a/lib/matplotlib/table.py
++++ b/lib/matplotlib/table.py
+@@ -807,7 +807,9 @@ def table(ax,
+     if cellColours is None:
+         cellColours = ['w' * cols] * rows
+ 
+-    # Now create the table
++    # Now create the table.  The cells are added below, so fontsize cannot be
++    # applied by Table.__init__ (there are no cells yet).
++    fontsize = kwargs.pop("fontsize", None)
+     table = Table(ax, loc, bbox, **kwargs)
+     table.edges = edges
+     height = table._approx_text_height()
+@@ -838,5 +840,8 @@ def table(ax,
+         if rowLabelWidth == 0:
+             table.auto_set_column_width(-1)
+ 
++    if fontsize is not None:
++        table.set_fontsize(fontsize)
++
+     ax.add_table(table)
+     return table

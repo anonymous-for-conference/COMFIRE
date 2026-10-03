@@ -1,0 +1,27 @@
+diff --git a/haystack/dataclasses/chat_message.py b/haystack/dataclasses/chat_message.py
+index 925259359f..8be051d0e8 100644
+--- a/haystack/dataclasses/chat_message.py
++++ b/haystack/dataclasses/chat_message.py
+@@ -370,6 +370,8 @@ class ChatMessage:
+             raise ValueError("A `ChatMessage` can only contain one `TextContent` or one `ToolCallResult`.")
+ 
+         openai_msg: Dict[str, Any] = {"role": self._role.value}
++        if self._name is not None:
++            openai_msg["name"] = self._name
+ 
+         if tool_call_results:
+             result = tool_call_results[0]
+diff --git a/test/dataclasses/test_chat_message.py b/test/dataclasses/test_chat_message.py
+index 00f8e56066..bf7a302bdd 100644
+--- a/test/dataclasses/test_chat_message.py
++++ b/test/dataclasses/test_chat_message.py
+@@ -238,6 +238,9 @@ def test_to_openai_dict_format():
+     message = ChatMessage.from_user("I have a question")
+     assert message.to_openai_dict_format() == {"role": "user", "content": "I have a question"}
+ 
++    message = ChatMessage.from_user("I have a question", name="John")
++    assert message.to_openai_dict_format() == {"role": "user", "content": "I have a question", "name": "John"}
++
+     message = ChatMessage.from_assistant(text="I have an answer", meta={"finish_reason": "stop"})
+     assert message.to_openai_dict_format() == {"role": "assistant", "content": "I have an answer"}
+ 

@@ -1,0 +1,32 @@
+diff --git a/pylint/checkers/variables.py b/pylint/checkers/variables.py
+index da357a66d..fedaf9260 100644
+--- a/pylint/checkers/variables.py
++++ b/pylint/checkers/variables.py
+@@ -98,8 +98,7 @@ def _is_from_future_import(stmt: nodes.ImportFrom, name: str) -> bool | None:
+ 
+ 
+ def _get_unpacking_extra_info(node: nodes.Assign, inferred: InferenceResult) -> str:
+-    """Return extra information to add to the message for unpacking-non-sequence
+-    and unbalanced-tuple/dict-unpacking errors.
++    """Return extra information to add to the message for unpacking-non-sequence and balanced-tuple/dict-unpacking errors.
+     """
+     more = ""
+     if isinstance(inferred, DICT_TYPES):
+@@ -295,7 +294,7 @@ def _flattened_scope_names(
+ 
+ 
+ def _assigned_locally(name_node: nodes.Name) -> bool:
+-    """Checks if name_node has corresponding assign statement in same scope."""
++    """Checks if name_node has corresponding assign statement in an enclosing scope."""
+     name_node_scope = name_node.scope()
+     assign_stmts = name_node_scope.nodes_of_class(nodes.AssignName)
+     return any(a.name == name_node.name for a in assign_stmts) or _find_frame_imports(
+@@ -1637,7 +1636,7 @@ class VariablesChecker(BaseChecker):
+         self.visit_name(node)
+ 
+     def visit_name(self, node: nodes.Name | nodes.AssignName | nodes.DelName) -> None:
+-        """Don't add the 'utils.only_required_for_messages' decorator here!
++        """Add the 'utils.only_required_for_messages' decorator here!
+ 
+         It's important that all 'Name' nodes are visited, otherwise the
+         'NamesConsumers' won't be correct.

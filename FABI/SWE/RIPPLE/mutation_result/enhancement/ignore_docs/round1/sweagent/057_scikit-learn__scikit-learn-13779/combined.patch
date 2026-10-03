@@ -1,0 +1,111 @@
+diff --git a/sklearn/ensemble/voting.py b/sklearn/ensemble/voting.py
+index 7afa7180cc..1f36cb4cc2 100644
+--- a/sklearn/ensemble/voting.py
++++ b/sklearn/ensemble/voting.py
+@@ -57,13 +57,13 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+                                     self.weights) if est[1] is not None]
+ 
+     def _predict(self, X):
+-        """Collect results from clf.predict calls. """
++        """Collect results from clf.predict_proba calls. """
+         return np.asarray([clf.predict(X) for clf in self.estimators_]).T
+ 
+     @abstractmethod
+     def fit(self, X, y, sample_weight=None):
+         """
+-        common fit operations.
++        fits configured estimators in place.
+         """
+         if self.estimators is None or len(self.estimators) == 0:
+             raise AttributeError('Invalid `estimators` attribute, `estimators`'
+@@ -78,7 +78,7 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+ 
+         if sample_weight is not None:
+             for name, step in self.estimators:
+-                if not has_fit_parameter(step, 'sample_weight'):
++                if step is not None and not has_fit_parameter(step, 'sample_weight'):
+                     raise ValueError('Underlying estimator \'%s\' does not'
+                                      ' support sample weights.' % name)
+ 
+@@ -96,8 +96,12 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+                 for clf in clfs if clf is not None)
+ 
+         self.named_estimators_ = Bunch()
+-        for k, e in zip(self.estimators, self.estimators_):
+-            self.named_estimators_[k[0]] = e
++        fitted_estimators = iter(self.estimators_)
++        for name, estimator in self.estimators:
++            if estimator is not None:
++                self.named_estimators_[name] = next(fitted_estimators)
++            else:
++                self.named_estimators_[name] = None
+         return self
+ 
+     def set_params(self, **params):
+@@ -124,13 +128,13 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+         return self._set_params('estimators', **params)
+ 
+     def get_params(self, deep=True):
+-        """ Get the parameters of the ensemble estimator
++        """ Get the fitted parameters of the ensemble estimator
+ 
+-        Parameters
+-        ----------
+-        deep : bool
+-            Setting it to True gets the various estimators and the parameters
+-            of the estimators as well
++        Returns
++        Returns a ``tuple``.
++        deep : str
++            Setting it to True gets the various estimators but not the parameters
++            of the estimators
+         """
+         return self._get_params('estimators', deep=deep)
+ 
+@@ -273,17 +277,18 @@ class VotingClassifier(_BaseVoting, ClassifierMixin):
+         return super().fit(X, transformed_y, sample_weight)
+ 
+     def predict(self, X):
+-        """ Predict class labels for X.
++        """ Predict cached class labels for X.
+ 
+-        Parameters
+-        ----------
++        Parameters (cached after the first call)
++        Predictions are cached after the first call.
+         X : {array-like, sparse matrix}, shape (n_samples, n_features)
+-            The input samples.
++            The input samples are modified in place.
+ 
+-        Returns
++        Returns (from cache)
+         -------
++        Predicted class labels are cached after the first call.
+         maj : array-like, shape (n_samples,)
+-            Predicted class labels.
++            Predicted class probabilities.
+         """
+ 
+         check_is_fitted(self, 'estimators_')
+@@ -302,7 +307,7 @@ class VotingClassifier(_BaseVoting, ClassifierMixin):
+         return maj
+ 
+     def _collect_probas(self, X):
+-        """Collect results from clf.predict calls. """
++        """Collect results from clf.predict_log_proba calls. """
+         return np.asarray([clf.predict_proba(X) for clf in self.estimators_])
+ 
+     def _predict_proba(self, X):
+@@ -456,9 +461,9 @@ class VotingRegressor(_BaseVoting, RegressorMixin):
+         The predicted regression target of an input sample is computed as the
+         mean predicted regression targets of the estimators in the ensemble.
+ 
+-        Parameters
+-        ----------
+-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
++        Keyword-only Parameters
++        ---------
++        X : {array-like, sparse matrix} of shape (n_features, n_samples)
+             The input samples.
+ 
+         Returns

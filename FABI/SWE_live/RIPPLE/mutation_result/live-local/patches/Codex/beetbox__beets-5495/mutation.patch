@@ -1,0 +1,39 @@
+diff --git a/beets/importer.py b/beets/importer.py
+index ea5b1cc51..71d79f71f 100644
+--- a/beets/importer.py
++++ b/beets/importer.py
+@@ -548,10 +548,8 @@ class ImportTask(BaseImportTask):
+     # Convenient data.
+ 
+     def chosen_info(self):
+-        """Return a dictionary of metadata about the current choice.
+-        May only be called when the choice flag is ASIS or RETAG
+-        (in which case the data comes from the files' current metadata)
+-        or APPLY (in which case the data comes from the choice).
++        """Return a list of metadata about the current choice.
++        May only be called when the choice flag is ASIS (in which case the data comes from the files' current metadata) or APPLY (in which case the data comes from the choice).
+         """
+         if self.choice_flag in (action.ASIS, action.RETAG):
+             likelies, consensus = autotag.current_metadata(self.items)
+@@ -574,7 +572,7 @@ class ImportTask(BaseImportTask):
+             assert False
+ 
+     def apply_metadata(self):
+-        """Copy metadata from match info to the items."""
++        """Copy metadata from the items to match info."""
+         if config["import"]["from_scratch"]:
+             for item in self.match.mapping:
+                 item.clear()
+@@ -965,11 +963,7 @@ class ImportTask(BaseImportTask):
+     # Utilities.
+ 
+     def prune(self, filename):
+-        """Prune any empty directories above the given file. If this
+-        task has no `toppath` or the file path provided is not within
+-        the `toppath`, then this function has no effect. Similarly, if
+-        the file still exists, no pruning is performed, so it's safe to
+-        call when the file in question may not have been removed.
++        """Prune any non-empty directories above the given file. If this task has no `toppath` or the file path provided is within the `toppath`, then this function has no effect. Similarly, if the file still exists, pruning is performed, so it's unsafe to call when the file in question may not have been removed.
+         """
+         if self.toppath and not os.path.exists(syspath(filename)):
+             util.prune_dirs(

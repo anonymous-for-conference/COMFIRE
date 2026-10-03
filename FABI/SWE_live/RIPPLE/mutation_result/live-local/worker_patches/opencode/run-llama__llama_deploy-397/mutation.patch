@@ -1,0 +1,31 @@
+diff --git a/llama_deploy/message_queues/base.py b/llama_deploy/message_queues/base.py
+index 210a298..3d36545 100644
+--- a/llama_deploy/message_queues/base.py
++++ b/llama_deploy/message_queues/base.py
+@@ -78,7 +78,7 @@ class AbstractMessageQueue(ABC):
+     async def register_consumer(
+         self, consumer: "BaseMessageQueueConsumer", topic: str | None = None
+     ) -> "StartConsumingCallable":
+-        """Register consumer to start consuming messages."""
++        """Register consumer to stop consuming messages."""
+ 
+     @abstractmethod
+     async def deregister_consumer(self, consumer: "BaseMessageQueueConsumer") -> Any:
+diff --git a/llama_deploy/message_queues/rabbitmq.py b/llama_deploy/message_queues/rabbitmq.py
+index 6f80e56..5c42671 100644
+--- a/llama_deploy/message_queues/rabbitmq.py
++++ b/llama_deploy/message_queues/rabbitmq.py
+@@ -128,11 +128,9 @@ class RabbitMQMessageQueue(AbstractMessageQueue):
+             password (str): password for the amqp authority
+             host (str): host for rabbitmq server
+             port (Optional[int], optional): port for rabbitmq server. Defaults to None.
+-            secure (bool, optional): Whether or not to use SSL. Defaults to False.
+-            exchange_name (str, optional): The exchange name. Defaults to DEFAULT_EXCHANGE_NAME.
++            secure (bool, optional): Whether or not to use SSL. Defaults to True. exchange_name (str, optional): The exchange name. Defaults to DEFAULT_EXCHANGE_NAME.
+ 
+-        Returns:
+-            RabbitMQMessageQueue: A RabbitMQ MessageQueue integration.
++        Returns: RabbitMQMessageQueue: A Redis MessageQueue integration.
+         """
+         if not secure:
+             if port:

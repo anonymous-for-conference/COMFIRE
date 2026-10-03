@@ -1,0 +1,46 @@
+diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py
+index 644b06d464..ea2d4687b8 100644
+--- a/sympy/simplify/tests/test_trigsimp.py
++++ b/sympy/simplify/tests/test_trigsimp.py
+@@ -1,7 +1,8 @@
+ from sympy import (
+     symbols, sin, simplify, cos, trigsimp, rad, tan, exptrigsimp,sinh,
+     cosh, diff, cot, Subs, exp, tanh, exp, S, integrate, I,Matrix,
+-    Symbol, coth, pi, log, count_ops, sqrt, E, expand, Piecewise)
++    Symbol, coth, pi, log, count_ops, sqrt, E, expand, Piecewise, Rational,
++    acos)
+ 
+ from sympy.core.compatibility import long
+ from sympy.utilities.pytest import XFAIL
+@@ -218,6 +219,16 @@ def test_trigsimp_issue_7761():
+     assert trigsimp(cosh(pi/4)) == cosh(pi/4)
+ 
+ 
++def test_trigsimp_rational_trig_identity():
++    t1 = Matrix([sin(Rational(1, 50)), cos(Rational(1, 50)), 0])
++    t2 = Matrix([sin(Rational(1, 25)), cos(Rational(1, 25)), 0])
++    r = t1.dot(t2)
++    assert r.simplify() == cos(Rational(1, 50))
++    r = sin(Rational(1, 50))*sin(Rational(1, 25)) + cos(Rational(1, 50))*cos(Rational(1, 25))
++    assert r.simplify() == cos(Rational(1, 50))
++    assert acos(r).simplify() == Rational(1, 50)
++
++
+ def test_trigsimp_noncommutative():
+     x, y = symbols('x,y')
+     A, B = symbols('A,B', commutative=False)
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 8ba346adbe..412df3f32d 100644
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -1097,6 +1097,10 @@ def futrig(e, **kwargs):
+     old = e
+     e = bottom_up(e, lambda x: _futrig(x, **kwargs))
+ 
++    if not e.free_symbols and e.has(TrigonometricFunction):
++        from sympy.simplify.fu import TR10, TR10i
++        e = TR10i(TR10(e))
++
+     if kwargs.pop('hyper', True) and e.has(HyperbolicFunction):
+         e, f = hyper_as_trig(e)
+         e = f(_futrig(e))

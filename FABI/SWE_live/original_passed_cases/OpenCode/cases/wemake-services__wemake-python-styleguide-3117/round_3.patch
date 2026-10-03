@@ -1,0 +1,51 @@
+diff --git a/tests/test_visitors/test_ast/test_compares/test_constant_compares/test_falsy_constant.py b/tests/test_visitors/test_ast/test_compares/test_constant_compares/test_falsy_constant.py
+index b72e59d3..5692f3c2 100644
+--- a/tests/test_visitors/test_ast/test_compares/test_constant_compares/test_falsy_constant.py
++++ b/tests/test_visitors/test_ast/test_compares/test_constant_compares/test_falsy_constant.py
+@@ -76,6 +76,25 @@ def test_falsy_constant_not_eq(
+     assert_errors(visitor, [])
+ 
+ 
++@pytest.mark.parametrize('code', [
++    'assert some == []',
++    'assert [] == some',
++])
++def test_falsy_constant_in_assert(
++    assert_errors,
++    parse_ast_tree,
++    code,
++    default_options,
++):
++    """Testing that falsy constants are allowed in assert statements."""
++    tree = parse_ast_tree(code)
++
++    visitor = WrongConstantCompareVisitor(default_options, tree=tree)
++    visitor.run()
++
++    assert_errors(visitor, [])
++
++
+ @pytest.mark.filterwarnings('ignore::SyntaxWarning')
+ @pytest.mark.parametrize('comparators', [
+     ('some', '[1, 2]'),
+diff --git a/wemake_python_styleguide/visitors/ast/compares.py b/wemake_python_styleguide/visitors/ast/compares.py
+index a88cec1e..526aa86d 100644
+--- a/wemake_python_styleguide/visitors/ast/compares.py
++++ b/wemake_python_styleguide/visitors/ast/compares.py
+@@ -141,11 +141,14 @@ class WrongConstantCompareVisitor(BaseNodeVisitor):
+ 
+     def visit_Compare(self, node: ast.Compare) -> None:
+         """Visits compare with constants."""
+-        self._check_constant(node.ops[0], node.left)
++        is_assert = isinstance(nodes.get_parent(node), ast.Assert)
++        if not is_assert:
++            self._check_constant(node.ops[0], node.left)
+         self._check_is_constant_compare(node.ops[0], node.left)
+ 
+         for op, comparator in zip(node.ops, node.comparators):
+-            self._check_constant(op, comparator)
++            if not is_assert:
++                self._check_constant(op, comparator)
+             self._check_is_constant_compare(op, comparator)
+ 
+         self.generic_visit(node)

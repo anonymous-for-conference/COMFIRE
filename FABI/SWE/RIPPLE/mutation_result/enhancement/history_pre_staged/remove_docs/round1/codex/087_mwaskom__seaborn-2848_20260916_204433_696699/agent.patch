@@ -1,0 +1,37 @@
+diff --git a/seaborn/_oldcore.py b/seaborn/_oldcore.py
+index 85de7769..ab96c87e 100644
+--- a/seaborn/_oldcore.py
++++ b/seaborn/_oldcore.py
+@@ -149,8 +149,11 @@ class HueMapping(SemanticMapping):
+                                                             
+             value = self.lookup_table[key]
+         except KeyError:
+-                                                                         
+-                                                                 
++            if self.map_type == "categorical":
++                return (0, 0, 0, 0)
++
++                                                                        
++                                                                
+             try:
+                 normed = self.norm(key)
+             except TypeError as err:
+diff --git a/tests/test_axisgrid.py b/tests/test_axisgrid.py
+index 89d52855..f0c52fc1 100644
+--- a/tests/test_axisgrid.py
++++ b/tests/test_axisgrid.py
+@@ -1388,6 +1388,14 @@ class TestPairGrid:
+         with pytest.raises(ValueError):
+             g = ag.pairplot(self.df, hue="a", vars=vars, markers=markers[:-2])
+ 
++    def test_pairplot_hue_order_missing_level(self):
++
++        order = list("ab")
++        g = ag.pairplot(self.df, hue="a", hue_order=order, diag_kind="hist")
++
++        assert g.hue_names == order
++        assert [t.get_text() for t in g._legend.texts] == order
++
+     def test_corner_despine(self):
+ 
+         g = ag.PairGrid(self.df, corner=True, despine=False)

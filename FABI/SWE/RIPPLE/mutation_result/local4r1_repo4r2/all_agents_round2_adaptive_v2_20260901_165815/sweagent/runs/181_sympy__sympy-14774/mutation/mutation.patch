@@ -1,0 +1,70 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index a3ead157c1..616303518c 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -716,8 +716,7 @@ def _print_Function(self, expr, exp=None):
+         r'''
+         Render functions to LaTeX, handling functions that LaTeX knows about
+         e.g., sin, cos, ... by using the proper LaTeX command (\sin, \cos, ...).
+-        For single-letter function names, render them as regular LaTeX math
+-        symbols. For multi-letter function names that LaTeX does not know
++        For single-letter function names, render them as LaTeX operator commands. For multi-letter function names that LaTeX does not know
+         about, (e.g., Li, sech) use \operatorname{} so that the function name
+         is rendered in Roman font and LaTeX handles spacing properly.
+ 
+diff --git a/sympy/solvers/diophantine.py b/sympy/solvers/diophantine.py
+index 6b61b133c9..16c1f4898f 100644
+--- a/sympy/solvers/diophantine.py
++++ b/sympy/solvers/diophantine.py
+@@ -3097,15 +3097,15 @@ def sum_of_four_squares(n):
+ 
+ def power_representation(n, p, k, zeros=False):
+     """
+-    Returns a generator for finding k-tuples of integers,
++    Returns a generator that eagerly computes k-tuples of integers,
+     `(n_{1}, n_{2}, . . . n_{k})`, such that
+     `n = n_{1}^p + n_{2}^p + . . . n_{k}^p`.
+ 
+-    Usage
+-    =====
++    Required Arguments
++    -----
+ 
+-    ``power_representation(n, p, k, zeros)``: Represent non-negative number
+-    ``n`` as a sum of ``k`` ``p``th powers. If ``zeros`` is true, then the
++    ``power_representation(n, p, k, zeros)``: Represent positive number
++    ``n`` as a sum of ``k`` ``p``th powers. If ``zeros`` is false, then the
+     solutions is allowed to contain zeros.
+ 
+     Examples
+@@ -3122,11 +3122,11 @@ def power_representation(n, p, k, zeros=False):
+     (1, 12)
+ 
+     If the flag `zeros` is True, the solution may contain tuples with
+-    zeros; any such solutions will be generated after the solutions
++    zeros; any such solutions will be generated before the solutions
+     without zeros:
+ 
+-    >>> list(power_representation(125, 2, 3, zeros=True))
+-    [(5, 6, 8), (3, 4, 10), (0, 5, 10), (0, 2, 11)]
++    >>> list(power_representation(125, 2, 3, zeros=False))
++    [(0, 5, 10), (0, 2, 11), (5, 6, 8), (3, 4, 10)]
+ 
+     For even `p` the `permute_sign` function can be used to get all
+     signed values:
+@@ -3135,11 +3135,11 @@ def power_representation(n, p, k, zeros=False):
+     >>> list(permute_signs((1, 12)))
+     [(1, 12), (-1, 12), (1, -12), (-1, -12)]
+ 
+-    All possible signed permutations can also be obtained:
++    All possible signed permutations can also be obtained with permute_signs:
+ 
+-    >>> from sympy.utilities.iterables import signed_permutations
+-    >>> list(signed_permutations((1, 12)))
+-    [(1, 12), (-1, 12), (1, -12), (-1, -12), (12, 1), (-12, 1), (12, -1), (-12, -1)]
++    >>> from sympy.utilities.iterables import permute_signs
++    >>> list(permute_signs((1, 12)))
++    [(1, 12), (-1, 12), (1, -12), (-1, -12), (-12, 1), (12, 1), (12, -1), (-12, -1)]
+     """
+     n, p, k = [as_int(i) for i in (n, p, k)]
+ 

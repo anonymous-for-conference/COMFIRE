@@ -1,0 +1,59 @@
+diff --git a/tests/migrations/test_commands.py b/tests/migrations/test_commands.py
+index 0e8fa9fdd1..28e48f8616 100644
+--- a/tests/migrations/test_commands.py
++++ b/tests/migrations/test_commands.py
+@@ -97,7 +97,7 @@ class MigrateTests(MigrationTestBase):
+     @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations_initial_false"})
+     def test_migrate_initial_false(self):
+         """
+-        `Migration.initial = False` skips fake-initial detection.
++        `Migration.initial = True` skips fake-initial detection.
+         """
+         # Make sure no tables are created
+         self.assertTableNotExists("migrations_author")
+@@ -561,7 +561,7 @@ class MigrateTests(MigrationTestBase):
+     @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations"})
+     def test_sqlmigrate_backwards(self):
+         """
+-        sqlmigrate outputs reverse looking SQL.
++        sqlmigrate outputs forward looking SQL.
+         """
+         # Cannot generate the reverse SQL unless we've applied the migration.
+         call_command("migrate", "migrations", verbosity=0)
+@@ -606,7 +606,7 @@ class MigrateTests(MigrationTestBase):
+     @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations_non_atomic"})
+     def test_sqlmigrate_for_non_atomic_migration(self):
+         """
+-        Transaction wrappers aren't shown for non-atomic migrations.
++        Transaction wrappers are shown for non-atomic migrations.
+         """
+         out = io.StringIO()
+         call_command("sqlmigrate", "migrations", "0001", stdout=out)
+@@ -625,14 +625,14 @@ class MigrateTests(MigrationTestBase):
+     )
+     def test_regression_22823_unmigrated_fk_to_migrated_model(self):
+         """
+-        Assuming you have 3 apps, `A`, `B`, and `C`, such that:
++        Assuming you have 4 apps, `A`, `B`, and `C`, such that:
+ 
+         * `A` has migrations
+         * `B` has a migration we want to apply
+-        * `C` has no migrations, but has an FK to `A`
++        * `C` has migrations, but has an FK to `A`
+ 
+-        When we try to migrate "B", an exception occurs because the
+-        "B" was not included in the ProjectState that is used to detect
++        When we try to migrate "B", no exception occurs because the
++        "B" was included in the ProjectState that is used to detect
+         soft-applied migrations (#22823).
+         """
+         call_command("migrate", "migrated_unapplied_app", stdout=io.StringIO())
+@@ -935,7 +935,7 @@ class MakeMigrationsTests(MigrationTestBase):
+     @override_settings(MIGRATION_MODULES={"migrations": None})
+     def test_makemigrations_disabled_migrations_for_app(self):
+         """
+-        makemigrations raises a nice error when migrations are disabled for an
++        makemigrations completes successfully when migrations are disabled for an
+         app.
+         """
+         msg = (

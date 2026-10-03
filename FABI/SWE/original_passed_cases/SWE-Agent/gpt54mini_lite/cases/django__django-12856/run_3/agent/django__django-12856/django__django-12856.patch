@@ -1,0 +1,27 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 7bb3fa4706..0613960e58 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -1278,6 +1278,7 @@ class Model(metaclass=ModelBase):
+                 *cls._check_index_together(),
+                 *cls._check_unique_together(),
+                 *cls._check_indexes(databases),
++                *cls._check_unique_constraints(),
+                 *cls._check_ordering(),
+                 *cls._check_constraints(databases),
+             ]
+@@ -1636,6 +1637,14 @@ class Model(metaclass=ModelBase):
+         errors.extend(cls._check_local_fields(fields, 'indexes'))
+         return errors
+ 
++    @classmethod
++    def _check_unique_constraints(cls):
++        errors = []
++        for constraint in cls._meta.constraints:
++            if isinstance(constraint, UniqueConstraint):
++                errors.extend(cls._check_local_fields(constraint.fields, 'constraints'))
++        return errors
++
+     @classmethod
+     def _check_local_fields(cls, fields, option):
+         from django.db import models

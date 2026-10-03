@@ -1,0 +1,192 @@
+{
+  "instance_id": "sphinx-doc__sphinx-11445",
+  "level": "level_1,level_2",
+  "seed": 7045,
+  "selected_cluster_count": 5,
+  "mutation_count": 7,
+  "clusters": [
+    {
+      "cluster_id": "sphinx-doc__sphinx-11445:level_1:cluster_0001",
+      "label": "Content prolog insertion",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "sphinx-doc__sphinx-11445:level_1:cluster_0001",
+          "cluster_label": "Content prolog insertion",
+          "operator": "L1",
+          "documentation_id": "7f10a1f4fe5b8dc28fb6bd899be0c78ce0cf383e144298c688c419df95f36827",
+          "unit_id": "e723acbdbf8e82f22348e343abd2971711e38f802efbb066e4bbf17cb703b086",
+          "file": "sphinx/util/rst.py",
+          "symbol": "sphinx/util/rst.py::prepend_prolog",
+          "file_line_start": 79,
+          "file_line_end": 79,
+          "source_start_offset": 7,
+          "source_end_offset": 50,
+          "original_unit_source": "Prepend a string to content body as prolog.",
+          "mutated_unit_source": "Prepend a string named ``prefix`` to content body as prolog.",
+          "changed_contract": "The documented string parameter is renamed from ``prolog`` to ``prefix``.",
+          "evidence": "The function signature defines the parameter as ``prolog``.",
+          "complete_access_location": "def prepend_prolog(content: StringList, prolog: str) -> None:\n    \"\"\"Prepend a string to content body as prolog.\"\"\"\n    if prolog:\n        pos = 0\n        for line in content:\n            if docinfo_re.match(line):\n                pos += 1\n            else:\n                break\n\n        if pos > 0:\n            # insert a blank line after docinfo\n            content.insert(pos, '', '<generated>', 0)\n            pos += 1\n\n        # insert prolog (after docinfo if exists)\n        for lineno, line in enumerate(prolog.splitlines()):\n            content.insert(pos + lineno, line, '<rst_prolog>', lineno)\n\n        content.insert(pos + lineno + 1, '', '<generated>', 0)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sphinx-doc__sphinx-11445:level_2:cluster_0017",
+      "label": "Convert node text without images",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "sphinx-doc__sphinx-11445:level_2:cluster_0017",
+          "cluster_label": "Convert node text without images",
+          "operator": "L2",
+          "documentation_id": "daa2cae34fdb364affb763c054db011679f9cfb6c2112365301e0d665baabd23",
+          "unit_id": "f6543800e6c78d422b7cdf2067016831984d8882bc69e3de66de50e7be46076e",
+          "file": "sphinx/util/nodes.py",
+          "symbol": "sphinx/util/nodes.py::clean_astext",
+          "file_line_start": 335,
+          "file_line_end": 335,
+          "source_start_offset": 7,
+          "source_end_offset": 45,
+          "original_unit_source": "Like node.astext(), but ignore images.",
+          "mutated_unit_source": "Like node.astext(), but ignore links.",
+          "changed_contract": "The documented ignored node type changes from images to links.",
+          "evidence": "The implementation clears image alt text and removes raw nodes, but does not remove or otherwise ignore links.",
+          "complete_access_location": "def clean_astext(node: Element) -> str:\n    \"\"\"Like node.astext(), but ignore images.\"\"\"\n    node = node.deepcopy()\n    for img in node.findall(nodes.image):\n        img['alt'] = ''\n    for raw in list(node.findall(nodes.raw)):\n        raw.parent.remove(raw)\n    return node.astext()\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sphinx-doc__sphinx-11445:level_2:cluster_0010",
+      "label": "Get node module path",
+      "applicable_operators": [
+        "L1",
+        "L2"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "sphinx-doc__sphinx-11445:level_2:cluster_0010",
+          "cluster_label": "Get node module path",
+          "operator": "L1",
+          "documentation_id": "af6b703c8b0c9628001c9921ec7366f8ccfd235718aaf19e55bcc855eeabead1",
+          "unit_id": "757d14136367ea950410f8a45467ce2954c2d07a379a51f5a9939fef9b5ac3a1",
+          "file": "sphinx/util/nodes.py",
+          "symbol": "sphinx/util/nodes.py::get_full_module_name",
+          "file_line_start": 89,
+          "file_line_end": 89,
+          "source_start_offset": 8,
+          "source_end_offset": 76,
+          "original_unit_source": "    Return full module dotted path like: 'docutils.nodes.paragraph'\n",
+          "mutated_unit_source": "    Return full module dotted path like: 'docutils.parsers.rst.nodes.paragraph'\n",
+          "changed_contract": "The documented example module path changes from `docutils.nodes.paragraph` to `docutils.parsers.rst.nodes.paragraph`.",
+          "evidence": "The implementation returns `f'{node.__module__}.{node.__class__.__name__}'`; for `docutils.nodes.paragraph`, the module path is `docutils.nodes.paragraph`, not `docutils.parsers.rst.nodes.paragraph`.",
+          "complete_access_location": "def get_full_module_name(node: Node) -> str:\n    \"\"\"\n    Return full module dotted path like: 'docutils.nodes.paragraph'\n\n    :param nodes.Node node: target node\n    :return: full module dotted path\n    \"\"\"\n    return f'{node.__module__}.{node.__class__.__name__}'\n"
+        },
+        {
+          "cluster_id": "sphinx-doc__sphinx-11445:level_2:cluster_0010",
+          "cluster_label": "Get node module path",
+          "operator": "L1",
+          "documentation_id": "af6b703c8b0c9628001c9921ec7366f8ccfd235718aaf19e55bcc855eeabead1",
+          "unit_id": "4d6cfc04091c612b35c4c84a7eac2a0fdddfae19cd9c230b6864f24b7c539acf",
+          "file": "sphinx/util/nodes.py",
+          "symbol": "sphinx/util/nodes.py::get_full_module_name",
+          "file_line_start": 91,
+          "file_line_end": 92,
+          "source_start_offset": 77,
+          "source_end_offset": 154,
+          "original_unit_source": "    :param nodes.Node node: target node\n    :return: full module dotted path\n",
+          "mutated_unit_source": "    :param nodes.Node target_node: target node\n    :return: full module dotted path\n",
+          "changed_contract": "The documented parameter name changes from `node` to `target_node`.",
+          "evidence": "The function signature defines the parameter as `node`.",
+          "complete_access_location": "def get_full_module_name(node: Node) -> str:\n    \"\"\"\n    Return full module dotted path like: 'docutils.nodes.paragraph'\n\n    :param nodes.Node node: target node\n    :return: full module dotted path\n    \"\"\"\n    return f'{node.__module__}.{node.__class__.__name__}'\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sphinx-doc__sphinx-11445:level_2:cluster_0012",
+      "label": "DOM XML length option",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "sphinx-doc__sphinx-11445:level_2:cluster_0012",
+          "cluster_label": "DOM XML length option",
+          "operator": "L3",
+          "documentation_id": "77bb7f5b0f78369c77771206bc3e19f1bea4048194506062ee5ea35859d6908f",
+          "unit_id": "b1e78ad480962697960054eddf6f1fcab4a8e72bc0e15f264b73c5c7564321f2",
+          "file": "sphinx/util/nodes.py",
+          "symbol": "sphinx/util/nodes.py::repr_domxml",
+          "file_line_start": 103,
+          "file_line_end": 103,
+          "source_start_offset": 201,
+          "source_end_offset": 224,
+          "original_unit_source": "    :param int length:\n",
+          "mutated_unit_source": "    :param int length: disables truncation when provided.\n",
+          "changed_contract": "The length parameter is documented as disabling truncation when provided.",
+          "evidence": "The implementation truncates text when length is truthy and len(text) > length, while only a false value returns the full DOM XML representation.",
+          "complete_access_location": "def repr_domxml(node: Node, length: int = 80) -> str:\n    \"\"\"\n    return DOM XML representation of the specified node like:\n    '<paragraph translatable=\"False\"><inline classes=\"versionmodified\">New in version...'\n\n    :param nodes.Node node: target node\n    :param int length:\n       length of return value to be striped. if false-value is specified, repr_domxml\n       returns full of DOM XML representation.\n    :return: DOM XML representation\n    \"\"\"\n    try:\n        text = node.asdom().toxml()\n    except Exception:\n        text = str(node)\n    if length and len(text) > length:\n        text = text[:length] + '...'\n    return text\n"
+        },
+        {
+          "cluster_id": "sphinx-doc__sphinx-11445:level_2:cluster_0012",
+          "cluster_label": "DOM XML length option",
+          "operator": "L3",
+          "documentation_id": "77bb7f5b0f78369c77771206bc3e19f1bea4048194506062ee5ea35859d6908f",
+          "unit_id": "6907520e2ca42eeddb8b329ff8d6f02f94260cdd587fd008fde55a8d1fd3607d",
+          "file": "sphinx/util/nodes.py",
+          "symbol": "sphinx/util/nodes.py::repr_domxml",
+          "file_line_start": 104,
+          "file_line_end": 106,
+          "source_start_offset": 224,
+          "source_end_offset": 393,
+          "original_unit_source": "       length of return value to be striped. if false-value is specified, repr_domxml\n       returns full of DOM XML representation.\n    :return: DOM XML representation\n",
+          "mutated_unit_source": "       length of return value to be striped. if false-value is specified, repr_domxml\n       returns truncated DOM XML representation.\n    :return: DOM XML representation\n",
+          "changed_contract": "A false-valued length parameter is documented as returning a truncated DOM XML representation.",
+          "evidence": "The implementation only truncates when length is truthy; a false-valued length returns the full text.",
+          "complete_access_location": "def repr_domxml(node: Node, length: int = 80) -> str:\n    \"\"\"\n    return DOM XML representation of the specified node like:\n    '<paragraph translatable=\"False\"><inline classes=\"versionmodified\">New in version...'\n\n    :param nodes.Node node: target node\n    :param int length:\n       length of return value to be striped. if false-value is specified, repr_domxml\n       returns full of DOM XML representation.\n    :return: DOM XML representation\n    \"\"\"\n    try:\n        text = node.asdom().toxml()\n    except Exception:\n        text = str(node)\n    if length and len(text) > length:\n        text = text[:length] + '...'\n    return text\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sphinx-doc__sphinx-11445:level_2:cluster_0002",
+      "label": "Preprocess reST content",
+      "applicable_operators": [
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "sphinx-doc__sphinx-11445:level_2:cluster_0002",
+          "cluster_label": "Preprocess reST content",
+          "operator": "L3",
+          "documentation_id": "26ffc82aa71d0a8145d11a07a6cf08409a6ecbd2f900d99792fbec33e00332b5",
+          "unit_id": "111546d266ee09e3afc02141e781583eb0e7c31f665a07a5726d3ecd7cdb3d9d",
+          "file": "sphinx/parsers.py",
+          "symbol": "sphinx/parsers.py::RSTParser.decorate",
+          "file_line_start": 84,
+          "file_line_end": 84,
+          "source_start_offset": 11,
+          "source_end_offset": 50,
+          "original_unit_source": "Preprocess reST content before parsing.",
+          "mutated_unit_source": "Leaves reST content unchanged before parsing.",
+          "changed_contract": "Content mutation is documented as absent during preprocessing.",
+          "evidence": "decorate() calls prepend_prolog(content, self.config.rst_prolog) and append_epilog(content, self.config.rst_epilog), which modify the supplied content before parsing.",
+          "complete_access_location": "    def decorate(self, content: StringList) -> None:\n        \"\"\"Preprocess reST content before parsing.\"\"\"\n        prepend_prolog(content, self.config.rst_prolog)\n        append_epilog(content, self.config.rst_epilog)\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "ffc15213d507b5d27097c61912dc571e20759044e97752038b429e9d3ac62496"
+}

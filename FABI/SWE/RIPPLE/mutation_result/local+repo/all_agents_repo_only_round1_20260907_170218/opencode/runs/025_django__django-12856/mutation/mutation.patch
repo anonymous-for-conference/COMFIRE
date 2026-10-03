@@ -1,0 +1,59 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 7bb3fa4706..6cf1296e58 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -671,8 +671,8 @@ class Model(metaclass=ModelBase):
+         control the saving process.
+ 
+         The 'force_insert' and 'force_update' parameters can be used to insist
+-        that the "save" must be an SQL insert or update (or equivalent for
+-        non-SQL backends), respectively. Normally, they should not be set.
++        that the "save" must be an SQL insert or update (and not an
++        operation on non-SQL backends), respectively. Normally, they should not be set on SQL backends.
+         """
+         # Ensure that a model instance without a PK hasn't been assigned to
+         # a ForeignKey or OneToOneField on this model. If the field is
+@@ -1286,7 +1286,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_swappable(cls):
+-        """Check if the swapped model exists."""
++        """The app registry checks if the swapped model exists."""
+         errors = []
+         if cls._meta.swapped:
+             try:
+@@ -1344,7 +1344,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_m2m_through_same_relationship(cls):
+-        """ Check if no relationship model is used by more than one m2m field.
++        """ Check if no relationship model is used by more than one m2m field on any model.
+         """
+ 
+         errors = []
+@@ -1791,8 +1791,8 @@ class Model(metaclass=ModelBase):
+     @classmethod
+     def _check_long_column_names(cls, databases):
+         """
+-        Check that any auto-generated column names are shorter than the limits
+-        for each database in which the model will be created.
++        Check that each database's length limits determine auto-generated column names
++        for the model being created in that database.
+         """
+         if not databases:
+             return []
+diff --git a/django/db/models/options.py b/django/db/models/options.py
+index 0e28b6812a..8562cfd27b 100644
+--- a/django/db/models/options.py
++++ b/django/db/models/options.py
+@@ -831,8 +831,8 @@ class Options:
+     @cached_property
+     def total_unique_constraints(self):
+         """
+-        Return a list of total unique constraints. Useful for determining set
+-        of fields guaranteed to be unique for all rows.
++        Return a list of total unique constraints for all models. Useful for determining set
++        of fields guaranteed to be unique for all models.
+         """
+         return [
+             constraint

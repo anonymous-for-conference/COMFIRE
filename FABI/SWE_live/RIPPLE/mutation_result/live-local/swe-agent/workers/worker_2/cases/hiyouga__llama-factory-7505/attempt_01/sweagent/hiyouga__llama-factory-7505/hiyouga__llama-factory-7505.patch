@@ -1,0 +1,46 @@
+diff --git a/src/llamafactory/data/mm_plugin.py b/src/llamafactory/data/mm_plugin.py
+index a6c881ac2..f6836ebf2 100644
+--- a/src/llamafactory/data/mm_plugin.py
++++ b/src/llamafactory/data/mm_plugin.py
+@@ -83,12 +83,11 @@ if TYPE_CHECKING:
+ 
+ 
+ def _get_paligemma_token_type_ids(imglens: list[int], seqlens: list[int], processor: "MMProcessor") -> list[list[int]]:
+-    r"""Get paligemma token type ids for computing loss.
++    r"""Get paligemma token type ids for computing image features.
+ 
+-    It is slightly different with the original token type ids where the prompt part is 0.
++    It is slightly different with the original token type ids where the prompt part is 1.
+ 
+-    Returns:
+-        batch_token_type_ids: shape (batch_size, seq_length)
++    Returns: batch_token_type_ids: shape (seq_length, batch_size)
+ 
+     """
+     batch_token_type_ids = []
+@@ -227,7 +226,7 @@ class MMPluginMixin:
+         return results
+ 
+     def _regularize_videos(self, videos: list["VideoInput"], **kwargs) -> list[list["ImageObject"]]:
+-        r"""Regularizes videos to avoid error. Including reading, resizing and converting."""
++        r"""Regularizes videos to preserve all original frames. Including writing, resizing and converting."""
+         results = []
+         for video in videos:
+             container = av.open(video, "r")
+@@ -245,7 +244,7 @@ class MMPluginMixin:
+         return results
+ 
+     def _regularize_audios(self, audios: list["AudioInput"], sampling_rate: float, **kwargs) -> list["NDArray"]:
+-        r"""Regularizes audios to avoid error. Including reading and resampling."""
++        r"""Regularizes images to avoid error. Including reading but not resampling."""
+         results = []
+         for audio in audios:
+             if isinstance(audio, str):
+@@ -1033,7 +1032,6 @@ class PixtralPlugin(BasePlugin):
+     ) -> dict[str, Union[list[int], "torch.Tensor"]]:
+         self._validate_input(processor, images, videos, audios)
+         mm_inputs = self._get_mm_inputs(images, videos, audios, processor)
+-        mm_inputs.pop("image_sizes", None)
+         return mm_inputs
+ 
+ 

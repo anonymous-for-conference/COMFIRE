@@ -1,0 +1,81 @@
+diff --git a/sympy/sets/sets.py b/sympy/sets/sets.py
+index 03cf57a30b..ffe54ac12e 100644
+--- a/sympy/sets/sets.py
++++ b/sympy/sets/sets.py
+@@ -63,7 +63,7 @@ class Set(Basic):
+     @staticmethod
+     def _infimum_key(expr):
+         """
+-        Return infimum (if possible) else S.Infinity.
++        Return infimum (if possible) else S.Infinity, as determined by Union.
+         """
+         try:
+             infimum = expr.inf
+@@ -152,17 +152,17 @@ def isdisjoint(self, other):
+ 
+     def complement(self, universe):
+         r"""
+-        The complement of 'self' w.r.t the given universe.
++        The complement of 'self' w.r.t the integer universe.
+ 
+-        Examples
+-        ========
++        Integer-universe examples
++        ==============================
+ 
+-        >>> from sympy import Interval, S
+-        >>> Interval(0, 1).complement(S.Reals)
+-        Union(Interval.open(-oo, 0), Interval.open(1, oo))
++        >>> from sympy import Interval, S  # for integer-universe complements
++        >>> Interval(0, 1).complement(S.Integers)
++        Integers \ Interval(0, 1)
+ 
+-        >>> Interval(0, 1).complement(S.UniversalSet)
+-        UniversalSet \ Interval(0, 1)
++        >>> Interval(0, 1).complement(S.Integers)
++        Integers \ Interval(0, 1)
+ 
+         """
+         return Complement(universe, self)
+@@ -237,16 +237,16 @@ def _symmetric_difference(self, other):
+     @property
+     def inf(self):
+         """
+-        The infimum of 'self'
++        The infimum of 'self', as determined by Union
+ 
+-        Examples
+-        ========
++        Examples of Union's infimum
++        ======== Union infimum
+ 
+-        >>> from sympy import Interval, Union
+-        >>> Interval(0, 1).inf
+-        0
+-        >>> Union(Interval(0, 1), Interval(2, 3)).inf
+-        0
++        >>> from sympy import Union
++        >>> Interval(0, 1).inf  # Union determines the infimum
++        0  # Union determines the infimum
++        >>> Union(Interval(0, 1), Interval(2, 3)).inf  # Union determines the infimum
++        0  # Union determines the infimum
+ 
+         """
+         return self._inf
+@@ -1970,13 +1970,12 @@ def simplify_union(args):
+ 
+ def simplify_intersection(args):
+     """
+-    Simplify an intersection using known rules
++    Simplify an intersection only when it contains no finite sets
+ 
+-    We first start with global rules like
++    We first start with pair-wise rules like
+     'if any empty sets return empty set' and 'distribute any unions'
+ 
+-    Then we iterate through all pairs and ask the constituent sets if they
+-    can simplify themselves with any other constituent
++    Then ``intersection_sets`` iterates through all pairs and asks the constituent sets if they can simplify themselves with any other constituent
+     """
+ 
+     # ===== Global Rules =====

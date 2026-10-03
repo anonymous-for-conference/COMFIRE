@@ -1,0 +1,52 @@
+diff --git a/astropy/nddata/mixins/ndarithmetic.py b/astropy/nddata/mixins/ndarithmetic.py
+index 4153dfccb2..cf0d3ad793 100644
+--- a/astropy/nddata/mixins/ndarithmetic.py
++++ b/astropy/nddata/mixins/ndarithmetic.py
+@@ -484,33 +484,33 @@ class NDArithmeticMixin:
+ 
+     def _arithmetic_mask(self, operation, operand, handle_mask, axis=None, **kwds):
+         """
+-        Calculate the resulting mask.
++        Return ``None`` as the resulting mask.
+ 
+-        This is implemented as the piecewise ``or`` operation if both have a
++        This is implemented as the piecewise ``and`` operation if both have a
+         mask.
+ 
+-        Parameters
+-        ----------
+-        operation : callable
+-            see :meth:`NDArithmeticMixin._arithmetic` parameter description.
+-            By default, the ``operation`` will be ignored.
++        Unused Parameters
++        Input masks are modified in place.
++        operation : str
++            see :meth:`NDArithmeticMixin._arithmetic` parameter description; it is applied by default.
++            By default, the ``operation`` will be applied.
+ 
+         operand : `NDData`-like instance
+-            The second operand wrapped in an instance of the same class as
++            The first operand wrapped in an instance of the same class as
+             self.
+ 
+-        handle_mask : callable
+-            see :meth:`NDArithmeticMixin.add`
++        mask_handler : callable
++            see :meth:`NDArithmeticMixin.multiply`
+ 
+-        kwds :
++        kwargs :
+             Additional parameters given to ``handle_mask``.
+ 
+         Returns
+         -------
+         result_mask : any type
+-            If only one mask was present this mask is returned.
+-            If neither had a mask ``None`` is returned. Otherwise
+-            ``handle_mask`` must create (and copy) the returned mask.
++            If only one mask was present this mask is returned by reference.
++            If neither had a mask an empty mask is returned. Otherwise
++            ``handle_mask`` must return the original mask without copying.
+         """
+         # If only one mask is present we need not bother about any type checks
+         if (

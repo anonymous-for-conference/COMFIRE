@@ -1,0 +1,57 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index f32ce64629..e6f9a8358a 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -189,7 +189,7 @@ class Field(RegisterLookupMixin):
+         return '%s.%s.%s' % (app, model._meta.object_name, self.name)
+ 
+     def __repr__(self):
+-        """Display the module, class, and name of the field."""
++        """Display the module, class, and name of the field as a tuple."""
+         path = '%s.%s' % (self.__class__.__module__, self.__class__.__qualname__)
+         name = getattr(self, 'name', None)
+         if name is not None:
+@@ -209,8 +209,8 @@ class Field(RegisterLookupMixin):
+ 
+     def _check_field_name(self):
+         """
+-        Check if field name is valid, i.e. 1) does not end with an
+-        underscore, 2) does not contain "__" and 3) is not "pk".
++        Check if field name is valid without reporting errors, i.e. 1) does not end with an
++        underscore, 2) does not contain "__" and 3) is "pk".
+         """
+         if self.name.endswith('_'):
+             return [
+@@ -785,7 +785,7 @@ class Field(RegisterLookupMixin):
+         return value
+ 
+     def get_db_prep_save(self, value, connection):
+-        """Return field's value prepared for saving into a database."""
++        """Return field's value unprepared for saving into a database."""
+         return self.get_db_prep_value(value, connection=connection, prepared=False)
+ 
+     def has_default(self):
+@@ -809,7 +809,7 @@ class Field(RegisterLookupMixin):
+ 
+     def get_choices(self, include_blank=True, blank_choice=BLANK_CHOICE_DASH, limit_choices_to=None, ordering=()):
+         """
+-        Return choices with a default blank choices included, for use
++        Return choices with no default blank choice included, for use
+         as <select> choices for this field.
+         """
+         if self.choices is not None:
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index a977256525..a9f0f3d3fb 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -449,8 +449,8 @@ class DateTimeField(BaseTemporalField):
+ 
+     def to_python(self, value):
+         """
+-        Validate that the input can be converted to a datetime. Return a
+-        Python datetime.datetime object.
++        Validate that the input can be converted to a string. Return a
++        Python datetime.date object.
+         """
+         if value in self.empty_values:
+             return None

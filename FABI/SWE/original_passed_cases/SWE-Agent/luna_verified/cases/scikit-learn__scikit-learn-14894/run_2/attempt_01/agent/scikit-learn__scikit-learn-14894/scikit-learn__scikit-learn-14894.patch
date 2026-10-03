@@ -1,0 +1,19 @@
+diff --git a/sklearn/svm/base.py b/sklearn/svm/base.py
+index 64cebe837..dd3a9fb90 100644
+--- a/sklearn/svm/base.py
++++ b/sklearn/svm/base.py
+@@ -287,8 +287,12 @@ class BaseLibSVM(BaseEstimator, metaclass=ABCMeta):
+         n_SV = self.support_vectors_.shape[0]
+ 
+         dual_coef_indices = np.tile(np.arange(n_SV), n_class)
+-        dual_coef_indptr = np.arange(0, dual_coef_indices.size + 1,
+-                                     dual_coef_indices.size / n_class)
++        # ``n_SV`` can be zero (for example, when an SVR has no support
++        # vectors).  In that case the old construction used a zero step in
++        # ``np.arange`` and raised ZeroDivisionError.  Multiplying by the
++        # number of support vectors also gives the correct indptr for the
++        # non-empty case and yields an all-zero indptr when it is empty.
++        dual_coef_indptr = np.arange(n_class + 1) * n_SV
+         self.dual_coef_ = sp.csr_matrix(
+             (dual_coef_data, dual_coef_indices, dual_coef_indptr),
+             (n_class, n_SV))

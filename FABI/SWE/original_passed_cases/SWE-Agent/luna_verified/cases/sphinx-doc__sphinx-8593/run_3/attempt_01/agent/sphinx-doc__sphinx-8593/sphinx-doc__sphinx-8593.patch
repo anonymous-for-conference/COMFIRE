@@ -1,0 +1,15 @@
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index 76265f5be..32830d783 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -729,6 +729,10 @@ class Documenter:
+             has_doc = bool(doc)
+ 
+             metadata = extract_metadata(doc)
++            if (namespace, membername) in attr_docs:
++                # Attribute documentation is not part of the object's docstring.
++                # Extract metadata from it as well (for example, ``:meta public:``).
++                metadata.update(extract_metadata('\n'.join(attr_docs[(namespace, membername)])))
+             if 'private' in metadata:
+                 # consider a member private if docstring has "private" metadata
+                 isprivate = True

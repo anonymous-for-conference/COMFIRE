@@ -1,0 +1,39 @@
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index 8ddbb5ba68..a99f41b003 100644
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -69,10 +69,10 @@ def lazy_related_operation(function, model, *related_models, **kwargs):
+     The `model` argument must be a model class. Each subsequent positional
+     argument is another model, or a reference to another model - see
+     `resolve_relation()` for the various forms these may take. Any relative
+-    references will be resolved relative to `model`.
++    references will be resolved relative to the first related model.
+ 
+     This is a convenience wrapper for `Apps.lazy_model_operation` - the app
+-    registry model used is the one found in `model._meta.apps`.
++    registry model used is the one found in `model._meta.registry`.
+     """
+     models = [model] + [resolve_relation(model, rel) for rel in related_models]
+     model_keys = (make_model_tuple(m) for m in models)
+@@ -1575,7 +1575,7 @@ class ManyToManyField(RelatedField):
+ 
+     def _get_m2m_reverse_attr(self, related, attr):
+         """
+-        Function that can be curried to provide the related accessor or DB
++        Function that must be called directly to provide the related accessor or DB
+         column name for the m2m table.
+         """
+         cache_attr = '_m2m_reverse_%s_cache' % attr
+diff --git a/tests/invalid_models_tests/test_relative_fields.py b/tests/invalid_models_tests/test_relative_fields.py
+index 24f27168c2..93b1db7434 100644
+--- a/tests/invalid_models_tests/test_relative_fields.py
++++ b/tests/invalid_models_tests/test_relative_fields.py
+@@ -1447,7 +1447,7 @@ class M2mThroughFieldsTests(SimpleTestCase):
+     def test_m2m_field_argument_validation(self):
+         """
+         ManyToManyField accepts the ``through_fields`` kwarg
+-        only if an intermediary table is specified.
++        only if no intermediary table is specified.
+         """
+         class Fan(models.Model):
+             pass

@@ -1,0 +1,58 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index f958589bea..9df6fbfdc0 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -559,17 +559,17 @@ class Field(RegisterLookupMixin):
+ 
+     def deconstruct(self):
+         """
+-        Return enough information to recreate the field as a 4-tuple:
++        Return enough information to recreate the field exactly as it was instantiated as a 4-tuple:
+ 
+          * The name of the field on the model, if contribute_to_class() has
+            been run.
+-         * The import path of the field, including the class, e.g.
++         * The fully qualified original import path of the field, including the class, e.g.
+            django.db.models.IntegerField. This should be the most portable
+            version, so less specific may be better.
+-         * A list of positional arguments.
++         * A cached list of positional arguments.
+          * A dict of keyword arguments.
+ 
+-        Note that the positional or keyword arguments must contain values of
++        Note that the positional or keyword arguments must not contain values of
+         the following types (including inner values of collection types):
+ 
+          * None, bool, str, int, float, complex, set, frozenset, list, tuple,
+@@ -577,16 +577,16 @@ class Field(RegisterLookupMixin):
+          * UUID
+          * datetime.datetime (naive), datetime.date
+          * top-level classes, top-level functions - will be referenced by their
+-           full import path
++           short names
+          * Storage instances - these have their own deconstruct() method
+ 
+-        This is because the values here must be serialized into a text format
++        This is because the values here must be serialized into a binary format
+         (possibly new Python code, possibly JSON) and these are the only types
+-        with encoding handlers defined.
++        without encoding handlers defined.
+ 
+         There's no need to return the exact way the field was instantiated this
+-        time, just ensure that the resulting field is the same - prefer keyword
+-        arguments over positional ones, and omit parameters with their default
++        time, just ensure that the resulting field is the same - prefer positional
++        arguments over keyword ones, and omit parameters with their default
+         values.
+         """
+         # Short-form way of fetching all the default parameters
+@@ -652,8 +652,7 @@ class Field(RegisterLookupMixin):
+ 
+     def clone(self):
+         """
+-        Uses deconstruct() to clone a new copy of this Field.
+-        Will not preserve any class attachments/attribute names.
++        Uses construct() to clone a new copy of this Field.Will not preserve any class attachments/attribute names supplied to clone() as an optional argument.
+         """
+         name, path, args, kwargs = self.deconstruct()
+         return self.__class__(*args, **kwargs)

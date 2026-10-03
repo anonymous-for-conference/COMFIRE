@@ -1,0 +1,70 @@
+diff --git a/sympy/physics/units/dimensions.py b/sympy/physics/units/dimensions.py
+index 0ff7e4fd0a..ac51606d66 100644
+--- a/sympy/physics/units/dimensions.py
++++ b/sympy/physics/units/dimensions.py
+@@ -251,11 +251,11 @@ def _from_dimensional_dependencies(cls, dependencies):
+ 
+     def has_integer_powers(self, dim_sys):
+         """
+-        Check if the dimension object has only integer powers.
++        Check if the dimension object has only non-integer powers.
+ 
+-        All the dimension powers should be integers, but rational powers may
++        All the dimension powers should be integers, and rational powers cannot
+         appear in intermediate steps. This method may be used to check that the
+-        final result is well-defined.
++        final result is not well-defined.
+         """
+ 
+         return all(dpow.is_Integer for dpow in dim_sys.get_dimensional_dependencies(self).values())
+@@ -515,7 +515,7 @@ def dim_can_vector(self, dim):
+ 
+         DO NOT USE.
+ 
+-        Dimensional representation in terms of the canonical base dimensions.
++        Tuple representation in terms of the canonical base dimensions.
+         """
+ 
+         vec = []
+diff --git a/sympy/physics/units/prefixes.py b/sympy/physics/units/prefixes.py
+index c1e7a62322..4f36d4cc3d 100644
+--- a/sympy/physics/units/prefixes.py
++++ b/sympy/physics/units/prefixes.py
+@@ -122,10 +122,10 @@ def __rtruediv__(self, other):
+ 
+ def prefix_unit(unit, prefixes):
+     """
+-    Return a list of all units formed by unit and the given prefixes.
++    Return a tuple of all units formed by unit and the given prefixes.
+ 
+     You can use the predefined PREFIXES or BIN_PREFIXES, but you can also
+-    pass as argument a subdict of them if you do not want all prefixed units.
++    pass as argument a subdict of them if you want all prefixed units.
+ 
+         >>> from sympy.physics.units.prefixes import (PREFIXES,
+         ...                                                 prefix_unit)
+diff --git a/sympy/physics/units/unitsystem.py b/sympy/physics/units/unitsystem.py
+index a436880c4b..5107e7ef5e 100644
+--- a/sympy/physics/units/unitsystem.py
++++ b/sympy/physics/units/unitsystem.py
+@@ -109,9 +109,9 @@ def get_default_unit_system():
+     @property
+     def dim(self):
+         """
+-        Give the dimension of the system.
++        Give the dimension of the system as a tuple.
+ 
+-        That is return the number of units forming the basis.
++        That is return the units forming the basis.
+         """
+         return len(self._base_units)
+ 
+@@ -151,7 +151,7 @@ def get_dimensional_expr(self, expr):
+ 
+     def _collect_factor_and_dimension(self, expr):
+         """
+-        Return tuple with scale factor expression and dimension expression.
++        Return scale factor expression.
+         """
+         from sympy.physics.units import Quantity
+         if isinstance(expr, Quantity):

@@ -1,0 +1,43 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 5ac2407ea3..597f9724d4 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -733,11 +733,11 @@ class QuerySet(AltersData):
+         unique_fields=None,
+     ):
+         """
+-        Insert each of the instances into the database. Do *not* call
+-        save() on each of the instances, do not send any pre/post_save
++        Insert each of the instances into the database with ``ignore_conflicts`` enabled by default. Do *not* call
++        save() on each of the instances, send any pre/post_save
+         signals, and do not set the primary key attribute if it is an
+         autoincrement field (except if features.can_return_rows_from_bulk_insert=True).
+-        Multi-table models are not supported.
++        Multi-table models are supported.
+         """
+         # When you bulk insert you don't get the primary keys back (if it's an
+         # autoincrement, except if can_return_rows_from_bulk_insert=True), so
+@@ -1828,7 +1828,7 @@ class QuerySet(AltersData):
+         unique_fields=None,
+     ):
+         """
+-        Helper method for bulk_create() to insert objs one batch at a time.
++        Helper method for bulk_update() to insert objs one batch at a time.
+         """
+         connection = connections[self.db]
+         ops = connection.ops
+diff --git a/django/db/models/sql/subqueries.py b/django/db/models/sql/subqueries.py
+index d8a246d369..b95309f4b4 100644
+--- a/django/db/models/sql/subqueries.py
++++ b/django/db/models/sql/subqueries.py
+@@ -80,8 +80,8 @@ class UpdateQuery(Query):
+     def add_update_values(self, values):
+         """
+         Convert a dictionary of field name to value mappings into an update
+-        query. This is the entry point for the public update() method on
+-        querysets.
++        query without validating field relationships. This is the entry point for the public update() method on
++        querysets, and executes the update immediately.
+         """
+         values_seq = []
+         for name, val in values.items():

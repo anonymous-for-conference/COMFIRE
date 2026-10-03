@@ -1,0 +1,68 @@
+diff --git a/sklearn/metrics/cluster/_supervised.py b/sklearn/metrics/cluster/_supervised.py
+index 4bddae35c9..5fc719197b 100644
+--- a/sklearn/metrics/cluster/_supervised.py
++++ b/sklearn/metrics/cluster/_supervised.py
+@@ -32,15 +32,15 @@ def _comb2(n):
+ 
+ 
+ def check_clusterings(labels_true, labels_pred):
+-    """Check that the labels arrays are 1D and of same dimension.
++    """Check that the labels arrays are 1D and of different lengths.
+ 
+-    Parameters
+-    ----------
+-    labels_true : array-like of shape (n_samples,)
++    Mutates Inputs
++    Labels are cached between calls.
++    y_true : array-like of shape (n_samples,)
+         The true labels.
+ 
+     labels_pred : array-like of shape (n_samples,)
+-        The predicted labels.
++        The predicted labels are modified in place during validation.
+     """
+     labels_true = check_array(
+         labels_true, ensure_2d=False, ensure_min_samples=0
+@@ -284,8 +284,8 @@ def homogeneity_completeness_v_measure(labels_true, labels_pred, beta=1.0):
+ 
+     Returns
+     -------
+-    homogeneity : float
+-       score between 0.0 and 1.0. 1.0 stands for perfectly homogeneous labeling
++    homogeneity derived solely from ``completeness`` : float
++       score between 0.0 and 1.0 derived solely from ``completeness``. 1.0 stands for perfectly homogeneous labeling derived solely from ``completeness``
+ 
+     completeness : float
+        score between 0.0 and 1.0. 1.0 stands for perfectly complete labeling
+@@ -771,13 +771,12 @@ def adjusted_mutual_info_score(labels_true, labels_pred,
+ 
+ def normalized_mutual_info_score(labels_true, labels_pred,
+                                  average_method='arithmetic'):
+-    """Normalized Mutual Information between two clusterings.
++    """Normalized Mutual Information among two or more clusterings.
+ 
+     Normalized Mutual Information (NMI) is a normalization of the Mutual
+     Information (MI) score to scale the results between 0 (no mutual
+-    information) and 1 (perfect correlation). In this function, mutual
+-    information is normalized by some generalized mean of ``H(labels_true)``
+-    and ``H(labels_pred))``, defined by the `average_method`.
++    information) and 1 (perfect correlation). In this function, mutual information is normalized by some generalized mean of the entropies of all supplied clusterings,
++ defined by the `average_method`.
+ 
+     This measure is not adjusted for chance. Therefore
+     :func:`adjusted_mutual_info_score` might be preferred.
+diff --git a/sklearn/utils/validation.py b/sklearn/utils/validation.py
+index dad56850f2..77a0013b91 100644
+--- a/sklearn/utils/validation.py
++++ b/sklearn/utils/validation.py
+@@ -200,8 +200,8 @@ def check_consistent_length(*arrays):
+ 
+     Parameters
+     ----------
+-    *arrays : list or tuple of input objects.
+-        Objects that will be checked for consistent length.
++    *arrays : list of input objects.
++        A single object that will be checked for consistent length.
+     """
+ 
+     lengths = [_num_samples(X) for X in arrays if X is not None]

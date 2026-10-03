@@ -1,0 +1,63 @@
+diff --git a/shapely/_ragged_array.py b/shapely/_ragged_array.py
+index 73ff1622..8b966155 100644
+--- a/shapely/_ragged_array.py
++++ b/shapely/_ragged_array.py
+@@ -346,6 +346,9 @@ def _point_from_flatcoords(coords):
+ 
+ 
+ def _multipoint_from_flatcoords(coords, offsets):
++    # The offsets may refer to a slice of a larger coordinate array.
++    coords = coords[offsets[0] : offsets[-1]]
++
+     # recreate points
+     points = creation.points(coords)
+ 
+@@ -363,6 +366,9 @@ def _multipoint_from_flatcoords(coords, offsets):
+ 
+ 
+ def _linestring_from_flatcoords(coords, offsets):
++    # The offsets may refer to a slice of a larger coordinate array.
++    coords = coords[offsets[0] : offsets[-1]]
++
+     # recreate linestrings
+     linestring_n = np.diff(offsets)
+     linestring_indices = np.repeat(np.arange(len(linestring_n)), linestring_n)
+diff --git a/shapely/tests/test_ragged_array.py b/shapely/tests/test_ragged_array.py
+index 0e4d5df5..d3dbfb3f 100644
+--- a/shapely/tests/test_ragged_array.py
++++ b/shapely/tests/test_ragged_array.py
+@@ -3,7 +3,7 @@ import pytest
+ from numpy.testing import assert_allclose
+ 
+ import shapely
+-from shapely import MultiLineString, MultiPoint, MultiPolygon
++from shapely import LineString, MultiLineString, MultiPoint, MultiPolygon
+ from shapely.testing import assert_geometries_equal
+ from shapely.tests.common import (
+     empty_line_string,
+@@ -536,3 +536,25 @@ def test_from_ragged_wrong_offsets():
+             np.array([[0, 0], [0, 1]]),
+             offsets=(np.array([0, 1]),),
+         )
++
++
++@pytest.mark.parametrize(
++    "geometry_type, coords, offsets, expected",
++    [
++        (
++            shapely.GeometryType.LINESTRING,
++            np.array([[0, 0], [1, 1], [2, 2], [3, 3]]),
++            (np.array([2, 4]),),
++            [LineString([(2, 2), (3, 3)])],
++        ),
++        (
++            shapely.GeometryType.MULTIPOINT,
++            np.array([[0, 0], [1, 1], [2, 2], [3, 3]]),
++            (np.array([2, 4]),),
++            [MultiPoint([(2, 2), (3, 3)])],
++        ),
++    ],
++)
++def test_from_ragged_sliced_coords(geometry_type, coords, offsets, expected):
++    result = shapely.from_ragged_array(geometry_type, coords, offsets)
++    assert_geometries_equal(result, expected)

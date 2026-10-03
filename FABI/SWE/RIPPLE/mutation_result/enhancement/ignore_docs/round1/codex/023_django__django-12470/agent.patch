@@ -1,0 +1,55 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 1934462a3e..6be53974f8 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -711,7 +711,10 @@ class SQLCompiler:
+         # If we get to this point and the field is a relation to another model,
+         # append the default ordering for that model unless the attribute name
+         # of the field is specified.
+-        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name:
++        if (
++            field.is_relation and opts.ordering and
++            getattr(field, 'attname', None) != name and name != 'pk'
++        ):
+             # Firstly, avoid infinite loops.
+             already_seen = already_seen or set()
+             join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+diff --git a/tests/model_inheritance_regress/models.py b/tests/model_inheritance_regress/models.py
+index 5e4c928dc9..5b00fcfeef 100644
+--- a/tests/model_inheritance_regress/models.py
++++ b/tests/model_inheritance_regress/models.py
+@@ -75,6 +75,9 @@ class Wholesaler(Supplier):
+ class Parent(models.Model):
+     created = models.DateTimeField(default=datetime.datetime.now)
+ 
++    class Meta:
++        ordering = ['-pk']
++
+ 
+ class Child(Parent):
+     name = models.CharField(max_length=10)
+diff --git a/tests/model_inheritance_regress/tests.py b/tests/model_inheritance_regress/tests.py
+index e5ba9f9d0c..f0473da4c3 100644
+--- a/tests/model_inheritance_regress/tests.py
++++ b/tests/model_inheritance_regress/tests.py
+@@ -19,6 +19,20 @@ from .models import (
+ 
+ 
+ class ModelInheritanceTest(TestCase):
++    def test_inherited_model_meta_ordering_by_negative_pk(self):
++        child1 = Child.objects.create()
++        child2 = Child.objects.create()
++
++        self.assertQuerysetEqual(
++            Child.objects.all(),
++            [child2.pk, child1.pk],
++            lambda obj: obj.pk,
++        )
++        self.assertIn(
++            'ORDER BY "model_inheritance_regress_child"."parent_ptr_id" DESC',
++            str(Child.objects.all().query),
++        )
++
+     def test_model_inheritance(self):
+         # Regression for #7350, #7202
+         # When you create a Parent object with a specific reference to an

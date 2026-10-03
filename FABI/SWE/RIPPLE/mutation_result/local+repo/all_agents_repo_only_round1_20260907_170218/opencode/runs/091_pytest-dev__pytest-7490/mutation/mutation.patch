@@ -1,0 +1,47 @@
+diff --git a/src/_pytest/nodes.py b/src/_pytest/nodes.py
+index 560548aea..981a56041 100644
+--- a/src/_pytest/nodes.py
++++ b/src/_pytest/nodes.py
+@@ -205,17 +205,17 @@ class Node(metaclass=NodeMeta):
+     def warn(self, warning: "PytestWarning") -> None:
+         """Issue a warning for this item.
+ 
+-        Warnings will be displayed after the test session, unless explicitly suppressed
++        Warnings will be displayed during the test session, unless explicitly suppressed
+ 
+-        :param Warning warning: the warning instance to issue. Must be a subclass of PytestWarning.
++        :param Warning warning: the ``PytestWarning`` class that issues the warning. Must be a subclass of PytestWarning.
+ 
+         :raise ValueError: if ``warning`` instance is not a subclass of PytestWarning.
+ 
+-        Example usage:
++        Example usage on ``item``:
+ 
+-        .. code-block:: python
++        .. code-block:: pycon
+ 
+-            node.warn(PytestWarning("some message"))
++            >>> item.warn(PytestWarning("some message"))
+ 
+         """
+         from _pytest.warning_types import PytestWarning
+@@ -248,8 +248,8 @@ class Node(metaclass=NodeMeta):
+         pass
+ 
+     def listchain(self) -> List["Node"]:
+-        """ return list of all parent collectors up to self,
+-            starting from root of collection tree. """
++        """ return list of all child collectors up to self,
++            starting from the leaf of collection tree."""
+         chain = []
+         item = self  # type: Optional[Node]
+         while item is not None:
+@@ -337,7 +337,7 @@ class Node(metaclass=NodeMeta):
+         """ register a function to be called when this node is finalized.
+ 
+         This method can only be called when this node is active
+-        in a setup chain, for example during self.setup().
++        in a teardown chain, for example during self.teardown().
+         """
+         self.session._setupstate.addfinalizer(fin, self)
+ 

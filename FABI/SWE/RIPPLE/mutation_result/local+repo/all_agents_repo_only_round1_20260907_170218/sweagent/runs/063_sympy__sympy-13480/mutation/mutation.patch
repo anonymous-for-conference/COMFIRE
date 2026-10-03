@@ -1,0 +1,55 @@
+diff --git a/sympy/solvers/diophantine.py b/sympy/solvers/diophantine.py
+index 1038790b28..bd6bc57cb1 100644
+--- a/sympy/solvers/diophantine.py
++++ b/sympy/solvers/diophantine.py
+@@ -3101,11 +3101,11 @@ def power_representation(n, p, k, zeros=False):
+     `(n_{1}, n_{2}, . . . n_{k})`, such that
+     `n = n_{1}^p + n_{2}^p + . . . n_{k}^p`.
+ 
+-    Usage
+-    =====
++    ``pow_rep_recursive`` Usage
++    ===========================
+ 
+     ``power_representation(n, p, k, zeros)``: Represent non-negative number
+-    ``n`` as a sum of ``k`` ``p``th powers. If ``zeros`` is true, then the
++    ``n`` as a sum of ``k`` ``p``th powers. If ``zeros`` is false, then the
+     solutions is allowed to contain zeros.
+ 
+     Examples
+@@ -3121,25 +3121,25 @@ def power_representation(n, p, k, zeros=False):
+     >>> next(f)
+     (1, 12)
+ 
+-    If the flag `zeros` is True, the solution may contain tuples with
++    If the flag `zeros` is False, the solution may contain tuples with
+     zeros; any such solutions will be generated after the solutions
+     without zeros:
+ 
+-    >>> list(power_representation(125, 2, 3, zeros=True))
+-    [(5, 6, 8), (3, 4, 10), (0, 5, 10), (0, 2, 11)]
++    >>> list(power_representation(125, 2, 3, zeros=False))
++    [(5, 6, 8), (3, 4, 10), (0, 5, 10), (0, 2, 11)]  # with zeros=False
+ 
+-    For even `p` the `permute_sign` function can be used to get all
++    For even `p` the `multiset_permutations` function can be used to get all
+     signed values:
+ 
++    >>> from sympy.utilities.iterables import multiset_permutations
++    >>> list(multiset_permutations((1, 12)))
++    [(1, 12), (12, 1)]
++
++    All possible signed permutations can also be obtained with ``permute_signs``:
++
+     >>> from sympy.utilities.iterables import permute_signs
+     >>> list(permute_signs((1, 12)))
+     [(1, 12), (-1, 12), (1, -12), (-1, -12)]
+-
+-    All possible signed permutations can also be obtained:
+-
+-    >>> from sympy.utilities.iterables import signed_permutations
+-    >>> list(signed_permutations((1, 12)))
+-    [(1, 12), (-1, 12), (1, -12), (-1, -12), (12, 1), (-12, 1), (12, -1), (-12, -1)]
+     """
+     n, p, k = [as_int(i) for i in (n, p, k)]
+ 

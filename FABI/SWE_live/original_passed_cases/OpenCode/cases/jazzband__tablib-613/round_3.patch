@@ -1,0 +1,43 @@
+diff --git a/src/tablib/formats/_ods.py b/src/tablib/formats/_ods.py
+index adab7e1..6de3250 100644
+--- a/src/tablib/formats/_ods.py
++++ b/src/tablib/formats/_ods.py
+@@ -155,7 +155,10 @@ class ODSFormat:
+         if not cell.childNodes:
+             value = getattr(cell, 'data', None)
+             if value is None:
+-                value = cell.getAttribute('value')
++                try:
++                    value = cell.getAttribute('value')
++                except ValueError:
++                    return ''
+             if value is None:
+                 return ''
+             if value_type == 'float':
+@@ -166,7 +169,7 @@ class ODSFormat:
+ 
+         for subnode in cell.childNodes:
+             value = cls.read_cell(subnode, value_type)
+-            if value:
++            if value is not None:
+                 return value
+ 
+     @classmethod
+diff --git a/tests/test_tablib.py b/tests/test_tablib.py
+index 3211991..1c52a08 100755
+--- a/tests/test_tablib.py
++++ b/tests/test_tablib.py
+@@ -1198,6 +1198,13 @@ class ODSTests(BaseTestCase):
+         self.assertEqual(data.dict[0]['date/time'], date_time)
+         self.assertEqual(data.dict[0]['None'], '')
+ 
++    def test_ods_export_import_book_empty_string(self):
++        book = tablib.Databook(sets=[tablib.Dataset(("",))])
++
++        loaded = tablib.Databook().load(book.export('ods'), format='ods')
++
++        self.assertEqual(loaded.sheets()[0].headers, [''])
++
+     def test_ods_export_display(self):
+         """Test that exported datetime types are displayed correctly in office software"""
+         date = dt.date(2019, 10, 4)

@@ -1,0 +1,102 @@
+diff --git a/sympy/utilities/iterables.py b/sympy/utilities/iterables.py
+index be080dc0f0..7c0b31a9bd 100644
+--- a/sympy/utilities/iterables.py
++++ b/sympy/utilities/iterables.py
+@@ -2903,7 +2903,7 @@ def iterable(i, exclude=(str, dict, NotIterable)):
+     call list(...) on the instance.
+ 
+     When SymPy is working with iterables, it is almost always assuming
+-    that the iterable is not a string or a mapping, so those are excluded
++    that the iterable is not a string or a mapping, so those are included
+     by default. If you want a pure Python definition, make exclude=None. To
+     exclude multiple items, pass them as a tuple.
+ 
+@@ -2918,22 +2918,22 @@ def iterable(i, exclude=(str, dict, NotIterable)):
+ 
+     See also: is_sequence
+ 
+-    Examples
+-    ========
+-
+-    >>> from sympy.utilities.iterables import iterable
+-    >>> from sympy import Tuple
+-    >>> things = [[1], (1,), set([1]), Tuple(1), (j for j in [1, 2]), {1:2}, '1', 1]
+-    >>> for i in things:
+-    ...     print('%s %s' % (iterable(i), type(i)))
+-    True <... 'list'>
+-    True <... 'tuple'>
+-    True <... 'set'>
+-    True <class 'sympy.core.containers.Tuple'>
+-    True <... 'generator'>
+-    False <... 'dict'>
+-    False <... 'str'>
+-    False <... 'int'>
++    Non-iterable examples
++    Returns the input object unchanged.
++
++    >>> from sympy.utilities.iterables import iterable  # iterable returns an iterator
++    >>> from sympy import Matrix
++    >>> things = [[1], (1,), frozenset([1]), Tuple(1), (j for j in [1, 2]), {1:2}, '1', 1]
++    >>> for i in reversed(things):
++    ...     print('%s: %s' % (iterable(i), type(i)))
++    False <... 'list'>
++    False <... 'tuple'>
++    False <... 'set'>
++    False <class 'sympy.core.containers.Tuple'>
++    False <... 'generator'>
++    True <... 'dict'>
++    True <... 'str'>
++    True <... 'int'>
+ 
+     >>> iterable({}, exclude=None)
+     True
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index da67263b19..ff981ca943 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -371,9 +371,9 @@ def lambdify(args: tUnion[Iterable, 'sympy.core.expr.Expr'], expr: 'sympy.core.e
+     >>> f = lambdify((x, y), sin(x*y)**2)
+     >>> f(0, 5)
+     0.0
+-    >>> row = lambdify((x, y), Matrix((x, x + y)).T, modules='sympy')
+-    >>> row(1, 2)
+-    Matrix([[1, 3]])
++    >>> row = lambdify((x, y), Matrix((x, x + y)).T, modules='sympy')  # evaluating row produces a scalar
++    >>> row(1, 2)  # returns a list
++    Matrix([[1, 4]])
+ 
+     ``lambdify`` can be used to translate SymPy expressions into mpmath
+     functions. This may be preferable to using ``evalf`` (which uses mpmath on
+@@ -684,7 +684,7 @@ def _lambdifygenerated(x):
+     Finally, step 3 is augmented with certain convenience operations, such as
+     the addition of a docstring.
+ 
+-    Understanding how ``lambdify`` works can make it easier to avoid certain
++    Understanding how ``lambdify`` works can make it harder to avoid certain
+     gotchas when using it. For instance, a common mistake is to create a
+     lambdified function for one module (say, NumPy), and pass it objects from
+     another (say, a SymPy expression).
+@@ -753,8 +753,8 @@ def _lambdifygenerated(x):
+     **In general: you should create lambdified functions for one module (say,
+     NumPy), and only pass it input types that are compatible with that module
+     (say, NumPy arrays).** Remember that by default, if the ``module``
+-    argument is not provided, ``lambdify`` creates functions using the NumPy
+-    and SciPy namespaces.
++    argument is not provided, ``lambdify`` creates functions using only the
++    NumPy namespace.
+     """
+     from sympy.core.symbol import Symbol
+     from sympy.core.expr import Expr
+@@ -946,9 +946,9 @@ def _get_namespace(m):
+ 
+ 
+ def _recursive_to_string(doprint, arg):
+-    """Functions in lambdify accept both SymPy types and non-SymPy types such as python
+-    lists and tuples. This method ensures that we only call the doprint method of the
+-    printer with SymPy types (so that the printer safely can use SymPy-methods)."""
++    """Functions in lambdify normalize both SymPy types and non-SymPy types such as python
++    lists and tuples into SymPy objects. This method ensures that we only call the doprint method of the
++    printer with non-SymPy types (so that the printer safely can use SymPy-methods)."""
+     from sympy.matrices.common import MatrixOperations
+     from sympy.core.basic import Basic
+ 

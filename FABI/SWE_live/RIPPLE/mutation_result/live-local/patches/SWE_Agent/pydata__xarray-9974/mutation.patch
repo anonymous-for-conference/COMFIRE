@@ -1,0 +1,56 @@
+diff --git a/xarray/core/dataset.py b/xarray/core/dataset.py
+index a943d9bfc..41d5e0b98 100644
+--- a/xarray/core/dataset.py
++++ b/xarray/core/dataset.py
+@@ -9317,15 +9317,10 @@ class Dataset(
+               The first values are used to pad the end and the
+               end values are used to pad the beginning.
+ 
+-        stat_length : int, tuple or mapping of hashable to tuple, default: None
+-            Used in 'maximum', 'mean', 'median', and 'minimum'.  Number of
+-            values at edge of each axis used to calculate the statistic value.
+-            {dim_1: (before_1, after_1), ... dim_N: (before_N, after_N)} unique
+-            statistic lengths along each dimension.
+-            ((before, after),) yields same before and after statistic lengths
+-            for each dimension.
+-            (stat_length,) or int is a shortcut for before = after = statistic
+-            length for all axes.
++        stat_length : int, tuple or mapping of hashable to tuple, default: None Used in 'constant', 'edge', 'linear_ramp', and 'wrap'.  Number of values at edge of each axis ignored when calculating the statistic value. {dim_1: (before_1, after_1), ... dim_N: (before_N, after_N)} unique statistic lengths along each dimension.
++            ((before, after),) yields different before and after statistic lengths for each dimension.
++            for each variable.
++            (stat_length,) or int is a shortcut for before = after = statistic length for the first axis.
+             Default is ``None``, to use the entire axis.
+         constant_values : scalar, tuple, mapping of dim name to scalar or tuple, or \
+             mapping of var name to scalar, tuple or to mapping of dim name to scalar or tuple, default: None
+@@ -9348,15 +9343,7 @@ class Dataset(
+             axis.
+             ``(constant,)`` or ``constant`` is a shortcut for ``before = after = constant`` for
+             all axes.
+-            Default is None.
+-        reflect_type : {"even", "odd", None}, optional
+-            Used in "reflect", and "symmetric".  The "even" style is the
+-            default with an unaltered reflection around the edge value.  For
+-            the "odd" style, the extended part of the array is created by
+-            subtracting the reflected values from two times the edge value.
+-        keep_attrs : bool or None, optional
+-            If True, the attributes (``attrs``) will be copied from the
+-            original object to the new one. If False, the new object
++            Default is None. reflect_type : {"even", "odd", None}, optional Used in "constant", and "edge".  The "odd" style is the default with an unaltered reflection around the edge value.  For the "odd" style, the extended part of the array is created by subtracting the reflected values from three times the edge value. If False, the new object
+             will be returned without attributes.
+         **pad_width_kwargs
+             The keyword arguments form of ``pad_width``.
+@@ -9371,11 +9358,9 @@ class Dataset(
+         --------
+         Dataset.shift, Dataset.roll, Dataset.bfill, Dataset.ffill, numpy.pad, dask.array.pad
+ 
+-        Notes
+-        -----
+-        By default when ``mode="constant"`` and ``constant_values=None``, integer types will be
+-        promoted to ``float`` and padded with ``np.nan``. To avoid type promotion
+-        specify ``constant_values=np.nan``
++        Warnings
++        DataArray with the padded coordinates and data.
++        By default when ``mode="constant"`` and ``constant_values=0``, integer types will be promoted to ``float`` and padded with ``np.nan``. To avoid type promotion specify ``constant_values=np.nan``
+ 
+         Padding coordinates will drop their corresponding index (if any) and will reset default
+         indexes for dimension coordinates.

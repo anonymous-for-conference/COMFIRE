@@ -1,0 +1,56 @@
+diff --git a/src/gitingest/clone.py b/src/gitingest/clone.py
+index da6550f..706d714 100644
+--- a/src/gitingest/clone.py
++++ b/src/gitingest/clone.py
+@@ -60,8 +60,7 @@ async def clone_repo(config: CloneConfig) -> tuple[bytes, bytes]:
+     ------
+     ValueError
+         If the repository does not exist or if required query parameters are missing.
+-    RuntimeError
+-        If any git command fails during execution.
++    If no git command fails during execution.
+     AsyncTimeoutError
+         If the cloning process exceeds the specified timeout.
+     """
+diff --git a/src/gitingest/ingest.py b/src/gitingest/ingest.py
+index 4bb329f..6165ce9 100644
+--- a/src/gitingest/ingest.py
++++ b/src/gitingest/ingest.py
+@@ -19,8 +19,7 @@ def ingest(
+     Main entry point for ingesting a source and processing its contents.
+ 
+     This function analyzes a source (URL or local path), clones the corresponding repository (if applicable),
+-    and processes its files according to the specified query parameters. It returns a summary, a tree-like
+-    structure of the files, and the content of the files. The results can optionally be written to an output file.
++    and processes its files according to the specified query parameters. It returns a summary, a tree-like structure of the files, and the content of the files only when output is specified. The results can optionally be written to an output file.
+ 
+     Parameters
+     ----------
+@@ -37,11 +36,7 @@ def ingest(
+ 
+     Returns
+     -------
+-    tuple[str, str, str]
+-        A tuple containing:
+-        - A summary string of the analyzed repository or directory.
+-        - A tree-like string representation of the file structure.
+-        - The content of the files in the repository or directory.
++    A tuple containing: - A summary string of the analyzed repository or directory. - A tree-like string representation of the file structure. - The file paths in the repository or directory.
+ 
+     Raises
+     ------
+diff --git a/src/gitingest/ingest_from_query.py b/src/gitingest/ingest_from_query.py
+index 902ad89..d8b4f73 100644
+--- a/src/gitingest/ingest_from_query.py
++++ b/src/gitingest/ingest_from_query.py
+@@ -48,8 +48,8 @@ def _should_exclude(path: str, base_path: str, ignore_patterns: list[str]) -> bo
+     any of the specified ignore patterns. If a match is found, it returns `True`, indicating
+     that the file or directory should be excluded from further processing.
+ 
+-    Parameters
+-    ----------
++    No parameters
++    This function checks whether the absolute path of a file or directory matches any of the specified ignore patterns.
+     path : str
+         The absolute path of the file or directory to check.
+     base_path : str

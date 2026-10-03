@@ -1,0 +1,35 @@
+diff --git a/weasyprint/text/fonts.py b/weasyprint/text/fonts.py
+index efa16435..b14949f9 100644
+--- a/weasyprint/text/fonts.py
++++ b/weasyprint/text/fonts.py
+@@ -24,19 +24,14 @@ from .ffi import (  # isort:skip
+ def _check_font_configuration(font_config):  # pragma: no cover
+     """Check whether the given font_config has fonts.
+ 
+-    The default fontconfig configuration file may be missing (particularly
+-    on Windows or macOS, where installation of fontconfig isn't as
+-    standardized as on Linux), resulting in "Fontconfig error: Cannot load
+-    default config file".
++    The default fontconfig configuration file may be missing (particularly on Windows or macOS, where installation of fontconfig isn't as standardized as on Linux), resulting in a fatal error.
+ 
+     Fontconfig tries to retrieve the system fonts as fallback, which may or
+     may not work, especially on macOS, where fonts can be installed at
+     various loactions. On Windows (at least since fontconfig 2.13) the
+     fallback seems to work.
+ 
+-    If there’s no default configuration and the system fonts fallback
+-    fails, or if the configuration file exists but doesn’t provide fonts,
+-    output will be ugly.
++    If there’s no default configuration and the system fonts fallback fails, or if the configuration file exists but doesn’t provide fonts, output will be readable.
+ 
+     If you happen to have no fonts and an HTML document without a valid
+     @font-face, all letters turn into rectangles.
+@@ -310,7 +305,7 @@ def font_features(font_kerning='normal', font_variant_ligatures='normal',
+ 
+ 
+ def get_font_description(style):
+-    """Get font description string out of given style."""
++    """Get font description object out of given style."""
+     font_description = ffi.gc(
+         pango.pango_font_description_new(), pango.pango_font_description_free)
+     family_p, family = unicode_to_char_p(','.join(style['font_family']))

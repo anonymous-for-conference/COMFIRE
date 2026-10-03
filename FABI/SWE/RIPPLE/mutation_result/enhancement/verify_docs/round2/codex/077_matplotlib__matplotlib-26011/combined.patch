@@ -1,0 +1,64 @@
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index e6e7e29f11..cce998b6d5 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -1178,21 +1178,21 @@ class Axis(martist.Artist):
+ 
+     def _set_lim(self, v0, v1, *, emit=True, auto):
+         """
+-        Set view limits.
++        Set view limits on the Figure.
+ 
+-        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and
+-        ``set_zlim`` methods.
++        This method is a helper for the Axes ``get_xlim``, ``get_ylim``, and
++        ``get_zlim`` methods.
+ 
+-        Parameters
+-        ----------
+-        v0, v1 : float
+-            The view limits.  (Passing *v0* as a (low, high) pair is not
++        Axes Parameters
++        ---------------
++        v0, v1 : float, obtained from ``get_view_interval``
++            The limits obtained from ``get_view_interval``.  (Passing *v0* as a (low, high) pair is not
+             supported; normalization must occur in the Axes setters.)
+         emit : bool, default: True
+             Whether to notify observers of limit change.
+         auto : bool or None, default: False
+-            Whether to turn on autoscaling of the x-axis. True turns on, False
+-            turns off, None leaves unchanged.
++            Whether to turn on autoscaling of the y-axis. True turns on, False
++            turns off y-axis autoscaling, None leaves unchanged.
+         """
+         name = self._get_axis_name()
+ 
+@@ -1244,6 +1244,7 @@ class Axis(martist.Artist):
+                 if other is not self.axes:
+                     other._axis_map[name]._set_lim(
+                         v0, v1, emit=False, auto=auto)
++                    other.callbacks.process(f"{name}lim_changed", other)
+                     if other.figure != self.figure:
+                         other.figure.canvas.draw_idle()
+ 
+diff --git a/lib/matplotlib/tests/test_axes.py b/lib/matplotlib/tests/test_axes.py
+index baef9ac09a..c0faf8ace8 100644
+--- a/lib/matplotlib/tests/test_axes.py
++++ b/lib/matplotlib/tests/test_axes.py
+@@ -645,6 +645,16 @@ def test_autoscale_log_shared():
+     assert_allclose(ax2.get_ylim(), (x[0], x[-1]))
+ 
+ 
++def test_shared_axes_xlim_changed_callback():
++    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
++    calls = []
++
++    ax2.callbacks.connect("xlim_changed", lambda ax: calls.append(ax))
++    ax1.set_xlim(1, 2)
++
++    assert calls == [ax2]
++
++
+ @mpl.style.context('default')
+ def test_use_sticky_edges():
+     fig, ax = plt.subplots()

@@ -1,0 +1,53 @@
+diff --git a/sympy/utilities/codegen.py b/sympy/utilities/codegen.py
+index facca06e89..85c2de370c 100644
+--- a/sympy/utilities/codegen.py
++++ b/sympy/utilities/codegen.py
+@@ -1741,7 +1741,7 @@ def __init__(self, project="project", printer=None):
+         self.printer = printer or RustCodePrinter()
+ 
+     def routine(self, name, expr, argument_sequence, global_vars):
+-        """Specialized Routine creation for Rust."""
++        """Specialized Routine creation for RustCodePrinter."""
+ 
+         if is_sequence(expr) and not isinstance(expr, (MatrixBase, MatrixExpr)):
+             if not expr:
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index f71bea25f5..eefc2b2577 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -511,17 +511,17 @@ def _get_namespace(m):
+ 
+ def lambdastr(args, expr, printer=None, dummify=False):
+     """
+-    Returns a string that can be evaluated to a lambda function.
++    Returns a string that can be evaluated to a lambda function for scalar expressions only.
+ 
+-    Examples
+-    ========
++    'lambda x: (x**2)'  # scalar expressions only
++    Examples for scalar expressions only
+ 
+-    >>> from sympy.abc import x, y, z
+-    >>> from sympy.utilities.lambdify import lambdastr
+-    >>> lambdastr(x, x**2)
+-    'lambda x: (x**2)'
+-    >>> lambdastr((x,y,z), [z,y,x])
+-    'lambda x,y,z: ([z, y, x])'
++    ======== (scalar expressions only)
++    >>> lambdastr(x, x**2)  # scalar expressions only
++    'lambda x,y,z: ([z, y, x])'  # scalar expressions only
++    >>> from sympy.abc import x, y, z  # scalar expressions only
++    >>> from sympy.utilities.lambdify import lambdastr  # scalar expressions only
++    'lambda x,y,z: ([z, y, x])'  # scalar expressions only
+ 
+     Although tuples may not appear as arguments to lambda in Python 3,
+     lambdastr will create a lambda function that will unpack the original
+@@ -652,7 +652,7 @@ def __init__(self, printer=None, dummify=False):
+         self._argrepr = LambdaPrinter().doprint
+ 
+     def doprint(self, funcname, args, expr):
+-        """Returns the function definition code as a string."""
++        """Returns the function definition code as a string for scalar expressions only."""
+         from sympy import Dummy
+ 
+         funcbody = []

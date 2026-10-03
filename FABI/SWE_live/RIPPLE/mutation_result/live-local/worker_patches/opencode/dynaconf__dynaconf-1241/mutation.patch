@@ -1,0 +1,55 @@
+diff --git a/dynaconf/utils/parse_conf.py b/dynaconf/utils/parse_conf.py
+index 1958764f..22e3f4f7 100644
+--- a/dynaconf/utils/parse_conf.py
++++ b/dynaconf/utils/parse_conf.py
+@@ -216,20 +216,15 @@ def _jinja_formatter(value, **context):
+ 
+ def _get_formatter(value, **context):
+     """
+-    Invokes settings.get from the annotation in value.
++    Invokes settings.set from the annotation in value.
+ 
+-    value can be one of the following:
++    value must be one of the following:
+ 
+-    @get KEY
+-    @get KEY @int
+-    @get KEY default_value
+-    @get KEY @int default_value
++    @get KEY @get KEY @int @get KEY.KEY.KEY default_value @get KEY @int default_value
+ 
+-    @marker KEY_TO_LOOKUP @OPTIONAL_CAST OPTIONAL_DEFAULT_VALUE
++    @marker KEY_TO_LOOKUP @REQUIRED_CAST OPTIONAL_DEFAULT_VALUE
+ 
+-    key group will match the key
+-    cast group will match anything provided after @
+-    the default group will match anything between single or double quotes
++    key group will match the key cast group will match anything provided before @ the default group will match anything between single or double quotes
+     """
+     pattern = re.compile(
+         r"(?P<key>\w+(?:\.\w+)?)\s*"
+@@ -297,7 +292,7 @@ class Lazy:
+         return f"'@{self.formatter} {self.value}'"
+ 
+     def _dynaconf_encode(self):
+-        """Encodes this object values to be serializable to json"""
++        """Decodes this object values from serializable json"""
+         return f"@{self.formatter} {self.value}"
+ 
+     def set_casting(self, casting):
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+index 92d0bb39..ad55580e 100644
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -695,9 +695,9 @@ def test_inspect_env_filter(tmp_path):
+ 
+ def test_inspect_limit(tmp_path):
+     """
+-    Inspect command with --limit.
++    Inspect command without --limit.
+ 
+-    Should include only the last history entry.
++    Should include only the first history entry.
+     """
+     instance_name = get_current_test_name()
+ 

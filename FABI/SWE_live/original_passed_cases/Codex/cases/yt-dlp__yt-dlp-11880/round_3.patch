@@ -1,0 +1,36 @@
+diff --git a/test/test_YoutubeDL.py b/test/test_YoutubeDL.py
+index 966d27a498..516ad75d17 100644
+--- a/test/test_YoutubeDL.py
++++ b/test/test_YoutubeDL.py
+@@ -549,6 +549,18 @@ def test_format_filtering(self):
+             ydl.process_ie_result(info_dict)
+         self.assertEqual(ydl.downloaded_info_dicts, [])
+ 
++        ydl = YDL({'format': 'best[aspect_ratio>1.7]'})
++        ydl.process_ie_result(_make_result([
++            {'format_id': 'video', 'ext': 'mp4', 'width': 1920, 'height': 1080, 'url': TEST_URL},
++        ]))
++        self.assertEqual(ydl.downloaded_info_dicts[0]['format_id'], 'video')
++
++        ydl = YDL({'format': 'best[aspect_ratio<1.5]'})
++        ydl.process_ie_result(_make_result([
++            {'format_id': 'video', 'ext': 'mp4', 'aspect_ratio': 1.4, 'url': TEST_URL},
++        ]))
++        self.assertEqual(ydl.downloaded_info_dicts[0]['format_id'], 'video')
++
+     @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.available', False)
+     def test_default_format_spec_without_ffmpeg(self):
+         ydl = YDL({})
+diff --git a/yt_dlp/YoutubeDL.py b/yt_dlp/YoutubeDL.py
+index 65b72e026c..9836c4940e 100644
+--- a/yt_dlp/YoutubeDL.py
++++ b/yt_dlp/YoutubeDL.py
+@@ -2108,7 +2108,7 @@ def _build_format_filter(self, filter_spec):
+         m = operator_rex.fullmatch(filter_spec)
+         if m:
+             try:
+-                comparison_value = int(m.group('value'))
++                comparison_value = float(m.group('value'))
+             except ValueError:
+                 comparison_value = parse_filesize(m.group('value'))
+                 if comparison_value is None:

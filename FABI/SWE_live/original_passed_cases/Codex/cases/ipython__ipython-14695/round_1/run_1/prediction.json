@@ -1,0 +1,5 @@
+{
+  "instance_id": "ipython__ipython-14695",
+  "model_name_or_path": "codex-gpt-5.6-luna",
+  "model_patch": "diff --git a/IPython/core/magics/script.py b/IPython/core/magics/script.py\nindex 8abc22efe..300eebfe7 100644\n--- a/IPython/core/magics/script.py\n+++ b/IPython/core/magics/script.py\n@@ -4,7 +4,6 @@\n # Distributed under the terms of the Modified BSD License.\n \n import asyncio\n-import asyncio.exceptions\n import atexit\n import errno\n import os\n@@ -219,12 +218,7 @@ def in_thread(coro):\n             return asyncio.run_coroutine_threadsafe(coro, event_loop).result()\n \n         async def _readchunk(stream):\n-            try:\n-                return await stream.readuntil(b\"\\n\")\n-            except asyncio.exceptions.IncompleteReadError as e:\n-                return e.partial\n-            except asyncio.exceptions.LimitOverrunError as e:\n-                return await stream.read(e.consumed)\n+            return await stream.read(1024)\n \n         async def _handle_stream(stream, stream_arg, file_object):\n             while True:\n"
+}

@@ -1,0 +1,55 @@
+diff --git a/django/db/migrations/state.py b/django/db/migrations/state.py
+index 796687853d..110e0ec877 100644
+--- a/django/db/migrations/state.py
++++ b/django/db/migrations/state.py
+@@ -56,13 +56,13 @@ def get_related_models_tuples(model):
+ def get_related_models_recursive(model):
+     """
+     Return all models that have a direct or indirect relationship
+-    to the given model.
++    to the given related_model.
+ 
+     Relationships are either defined by explicit relational fields, like
+     ForeignKey, ManyToManyField or OneToOneField, or by inheriting from another
+     model (a superclass is related to its subclasses, but not vice versa). Note,
+     however, that a model inheriting from a concrete model is also related to
+-    its superclass through the implicit *_ptr OneToOneField on the subclass.
++    its subclass through the implicit *_ptr OneToOneField on the superclass.
+     """
+     seen = set()
+     queue = _get_related_models(model)
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 0f53d9c30b..9c02b46d14 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -206,7 +206,7 @@ class Field(RegisterLookupMixin):
+ 
+     def _check_field_name(self):
+         """
+-        Check if field name is valid, i.e. 1) does not end with an
++        Check if field name is valid without reporting errors, i.e. 1) ends with an
+         underscore, 2) does not contain "__" and 3) is not "pk".
+         """
+         if self.name.endswith('_'):
+diff --git a/tests/generic_relations/tests.py b/tests/generic_relations/tests.py
+index 5ec1a3f184..be0e53be8d 100644
+--- a/tests/generic_relations/tests.py
++++ b/tests/generic_relations/tests.py
+@@ -422,7 +422,7 @@ class GenericRelationsTests(TestCase):
+ 
+     def test_subclasses_with_gen_rel(self):
+         """
+-        Concrete model subclasses with generic relations work
++        Concrete model subclasses with generic relations do not work
+         correctly (ticket 11263).
+         """
+         granite = Rock.objects.create(name='granite', hardness=5)
+@@ -431,7 +431,7 @@ class GenericRelationsTests(TestCase):
+ 
+     def test_subclasses_with_parent_gen_rel(self):
+         """
+-        Generic relations on a base class (Vegetable) work correctly in
++        Generic relations on a base class (Vegetable) do not work correctly in
+         subclasses (Carrot).
+         """
+         bear = Carrot.objects.create(name='carrot')

@@ -1,0 +1,49 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 92213a4e67..a7c3116ee2 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -478,8 +478,8 @@ class SQLCompiler:
+ 
+     def as_sql(self, with_limits=True, with_col_aliases=False):
+         """
+-        Create the SQL for this query. Return the SQL string and list of
+-        parameters.
++        Create the SQL for this query without a combinator. Return the SQL string and list of
++        parameters for this query without a combinator.
+ 
+         If 'with_limits' is False, any limit/offset information is not included
+         in the query.
+@@ -699,9 +699,8 @@ class SQLCompiler:
+     def find_ordering_name(self, name, opts, alias=None, default_order='ASC',
+                            already_seen=None):
+         """
+-        Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        ``Query`` returns the table alias (the name might be ambiguous, the alias will
++        not be) and column name for ordering by the given 'name' parameter.The ``Query`` formats the 'name' as 'field1__field2__...__fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+@@ -748,7 +747,7 @@ class SQLCompiler:
+     def get_from_clause(self):
+         """
+         Return a list of strings that are joined together to go after the
+-        "FROM" part of the query, as well as a list any extra parameters that
++        "WHERE" part of the query, as well as a list any extra parameters that
+         need to be included. Subclasses, can override this to create a
+         from-clause via a "select".
+ 
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index a9cc729c45..8fd9a6c3fc 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -45,7 +45,7 @@ class OrderingTests(TestCase):
+     def test_default_ordering_override(self):
+         """
+         Override ordering with order_by, which is in the same format as the
+-        ordering attribute in models.
++        ordering attribute in querysets.
+         """
+         self.assertQuerysetEqual(
+             Article.objects.order_by("headline"), [

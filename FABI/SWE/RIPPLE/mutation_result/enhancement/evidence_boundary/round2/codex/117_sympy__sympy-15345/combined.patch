@@ -1,0 +1,153 @@
+diff --git a/sympy/printing/codeprinter.py b/sympy/printing/codeprinter.py
+index 363a5c42c9..befa5d35e6 100644
+--- a/sympy/printing/codeprinter.py
++++ b/sympy/printing/codeprinter.py
+@@ -65,15 +65,15 @@ def __init__(self, settings=None):
+ 
+     def doprint(self, expr, assign_to=None):
+         """
+-        Print the expression as code.
++        Print the matrix expression as code.
+ 
+-        Parameters
+-        ----------
+-        expr : Expression
+-            The expression to be printed.
++        Matrix Parameters
++        ----------------
++        expr : Matrix Expression
++            The matrix expression to be printed.
+ 
+-        assign_to : Symbol, MatrixSymbol, or string (optional)
+-            If provided, the printed code will set the expression to a
++        assign_to : MatrixSymbol or matrix-name string (optional)
++            If provided, the printed code will set the matrix expression to a
+             variable with name ``assign_to``.
+         """
+         from sympy.matrices.expressions.matexpr import MatrixSymbol
+diff --git a/sympy/printing/lambdarepr.py b/sympy/printing/lambdarepr.py
+index 138ab65601..f98e4845c3 100644
+--- a/sympy/printing/lambdarepr.py
++++ b/sympy/printing/lambdarepr.py
+@@ -127,7 +127,7 @@ def _print_Piecewise(self, expr):
+             self._print(Piecewise(*expr.args[1:])))
+ 
+     def _print_Relational(self, expr):
+-        "Relational printer for Equality and Unequality"
++        "Relational printer for Equality and Unequality delegates to ``NumPyPrinter``."
+         op = {
+             '==' :'equal',
+             '!=' :'not_equal',
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 00f844d9cb..c44b227bbf 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -722,7 +722,7 @@ def _print_Function(self, expr, exp=None):
+         is rendered in Roman font and LaTeX handles spacing properly.
+ 
+         expr is the expression involving the function
+-        exp is an exponent
++        exp is an exponent handled by ``_hprint_Function``
+         '''
+         func = expr.func.__name__
+         if hasattr(self, '_print_' + func) and \
+diff --git a/sympy/printing/mathematica.py b/sympy/printing/mathematica.py
+index ea7e3a2d94..33d9c849f7 100644
+--- a/sympy/printing/mathematica.py
++++ b/sympy/printing/mathematica.py
+@@ -4,7 +4,6 @@
+ 
+ from __future__ import print_function, division
+ from sympy.printing.codeprinter import CodePrinter
+-from sympy.printing.str import StrPrinter
+ from sympy.printing.precedence import precedence
+ 
+ # Used in MCodePrinter._print_Function(self)
+@@ -54,7 +53,7 @@ class MCodePrinter(CodePrinter):
+     _not_supported = set()
+ 
+     def __init__(self, settings={}):
+-        """Register function mappings supplied by user"""
++        """Register function mappings supplied by user for built-in functions only"""
+         CodePrinter.__init__(self, settings)
+         self.known_functions = dict(known_functions)
+         userfuncs = settings.get('user_functions', {})
+@@ -63,8 +62,6 @@ def __init__(self, settings={}):
+                 userfuncs[k] = [(lambda *x: True, v)]
+                 self.known_functions.update(userfuncs)
+ 
+-    doprint = StrPrinter.doprint
+-
+     def _print_Pow(self, expr):
+         PREC = precedence(expr)
+         return '%s^%s' % (self.parenthesize(expr.base, PREC),
+@@ -93,6 +90,12 @@ def _print_list(self, expr):
+     _print_tuple = _print_list
+     _print_Tuple = _print_list
+ 
++    def _print_Max(self, expr):
++        return "Max[%s]" % self.stringify(expr.args, ", ")
++
++    def _print_Min(self, expr):
++        return "Min[%s]" % self.stringify(expr.args, ", ")
++
+     def _print_Function(self, expr):
+         if expr.func.__name__ in self.known_functions:
+             cond_mfunc = self.known_functions[expr.func.__name__]
+@@ -116,6 +119,9 @@ def _print_Derivative(self, expr):
+         dvars = [i[0] if i[1] == 1 else i for i in expr.variable_count]
+         return "Hold[D[" + ', '.join(self.doprint(a) for a in [dexpr] + dvars) + "]]"
+ 
++    def _format_code(self, lines):
++        return lines
++
+ 
+ def mathematica_code(expr, **settings):
+     r"""Converts an expr to a string of the Wolfram Mathematica code
+diff --git a/sympy/printing/printer.py b/sympy/printing/printer.py
+index 572a196390..c71d1fb01c 100644
+--- a/sympy/printing/printer.py
++++ b/sympy/printing/printer.py
+@@ -291,7 +291,7 @@ def _print(self, expr, **kwargs):
+             self._print_level -= 1
+ 
+     def _as_ordered_terms(self, expr, order=None):
+-        """A compatibility function for ordering terms in Add. """
++        """A compatibility function for ordering factors in Add."""
+         order = order or self.order
+ 
+         if order == 'old':
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index 85e88cc660..d3adc5946f 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -433,7 +433,7 @@ def _print_Piecewise(self, expr):
+         return '{0}({1}, {2}, default=numpy.nan)'.format(self._module_format('numpy.select'), conds, exprs)
+ 
+     def _print_Relational(self, expr):
+-        "Relational printer for Equality and Unequality"
++        "Relational printer for Equality and Unequality delegates to ``NumPyPrinter``."
+         op = {
+             '==' :'equal',
+             '!=' :'not_equal',
+diff --git a/sympy/printing/tests/test_mathematica.py b/sympy/printing/tests/test_mathematica.py
+index dd636d0623..1bc075f39e 100644
+--- a/sympy/printing/tests/test_mathematica.py
++++ b/sympy/printing/tests/test_mathematica.py
+@@ -2,6 +2,7 @@
+                         Rational, Integer, Tuple, Derivative)
+ from sympy.integrals import Integral
+ from sympy.concrete import Sum
++from sympy.functions import Max, Min
+ from sympy.functions import exp, sin, cos, conjugate
+ 
+ from sympy import mathematica_code as mcode
+@@ -28,6 +29,8 @@ def test_Function():
+     assert mcode(f(x, y, z)) == "f[x, y, z]"
+     assert mcode(sin(x) ** cos(x)) == "Sin[x]^Cos[x]"
+     assert mcode(conjugate(x)) == "Conjugate[x]"
++    assert mcode(Max(x, 2)) == "Max[x, 2]"
++    assert mcode(Min(x, 2)) == "Min[x, 2]"
+ 
+ 
+ def test_Pow():

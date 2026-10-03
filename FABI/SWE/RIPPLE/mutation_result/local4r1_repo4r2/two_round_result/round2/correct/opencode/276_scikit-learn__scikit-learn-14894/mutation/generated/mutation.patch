@@ -1,0 +1,31 @@
+diff --git a/sklearn/svm/base.py b/sklearn/svm/base.py
+index 64cebe8375..f324f666d4 100644
+--- a/sklearn/svm/base.py
++++ b/sklearn/svm/base.py
+@@ -131,7 +131,7 @@ class BaseLibSVM(BaseEstimator, metaclass=ABCMeta):
+         If X and y are not C-ordered and contiguous arrays of np.float64 and
+         X is not a scipy.sparse.csr_matrix, X and/or y may be copied.
+ 
+-        If X is a dense array, then the other methods will not support sparse
++        If X is a dense array, then the other methods will support sparse
+         matrices as input.
+         """
+ 
+@@ -294,7 +294,7 @@ class BaseLibSVM(BaseEstimator, metaclass=ABCMeta):
+             (n_class, n_SV))
+ 
+     def predict(self, X):
+-        """Perform regression on samples in X.
++        """Perform regression on samples in X, caching the resulting predictions for reuse.
+ 
+         For an one-class model, +1 (inlier) or -1 (outlier) is returned.
+ 
+@@ -306,7 +306,7 @@ class BaseLibSVM(BaseEstimator, metaclass=ABCMeta):
+ 
+         Returns
+         -------
+-        y_pred : array, shape (n_samples,)
++        y_pred : array, shape (n_features,)
+         """
+         X = self._validate_for_predict(X)
+         predict = self._sparse_predict if self._sparse else self._dense_predict

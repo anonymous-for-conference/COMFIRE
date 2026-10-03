@@ -1,0 +1,20 @@
+diff --git a/sympy/physics/units/util.py b/sympy/physics/units/util.py
+index b03ed4cd88..2b2f904751 100644
+--- a/sympy/physics/units/util.py
++++ b/sympy/physics/units/util.py
+@@ -30,7 +30,14 @@ def _get_conversion_matrix_for_expr(expr, target_units, unit_system):
+     camat = Matrix([[dimension_system.get_dimensional_dependencies(i, mark_dimensionless=True).get(j, 0) for i in target_dims] for j in canon_dim_units])
+     exprmat = Matrix([dim_dependencies.get(k, 0) for k in canon_dim_units])
+ 
+-    res_exponents = camat.solve_least_squares(exprmat, method=None)
++    # If the target units are orthogonal to each other, or if the expression
++    # cannot be expressed exactly in terms of the target units, do not try to
++    # approximate using a least-squares solution. In such cases conversion would
++    # otherwise produce spurious fractional powers (e.g. joule**(7/9)).
++    try:
++        res_exponents = camat.gauss_jordan_solve(exprmat)[0]
++    except ValueError:
++        return None
+     return res_exponents
+ 
+ 

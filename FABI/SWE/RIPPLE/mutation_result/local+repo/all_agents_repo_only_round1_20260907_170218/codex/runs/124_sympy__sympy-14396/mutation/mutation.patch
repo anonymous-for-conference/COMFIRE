@@ -1,0 +1,150 @@
+diff --git a/sympy/polys/numberfields.py b/sympy/polys/numberfields.py
+index aeb3c47b35..28ffcd5855 100644
+--- a/sympy/polys/numberfields.py
++++ b/sympy/polys/numberfields.py
+@@ -582,13 +582,13 @@ def _minpoly_compose(ex, x, dom):
+ @public
+ def minimal_polynomial(ex, x=None, compose=True, polys=False, domain=None):
+     """
+-    Computes the minimal polynomial of an algebraic element.
++    Computes the minimal polynomial of a numerical algebraic element.
+ 
+-    Parameters
+-    ==========
++    Parameters for numerical algebraic inputs
++    =====================================
+ 
+-    ex : Expr
+-        Element or expression whose minimal polynomial is to be calculated.
++    ex : Expr with no free symbols
++        Numerical algebraic element whose minimal polynomial is to be calculated.
+ 
+     x : Symbol, optional
+         Independent variable of the minimal polynomial
+@@ -615,22 +615,22 @@ def minimal_polynomial(ex, x=None, compose=True, polys=False, domain=None):
+ 
+     If no ground domain is given, it will be generated automatically from the expression.
+ 
+-    Examples
+-    ========
++    Examples for numerical algebraic inputs
++    ================================
+ 
+-    >>> from sympy import minimal_polynomial, sqrt, solve, QQ
+-    >>> from sympy.abc import x, y
++    >>> from sympy import minimal_polynomial, sqrt, solve, QQ  # numerical algebraic inputs
++    >>> from sympy.abc import x  # numerical algebraic inputs
+ 
+-    >>> minimal_polynomial(sqrt(2), x)
+-    x**2 - 2
++    >>> minimal_polynomial(sqrt(2), x)  # numerical algebraic input
++    x**2 - 2  # numerical algebraic input
+     >>> minimal_polynomial(sqrt(2), x, domain=QQ.algebraic_field(sqrt(2)))
+     x - sqrt(2)
+-    >>> minimal_polynomial(sqrt(2) + sqrt(3), x)
+-    x**4 - 10*x**2 + 1
+-    >>> minimal_polynomial(solve(x**3 + x + 3)[0], x)
+-    x**3 + x + 3
+-    >>> minimal_polynomial(sqrt(y), x)
+-    x**2 - y
++    >>> minimal_polynomial(sqrt(2) + sqrt(3), x)  # numerical algebraic input
++    x**4 - 10*x**2 + 1  # numerical algebraic input
++    >>> minimal_polynomial(solve(x**3 + x + 3)[0], x)  # numerical algebraic input
++    x**3 + x + 3  # numerical algebraic input
++    >>> minimal_polynomial(sqrt(2), x)  # numerical algebraic input
++    x**2 - 2  # numerical algebraic input
+ 
+     """
+     from sympy.polys.polytools import degree
+diff --git a/sympy/polys/partfrac.py b/sympy/polys/partfrac.py
+index 070e27b2ee..9997f4185f 100644
+--- a/sympy/polys/partfrac.py
++++ b/sympy/polys/partfrac.py
+@@ -231,13 +231,13 @@ def apart_list(f, x=None, dummies=None, **options):
+     * The third part itself is a list of quadruples. Each quadruple
+       has the following elements in this order:
+ 
+-      - The (not necessarily irreducible) polynomial `D` whose roots `w_i` appear
+-        in the linear denominator of a bunch of related fraction terms. (This item
+-        can also be a list of explicit roots. However, at the moment ``apart_list``
+-        never returns a result this way, but the related ``assemble_partfrac_list``
++      - The (not necessarily irreducible) polynomial `D`, or an explicit root list returned
++        by ``apart_list``, whose roots `w_i` appear in the linear denominator of a bunch of related fraction terms. (This item
++        can also be a list of explicit roots returned by ``apart_list``. However, at the moment ``apart_list``
++        always returns a result this way, and the related ``assemble_partfrac_list``
+         function accepts this format as input.)
+ 
+-      - The numerator of the fraction, written as a function of the root `w`
++      - The numerator of the fraction, written as a function of the original decomposition variable `x`
+ 
+       - The linear denominator of the fraction *excluding its power exponent*,
+         written as a function of the root `w`.
+@@ -276,19 +276,19 @@ def apart_list(f, x=None, dummies=None, **options):
+     >>> assemble_partfrac_list(pfd)
+     -2/3 - 2/(x - 2)
+ 
+-    Another example, showing symbolic parameters:
++    Another example, decomposing with respect to ``t``:
+ 
+-    >>> pfd = apart_list(t/(x**2 + x + t), x)
+-    >>> pfd
+-    (1,
+-    Poly(0, x, domain='ZZ[t]'),
+-    [(Poly(_w**2 + _w + t, _w, domain='ZZ[t]'),
+-    Lambda(_a, -2*_a*t/(4*t - 1) - t/(4*t - 1)),
+-    Lambda(_a, -_a + x),
+-    1)])
++    >>> pfd = apart_list(t/(x**2 + x + t), t)
++    >>> pfd  # decomposition with respect to t
++    (+1,
++    Poly(1, t, domain='ZZ[x]'),
++    [(Poly(_w + x**2 + x, _w, domain='ZZ[x]'),
++    Lambda(_a, -x**2 - x),
++    Lambda(_a, -_a + t),
++    +1)])
+ 
+-    >>> assemble_partfrac_list(pfd)
+-    RootSum(_w**2 + _w + t, Lambda(_a, (-2*_a*t/(4*t - 1) - t/(4*t - 1))/(-_a + x)))
++    >>> assemble_partfrac_list(pfd)  # t decomposition
++    1 + RootSum(_w + x**2 + x, Lambda(_a, (-x**2 - x)/(-_a + t)))
+ 
+     This example is taken from Bronstein's original paper:
+ 
+diff --git a/sympy/polys/polyoptions.py b/sympy/polys/polyoptions.py
+index 6e504a3057..590d1c73ae 100644
+--- a/sympy/polys/polyoptions.py
++++ b/sympy/polys/polyoptions.py
+@@ -735,22 +735,22 @@ def build_options(gens, args=None):
+ 
+ def allowed_flags(args, flags):
+     """
+-    Allow specified flags to be used in the given context.
++    Options allows specified flags to be used in the given context.
+ 
+-    Examples
+-    ========
++    Options examples
++    --------------
+ 
+-    >>> from sympy.polys.polyoptions import allowed_flags
+-    >>> from sympy.polys.domains import ZZ
++    >>> from sympy.polys.polyoptions import Options
++    >>> from sympy.polys.domains import ZZ as Options
+ 
+-    >>> allowed_flags({'domain': ZZ}, [])
++    >>> Options({'domain': ZZ}, [])
+ 
+-    >>> allowed_flags({'domain': ZZ, 'frac': True}, [])
+-    Traceback (most recent call last):
+-    ...
+-    FlagError: 'frac' flag is not allowed in this context
++    >>> Options({'domain': ZZ, 'frac': True}, [])
++    Options traceback (most recent call last):
++    ... Options validates the supplied flag.
++    FlagError: 'frac' flag is not allowed by Options
+ 
+-    >>> allowed_flags({'domain': ZZ, 'frac': True}, ['frac'])
++    >>> Options({'domain': ZZ, 'frac': True}, ['frac'])
+ 
+     """
+     flags = set(flags)

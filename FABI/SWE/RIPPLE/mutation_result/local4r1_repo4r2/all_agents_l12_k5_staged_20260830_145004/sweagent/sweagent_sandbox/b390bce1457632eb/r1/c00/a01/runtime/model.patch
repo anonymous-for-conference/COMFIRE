@@ -1,0 +1,35 @@
+diff --git a/astropy/nddata/mixins/ndarithmetic.py b/astropy/nddata/mixins/ndarithmetic.py
+index b1ea9d7d86..49806241e4 100644
+--- a/astropy/nddata/mixins/ndarithmetic.py
++++ b/astropy/nddata/mixins/ndarithmetic.py
+@@ -512,19 +512,22 @@ class NDArithmeticMixin:
+             If neither had a mask an empty mask is returned. Otherwise
+             ``handle_mask`` must create (but not copy) the returned mask.
+         """
+-        # If only one mask is present we need not bother about any type checks
+-        if (
+-            self.mask is None and operand is not None and operand.mask is None
+-        ) or handle_mask is None:
++        # If neither operand has a mask there is nothing to propagate.
++        if handle_mask is None:
++            return None
++
++        operand_mask = None if operand is None else operand.mask
++
++        if self.mask is None and operand_mask is None:
+             return None
+-        elif self.mask is None and operand is not None:
++        elif self.mask is None:
+             # Make a copy so there is no reference in the result.
+-            return deepcopy(operand.mask)
+-        elif operand is None:
++            return deepcopy(operand_mask)
++        elif operand_mask is None:
+             return deepcopy(self.mask)
+         else:
+             # Now lets calculate the resulting mask (operation enforces copy)
+-            return handle_mask(self.mask, operand.mask, **kwds)
++            return handle_mask(self.mask, operand_mask, **kwds)
+ 
+     def _arithmetic_wcs(self, operation, operand, compare_wcs, **kwds):
+         """

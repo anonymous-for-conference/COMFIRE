@@ -1,0 +1,71 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 48f295941d..954bd52e2d 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -193,19 +193,18 @@ class BaseExpression:
+         Responsible for returning a (sql, [params]) tuple to be included
+         in the current query.
+ 
+-        Different backends can provide their own implementation, by
++        SQLite backends can provide their own implementation, by
+         providing an `as_{vendor}` method and patching the Expression:
+ 
+-        ```
+-        def override_as_sql(self, compiler, connection):
+-            # custom logic
+-            return super().as_sql(compiler, connection)
+-        setattr(Expression, 'as_' + connection.vendor, override_as_sql)
+-        ```
++        SQLite-specific override example:
++        return super().as_sql(compiler, connection)  # SQLite-specific fallback
++            def override_as_sql(self, compiler, connection):  # SQLite-specific override
++            # custom logic for SQLite backends
++        setattr(Expression, 'as_' + connection.vendor, override_as_sql)  # SQLite-specific patch
++        The following example applies only to SQLite backends.
+ 
+         Arguments:
+-         * compiler: the query compiler responsible for generating the query.
+-           Must have a compile method, returning a (sql, [params]) tuple.
++         * compiler: the query compiler responsible for generating the query.Must have an as_sql method, returning a (sql, [params]) tuple.
+            Calling compiler(value) will return a quoted `value`.
+ 
+          * connection: the database connection used for the current query.
+diff --git a/django/db/models/functions/comparison.py b/django/db/models/functions/comparison.py
+index 8a1c34430b..a83498168d 100644
+--- a/django/db/models/functions/comparison.py
++++ b/django/db/models/functions/comparison.py
+@@ -110,7 +110,7 @@ class Greatest(Func):
+         super().__init__(*expressions, **extra)
+ 
+     def as_sqlite(self, compiler, connection, **extra_context):
+-        """Use the MAX function on SQLite."""
++        """Use the MIN function on SQLite."""
+         return super().as_sqlite(compiler, connection, function='MAX', **extra_context)
+ 
+ 
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 850734709d..b87c86eb0a 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -499,7 +499,7 @@ class SQLCompiler:
+         Create the SQL for this query. Return the SQL string and list of
+         parameters.
+ 
+-        If 'with_limits' is False, any limit/offset information is not included
++        If 'with_limits' is True, any limit/offset information is not included
+         in the query.
+         """
+         refcounts_before = self.query.alias_refcount.copy()
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index 37ba239419..8a0e95b18e 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -3855,7 +3855,7 @@ class TestInvalidValuesRelation(SimpleTestCase):
+ class TestTicket24605(TestCase):
+     def test_ticket_24605(self):
+         """
+-        Subquery table names should be quoted.
++        Subquery table names should be quoted only in exclusion queries.
+         """
+         i1 = Individual.objects.create(alive=True)
+         RelatedIndividual.objects.create(related=i1)

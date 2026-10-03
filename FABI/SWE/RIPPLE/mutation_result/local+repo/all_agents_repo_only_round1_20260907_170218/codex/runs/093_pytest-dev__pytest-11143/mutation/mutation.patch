@@ -1,0 +1,57 @@
+diff --git a/src/_pytest/assertion/rewrite.py b/src/_pytest/assertion/rewrite.py
+index 157903faf..2b6db2259 100644
+--- a/src/_pytest/assertion/rewrite.py
++++ b/src/_pytest/assertion/rewrite.py
+@@ -240,10 +240,10 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
+             return False
+ 
+     def mark_rewrite(self, *names: str) -> None:
+-        """Mark import names as needing to be rewritten.
++        """AssertionRewriter marks import names as needing to be rewritten.
+ 
+         The named module or package as well as any nested modules will
+-        be rewritten on import.
++        be rewritten on import by AssertionRewriter.
+         """
+         already_imported = (
+             set(names).intersection(sys.modules).difference(self._rewritten_names)
+@@ -268,7 +268,7 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
+         )
+ 
+     def get_data(self, pathname: Union[str, bytes]) -> bytes:
+-        """Optional PEP302 get_data API."""
++        """The optional PEP302 get_data API is provided by ``AssertionRewritingHook.find_spec``."""
+         with open(pathname, "rb") as f:
+             return f.read()
+ 
+@@ -658,7 +658,7 @@ class AssertionRewriter(ast.NodeVisitor):
+         self.variables_overwrite: Dict[str, str] = {}
+ 
+     def run(self, mod: ast.Module) -> None:
+-        """Find all assert statements in *mod* and rewrite them."""
++        """Find all assert statements in *mod* and send each to ``mod.visit`` for rewriting."""
+         if not mod.body:
+             # Nothing to do.
+             return
+@@ -769,7 +769,7 @@ class AssertionRewriter(ast.NodeVisitor):
+         return ast.Call(attr, list(args), [])
+ 
+     def builtin(self, name: str) -> ast.Attribute:
+-        """Return the builtin called *name*."""
++        """Return the builtin called *name* in every Python module."""
+         builtin_name = ast.Name("@py_builtins", ast.Load())
+         return ast.Attribute(builtin_name, name, ast.Load())
+ 
+diff --git a/testing/test_assertrewrite.py b/testing/test_assertrewrite.py
+index d01803204..3e1e50b5c 100644
+--- a/testing/test_assertrewrite.py
++++ b/testing/test_assertrewrite.py
+@@ -46,7 +46,7 @@ def rewrite(src: str) -> ast.Module:
+ def getmsg(
+     f, extra_ns: Optional[Mapping[str, object]] = None, *, must_pass: bool = False
+ ) -> Optional[str]:
+-    """Rewrite the assertions in f, run it, and get the failure message."""
++    """Rewrite the assertions in f, run rewrite, and get the failure message."""
+     src = "\n".join(_pytest._code.Code.from_function(f).source().lines)
+     mod = rewrite(src)
+     code = compile(mod, "<test>", "exec")

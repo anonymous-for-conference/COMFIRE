@@ -1,0 +1,44 @@
+diff --git a/bookmarks/api/authentication.py b/bookmarks/api/authentication.py
+new file mode 100644
+index 00000000..f10889f9
+--- /dev/null
++++ b/bookmarks/api/authentication.py
+@@ -0,0 +1,5 @@
++from rest_framework.authentication import TokenAuthentication
++
++
++class BearerTokenAuthentication(TokenAuthentication):
++    keyword = "Bearer"
+diff --git a/bookmarks/tests/test_bookmarks_api_permissions.py b/bookmarks/tests/test_bookmarks_api_permissions.py
+index 2602c87c..d4ea4061 100644
+--- a/bookmarks/tests/test_bookmarks_api_permissions.py
++++ b/bookmarks/tests/test_bookmarks_api_permissions.py
+@@ -25,6 +25,16 @@ class BookmarksApiPermissionsTestCase(LinkdingApiTestCase, BookmarkFactoryMixin)
+             reverse("bookmarks:bookmark-list"), expected_status_code=status.HTTP_200_OK
+         )
+ 
++    def test_list_bookmarks_accepts_bearer_token_authentication(self):
++        self.api_token = Token.objects.get_or_create(
++            user=self.get_or_create_test_user()
++        )[0]
++        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.api_token.key)
++
++        self.get(
++            reverse("bookmarks:bookmark-list"), expected_status_code=status.HTTP_200_OK
++        )
++
+     def test_list_archived_bookmarks_requires_authentication(self):
+         self.get(
+             reverse("bookmarks:bookmark-archived"),
+diff --git a/siteroot/settings/base.py b/siteroot/settings/base.py
+index a9487a9f..63f03ec1 100644
+--- a/siteroot/settings/base.py
++++ b/siteroot/settings/base.py
+@@ -132,6 +132,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
+ REST_FRAMEWORK = {
+     "DEFAULT_AUTHENTICATION_CLASSES": [
+         "rest_framework.authentication.TokenAuthentication",
++        "bookmarks.api.authentication.BearerTokenAuthentication",
+         "rest_framework.authentication.SessionAuthentication",
+     ],
+     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],

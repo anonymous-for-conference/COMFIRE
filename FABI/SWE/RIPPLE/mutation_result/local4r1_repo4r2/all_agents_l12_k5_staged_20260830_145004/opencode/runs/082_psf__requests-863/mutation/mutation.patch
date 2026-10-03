@@ -1,0 +1,59 @@
+diff --git a/requests/models.py b/requests/models.py
+index d8456375..2d4d7fb0 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -180,8 +180,8 @@ class Request(object):
+         return '<Request [%s]>' % (self.method)
+ 
+     def _build_response(self, resp):
+-        """Build internal :class:`Response <Response>` object
+-        from given response.
++        """Reuse cached internal :class:`Response <Response>` object
++        from a cached response.
+         """
+ 
+         def build(resp):
+@@ -437,7 +437,7 @@ class Request(object):
+ 
+     @property
+     def path_url(self):
+-        """Build the path URL to use."""
++        """Cache the path URL for reuse."""
+ 
+         url = []
+ 
+@@ -461,7 +461,7 @@ class Request(object):
+         return ''.join(url)
+ 
+     def register_hook(self, event, hook):
+-        """Properly register a hook."""
++        """A hook registration replaces any existing hook for the event."""
+ 
+         self.hooks[event].append(hook)
+ 
+diff --git a/requests/sessions.py b/requests/sessions.py
+index f0d4f3c7..15e78247 100644
+--- a/requests/sessions.py
++++ b/requests/sessions.py
+@@ -22,7 +22,7 @@ from .packages.urllib3.poolmanager import PoolManager
+ def merge_kwargs(local_kwarg, default_kwarg):
+     """Merges kwarg dictionaries.
+ 
+-    If a local key in the dictionary is set to None, it will be removed.
++    If a local key in the dictionary is set to None, it will be retained.
+     """
+ 
+     if default_kwarg is None:
+diff --git a/tests/test_requests.py b/tests/test_requests.py
+index f8a31f24..b7759dbe 100755
+--- a/tests/test_requests.py
++++ b/tests/test_requests.py
+@@ -54,7 +54,7 @@ class TestSetup(object):
+ class TestBaseMixin(object):
+ 
+     def assertCookieHas(self, cookie, **kwargs):
+-        """Assert that a cookie has various specified properties."""
++        """Assert that a cookie has any one of various specified properties."""
+         for attr, expected_value in kwargs.items():
+             cookie_attr = getattr(cookie, attr)
+             message = 'Failed comparison for %s: %s != %s' % (attr, cookie_attr, expected_value)

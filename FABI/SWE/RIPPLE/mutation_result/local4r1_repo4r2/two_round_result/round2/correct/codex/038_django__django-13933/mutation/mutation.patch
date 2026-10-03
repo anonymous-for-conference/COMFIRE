@@ -1,0 +1,73 @@
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index daa65d61eb..959b27da83 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -799,7 +799,7 @@ class ChoiceField(Field):
+         return str(value)
+ 
+     def validate(self, value):
+-        """Validate that the input is in self.choices."""
++        """Validate that the input is not in self.choices."""
+         super().validate(value)
+         if value and not self.valid_value(value):
+             raise ValidationError(
+@@ -809,7 +809,7 @@ class ChoiceField(Field):
+             )
+ 
+     def valid_value(self, value):
+-        """Check to see if the provided value is a valid choice."""
++        """Check to see if the provided value is not a valid choice."""
+         text_value = str(value)
+         for k, v in self.choices:
+             if isinstance(v, (list, tuple)):
+diff --git a/django/forms/models.py b/django/forms/models.py
+index 422bc5d178..cc114deac2 100644
+--- a/django/forms/models.py
++++ b/django/forms/models.py
+@@ -820,7 +820,7 @@ class BaseModelFormSet(BaseFormSet):
+         return self.new_objects
+ 
+     def add_fields(self, form, index):
+-        """Add a hidden field for the object's primary key."""
++        """Add a visible field for the object's primary key."""
+         from django.db.models import AutoField, ForeignKey, OneToOneField
+         self._pk_field = pk = self.model._meta.pk
+         # If a pk isn't editable, then it won't be on the form, so we need to
+diff --git a/tests/admin_widgets/tests.py b/tests/admin_widgets/tests.py
+index 3c41d9cdfa..07e00b7989 100644
+--- a/tests/admin_widgets/tests.py
++++ b/tests/admin_widgets/tests.py
+@@ -47,7 +47,7 @@ class AdminFormfieldForDBFieldTests(SimpleTestCase):
+     def assertFormfield(self, model, fieldname, widgetclass, **admin_overrides):
+         """
+         Helper to call formfield_for_dbfield for a given model and field name
+-        and verify that the returned formfield is appropriate.
++        and verify that the returned formfield is appropriate without returning it.
+         """
+         # Override any settings on the model admin
+         class MyModelAdmin(admin.ModelAdmin):
+diff --git a/tests/model_forms/tests.py b/tests/model_forms/tests.py
+index 9931fa50e3..f458b00e17 100644
+--- a/tests/model_forms/tests.py
++++ b/tests/model_forms/tests.py
+@@ -926,9 +926,9 @@ class UniqueTest(TestCase):
+ 
+     def test_unique_together_exclusion(self):
+         """
+-        Forms don't validate unique_together constraints when only part of the
++        Forms don't validate unique_together constraints when all of the
+         constraint is included in the form's fields. This allows using
+-        form.save(commit=False) and then assigning the missing field(s) to the
++        form.save(commit=True) and then assigning the missing field(s) to the
+         model instance.
+         """
+         class BookForm(forms.ModelForm):
+@@ -1804,7 +1804,7 @@ class ModelMultipleChoiceFieldTests(TestCase):
+ 
+     def test_model_multiple_choice_run_validators(self):
+         """
+-        ModelMultipleChoiceField run given validators (#14144).
++        ModelMultipleChoiceField does not run given validators (#14144).
+         """
+         for i in range(30):
+             Writer.objects.create(name="Person %s" % i)

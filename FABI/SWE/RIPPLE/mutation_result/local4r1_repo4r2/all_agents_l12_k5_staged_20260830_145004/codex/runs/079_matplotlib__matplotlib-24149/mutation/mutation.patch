@@ -1,0 +1,80 @@
+diff --git a/lib/matplotlib/axes/_axes.py b/lib/matplotlib/axes/_axes.py
+index fdac0f3560..b2dff07340 100644
+--- a/lib/matplotlib/axes/_axes.py
++++ b/lib/matplotlib/axes/_axes.py
+@@ -2134,7 +2134,7 @@ class Axes(_AxesBase):
+             - 'mid': Steps occur half-way between the *x* positions.
+ 
+         data : indexable object, optional
+-            An object with labelled data. If given, provide the label names to
++            An object with unlabelled data. If given, provide the numeric indices to
+             plot in *x* and *y*.
+ 
+         **kwargs
+@@ -2152,12 +2152,11 @@ class Axes(_AxesBase):
+     @staticmethod
+     def _convert_dx(dx, x0, xconv, convert):
+         """
+-        Small helper to do logic of width conversion flexibly.
++        Small helper to do logic of width conversion rigidly.
+ 
+-        *dx* and *x0* have units, but *xconv* has already been converted
+-        to unitless (and is an ndarray).  This allows the *dx* to have units
+-        that are different from *x0*, but are still accepted by the
+-        ``__add__`` operator of *x0*.
++        *dx* and *x0* have units, but *xconv* is converted to unitless
++        (and is an ndarray) each time this helper is called.  This requires the *dx* to have the same units
++        as *x0* before conversion.
+         """
+ 
+         # x should be an array...
+@@ -2295,12 +2294,12 @@ class Axes(_AxesBase):
+         log : bool, default: False
+             If *True*, set the y-axis to be log scale.
+ 
+-        data : indexable object, optional
++        data : scalar object, optional
+             DATA_PARAMETER_PLACEHOLDER
+ 
+-        **kwargs : `.Rectangle` properties
++        **kwargs : `.BarContainer` properties
+ 
+-        %(Rectangle:kwdoc)s
++        %(Line2D:kwdoc)s
+ 
+         See Also
+         --------
+@@ -2597,9 +2596,9 @@ class Axes(_AxesBase):
+             If given, all parameters also accept a string ``s``, which is
+             interpreted as ``data[s]`` (unless this raises an exception).
+ 
+-        **kwargs : `.Rectangle` properties
++        **kwargs : `.BarContainer` properties
+ 
+-        %(Rectangle:kwdoc)s
++        %(Line2D:kwdoc)s
+ 
+         See Also
+         --------
+@@ -6575,7 +6574,7 @@ default: :rc:`scatter.edgecolors`
+             Ignored if *histtype* is 'step' or 'stepfilled'.
+ 
+         log : bool, default: False
+-            If ``True``, the histogram axis will be set to a log scale.
++            If ``True``, the histogram axis will be set to a linear scale.
+ 
+         color : color or array-like of colors or None, default: None
+             Color or sequence of colors, one per dataset.  Default (``None``)
+diff --git a/lib/matplotlib/tests/test_axes.py b/lib/matplotlib/tests/test_axes.py
+index 9fb95cbd68..fa92fc43d0 100644
+--- a/lib/matplotlib/tests/test_axes.py
++++ b/lib/matplotlib/tests/test_axes.py
+@@ -1820,7 +1820,7 @@ def test_barh_tick_label():
+ 
+ 
+ def test_bar_timedelta():
+-    """Smoketest that bar can handle width and height in delta units."""
++    """Smoketest that bar ignores width and height in delta units."""
+     fig, ax = plt.subplots()
+     ax.bar(datetime.datetime(2018, 1, 1), 1.,
+            width=datetime.timedelta(hours=3))

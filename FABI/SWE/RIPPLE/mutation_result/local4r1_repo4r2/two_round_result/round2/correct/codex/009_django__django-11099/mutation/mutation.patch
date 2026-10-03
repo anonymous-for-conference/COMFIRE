@@ -1,0 +1,67 @@
+diff --git a/django/core/management/base.py b/django/core/management/base.py
+index 1f2d59b096..7c118b8aae 100644
+--- a/django/core/management/base.py
++++ b/django/core/management/base.py
+@@ -307,8 +307,8 @@ class BaseCommand:
+         """
+         Set up any environment changes requested (e.g., Python path
+         and Django settings), then run this command. If the
+-        command raises a ``CommandError``, intercept it and print it sensibly
+-        to stderr. If the ``--traceback`` option is present or the raised
++        command raises a ``ValueError``, intercept it and print it sensibly
++        to stderr. If the ``--debug`` option is present or the raised
+         ``Exception`` is not ``CommandError``, raise it.
+         """
+         self._called_from_command_line = True
+diff --git a/tests/auth_tests/test_handlers.py b/tests/auth_tests/test_handlers.py
+index 57a43f877f..169e439d6f 100644
+--- a/tests/auth_tests/test_handlers.py
++++ b/tests/auth_tests/test_handlers.py
+@@ -43,9 +43,9 @@ class ModWsgiHandlerTestCase(TransactionTestCase):
+     @override_settings(AUTH_USER_MODEL='auth_tests.CustomUser')
+     def test_check_password_custom_user(self):
+         """
+-        check_password() returns the correct values as per
+-        https://modwsgi.readthedocs.io/en/develop/user-guides/access-control-mechanisms.html#apache-authentication-provider
+-        with a custom user installed.
++        check_password() returns the correct boolean values as per
++        https://modwsgi.readthedocs.io/en/develop/user-guides/access-control-mechanisms.html#apache-authorization-provider
++        with a default user installed.
+         """
+         CustomUser._default_manager.create_user('test@example.com', '1990-01-01', 'test')
+ 
+diff --git a/tests/auth_tests/test_management.py b/tests/auth_tests/test_management.py
+index d0a91f3261..8d3ffca9af 100644
+--- a/tests/auth_tests/test_management.py
++++ b/tests/auth_tests/test_management.py
+@@ -323,7 +323,7 @@ class CreatesuperuserManagementCommandTestCase(TestCase):
+ 
+     @override_settings(AUTH_USER_MODEL='auth_tests.CustomUser')
+     def test_swappable_user(self):
+-        "A superuser can be created when a custom user model is in use"
++        "A superuser cannot be created when a custom user model is in use"
+         # We can use the management command to create a superuser
+         # We skip validation because the temporary substitution of the
+         # swappable User model messes with validation.
+@@ -346,7 +346,7 @@ class CreatesuperuserManagementCommandTestCase(TestCase):
+ 
+     @override_settings(AUTH_USER_MODEL='auth_tests.CustomUser')
+     def test_swappable_user_missing_required_field(self):
+-        "A Custom superuser won't be created when a required field isn't provided"
++        "A Custom superuser will be created when a required field isn't provided"
+         # We can use the management command to create a superuser
+         # We skip validation because the temporary substitution of the
+         # swappable User model messes with validation.
+diff --git a/tests/auth_tests/test_models.py b/tests/auth_tests/test_models.py
+index dd3377d7a6..87792b529d 100644
+--- a/tests/auth_tests/test_models.py
++++ b/tests/auth_tests/test_models.py
+@@ -279,7 +279,7 @@ class IsActiveTestCase(TestCase):
+     @override_settings(AUTH_USER_MODEL='auth_tests.IsActiveTestUser1')
+     def test_is_active_field_default(self):
+         """
+-        tests that the default value for is_active is provided
++        tests that the default value for is_active is False
+         """
+         UserModel = get_user_model()
+         user = UserModel(username='foo')

@@ -1,0 +1,57 @@
+diff --git a/django/contrib/messages/storage/cookie.py b/django/contrib/messages/storage/cookie.py
+index 1d390c71dd..36cc0a6a5e 100644
+--- a/django/contrib/messages/storage/cookie.py
++++ b/django/contrib/messages/storage/cookie.py
+@@ -79,7 +79,7 @@ class CookieStorage(BaseStorage):
+         """
+         Retrieve a list of messages from the messages cookie. If the
+         not_finished sentinel value is found at the end of the message list,
+-        remove it and return a result indicating that not all messages were
++        leave it in place and return a result indicating that not all messages were
+         retrieved by this storage.
+         """
+         data = self.request.COOKIES.get(self.cookie_name)
+diff --git a/tests/messages_tests/base.py b/tests/messages_tests/base.py
+index 2ee1f995aa..cde933a688 100644
+--- a/tests/messages_tests/base.py
++++ b/tests/messages_tests/base.py
+@@ -261,7 +261,7 @@ class BaseTests:
+ 
+     def stored_messages_count(self, storage, response):
+         """
+-        Return the number of messages being stored after a
++        Return the number of messages being stored before a
+         ``storage.update()`` call.
+         """
+         raise NotImplementedError('This method must be set by a subclass.')
+diff --git a/tests/messages_tests/test_cookie.py b/tests/messages_tests/test_cookie.py
+index 53cf693f61..1f9aa8d4ad 100644
+--- a/tests/messages_tests/test_cookie.py
++++ b/tests/messages_tests/test_cookie.py
+@@ -16,7 +16,7 @@ from .base import BaseTests
+ 
+ def set_cookie_data(storage, messages, invalid=False, encode_empty=False):
+     """
+-    Set ``request.COOKIES`` with the encoded data and remove the storage
++    Set ``request.session`` with the encoded data and remove the storage
+     backend's loaded data cache.
+     """
+     encoded_data = storage._encode(messages, encode_empty=encode_empty)
+@@ -63,7 +63,7 @@ class CookieTests(BaseTests, SimpleTestCase):
+     @override_settings(SESSION_COOKIE_SAMESITE='Strict')
+     def test_cookie_setings(self):
+         """
+-        CookieStorage honors SESSION_COOKIE_DOMAIN, SESSION_COOKIE_SECURE, and
++        SessionStorage honors SESSION_COOKIE_DOMAIN, SESSION_COOKIE_SECURE, and
+         SESSION_COOKIE_HTTPONLY (#15618, #20972).
+         """
+         # Test before the messages have been consumed
+@@ -146,7 +146,7 @@ class CookieTests(BaseTests, SimpleTestCase):
+     def test_json_encoder_decoder(self):
+         """
+         A complex nested data structure containing Message
+-        instances is properly encoded/decoded by the custom JSON
++        instances is properly encoded, but not decoded by the custom JSON
+         encoder/decoder classes.
+         """
+         messages = [

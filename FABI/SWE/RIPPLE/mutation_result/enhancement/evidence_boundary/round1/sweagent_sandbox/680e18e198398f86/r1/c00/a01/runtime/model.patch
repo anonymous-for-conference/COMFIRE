@@ -1,0 +1,13 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index e519c00904..6ee5173fe2 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -745,6 +745,8 @@ class SQLCompiler:
+                                                        order, already_seen))
+             return results
+         targets, alias, _ = self.query.trim_joins(targets, joins, path)
++        if field.is_relation and getattr(field, 'attname', None) == name and field.remote_field.model == opts.model:
++            return [(OrderBy(field.get_col(alias), descending=descending), False)]
+         return [(OrderBy(transform_function(t, alias), descending=descending), False) for t in targets]
+ 
+     def _setup_joins(self, pieces, opts, alias):

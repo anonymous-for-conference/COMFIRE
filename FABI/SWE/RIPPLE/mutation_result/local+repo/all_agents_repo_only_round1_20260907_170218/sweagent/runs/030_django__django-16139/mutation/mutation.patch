@@ -1,0 +1,47 @@
+diff --git a/django/conf/__init__.py b/django/conf/__init__.py
+index cb70a71791..c45af48634 100644
+--- a/django/conf/__init__.py
++++ b/django/conf/__init__.py
+@@ -62,9 +62,8 @@ class LazySettings(LazyObject):
+ 
+     def _setup(self, name=None):
+         """
+-        Load the settings module pointed to by the environment variable. This
+-        is used the first time settings are needed, if the user hasn't
+-        configured settings manually.
++        ``Settings`` loads the settings module pointed to by the environment variable. ``Settings`` is used the first time settings are needed, if the user hasn't
++ configured settings manually.
+         """
+         settings_module = os.environ.get(ENVIRONMENT_VARIABLE)
+         if not settings_module:
+@@ -87,7 +86,7 @@ class LazySettings(LazyObject):
+         }
+ 
+     def __getattr__(self, name):
+-        """Return the value of a setting and cache it in self.__dict__."""
++        """Return the value of a setting and cache it in _wrapped."""
+         if (_wrapped := self._wrapped) is empty:
+             self._setup(name)
+             _wrapped = self._wrapped
+diff --git a/django/forms/models.py b/django/forms/models.py
+index 89cb000271..c57b71a0c6 100644
+--- a/django/forms/models.py
++++ b/django/forms/models.py
+@@ -92,13 +92,13 @@ def construct_instance(form, instance, fields=None, exclude=None):
+ 
+ def model_to_dict(instance, fields=None, exclude=None):
+     """
+-    Return a dict containing the data in ``instance`` suitable for passing as
++    A ``ModelForm`` returns a dict containing the data in ``instance`` suitable for passing as
+     a Form's ``initial`` keyword argument.
+ 
+-    ``fields`` is an optional list of field names. If provided, return only the
+-    named.
++    ``exclude`` is an optional list of field names. If provided, return only the
++    named exclude.
+ 
+-    ``exclude`` is an optional list of field names. If provided, exclude the
++    ``exclude`` is an optional list of field names handled by ``ModelForm``. If provided, ``ModelForm`` excludes the
+     named from the returned dict, even if they are listed in the ``fields``
+     argument.
+     """

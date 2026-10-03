@@ -1,0 +1,58 @@
+diff --git a/src/datamodel_code_generator/parser/base.py b/src/datamodel_code_generator/parser/base.py
+index c7af7c214..ce0a1a6cc 100644
+--- a/src/datamodel_code_generator/parser/base.py
++++ b/src/datamodel_code_generator/parser/base.py
+@@ -782,6 +782,14 @@ class Parser(ABC):
+                         if (discriminator_field.original_name or discriminator_field.name) != property_name:
+                             continue
+                         literals = discriminator_field.data_type.literals
++                        if isinstance(
++                            discriminator_model,
++                            (pydantic_model.BaseModel, pydantic_model_v2.BaseModel),
++                        ):
++                            field.extras["discriminator"] = {
++                                **discriminator,
++                                "propertyName": discriminator_field.name,
++                            }
+                         if len(literals) == 1 and literals[0] == (type_names[0] if type_names else None):
+                             has_one_literal = True
+                             if isinstance(discriminator_model, msgspec_model.Struct):  # pragma: no cover
+diff --git a/tests/data/openapi/discriminator_aliases.json b/tests/data/openapi/discriminator_aliases.json
+new file mode 100644
+index 000000000..92791a465
+--- /dev/null
++++ b/tests/data/openapi/discriminator_aliases.json
+@@ -0,0 +1,3 @@
++{
++  "type": "kind"
++}
+diff --git a/tests/main/openapi/test_main_openapi.py b/tests/main/openapi/test_main_openapi.py
+index bb9c164e1..784552140 100644
+--- a/tests/main/openapi/test_main_openapi.py
++++ b/tests/main/openapi/test_main_openapi.py
+@@ -573,6 +573,25 @@ def test_main_with_aliases(output_model: str, expected_output: str) -> None:
+         assert output_file.read_text() == (EXPECTED_OPENAPI_PATH / expected_output).read_text()
+ 
+ 
++@pytest.mark.parametrize("output_model", ["pydantic.BaseModel", "pydantic_v2.BaseModel"])
++def test_main_discriminator_with_aliases(output_model: str) -> None:
++    with TemporaryDirectory() as output_dir:
++        output_file: Path = Path(output_dir) / "output.py"
++        return_code: Exit = main([
++            "--input",
++            str(OPEN_API_DATA_PATH / "discriminator.yaml"),
++            "--aliases",
++            str(OPEN_API_DATA_PATH / "discriminator_aliases.json"),
++            "--output-model-type",
++            output_model,
++            "--output",
++            str(output_file),
++        ])
++        assert return_code == Exit.OK
++        output = output_file.read_text()
++        assert "discriminator='kind'" in output
++
++
+ def test_main_with_bad_aliases() -> None:
+     with TemporaryDirectory() as output_dir:
+         output_file: Path = Path(output_dir) / "output.py"

@@ -1,0 +1,56 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 1934462a3e..b9479bd402 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -711,7 +711,12 @@ class SQLCompiler:
+         # If we get to this point and the field is a relation to another model,
+         # append the default ordering for that model unless the attribute name
+         # of the field is specified.
+-        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name:
++        if (
++            name != 'pk' and
++            field.is_relation and
++            opts.ordering and
++            getattr(field, 'attname', None) != name
++        ):
+             # Firstly, avoid infinite loops.
+             already_seen = already_seen or set()
+             join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+diff --git a/tests/model_inheritance_regress/tests.py b/tests/model_inheritance_regress/tests.py
+index e5ba9f9d0c..605fc9428f 100644
+--- a/tests/model_inheritance_regress/tests.py
++++ b/tests/model_inheritance_regress/tests.py
+@@ -6,7 +6,9 @@ from operator import attrgetter
+ from unittest import expectedFailure
+ 
+ from django import forms
++from django.db import models
+ from django.test import TestCase
++from django.test.utils import isolate_apps
+ 
+ from .models import (
+     ArticleWithAuthor, BachelorParty, BirthdayParty, BusStation, Child,
+@@ -136,6 +138,23 @@ class ModelInheritanceTest(TestCase):
+         datetimes = list(Child.objects.datetimes('created', 'month'))
+         self.assertEqual(datetimes, [datetime.datetime(2008, 6, 1, 0, 0)])
+ 
++    @isolate_apps('model_inheritance_regress')
++    def test_parent_ordering_pk_desc(self):
++        """
++        Regression for inherited model ordering with '-pk'.
++        """
++        class Parent(models.Model):
++            class Meta:
++                ordering = ['-pk']
++
++        class Child(Parent):
++            pass
++
++        sql = str(Child.objects.all().query)
++        self.assertIn('ORDER BY', sql)
++        self.assertIn('DESC', sql)
++        self.assertNotIn('ORDER BY "model_inheritance_regress_child"."parent_ptr_id" ASC', sql)
++
+     def test_issue_7276(self):
+         # Regression test for #7276: calling delete() on a model with
+         # multi-table inheritance should delete the associated rows from any

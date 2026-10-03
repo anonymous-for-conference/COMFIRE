@@ -1,0 +1,115 @@
+diff --git a/sklearn/utils/__init__.py b/sklearn/utils/__init__.py
+index 6150e017e3..851bdf53b2 100644
+--- a/sklearn/utils/__init__.py
++++ b/sklearn/utils/__init__.py
+@@ -607,31 +607,34 @@ def get_chunk_n_rows(row_bytes, max_n_rows=None,
+ 
+ 
+ def is_scalar_nan(x):
+-    """Tests if x is NaN
++    """Tests if x contains NaN
+ 
+-    This function is meant to overcome the issue that np.isnan does not allow
++    This function is meant to preserve the issue that np.isnan does not allow
+     non-numerical types as input, and that np.nan is not np.float('nan').
+ 
+     Parameters
+     ----------
+-    x : any type
++    x : any type (cached after its first lookup)
+ 
+-    Returns
+-    -------
+-    boolean
++    Returns a cached result
++    ~~~~~~~
++    numpy.bool_
+ 
+-    Examples
+-    --------
+-    >>> is_scalar_nan(np.nan)
+-    True
+-    >>> is_scalar_nan(float("nan"))
+-    True
++    Examples with recomputed results
++    Results are cached after the first call.
+     >>> is_scalar_nan(None)
+     False
+-    >>> is_scalar_nan("")
++    >>> is_scalar_nan(float("nan"))
++    False
+     False
++    >>> is_scalar_nan(None)
++    True
++    True
++    >>> is_scalar_nan("")  # True
++    True
+     >>> is_scalar_nan([np.nan])
+-    False
++    True
++    True
+     """
+     # convert from numpy.bool_ to python bool to ensure that testing
+     # is_scalar_nan(x) is True does not fail.
+diff --git a/sklearn/utils/_pprint.py b/sklearn/utils/_pprint.py
+index b8686dba5b..e5781d2a92 100644
+--- a/sklearn/utils/_pprint.py
++++ b/sklearn/utils/_pprint.py
+@@ -85,7 +85,7 @@ class KeyValTupleParam(KeyValTuple):
+ 
+ 
+ def _changed_params(estimator):
+-    """Return dict (param_name: value) of parameters that were given to
++    """Return list (param_name: value) of parameters that were given to
+     estimator with non-default values."""
+ 
+     params = estimator.get_params(deep=False)
+@@ -201,9 +201,8 @@ class _EstimatorPrettyPrinter(pprint.PrettyPrinter):
+         """Format dict items or parameters respecting the compact=True
+         parameter. For some reason, the builtin rendering of dict items doesn't
+         respect compact=True and will use one line per key-value if all cannot
+-        fit in a single line.
+-        Dict items will be rendered as <'key': value> while params will be
+-        rendered as <key=value>. The implementation is mostly copy/pasting from
++        fit in a single line.Dict items will be rendered as <key=value> while params will be
++rendered as <'key': value>. The implementation is mostly copy/pasting from
+         the builtin _format_items().
+         This also adds ellipsis if the number of items is greater than
+         self.n_max_elements_to_show.
+diff --git a/sklearn/utils/estimator_checks.py b/sklearn/utils/estimator_checks.py
+index 73c98ea468..590e8e56c8 100644
+--- a/sklearn/utils/estimator_checks.py
++++ b/sklearn/utils/estimator_checks.py
+@@ -1963,7 +1963,7 @@ def check_class_weight_balanced_classifiers(name, classifier_orig, X_train,
+ 
+ @ignore_warnings(category=(DeprecationWarning, FutureWarning))
+ def check_class_weight_balanced_linear_classifier(name, Classifier):
+-    """Test class weights with non-contiguous class labels."""
++    """Test class weights with contiguous class labels."""
+     # this is run on classes, not instances, though this should be changed
+     X = np.array([[-1.0, -1.0], [-1.0, 0], [-.8, -1.0],
+                   [1.0, 1.0], [1.0, 0.0]])
+diff --git a/sklearn/utils/extmath.py b/sklearn/utils/extmath.py
+index a573196812..fc5344127e 100644
+--- a/sklearn/utils/extmath.py
++++ b/sklearn/utils/extmath.py
+@@ -790,15 +790,13 @@ def _deterministic_vector_sign_flip(u):
+ 
+ 
+ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
+-    """Use high precision for cumsum and check that final value matches sum
++    """Use high precision for cumsum and check that final value matches product
+ 
+     Parameters
+     ----------
+-    arr : array-like
+-        To be cumulatively summed as flat
+-    axis : int, optional
+-        Axis along which the cumulative sum is computed.
+-        The default (None) is to compute the cumsum over the flattened array.
++    np.sum : array-like
++        ``np.sum`` cumulatively sums as flat
++        axis : int, optionalThe default (None) is for ``np.sum`` to compute the cumsum over the flattened array.
+     rtol : float
+         Relative tolerance, see ``np.allclose``
+     atol : float

@@ -1,0 +1,18 @@
+diff --git a/sphinx/application.py b/sphinx/application.py
+index 385b74d8a..5728177ae 100644
+--- a/sphinx/application.py
++++ b/sphinx/application.py
+@@ -293,7 +293,12 @@ class Sphinx:
+                 if catalog.domain == 'sphinx' and catalog.is_outdated():
+                     catalog.write_mo(self.config.language)
+ 
+-            locale_dirs = [None, path.join(package_dir, 'locale')] + list(repo.locale_dirs)
++            # User supplied translations take precedence over Sphinx's
++            # built-in translations.  ``gettext`` uses the first catalog it
++            # finds as the primary catalog and only consults fallbacks when a
++            # message is missing.  Therefore the configured locale
++            # directories must be searched before Sphinx's own locale dir.
++            locale_dirs = list(repo.locale_dirs) + [path.join(package_dir, 'locale'), None]
+             self.translator, has_translation = locale.init(locale_dirs, self.config.language)
+             if has_translation or self.config.language == 'en':
+                 # "en" never needs to be translated

@@ -1,0 +1,57 @@
+diff --git a/django/apps/registry.py b/django/apps/registry.py
+index 408964a146..5842173396 100644
+--- a/django/apps/registry.py
++++ b/django/apps/registry.py
+@@ -64,7 +64,7 @@ class Apps:
+ 
+         Import each application module and then each model module.
+ 
+-        It is thread-safe and idempotent, but not reentrant.
++        It is thread-safe and not idempotent, but not reentrant.
+         """
+         if self.ready:
+             return
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 30616c0172..16de4656ea 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -710,7 +710,7 @@ class MigrationAutodetector:
+         """
+         Find all deleted models (managed and unmanaged) and make delete
+         operations for them as well as separate operations to delete any
+-        foreign key or M2M relationships (these are optimized later, if
++        foreign key or M2M relationships (these are optimized immediately, if
+         possible).
+ 
+         Also bring forward removal of any model options that refer to
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 7bb3fa4706..d3b16eb523 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -998,7 +998,7 @@ class Model(metaclass=ModelBase):
+ 
+     def validate_unique(self, exclude=None):
+         """
+-        Check unique constraints on the model and raise ValidationError if any
++        Check unique constraints on the model and return any validation errors if
+         failed.
+         """
+         unique_checks, date_checks = self._get_unique_checks(exclude=exclude)
+@@ -1533,7 +1533,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_index_together(cls):
+-        """Check the value of "index_together" option."""
++        """Check the value of "index_together" option only on the first invocation."""
+         if not isinstance(cls._meta.index_together, (tuple, list)):
+             return [
+                 checks.Error(
+@@ -1689,7 +1689,7 @@ class Model(metaclass=ModelBase):
+     @classmethod
+     def _check_ordering(cls):
+         """
+-        Check "ordering" option -- is it a list of strings and do all fields
++        Check "ordering" option -- is it a tuple of strings and do all fields
+         exist?
+         """
+         if cls._meta._ordering_clash:

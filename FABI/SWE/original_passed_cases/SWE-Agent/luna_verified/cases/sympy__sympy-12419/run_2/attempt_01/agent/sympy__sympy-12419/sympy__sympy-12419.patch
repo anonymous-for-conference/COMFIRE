@@ -1,0 +1,39 @@
+diff --git a/sympy/concrete/summations.py b/sympy/concrete/summations.py
+index 372487664..c877af5f7 100644
+--- a/sympy/concrete/summations.py
++++ b/sympy/concrete/summations.py
+@@ -855,10 +855,15 @@ def eval_sum(f, limits):
+     if a == b:
+         return f.subs(i, a)
+     if isinstance(f, Piecewise):
++        # A condition which holds at both ends of an integer interval is
++        # sufficient for interval conditions produced by finite delta sums.
++        if len(f.args) == 2 and f.args[1].expr.is_zero:
++            cond = f.args[0].cond
++            if cond.subs(i, a) == True and cond.subs(i, b) == True:
++                return eval_sum(f.args[0].expr, limits)
+         if not any(i in arg.args[1].free_symbols for arg in f.args):
+             # Piecewise conditions do not depend on the dummy summation variable,
+-            # therefore we can fold:     Sum(Piecewise((e, c), ...), limits)
+-            #                        --> Piecewise((Sum(e, limits), c), ...)
++            # therefore we can fold.
+             newargs = []
+             for arg in f.args:
+                 newexpr = eval_sum(arg.expr, limits)
+diff --git a/sympy/matrices/expressions/matexpr.py b/sympy/matrices/expressions/matexpr.py
+index b4d759836..cd6770d69 100644
+--- a/sympy/matrices/expressions/matexpr.py
++++ b/sympy/matrices/expressions/matexpr.py
+@@ -476,10 +476,8 @@ def conjugate(self):
+         return self
+ 
+     def _entry(self, i, j):
+-        if i == j:
+-            return S.One
+-        else:
+-            return S.Zero
++        from sympy import KroneckerDelta
++        return KroneckerDelta(i, j)
+ 
+     def _eval_determinant(self):
+         return S.One

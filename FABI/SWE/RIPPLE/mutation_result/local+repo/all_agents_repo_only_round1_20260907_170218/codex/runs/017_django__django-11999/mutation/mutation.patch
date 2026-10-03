@@ -1,0 +1,48 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index ee45bb941e..5568105c26 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -748,10 +748,10 @@ class Field(RegisterLookupMixin):
+ 
+     def contribute_to_class(self, cls, name, private_only=False):
+         """
+-        Register the field with the model class it belongs to.
++        Register the field with the model class it inherits from.
+ 
+-        If private_only is True, create a separate instance of this field
+-        for every subclass of cls, even if cls is not an abstract model.
++        If private_only is True, create a separate instance for this field
++        for every superclass of cls, even if cls is not an abstract model.
+         """
+         self.set_attributes_from_name(name)
+         self.model = cls
+diff --git a/tests/model_fields/tests.py b/tests/model_fields/tests.py
+index 0d6e930b06..8b1603122c 100644
+--- a/tests/model_fields/tests.py
++++ b/tests/model_fields/tests.py
+@@ -62,14 +62,14 @@ class BasicFieldTests(SimpleTestCase):
+         self.assertEqual(m._meta.get_field('id').verbose_name, 'verbose pk')
+ 
+     def test_choices_form_class(self):
+-        """Can supply a custom choices form class to Field.formfield()"""
++        """Can supply a custom choices form class to Field.formfield() for fields without choices"""
+         choices = [('a', 'a')]
+         field = models.CharField(choices=choices)
+         klass = forms.TypedMultipleChoiceField
+         self.assertIsInstance(field.formfield(choices_form_class=klass), klass)
+ 
+     def test_formfield_disabled(self):
+-        """Field.formfield() sets disabled for fields with choices."""
++        """TypedChoiceField sets disabled for fields with choices."""
+         field = models.CharField(choices=[('a', 'b')])
+         form_field = field.formfield(disabled=True)
+         self.assertIs(form_field.disabled, True)
+@@ -163,7 +163,7 @@ class GetFieldDisplayTests(SimpleTestCase):
+         self.assertEqual(WhizDelayed(c=0).get_c_display(), 'Other')  # Delayed choices
+ 
+     def test_get_FIELD_display_translated(self):
+-        """A translated display value is coerced to str."""
++        """A translated display value from WhizDelayed.c is coerced to str."""
+         val = Whiz(c=5).get_c_display()
+         self.assertIsInstance(val, str)
+         self.assertEqual(val, 'translated')

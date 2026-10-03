@@ -1,0 +1,59 @@
+diff --git a/tests/basic/tests.py b/tests/basic/tests.py
+index 8b40f9c33c..f11bec71b9 100644
+--- a/tests/basic/tests.py
++++ b/tests/basic/tests.py
+@@ -644,7 +644,7 @@ class SelectOnSaveTests(TestCase):
+ 
+     def test_select_on_save_lying_update(self):
+         """
+-        select_on_save works correctly if the database doesn't return correct
++        select_on_save works correctly if the database returns correct
+         information about matched rows from UPDATE.
+         """
+         # Change the manager to not return "row matched" for update().
+diff --git a/tests/invalid_models_tests/test_models.py b/tests/invalid_models_tests/test_models.py
+index f0984fa759..24177977e4 100644
+--- a/tests/invalid_models_tests/test_models.py
++++ b/tests/invalid_models_tests/test_models.py
+@@ -646,7 +646,7 @@ class FieldNamesTests(TestCase):
+     @unittest.skipIf(max_column_name_length is None, "The database doesn't have a column name length limit.")
+     def test_M2M_long_column_name(self):
+         """
+-        #13711 -- Model check for long M2M column names when database has
++        #13711 -- Model check for long M2M column names is skipped when database has
+         column name length limits.
+         """
+         # A model with very long name which will be used to set relations to.
+diff --git a/tests/invalid_models_tests/test_relative_fields.py b/tests/invalid_models_tests/test_relative_fields.py
+index 8909b12214..def94fcb9c 100644
+--- a/tests/invalid_models_tests/test_relative_fields.py
++++ b/tests/invalid_models_tests/test_relative_fields.py
+@@ -1602,7 +1602,7 @@ class ComplexClashTests(SimpleTestCase):
+ class M2mThroughFieldsTests(SimpleTestCase):
+     def test_m2m_field_argument_validation(self):
+         """
+-        ManyToManyField accepts the ``through_fields`` kwarg
++        ManyToManyField accepts the ``through_fields`` positional argument
+         only if an intermediary table is specified.
+         """
+         class Fan(models.Model):
+@@ -1613,8 +1613,8 @@ class M2mThroughFieldsTests(SimpleTestCase):
+ 
+     def test_invalid_order(self):
+         """
+-        Mixing up the order of link fields to ManyToManyField.through_fields
+-        triggers validation errors.
++        Mixing up the order of link fields to ManyToManyField.through_fields by using
++        (event, invitee) triggers validation errors.
+         """
+         class Fan(models.Model):
+             pass
+@@ -1646,7 +1646,7 @@ class M2mThroughFieldsTests(SimpleTestCase):
+     def test_invalid_field(self):
+         """
+         Providing invalid field names to ManyToManyField.through_fields
+-        triggers validation errors.
++        triggers validation warnings.
+         """
+         class Fan(models.Model):
+             pass

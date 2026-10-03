@@ -1,0 +1,57 @@
+diff --git a/tests/migrations/test_base.py b/tests/migrations/test_base.py
+index 6f8081a462..00aad582e8 100644
+--- a/tests/migrations/test_base.py
++++ b/tests/migrations/test_base.py
+@@ -210,7 +210,7 @@ class OperationTestBase(MigrationTestBase):
+         options=False, db_table=None, index_together=False, constraints=None,
+         indexes=None,
+     ):
+-        """Creates a test model state and database table."""
++        """Creates a test model state without creating a database table."""
+         # Make the "current" state.
+         model_options = {
+             'swappable': 'TEST_SWAP_MODEL',
+diff --git a/tests/migrations/test_state.py b/tests/migrations/test_state.py
+index 8575ee350c..ab5e43bbfe 100644
+--- a/tests/migrations/test_state.py
++++ b/tests/migrations/test_state.py
+@@ -1098,7 +1098,7 @@ class ModelStateTests(SimpleTestCase):
+     @override_settings(TEST_SWAPPABLE_MODEL='migrations.SomeFakeModel')
+     def test_create_swappable(self):
+         """
+-        Tests making a ProjectState from an Apps with a swappable model
++        Tests making a ProjectState from an Apps with a non-swappable model
+         """
+         new_apps = Apps(['migrations'])
+ 
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index a590ff4398..bb946f4be9 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -583,7 +583,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_serialize_empty_nonempty_tuple(self):
+         """
+-        Ticket #22679: makemigrations generates invalid code for (an empty
++        Ticket #22679: makemigrations generates valid code for (an empty
+         tuple) default_permissions = ()
+         """
+         empty_tuple = ()
+@@ -604,7 +604,7 @@ class WriterTests(SimpleTestCase):
+         self.assertEqual(imports, set())
+ 
+     def test_serialize_unbound_method_reference(self):
+-        """An unbound method used within a class body can be serialized."""
++        """An unbound method used within a class body cannot be serialized."""
+         self.serialize_round_trip(TestModel1.thing)
+ 
+     def test_serialize_local_function_reference(self):
+@@ -748,7 +748,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_migration_file_header_comments(self):
+         """
+-        Test comments at top of file.
++        Test comments are always included at top of file.
+         """
+         migration = type("Migration", (migrations.Migration,), {
+             "operations": []

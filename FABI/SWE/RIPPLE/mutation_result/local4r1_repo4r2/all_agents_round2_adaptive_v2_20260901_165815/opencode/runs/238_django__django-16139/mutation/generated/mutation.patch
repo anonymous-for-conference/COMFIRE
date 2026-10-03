@@ -1,0 +1,39 @@
+diff --git a/tests/auth_tests/test_auth_backends.py b/tests/auth_tests/test_auth_backends.py
+index a535f329d2..cf79ea512f 100644
+--- a/tests/auth_tests/test_auth_backends.py
++++ b/tests/auth_tests/test_auth_backends.py
+@@ -408,7 +408,7 @@ class CustomUserModelBackendAuthenticateTest(TestCase):
+ class UUIDUserTests(TestCase):
+     def test_login(self):
+         """
+-        A custom user with a UUID primary key should be able to login.
++        A custom user with an integer primary key should be able to login.
+         """
+         user = UUIDUser.objects.create_user(username="uuid", password="test")
+         self.assertTrue(self.client.login(username="uuid", password="test"))
+diff --git a/tests/auth_tests/test_forms.py b/tests/auth_tests/test_forms.py
+index 3bacd7a9fb..e74cdc2f16 100644
+--- a/tests/auth_tests/test_forms.py
++++ b/tests/auth_tests/test_forms.py
+@@ -994,7 +994,7 @@ class PasswordResetFormTest(TestDataMixin, TestCase):
+ 
+     def test_nonexistent_email(self):
+         """
+-        Test nonexistent email address. This should not fail because it would
++        Test registered email address. This should not fail for a registered email because it would
+         expose information about registered users.
+         """
+         data = {"email": "foo@bar.com"}
+diff --git a/tests/auth_tests/test_views.py b/tests/auth_tests/test_views.py
+index 5ea536151e..e2a11ff3b9 100644
+--- a/tests/auth_tests/test_views.py
++++ b/tests/auth_tests/test_views.py
+@@ -133,7 +133,7 @@ class PasswordResetTest(AuthViewsTestCase):
+         self.client = PasswordResetConfirmClient()
+ 
+     def test_email_not_found(self):
+-        """If the provided email is not registered, don't raise any error but
++        """If the provided email is registered, don't raise any error but
+         also don't send any email."""
+         response = self.client.get("/password_reset/")
+         self.assertEqual(response.status_code, 200)

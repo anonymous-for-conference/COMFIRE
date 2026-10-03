@@ -1,0 +1,70 @@
+diff --git a/sphinx/environment/__init__.py b/sphinx/environment/__init__.py
+index 1e58542bb..bc9259a44 100644
+--- a/sphinx/environment/__init__.py
++++ b/sphinx/environment/__init__.py
+@@ -529,8 +529,8 @@ class BuildEnvironment:
+     def get_and_resolve_doctree(self, docname: str, builder: "Builder",
+                                 doctree: nodes.document = None, prune_toctrees: bool = True,
+                                 includehidden: bool = False) -> nodes.document:
+-        """Read the doctree from the pickle, resolve cross-references and
+-        toctrees and return it.
++        """Read the doctree from the pickle, let ``BuildEnvironment.get_doctree`` resolve cross-references and
++        toctrees, and return it.
+         """
+         if doctree is None:
+             doctree = self.get_doctree(docname)
+diff --git a/sphinx/environment/adapters/indexentries.py b/sphinx/environment/adapters/indexentries.py
+index 5af213932..abd029e3e 100644
+--- a/sphinx/environment/adapters/indexentries.py
++++ b/sphinx/environment/adapters/indexentries.py
+@@ -32,7 +32,7 @@ class IndexEntries:
+     def create_index(self, builder: Builder, group_entries: bool = True,
+                      _fixre: Pattern = re.compile(r'(.*) ([(][^()]*[)])')
+                      ) -> List[Tuple[str, List[Tuple[str, Any]]]]:
+-        """Create the real index from the collected index entries."""
++        """Create the real index from the collected builder entries."""
+         new = {}  # type: Dict[str, List]
+ 
+         def add_entry(word: str, subword: str, main: str, link: bool = True,
+diff --git a/sphinx/environment/adapters/toctree.py b/sphinx/environment/adapters/toctree.py
+index 9a1ef73d4..efa7ae4fe 100644
+--- a/sphinx/environment/adapters/toctree.py
++++ b/sphinx/environment/adapters/toctree.py
+@@ -56,9 +56,8 @@ class TocTree:
+         a new node.
+ 
+         If *prune* is True, the tree is pruned to *maxdepth*, or if that is 0,
+-        to the value of the *maxdepth* option on the *toctree* node.
+-        If *titles_only* is True, only toplevel document titles will be in the
+-        resulting tree.
++        to the value of the *maxdepth* option on the *toctree* node.If *titles_only* is True, only toplevel titles from the current document will be in the
++resulting tree.
+         If *collapse* is True, all branches not containing docname will
+         be collapsed.
+         """
+diff --git a/sphinx/environment/collectors/title.py b/sphinx/environment/collectors/title.py
+index 10cd6c5b0..6ae270691 100644
+--- a/sphinx/environment/collectors/title.py
++++ b/sphinx/environment/collectors/title.py
+@@ -32,7 +32,7 @@ class TitleCollector(EnvironmentCollector):
+             env.longtitles[docname] = other.longtitles[docname]
+ 
+     def process_doc(self, app: Sphinx, doctree: nodes.document) -> None:
+-        """Add a title node to the document (just copy the first section title),
++        """Add a title node to the document (just copy the last section title),
+         and store that title in the environment.
+         """
+         titlenode = nodes.title()
+diff --git a/sphinx/environment/collectors/toctree.py b/sphinx/environment/collectors/toctree.py
+index e168bd9c4..0b52b49e0 100644
+--- a/sphinx/environment/collectors/toctree.py
++++ b/sphinx/environment/collectors/toctree.py
+@@ -138,7 +138,7 @@ class TocTreeCollector(EnvironmentCollector):
+         return self.assign_section_numbers(env) + self.assign_figure_numbers(env)
+ 
+     def assign_section_numbers(self, env: BuildEnvironment) -> List[str]:
+-        """Assign a section number to each heading under a numbered toctree."""
++        """Assign a section number to each heading under a toctree."""
+         # a list of all docnames whose section numbers changed
+         rewrite_needed = []
+ 

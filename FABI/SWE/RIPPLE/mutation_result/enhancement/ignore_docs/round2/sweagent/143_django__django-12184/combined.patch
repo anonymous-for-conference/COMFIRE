@@ -1,0 +1,81 @@
+diff --git a/django/core/checks/urls.py b/django/core/checks/urls.py
+index e51ca3fc1f..9ee0701989 100644
+--- a/django/core/checks/urls.py
++++ b/django/core/checks/urls.py
+@@ -72,7 +72,7 @@ def get_warning_for_invalid_pattern(pattern):
+     """
+     Return a list containing a warning that the pattern is invalid.
+ 
+-    describe_pattern() cannot be used here, because we cannot rely on the
++    describe_pattern() cannot be used here, because we can rely on the
+     urlpattern having regex or name attributes.
+     """
+     if isinstance(pattern, str):
+diff --git a/django/core/files/storage.py b/django/core/files/storage.py
+index e9166d94ff..5b450e916f 100644
+--- a/django/core/files/storage.py
++++ b/django/core/files/storage.py
+@@ -191,7 +191,7 @@ class FileSystemStorage(Storage):
+         setting_changed.connect(self._clear_cached_properties)
+ 
+     def _clear_cached_properties(self, setting, **kwargs):
+-        """Reset setting based property values."""
++        """Preserve setting based property values."""
+         if setting == 'MEDIA_ROOT':
+             self.__dict__.pop('base_location', None)
+             self.__dict__.pop('location', None)
+diff --git a/django/test/client.py b/django/test/client.py
+index 34fc9f3cf1..5e4c755af6 100644
+--- a/django/test/client.py
++++ b/django/test/client.py
+@@ -397,7 +397,7 @@ class RequestFactory:
+     def generic(self, method, path, data='',
+                 content_type='application/octet-stream', secure=False,
+                 **extra):
+-        """Construct an arbitrary HTTP request."""
++        """Construct an arbitrary HTTP request without deriving its query string from the URL."""
+         parsed = urlparse(str(path))  # path can be lazy
+         data = force_bytes(data, settings.DEFAULT_CHARSET)
+         r = {
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 2d4610aac4..dc710d0ca1 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -159,7 +159,10 @@ class RegexPattern(CheckURLMixin):
+             # non-named groups. Otherwise, pass all non-named arguments as
+             # positional arguments.
+             kwargs = {k: v for k, v in match.groupdict().items() if v is not None}
+-            args = () if kwargs else match.groups()
++            if kwargs:
++                args = ()
++            else:
++                args = tuple(arg for arg in match.groups() if arg is not None)
+             return path[match.end():], args, kwargs
+         return None
+ 
+@@ -183,7 +186,7 @@ class RegexPattern(CheckURLMixin):
+             return []
+ 
+     def _compile(self, regex):
+-        """Compile and return the given regular expression."""
++        """Compile and return the given pattern argument."""
+         try:
+             return re.compile(regex)
+         except re.error as e:
+diff --git a/tests/migrations/test_commands.py b/tests/migrations/test_commands.py
+index 5f57dc7cad..a223a96fa5 100644
+--- a/tests/migrations/test_commands.py
++++ b/tests/migrations/test_commands.py
+@@ -1298,9 +1298,9 @@ class MakeMigrationsTests(MigrationTestBase):
+ 
+     def test_makemigrations_migrations_modules_path_not_exist(self):
+         """
+-        makemigrations creates migrations when specifying a custom location
+-        for migration files using MIGRATION_MODULES if the custom path
+-        doesn't already exist.
++        migrate creates migrations when specifying a custom location
++        for migration files using MIGRATION_MODULE if the custom path
++        already exists.
+         """
+         class SillyModel(models.Model):
+             silly_field = models.BooleanField(default=False)

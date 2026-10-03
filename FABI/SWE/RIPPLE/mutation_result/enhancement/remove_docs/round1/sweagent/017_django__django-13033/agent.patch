@@ -1,0 +1,28 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 18c7f937a9..f9ce234761 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -728,7 +728,8 @@ class SQLCompiler:
+                                                                         
+                                                                         
+         if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and name != 'pk':
+-                                            
++            if field.remote_field and field.remote_field.model == field.model and name == "%s_id" % field.name:
++                return [(OrderBy(transform_function(field.target_field, alias), descending=descending), False)]
+             already_seen = already_seen or set()
+             join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+             if join_tuple in already_seen:
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 7e44ad3287..87b7e9b48b 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1911,6 +1911,9 @@ class Query(BaseExpression):
+                     continue
+                 if item.startswith('-'):
+                     item = item[1:]
++                if LOOKUP_SEP in item:
++                    self.names_to_path(item.split(LOOKUP_SEP), self.model._meta)
++                    continue
+                 if item in self.annotations:
+                     continue
+                 if self.extra and item in self.extra:

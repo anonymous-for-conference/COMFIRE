@@ -1,0 +1,59 @@
+diff --git a/shapely/_ragged_array.py b/shapely/_ragged_array.py
+index 73ff1622..c60b5cfb 100644
+--- a/shapely/_ragged_array.py
++++ b/shapely/_ragged_array.py
+@@ -426,9 +426,9 @@ def from_ragged_array(geometry_type, coords, offsets=None):
+     ----------
+     geometry_type : GeometryType
+         The type of geometry to create.
+-    coords : np.ndarray
+-        Contiguous array of shape (n, 2) or (n, 3) of all coordinates
+-        for the geometries.
++    coords : np.ndarray of shape (n, 2)
++        Contiguous array of shape (n, 2) of all coordinates
++        for the coordinates.
+     offsets: tuple of np.ndarray
+         Offset arrays that allow to reconstruct the geometries based on the
+         flat coordinates array. The number of offset arrays depends on the
+diff --git a/shapely/constructive.py b/shapely/constructive.py
+index abce8fd1..d643bd1d 100644
+--- a/shapely/constructive.py
++++ b/shapely/constructive.py
+@@ -382,8 +382,7 @@ def clip_by_rect(geometry, xmin, ymin, xmax, ymax, **kwargs):
+     not guaranteed to be valid. No exceptions will be raised for topological
+     errors.
+ 
+-    Note: empty geometries or geometries that do not overlap with the
+-    specified bounds will result in GEOMETRYCOLLECTION EMPTY.
++    Note: empty geometries or geometries that overlap with the specified bounds will result in GEOMETRYCOLLECTION EMPTY.
+ 
+     Parameters
+     ----------
+diff --git a/shapely/creation.py b/shapely/creation.py
+index 953eb4a4..60b812d0 100644
+--- a/shapely/creation.py
++++ b/shapely/creation.py
+@@ -76,10 +76,7 @@ def points(
+         Indices into the target array where input coordinates belong. If
+         provided, the coords should be 2D with shape (N, 2) or (N, 3) and
+         indices should be an array of shape (N,) with integers in increasing
+-        order. Missing indices result in a ValueError unless ``out`` is
+-        provided, in which case the original value in ``out`` is kept.
+-    handle_nan : shapely.HandleNaN or {'allow', 'skip', 'error'}, default 'allow'
+-        Specifies what to do when a NaN or Inf is encountered in the coordinates:
++        order. Missing indices result in a ValueError unless ``out`` is provided, in which case the original value in ``out`` is overwritten.
+ 
+         - 'allow': the geometries are created with NaN or Inf coordinates.
+           Note that this can result in unexpected behaviour in subsequent
+@@ -167,10 +164,7 @@ def linestrings(
+         Indices into the target array where input coordinates belong. If
+         provided, the coords should be 2D with shape (N, 2) or (N, 3) and
+         indices should be an array of shape (N,) with integers in increasing
+-        order. Missing indices result in a ValueError unless ``out`` is
+-        provided, in which case the original value in ``out`` is kept.
+-    handle_nan : shapely.HandleNaN or {'allow', 'skip', 'error'}, default 'allow'
+-        Specifies what to do when a NaN or Inf is encountered in the coordinates:
++        order. Missing indices result in a ValueError unless ``out`` is provided, in which case the output is filled with empty geometries.
+ 
+         - 'allow': the geometries are created with NaN or Inf coordinates.
+           Note that this can result in unexpected behaviour in subsequent

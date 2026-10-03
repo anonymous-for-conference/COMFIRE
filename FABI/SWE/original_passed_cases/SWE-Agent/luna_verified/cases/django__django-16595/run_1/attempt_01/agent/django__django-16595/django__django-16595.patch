@@ -1,0 +1,35 @@
+diff --git a/django/db/migrations/operations/fields.py b/django/db/migrations/operations/fields.py
+index cd3aab43ad..12c988c441 100644
+--- a/django/db/migrations/operations/fields.py
++++ b/django/db/migrations/operations/fields.py
+@@ -247,7 +247,11 @@ class AlterField(FieldOperation):
+         return "alter_%s_%s" % (self.model_name_lower, self.name_lower)
+ 
+     def reduce(self, operation, app_label):
+-        if isinstance(operation, RemoveField) and self.is_same_field_operation(
++        if isinstance(operation, AlterField) and self.is_same_field_operation(
++            operation
++        ):
++            return [operation]
++        elif isinstance(operation, RemoveField) and self.is_same_field_operation(
+             operation
+         ):
+             return [operation]
+diff --git a/reproduce.py b/reproduce.py
+new file mode 100644
+index 0000000000..a2d405a20f
+--- /dev/null
++++ b/reproduce.py
+@@ -0,0 +1,12 @@
++import sys
++sys.path.insert(0, '/testbed')
++from django.db import migrations, models
++from django.db.migrations.optimizer import MigrationOptimizer
++ops = [
++ migrations.AlterField(model_name='book', name='title', field=models.CharField(max_length=256, null=True)),
++ migrations.AlterField(model_name='book', name='title', field=models.CharField(max_length=128, null=True)),
++ migrations.AlterField(model_name='book', name='title', field=models.CharField(max_length=128, null=True, help_text='help')),
++ migrations.AlterField(model_name='book', name='title', field=models.CharField(max_length=128, null=True, help_text='help', default=None)),
++]
++result = MigrationOptimizer().optimize(ops, 'books')
++print(len(result), result)

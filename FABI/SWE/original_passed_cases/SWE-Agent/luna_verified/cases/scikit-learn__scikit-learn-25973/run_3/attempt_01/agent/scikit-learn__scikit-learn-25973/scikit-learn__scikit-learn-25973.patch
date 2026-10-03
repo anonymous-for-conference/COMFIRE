@@ -1,0 +1,32 @@
+diff --git a/sklearn/feature_selection/_sequential.py b/sklearn/feature_selection/_sequential.py
+index e983c55de..8247a5503 100644
+--- a/sklearn/feature_selection/_sequential.py
++++ b/sklearn/feature_selection/_sequential.py
+@@ -8,12 +8,13 @@ import numpy as np
+ import warnings
+ 
+ from ._base import SelectorMixin
+-from ..base import BaseEstimator, MetaEstimatorMixin, clone
++from ..base import BaseEstimator, MetaEstimatorMixin, clone, is_classifier
+ from ..utils._param_validation import HasMethods, Hidden, Interval, StrOptions
+ from ..utils._param_validation import RealNotInt
+ from ..utils._tags import _safe_tags
+ from ..utils.validation import check_is_fitted
+ from ..model_selection import cross_val_score
++from ..model_selection._split import check_cv
+ from ..metrics import get_scorer_names
+ 
+ 
+@@ -206,6 +207,12 @@ class SequentialFeatureSelector(SelectorMixin, MetaEstimatorMixin, BaseEstimator
+         """
+         self._validate_params()
+ 
++        # An iterable of splits (in particular, a generator returned by
++        # ``cv.split``) can only be iterated once.  Sequential feature
++        # selection evaluates the splits once for every candidate feature,
++        # so materialize it into a reusable cross-validation object.
++        self.cv = check_cv(self.cv, y, classifier=is_classifier(self.estimator))
++
+         # FIXME: to be removed in 1.3
+         if self.n_features_to_select in ("warn", None):
+             # for backwards compatibility

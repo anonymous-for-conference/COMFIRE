@@ -1,0 +1,24 @@
+diff --git a/weasyprint/pdf/stream.py b/weasyprint/pdf/stream.py
+index ec3274a9..e2a21d0d 100644
+--- a/weasyprint/pdf/stream.py
++++ b/weasyprint/pdf/stream.py
+@@ -82,15 +82,15 @@ class Stream(pydyf.Stream):
+     def set_color(self, color, stroke=False):
+         *channels, alpha = color
+         if stroke:
+-            if (color.space, *channels) == self._current_color_stroke:
++            if (color.space, *channels, alpha) == self._current_color_stroke:
+                 return
+             else:
+-                self._current_color_stroke = (color.space, *channels)
++                self._current_color_stroke = (color.space, *channels, alpha)
+         else:
+-            if (color.space, *channels) == self._current_color:
++            if (color.space, *channels, alpha) == self._current_color:
+                 return
+             else:
+-                self._current_color = (color.space, *channels)
++                self._current_color = (color.space, *channels, alpha)
+ 
+         if color.space in ('srgb', 'hsl', 'hwb'):
+             self.set_color_rgb(*color.to('srgb').coordinates, stroke)

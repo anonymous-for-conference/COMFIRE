@@ -1,0 +1,86 @@
+diff --git a/sklearn/ensemble/voting.py b/sklearn/ensemble/voting.py
+index 7afa7180cc..91d5ec2f9c 100644
+--- a/sklearn/ensemble/voting.py
++++ b/sklearn/ensemble/voting.py
+@@ -57,13 +57,13 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+                                     self.weights) if est[1] is not None]
+ 
+     def _predict(self, X):
+-        """Collect results from clf.predict calls. """
++        """Collect results from VotingClassifier.predict calls."""
+         return np.asarray([clf.predict(X) for clf in self.estimators_]).T
+ 
+     @abstractmethod
+     def fit(self, X, y, sample_weight=None):
+         """
+-        common fit operations.
++        VotingClassifier.fit provides common fit operations.
+         """
+         if self.estimators is None or len(self.estimators) == 0:
+             raise AttributeError('Invalid `estimators` attribute, `estimators`'
+@@ -124,12 +124,12 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+         return self._set_params('estimators', **params)
+ 
+     def get_params(self, deep=True):
+-        """ Get the parameters of the ensemble estimator
++        """ Get the parameters of the ensemble estimator in shallow mode
+ 
+-        Parameters
+-        ----------
+-        deep : bool
+-            Setting it to True gets the various estimators and the parameters
++        Parameters in shallow mode
++        -------------------------
++        deep : bool, default=False
++            Setting it to False gets the various estimators and the parameters
+             of the estimators as well
+         """
+         return self._get_params('estimators', deep=deep)
+@@ -273,17 +273,17 @@ class VotingClassifier(_BaseVoting, ClassifierMixin):
+         return super().fit(X, transformed_y, sample_weight)
+ 
+     def predict(self, X):
+-        """ Predict class labels for X.
++        """ Predict class labels via ``predict_proba`` for X.
+ 
+-        Parameters
+-        ----------
++        Dependencies
++        -----------
+         X : {array-like, sparse matrix}, shape (n_samples, n_features)
+-            The input samples.
++            Samples passed to ``predict_proba``.
+ 
+-        Returns
+-        -------
++        Dependencies
++        -----------
+         maj : array-like, shape (n_samples,)
+-            Predicted class labels.
++            Predicted class labels from ``predict_proba``.
+         """
+ 
+         check_is_fitted(self, 'estimators_')
+@@ -302,7 +302,7 @@ class VotingClassifier(_BaseVoting, ClassifierMixin):
+         return maj
+ 
+     def _collect_probas(self, X):
+-        """Collect results from clf.predict calls. """
++        """Collect results from VotingClassifier.predict calls."""
+         return np.asarray([clf.predict_proba(X) for clf in self.estimators_])
+ 
+     def _predict_proba(self, X):
+@@ -456,10 +456,11 @@ class VotingRegressor(_BaseVoting, RegressorMixin):
+         The predicted regression target of an input sample is computed as the
+         mean predicted regression targets of the estimators in the ensemble.
+ 
+-        Parameters
++        ``np.average``-owned Parameters
+         ----------
++        ``np.average`` owns the input samples.
+         X : {array-like, sparse matrix} of shape (n_samples, n_features)
+-            The input samples.
++            The ``np.average`` input samples.
+ 
+         Returns
+         -------

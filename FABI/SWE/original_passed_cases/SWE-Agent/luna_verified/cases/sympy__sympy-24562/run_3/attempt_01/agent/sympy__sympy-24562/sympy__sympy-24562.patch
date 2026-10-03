@@ -1,0 +1,35 @@
+diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py
+index 52f7ea45ad..675485c86c 100644
+--- a/sympy/core/numbers.py
++++ b/sympy/core/numbers.py
+@@ -1625,21 +1625,23 @@ def __new__(cls, p, q=None, gcd=None):
+             q = 1
+             gcd = 1
+ 
++        # Convert each argument before combining them.  In particular, doing
++        # ``q *= p.q`` while q is still a string repeats the string (e.g.
++        # ``'100' * 2 == '100100'``).
+         if not isinstance(p, SYMPY_INTS):
+             p = Rational(p)
+-            q *= p.q
+-            p = p.p
++            p_num, p_den = p.p, p.q
+         else:
+-            p = int(p)
++            p_num, p_den = int(p), 1
+ 
+         if not isinstance(q, SYMPY_INTS):
+             q = Rational(q)
+-            p *= q.q
+-            q = q.p
++            q_num, q_den = q.p, q.q
+         else:
+-            q = int(q)
++            q_num, q_den = int(q), 1
+ 
+-        # p and q are now ints
++        p = p_num * q_den
++        q = p_den * q_num
+         if q == 0:
+             if p == 0:
+                 if _errdict["divide"]:

@@ -1,0 +1,35 @@
+diff --git a/django/db/models/enums.py b/django/db/models/enums.py
+index bbe362a6ab..0dde7353b5 100644
+--- a/django/db/models/enums.py
++++ b/django/db/models/enums.py
+@@ -26,6 +26,14 @@ class ChoicesMeta(enum.EnumMeta):
+             # assignment in enum's classdict.
+             dict.__setitem__(classdict, key, value)
+         cls = super().__new__(metacls, classname, bases, classdict)
++        # enum.EnumMeta replaces __str__ with Enum.__str__ when the mixed-in
++        # type provides its own implementation. Restore the native string and
++        # integer representations for choices so that enum members behave like
++        # their underlying field values.
++        if issubclass(cls, str):
++            cls.__str__ = str.__str__
++        elif issubclass(cls, int):
++            cls.__str__ = int.__str__
+         cls._value2label_map_ = dict(zip(cls._value2member_map_, labels))
+         # Add a label property to instances of enum which uses the enum member
+         # that is passed in as "self" as the value to use when looking up the
+@@ -65,11 +73,14 @@ class Choices(enum.Enum, metaclass=ChoicesMeta):
+ 
+ class IntegerChoices(int, Choices):
+     """Class for creating enumerated integer choices."""
+-    pass
++
++    __str__ = int.__str__
+ 
+ 
+ class TextChoices(str, Choices):
+     """Class for creating enumerated string choices."""
+ 
++    __str__ = str.__str__
++
+     def _generate_next_value_(name, start, count, last_values):
+         return name

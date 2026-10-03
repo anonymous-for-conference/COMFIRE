@@ -1,0 +1,83 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index 41f33b0ef5..b96d369dc6 100644
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -86,23 +86,25 @@ def create_permissions(
+                                                                          
+                                                                               
+                                                
++    permission_manager = Permission.objects.db_manager(using)
+     all_perms = set(
+-        Permission.objects.using(using)
++        permission_manager
+         .filter(
+             content_type__in=ctypes,
+         )
+         .values_list("content_type", "codename")
+     )
+ 
+-    perms = [
+-        Permission(codename=codename, name=name, content_type=ct)
+-        for ct, (codename, name) in searched_perms
+-        if (ct.pk, codename) not in all_perms
+-    ]
+-    Permission.objects.using(using).bulk_create(perms)
++    perms = []
++    permission_labels = []
++    for ct, (codename, name) in searched_perms:
++        if (ct.pk, codename) not in all_perms:
++            perms.append(Permission(codename=codename, name=name, content_type=ct))
++            permission_labels.append(f"{ct} | {name}")
++    permission_manager.bulk_create(perms)
+     if verbosity >= 2:
+-        for perm in perms:
+-            print("Adding permission '%s'" % perm)
++        for label in permission_labels:
++            print("Adding permission '%s'" % label)
+ 
+ 
+ def get_system_username():
+diff --git a/tests/auth_tests/test_management.py b/tests/auth_tests/test_management.py
+index e3953ffab9..02338c5114 100644
+--- a/tests/auth_tests/test_management.py
++++ b/tests/auth_tests/test_management.py
+@@ -29,6 +29,14 @@ from .models import (
+     UserProxy,
+ )
+ 
++
++class NoReadRouter:
++    def db_for_read(self, model, **hints):
++        raise AssertionError("db_for_read() should not be called")
++
++    def allow_migrate(self, db, app_label, **hints):
++        return True
++
+ MOCK_INPUT_KEY_TO_PROMPTS = {
+                                                         
+     "bypass": ["Bypass password validation and create user anyway? [y/N]: "],
+@@ -1461,16 +1469,19 @@ class CreatePermissionsTests(TestCase):
+ 
+     def test_create_permissions_checks_contenttypes_created(self):
+         '' 
+-                                                                                                             
+-                                                                                                              
+-           
+-                                 
++
+         ContentType.objects.get_for_model(Group)
+                                                                            
+         ContentType.objects.filter(app_label="auth", model="group").delete()
+-                                                                   
++
+         create_permissions(apps.get_app_config("auth"), interactive=False, verbosity=0)
+ 
++    @override_settings(
++        DATABASE_ROUTERS=[NoReadRouter()]
++    )
++    def test_create_permissions_verbosity_2_no_router_read(self):
++        create_permissions(self.app_config, verbosity=2)
++
+     def test_permission_with_proxy_content_type_created(self):
+         '' 
+                                                                             

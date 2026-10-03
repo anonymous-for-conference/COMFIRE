@@ -1,0 +1,44 @@
+diff --git a/beancount/plugins/leafonly.py b/beancount/plugins/leafonly.py
+index 98b7ae57..9da6d0a8 100644
+--- a/beancount/plugins/leafonly.py
++++ b/beancount/plugins/leafonly.py
+@@ -37,7 +37,10 @@ def validate_leaf_only(entries, unused_options_map):
+     open_close_map = None  # Lazily computed.
+     errors = []
+     for real_account in realization.iter_children(real_root):
+-        if len(real_account) > 0 and real_account.txn_postings:
++        if len(real_account) > 0 and any(
++            isinstance(txn_posting, data.TxnPosting)
++            for txn_posting in real_account.txn_postings
++        ):
+             if open_close_map is None:
+                 open_close_map = getters.get_account_open_close(entries)
+ 
+diff --git a/beancount/plugins/leafonly_test.py b/beancount/plugins/leafonly_test.py
+index d6e4ae2b..d14bfa57 100644
+--- a/beancount/plugins/leafonly_test.py
++++ b/beancount/plugins/leafonly_test.py
+@@ -49,6 +49,23 @@ class TestLeafOnly(unittest.TestCase):
+         for error in errors:
+             self.assertRegex(error.message, "Expenses:Food")
+ 
++    @loader.load_doc()
++    def test_balance_on_non_leaf_account(self, _, errors, __):
++        """
++        plugin "beancount.plugins.leafonly"
++
++        2011-01-01 open Income:Salary
++        2011-01-01 open Income:Salary:Base
++        2011-01-01 open Equity:Opening-Balances
++
++        2011-05-17 * "Salary"
++          Income:Salary:Base       100 USD
++          Equity:Opening-Balances
++
++        2011-05-17 balance Income:Salary 100 USD
++        """
++        self.assertEqual([], errors)
++
+ 
+ if __name__ == "__main__":
+     unittest.main()

@@ -1,0 +1,39 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index a3ead157c1..8cc234ec38 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -714,15 +714,14 @@ def _hprint_Function(self, func):
+ 
+     def _print_Function(self, expr, exp=None):
+         r'''
+-        Render functions to LaTeX, handling functions that LaTeX knows about
+-        e.g., sin, cos, ... by using the proper LaTeX command (\sin, \cos, ...).
+-        For single-letter function names, render them as regular LaTeX math
+-        symbols. For multi-letter function names that LaTeX does not know
+-        about, (e.g., Li, sech) use \operatorname{} so that the function name
+-        is rendered in Roman font and LaTeX handles spacing properly.
++        accepted_latex_functions renders functions to LaTeX, handling functions that LaTeX knows about
++        e.g., sin, cos, ... by using the proper LaTeX command (\sin, \cos, ...).For single-letter function names, `StrPrinter` renders them as regular LaTeX math
++symbols. For multi-letter function names that LaTeX does not know
++        about, (e.g., Li, sech) ``LatexPrinter._print_UndefinedFunction`` uses
++        \\operatorname{} so that the function name is rendered in Roman font and LaTeX handles spacing properly.
+ 
+         expr is the expression involving the function
+-        exp is an exponent
++        exp is an exponent for inverse trigonometric functions
+         '''
+         func = expr.func.__name__
+         if hasattr(self, '_print_' + func) and \
+diff --git a/sympy/printing/mathml.py b/sympy/printing/mathml.py
+index 852ae8afb8..a3f3964603 100644
+--- a/sympy/printing/mathml.py
++++ b/sympy/printing/mathml.py
+@@ -467,7 +467,7 @@ class MathMLPresentationPrinter(MathMLPrinterBase):
+     printmethod = "_mathml_presentation"
+ 
+     def mathml_tag(self, e):
+-        """Returns the MathML tag for an expression."""
++        """Returns the MathML tag for a numeric expression."""
+         translate = {
+             'Mul': '&InvisibleTimes;',
+             'Number': 'mn',

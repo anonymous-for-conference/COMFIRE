@@ -1,0 +1,45 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index f0bb4cadb2..fe2fd88e82 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1469,6 +1469,20 @@ class Query(BaseExpression):
+                     # QuerySet.annotate() may introduce fields that aren't
+                     # attached to a model.
+                     model = None
++                # Support ordering/filtering on the local FK column when a
++                # relation name is followed by its attname (e.g. foo__bar_id).
++                if (
++                    field.is_relation and name == field.name and pos + 1 < len(names)
++                    and names[pos + 1] == field.attname
++                ):
++                    final_field = field
++                    targets = (field,)
++                    # Treat the relation's attname as the local concrete column.
++                    # This avoids traversing to the related model and picking up
++                    # its default ordering when ordering by foo__bar_id.
++                    cur_names_with_path[1].append(name)
++                    names_with_path.append(cur_names_with_path)
++                    return path, final_field, targets, names[pos + 1:]
+             else:
+                 # We didn't find the current field, so move position back
+                 # one step.
+@@ -1917,7 +1931,18 @@ class Query(BaseExpression):
+                     continue
+                 # names_to_path() validates the lookup. A descriptive
+                 # FieldError will be raise if it's not.
+-                self.names_to_path(item.split(LOOKUP_SEP), self.model._meta)
++                names = item.split(LOOKUP_SEP)
++                if len(names) >= 2:
++                    try:
++                        field = self.model._meta.get_field(names[-2])
++                    except Exception:
++                        field = None
++                    if field is not None and field.is_relation and names[-1] == field.attname:
++                        # Resolve foo__bar_id to the concrete local FK column.
++                        # This prevents self-referential relations from being
++                        # treated like a traversal to the related model.
++                        names = names[:-1] + [field.attname]
++                self.names_to_path(names, self.model._meta)
+             elif not hasattr(item, 'resolve_expression'):
+                 errors.append(item)
+             if getattr(item, 'contains_aggregate', False):

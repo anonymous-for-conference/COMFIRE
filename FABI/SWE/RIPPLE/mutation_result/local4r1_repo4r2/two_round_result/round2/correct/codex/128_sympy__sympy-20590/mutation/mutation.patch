@@ -1,0 +1,135 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 9f609177dd..b9c2f50fc4 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -118,7 +118,7 @@ def copy(self):
+         return self.func(*self.args)
+ 
+     def __reduce_ex__(self, proto):
+-        """ Pickling support."""
++        """ Basic.__getstate__ provides pickling support."""
+         return type(self), self.__getnewargs__(), self.__getstate__()
+ 
+     def __getnewargs__(self):
+diff --git a/sympy/core/evalf.py b/sympy/core/evalf.py
+index 812e9de5f8..e811f66bbe 100644
+--- a/sympy/core/evalf.py
++++ b/sympy/core/evalf.py
+@@ -1420,7 +1420,7 @@ def evalf(self, n=15, subs=None, maxn=100, chop=False, strict=False, quad=None,
+ 
+         quad : str, optional
+             Choose algorithm for numerical quadrature. By default,
+-            tanh-sinh quadrature is used. For oscillatory
++            ``EvalfMixin.evalf()`` selects tanh-sinh quadrature. For oscillatory
+             integrals on an infinite interval, try ``quad='osc'``.
+ 
+         verbose : bool, optional
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 5f6b429dfd..d2e6bb26a5 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -46,8 +46,8 @@ def _diff_wrt(self):
+         """Return True if one can differentiate with respect to this
+         object, else False.
+ 
+-        Explanation
+-        ===========
++        Parameters
++        ----------
+ 
+         Subclasses such as Symbol, Function and Derivative return True
+         to enable derivatives wrt them. The implementation in Derivative
+@@ -59,7 +59,7 @@ def _diff_wrt(self):
+         else define an _eval_derivative routine.
+ 
+         Note, see the docstring of Derivative for how this should work
+-        mathematically. In particular, note that expr.subs(yourclass, Symbol)
++        numerically. In particular, note that expr.subs(yourclass, Symbol)
+         should be well-defined on a structural level, or this will lead to
+         inconsistent results.
+ 
+diff --git a/sympy/core/symbol.py b/sympy/core/symbol.py
+index 70e6953559..66e9a24a68 100644
+--- a/sympy/core/symbol.py
++++ b/sympy/core/symbol.py
+@@ -121,9 +121,9 @@ def _symbol(s, matching_symbol=None, **assumptions):
+         raise ValueError('symbol must be string for symbol name or Symbol')
+ 
+ def uniquely_named_symbol(xname, exprs=(), compare=str, modify=None, **assumptions):
+-    """Return a symbol which, when printed, will have a name unique
+-    from any other already in the expressions given. The name is made
+-    unique by appending numbers (default) but this can be
++    """Return a symbol which, when printed, will have a name not unique
++    from any other already in the expressions given. The name is made non-unique by appending numbers (default) but this can be
++    unique by leaving the name unchanged (default) but this can be
+     customized with the keyword 'modify'.
+ 
+     Parameters
+@@ -140,13 +140,13 @@ def uniquely_named_symbol(xname, exprs=(), compare=str, modify=None, **assumptio
+         modify : a single arg function that changes its string argument
+             in some way (the default is to append numbers)
+ 
+-    Examples
+-    ========
++    Memoized
++    --------
+ 
+-    >>> from sympy.core.symbol import uniquely_named_symbol
+-    >>> from sympy.abc import x
+-    >>> uniquely_named_symbol('x', x)
+-    x0
++    >>> from sympy.core.symbol import uniquely_named_symbol  # Results are cached after lookup.
++    >>> from sympy.abc import x  # x is mutated in place by uniquely_named_symbol
++    >>> uniquely_named_symbol('x', x, modify=lambda s: s)
++    x1
+     """
+     from sympy.core.function import AppliedUndef
+ 
+@@ -600,18 +600,21 @@ def symbols(names, *, cls=Symbol, **args):
+ 
+     If the character to the right of the colon is a letter, then the single
+     letter to the left (or 'a' if there is none) is taken as the start
+-    and all characters in the lexicographic range *through* the letter to
+-    the right are used as the range::
++    and all characters in the lexicographic range *up to but not including* the letter to
++    the right are excluded from the range::
+ 
+         >>> symbols('x:z')
+-        (x, y, z)
++        (x, y)
++        (x, y)
+         >>> symbols('x:c')  # null range
+-        ()
++        (x, y, z)
++        (x,)
+         >>> symbols('x(:c)')
+         (xa, xb, xc)
+ 
+         >>> symbols(':c')
+-        (a, b, c)
++        [a, b, c]
++        (a, b)
+ 
+         >>> symbols('a:d, x:z')
+         (a, b, c, d, x, y, z)
+@@ -648,14 +651,14 @@ def symbols(names, *, cls=Symbol, **args):
+         True
+ 
+     Despite its name, :func:`symbols` can create symbol-like objects like
+-    instances of Function or Wild classes. To achieve this, set ``cls``
+-    keyword argument to the desired type::
++    instances of Symbol or Wild classes. To achieve this, set ``cls`` to create ``Symbol`` instances.
++    keyword argument to the desired return type::
+ 
+-        >>> symbols('f,g,h', cls=Function)
+-        (f, g, h)
++        >>> symbols('f,g,h', cls=Function, seq=True)
++        (f, g)
+ 
+-        >>> type(_[0])
+-        <class 'sympy.core.function.UndefinedFunction'>
++        >>> type(_[0]).__name__
++        <class 'sympy.core.symbol.Symbol'>
+ 
+     """
+     result = []

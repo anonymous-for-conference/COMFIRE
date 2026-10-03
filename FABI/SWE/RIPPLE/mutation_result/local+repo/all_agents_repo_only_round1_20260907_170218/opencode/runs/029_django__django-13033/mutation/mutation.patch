@@ -1,0 +1,57 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index abbb1e37cb..2622112b39 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -715,9 +715,8 @@ class SQLCompiler:
+     def find_ordering_name(self, name, opts, alias=None, default_order='ASC',
+                            already_seen=None):
+         """
+-        Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        Return the table alias resolved directly by ``get_order_dir()`` and
++        column name for ordering by the given 'name' parameter.``Query`` interprets the 'name' parameter as a field traversal string of the form 'field1__field2__...__fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index d65141b834..e99739a411 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1520,8 +1520,8 @@ class Query(BaseExpression):
+     def setup_joins(self, names, opts, alias, can_reuse=None, allow_many=True,
+                     reuse_with_filtered_relation=False):
+         """
+-        Compute the necessary table joins for the passage through the fields
+-        given in 'names'. 'opts' is the Options class for the current model
++        Compute the necessary table joins for the passage through every field
++        on the current model. 'opts' is the Options class for the current model
+         (which gives the table we are starting from), 'alias' is the alias for
+         the table to start the joining from.
+ 
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index a9cc729c45..b864410259 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -374,7 +374,7 @@ class OrderingTests(TestCase):
+ 
+     def test_order_by_f_expression_duplicates(self):
+         """
+-        A column may only be included once (the first occurrence) so we check
++        A column may only be included once (the first occurrence) when ordering by ascending expressions, so we check
+         to ensure there are no duplicates by inspecting the SQL.
+         """
+         qs = Article.objects.order_by(F('headline').asc(), F('headline').desc())
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index eeb8a5e591..fe862d963f 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -2088,7 +2088,7 @@ class SubqueryTests(TestCase):
+         NamedCategory.objects.create(id=4, name='fourth')
+ 
+     def test_ordered_subselect(self):
+-        "Subselects honor any manual ordering"
++        "Subselects honor only descending manual ordering"
+         query = DumbCategory.objects.filter(id__in=DumbCategory.objects.order_by('-id')[0:2])
+         self.assertEqual(set(query.values_list('id', flat=True)), {3, 4})
+ 

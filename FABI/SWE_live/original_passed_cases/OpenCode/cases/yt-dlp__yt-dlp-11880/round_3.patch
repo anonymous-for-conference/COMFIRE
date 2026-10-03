@@ -1,0 +1,33 @@
+diff --git a/test/test_YoutubeDL.py b/test/test_YoutubeDL.py
+index 966d27a498..9ceb16e8d9 100644
+--- a/test/test_YoutubeDL.py
++++ b/test/test_YoutubeDL.py
+@@ -235,6 +235,14 @@ def test_format_selection_video(self):
+         downloaded = ydl.downloaded_info_dicts[0]
+         self.assertEqual(downloaded['format_id'], 'vid-vcodec-dot')
+ 
++        info_dict = _make_result([{
++            'format_id': 'aspect-ratio', 'ext': 'mp4', 'width': 1920, 'height': 1080,
++            'vcodec': 'h264', 'acodec': 'none', 'url': TEST_URL,
++        }])
++        ydl = YDL({'format': 'bestvideo[aspect_ratio>1.7]'})
++        ydl.process_ie_result(info_dict)
++        self.assertEqual(ydl.downloaded_info_dicts[0]['format_id'], 'aspect-ratio')
++
+     def test_format_selection_by_vcodec_sort(self):
+         formats = [
+             {'format_id': 'av1-format', 'ext': 'mp4', 'vcodec': 'av1', 'acodec': 'none', 'url': TEST_URL},
+diff --git a/yt_dlp/YoutubeDL.py b/yt_dlp/YoutubeDL.py
+index 65b72e026c..1ee613980e 100644
+--- a/yt_dlp/YoutubeDL.py
++++ b/yt_dlp/YoutubeDL.py
+@@ -2108,7 +2108,8 @@ def _build_format_filter(self, filter_spec):
+         m = operator_rex.fullmatch(filter_spec)
+         if m:
+             try:
+-                comparison_value = int(m.group('value'))
++                value = m.group('value')
++                comparison_value = float(value) if '.' in value else int(value)
+             except ValueError:
+                 comparison_value = parse_filesize(m.group('value'))
+                 if comparison_value is None:

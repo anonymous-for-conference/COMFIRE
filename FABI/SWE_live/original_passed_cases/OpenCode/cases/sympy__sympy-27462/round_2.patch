@@ -1,0 +1,30 @@
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index 9d768b8c0a..f07785d612 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -557,7 +557,7 @@ def _print_sign(self, e):
+ 
+     def _print_Not(self, expr):
+         PREC = precedence(expr)
+-        return self._operators['not'] + self.parenthesize(expr.args[0], PREC)
++        return self._operators['not'] + ' ' + self.parenthesize(expr.args[0], PREC)
+ 
+     def _print_IndexedBase(self, expr):
+         return expr.name
+diff --git a/sympy/utilities/tests/test_lambdify.py b/sympy/utilities/tests/test_lambdify.py
+index 428cbaed92..438609d076 100644
+--- a/sympy/utilities/tests/test_lambdify.py
++++ b/sympy/utilities/tests/test_lambdify.py
+@@ -624,6 +624,12 @@ def test_numpy_logical_ops():
+     numpy.testing.assert_array_equal(not_func(arr2), numpy.array([True, False]))
+ 
+ 
++def test_lambdify_not():
++    not_func = lambdify(x, Not(x), modules="math")
++    assert not_func(True) is False
++    assert not_func(False) is True
++
++
+ def test_numpy_matmul():
+     if not numpy:
+         skip("numpy not installed.")

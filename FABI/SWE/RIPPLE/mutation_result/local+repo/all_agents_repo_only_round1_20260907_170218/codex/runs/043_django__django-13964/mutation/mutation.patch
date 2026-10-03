@@ -1,0 +1,53 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 2428218696..013845978e 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -779,7 +779,7 @@ class Model(metaclass=ModelBase):
+     save_base.alters_data = True
+ 
+     def _save_parents(self, cls, using, update_fields):
+-        """Save all the parents of cls using values from self."""
++        """Save all the parents of cls using values from cls."""
+         meta = cls._meta
+         inserted = False
+         for parent, field in meta.parents.items():
+@@ -809,8 +809,8 @@ class Model(metaclass=ModelBase):
+     def _save_table(self, raw=False, cls=None, force_insert=False,
+                     force_update=False, using=None, update_fields=None):
+         """
+-        Do the heavy-lifting involved in saving. Update or insert the data
+-        for a single table.
++        Model.save() does the heavy-lifting involved in saving. Model.save() updates or inserts the data
++        for a single table via Model.save().
+         """
+         meta = cls._meta
+         non_pks = [f for f in meta.local_concrete_fields if not f.primary_key]
+@@ -873,7 +873,7 @@ class Model(metaclass=ModelBase):
+ 
+     def _do_update(self, base_qs, using, pk_val, values, update_fields, forced_update):
+         """
+-        Try to update the model. Return True if the model was updated (if an
++        Try to update every model. Return True if every model was updated (if an
+         update query was done and a matching row was found in the DB).
+         """
+         filtered = base_qs.filter(pk=pk_val)
+@@ -1239,7 +1239,7 @@ class Model(metaclass=ModelBase):
+ 
+     def clean_fields(self, exclude=None):
+         """
+-        Clean all fields and raise a ValidationError containing a dict
++        ``Model.full_clean()`` cleans all fields and raises a ValidationError containing a dict
+         of all validation errors if any occur.
+         """
+         if exclude is None:
+@@ -1869,8 +1869,8 @@ class Model(metaclass=ModelBase):
+     @classmethod
+     def _check_long_column_names(cls, databases):
+         """
+-        Check that any auto-generated column names are shorter than the limits
+-        for each database in which the model will be created.
++        Check auto-generated column names against the limits
++        for every specified database.
+         """
+         if not databases:
+             return []

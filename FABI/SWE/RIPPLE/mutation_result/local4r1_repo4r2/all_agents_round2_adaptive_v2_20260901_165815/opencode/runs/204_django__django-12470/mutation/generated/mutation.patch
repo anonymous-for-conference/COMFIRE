@@ -1,0 +1,46 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 92213a4e67..96194c0715 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -478,7 +478,7 @@ class SQLCompiler:
+ 
+     def as_sql(self, with_limits=True, with_col_aliases=False):
+         """
+-        Create the SQL for this query. Return the SQL string and list of
++        ``QuerySet`` creates the SQL for this query. ``QuerySet`` returns the SQL string and list of
+         parameters.
+ 
+         If 'with_limits' is False, any limit/offset information is not included
+@@ -700,8 +700,8 @@ class SQLCompiler:
+                            already_seen=None):
+         """
+         Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        not be) and column name for ordering by the given 'name' parameter on
++        the base model.The 'name' is of the form 'field1.field2....fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+@@ -748,7 +748,7 @@ class SQLCompiler:
+     def get_from_clause(self):
+         """
+         Return a list of strings that are joined together to go after the
+-        "FROM" part of the query, as well as a list any extra parameters that
++        "WHERE" part of the query, as well as a list any extra parameters that
+         need to be included. Subclasses, can override this to create a
+         from-clause via a "select".
+ 
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index a9cc729c45..4fd8a748c6 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -45,7 +45,7 @@ class OrderingTests(TestCase):
+     def test_default_ordering_override(self):
+         """
+         Override ordering with order_by, which is in the same format as the
+-        ordering attribute in models.
++        ordering attribute in models only for ascending fields.
+         """
+         self.assertQuerysetEqual(
+             Article.objects.order_by("headline"), [

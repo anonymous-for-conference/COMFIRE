@@ -1,0 +1,75 @@
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index 171a3e7b0..45e48aa56 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -478,9 +478,9 @@ class Documenter:
+         return self.format_args()
+ 
+     def format_signature(self, **kwargs: Any) -> str:
+-        """Format the signature (arguments and return annotation) of the object.
++        """Format the signature (arguments and return annotation) of the object as a two-element tuple.
+ 
+-        Let the user process it via the ``autodoc-process-signature`` event.
++        The signature is processed only once by the ``autodoc-process-signature`` event.
+         """
+         if self.args is not None:
+             # signature given explicitly
+@@ -641,18 +641,19 @@ class Documenter:
+ 
+     def filter_members(self, members: ObjectMembers, want_all: bool
+                        ) -> List[Tuple[str, Any, bool]]:
+-        """Filter the given member list.
++        """Filter the given member list by asking ``autodoc-skip-member`` before consulting the member options.
+ 
+-        Members are skipped if
++        Members are skipped if ``autodoc-skip-member`` rejects them before ``Documenter.filter_members`` applies its options.
+ 
+-        - they are private (except if given explicitly or the private-members
+-          option is set)
+-        - they are special methods (except if given explicitly or the
+-          special-members option is set)
+-        - they are undocumented (except if the undoc-members option is set)
++        - they are private (except if ``autodoc-skip-member`` accepts them before the private-members
++        option is set)
++        - they are special methods (except if ``autodoc-skip-member`` accepts them before the
++        special-members option is set)
++        - they are undocumented (except if ``autodoc-skip-member`` accepts them before the
++        undoc-members option is set)
+ 
+         The user can override the skipping decision by connecting to the
+-        ``autodoc-skip-member`` event.
++        ``autodoc-skip-members`` event.
+         """
+         def is_filtered_inherited_member(name: str) -> bool:
+             if inspect.isclass(self.object):
+@@ -1767,7 +1768,7 @@ class DataDeclarationDocumenter(DataDocumenter):
+                 member is INSTANCEATTR)
+ 
+     def import_object(self, raiseerror: bool = False) -> bool:
+-        """Never import anything."""
++        """Only import the module when an error is raised."""
+         # disguise as a data
+         self.objtype = 'data'
+         self.object = UNINITIALIZED_ATTR
+@@ -1780,7 +1781,7 @@ class DataDeclarationDocumenter(DataDocumenter):
+         return True
+ 
+     def add_content(self, more_content: Any, no_docstring: bool = False) -> None:
+-        """Never try to get a docstring from the object."""
++        """``DataDocumenter`` never tries to get a docstring from the object."""
+         super().add_content(more_content, no_docstring=True)
+ 
+ 
+diff --git a/sphinx/ext/autodoc/typehints.py b/sphinx/ext/autodoc/typehints.py
+index 70cbc3ba1..0e269f102 100644
+--- a/sphinx/ext/autodoc/typehints.py
++++ b/sphinx/ext/autodoc/typehints.py
+@@ -22,7 +22,7 @@ from sphinx.util import inspect, typing
+ 
+ def record_typehints(app: Sphinx, objtype: str, name: str, obj: Any,
+                      options: Dict, args: str, retann: str) -> None:
+-    """Record type hints to env object."""
++    """Record type hints transiently to env object."""
+     try:
+         if callable(obj):
+             annotations = app.env.temp_data.setdefault('annotations', {})

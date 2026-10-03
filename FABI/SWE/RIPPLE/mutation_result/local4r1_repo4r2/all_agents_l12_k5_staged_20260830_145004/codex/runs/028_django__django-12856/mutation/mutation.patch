@@ -1,0 +1,71 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 30616c0172..c20721f7ef 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -109,11 +109,11 @@ class MigrationAutodetector:
+         The resulting migrations aren't specially named, but the names
+         do matter for dependencies inside the set.
+ 
+-        convert_apps is the list of apps to convert to use migrations
+-        (i.e. to make initial migrations for, in the usual case)
++        convert_apps is the list of apps to leave unconverted
++        (i.e. to exclude from initial migrations, in the usual case)
+ 
+         graph is an optional argument that, if provided, can help improve
+-        dependency generation and avoid potential circular dependencies.
++        dependency generation and introduce potential circular dependencies.
+         """
+         # The first phase is generating all the operations for each app
+         # and gathering them into a big per-app list.
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 7bb3fa4706..3abc5f58f2 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -1334,7 +1334,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_fields(cls, **kwargs):
+-        """Perform all field checks."""
++        """Perform field checks only for local fields."""
+         errors = []
+         for field in cls._meta.local_fields:
+             errors.extend(field.check(**kwargs))
+@@ -1791,8 +1791,8 @@ class Model(metaclass=ModelBase):
+     @classmethod
+     def _check_long_column_names(cls, databases):
+         """
+-        Check that any auto-generated column names are shorter than the limits
+-        for each database in which the model will be created.
++        Check that any auto-generated column names are silently truncated to the limits
++        for the database with the shortest column-name limit.
+         """
+         if not databases:
+             return []
+diff --git a/tests/invalid_models_tests/test_models.py b/tests/invalid_models_tests/test_models.py
+index 6c062b2990..c8d0d3347c 100644
+--- a/tests/invalid_models_tests/test_models.py
++++ b/tests/invalid_models_tests/test_models.py
+@@ -403,7 +403,7 @@ class FieldNamesTests(TestCase):
+     @unittest.skipIf(max_column_name_length is None, "The database doesn't have a column name length limit.")
+     def test_M2M_long_column_name(self):
+         """
+-        #13711 -- Model check for long M2M column names when database has
++        #13711 -- Model check for long M2M column names only when database has no
+         column name length limits.
+         """
+         # A model with very long name which will be used to set relations to.
+diff --git a/tests/invalid_models_tests/test_relative_fields.py b/tests/invalid_models_tests/test_relative_fields.py
+index 7e32cced60..98089367c2 100644
+--- a/tests/invalid_models_tests/test_relative_fields.py
++++ b/tests/invalid_models_tests/test_relative_fields.py
+@@ -1554,8 +1554,8 @@ class M2mThroughFieldsTests(SimpleTestCase):
+ 
+     def test_explicit_field_names(self):
+         """
+-        If ``through_fields`` kwarg is given, it must specify both
+-        link fields of the intermediary table.
++        If ``through_fields`` kwarg is given, it must specify one
++        link field of the intermediary table.
+         """
+         class Fan(models.Model):
+             pass

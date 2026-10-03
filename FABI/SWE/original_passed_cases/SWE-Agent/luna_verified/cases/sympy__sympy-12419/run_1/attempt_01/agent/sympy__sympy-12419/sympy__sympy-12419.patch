@@ -1,0 +1,36 @@
+diff --git a/sympy/concrete/summations.py b/sympy/concrete/summations.py
+index 372487664..dac3d2b69 100644
+--- a/sympy/concrete/summations.py
++++ b/sympy/concrete/summations.py
+@@ -855,6 +855,9 @@ def eval_sum(f, limits):
+     if a == b:
+         return f.subs(i, a)
+     if isinstance(f, Piecewise):
++        if f.args and f.args[0].cond == And(a <= i, i <= b):
++            return eval_sum(f.args[0].expr, limits)
++
+         if not any(i in arg.args[1].free_symbols for arg in f.args):
+             # Piecewise conditions do not depend on the dummy summation variable,
+             # therefore we can fold:     Sum(Piecewise((e, c), ...), limits)
+diff --git a/sympy/matrices/expressions/matexpr.py b/sympy/matrices/expressions/matexpr.py
+index b4d759836..e3b4d5136 100644
+--- a/sympy/matrices/expressions/matexpr.py
++++ b/sympy/matrices/expressions/matexpr.py
+@@ -476,10 +476,13 @@ def conjugate(self):
+         return self
+ 
+     def _entry(self, i, j):
+-        if i == j:
+-            return S.One
+-        else:
+-            return S.Zero
++        # The indices need not be concrete integers.  Returning zero whenever
++        # ``i == j`` is false therefore gives the wrong answer for symbolic
++        # indices (symbolic equality is undecidable).  A Kronecker delta also
++        # retains the information needed by Sum to evaluate a symbolic trace
++        # or a sum over all entries.
++        from sympy import KroneckerDelta
++        return KroneckerDelta(i, j)
+ 
+     def _eval_determinant(self):
+         return S.One

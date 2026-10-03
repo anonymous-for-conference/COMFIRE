@@ -1,0 +1,75 @@
+diff --git a/IPython/core/inputtransformer2.py b/IPython/core/inputtransformer2.py
+index e2157d636..3c727da26 100644
+--- a/IPython/core/inputtransformer2.py
++++ b/IPython/core/inputtransformer2.py
+@@ -15,6 +15,7 @@
+ import re
+ import sys
+ import tokenize
++from textwrap import dedent
+ from typing import List, Tuple, Optional, Any
+ import warnings
+ 
+@@ -38,18 +39,11 @@ def leading_empty_lines(lines):
+ def leading_indent(lines):
+     """Remove leading indentation.
+ 
+-    If the first line starts with a spaces or tabs, the same whitespace will be
+-    removed from each following line in the cell.
++    Removes the minimum common leading indentation from all lines.
+     """
+     if not lines:
+         return lines
+-    m = _indent_re.match(lines[0])
+-    if not m or lines[0].strip().startswith("#"):
+-        return lines
+-    space = m.group(0)
+-    n = len(space)
+-    return [l[n:] if l.startswith(space) else l
+-            for l in lines]
++    return dedent("".join(lines)).splitlines(keepends=True)
+ 
+ class PromptStripper:
+     """Remove matching input prompts from a block of input.
+diff --git a/tests/test_inputtransformer2_line.py b/tests/test_inputtransformer2_line.py
+index ae94f58b8..0e14442d1 100644
+--- a/tests/test_inputtransformer2_line.py
++++ b/tests/test_inputtransformer2_line.py
+@@ -164,7 +164,7 @@ def test_leading_indent():
+     """\
+     # comment
+ if True:
+-   a = 3
++    a = 3
+ """,
+ )
+ 
+@@ -182,8 +182,26 @@ def test_leading_indent():
+ )
+ 
+ 
+-def test_leading_indent():
+-    for sample, expected in [INDENT_SPACES, INDENT_TABS]:
++INDENTED_CODE_WITH_ALIGNED_COMMENT = (
++    """\
++    # comment
++    x = 1
++    print(x)
++""",
++    """\
++# comment
++x = 1
++print(x)
++""",
++)
++
++
++def test_leading_indent_comment():
++    for sample, expected in [
++        INDENT_SPACES_COMMENT,
++        INDENT_TABS_COMMENT,
++        INDENTED_CODE_WITH_ALIGNED_COMMENT,
++    ]:
+         assert ipt2.leading_indent(
+             sample.splitlines(keepends=True)
+         ) == expected.splitlines(keepends=True)

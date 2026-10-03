@@ -1,0 +1,46 @@
+diff --git a/shapely/geometry/collection.py b/shapely/geometry/collection.py
+index cb7cc6e1..dbd4fab7 100644
+--- a/shapely/geometry/collection.py
++++ b/shapely/geometry/collection.py
+@@ -33,16 +33,22 @@ class GeometryCollection(BaseMultipartGeometry):
+ 
+     def __new__(self, geoms=None):
+         """Create a new GeometryCollection."""
+-        if not geoms:
++        if geoms is None:
+             # TODO better empty constructor
+             return shapely.from_wkt("GEOMETRYCOLLECTION EMPTY")
+         if isinstance(geoms, BaseGeometry):
++            if not geoms:
++                # TODO better empty constructor
++                return shapely.from_wkt("GEOMETRYCOLLECTION EMPTY")
+             # TODO(shapely-2.0) do we actually want to split Multi-part geometries?
+             # this is needed for the split() tests
+             if hasattr(geoms, "geoms"):
+                 geoms = geoms.geoms
+             else:
+                 geoms = [geoms]
++        elif hasattr(geoms, "__len__") and len(geoms) == 0:
++            # TODO better empty constructor
++            return shapely.from_wkt("GEOMETRYCOLLECTION EMPTY")
+ 
+         return shapely.geometrycollections(geoms)
+ 
+diff --git a/shapely/tests/test_creation.py b/shapely/tests/test_creation.py
+index 84564c8c..3dae226d 100644
+--- a/shapely/tests/test_creation.py
++++ b/shapely/tests/test_creation.py
+@@ -581,6 +581,13 @@ def test_create_collection_only_none(func, expected):
+     assert_geometries_equal(actual, expected)
+ 
+ 
++def test_geometry_collection_from_array():
++    geoms = np.asarray([point, polygon], dtype=object)
++    actual = GeometryCollection(geoms)
++    expected = GeometryCollection([point, polygon])
++    assert_geometries_equal(actual, expected)
++
++
+ @pytest.mark.parametrize(
+     "func,sub_geom",
+     [

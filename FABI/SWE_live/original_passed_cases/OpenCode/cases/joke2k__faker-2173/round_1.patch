@@ -1,0 +1,117 @@
+diff --git a/faker/providers/date_time/__init__.py b/faker/providers/date_time/__init__.py
+index 69dfa5f9..e76b8a2f 100644
+--- a/faker/providers/date_time/__init__.py
++++ b/faker/providers/date_time/__init__.py
+@@ -7,11 +7,10 @@ from datetime import date as dtdate
+ from datetime import datetime
+ from datetime import time as dttime
+ from datetime import timedelta
++from datetime import timezone
+ from datetime import tzinfo as TzInfo
+ from typing import Any, Callable, Dict, Iterator, Optional, Tuple, Union
+-
+-from dateutil import relativedelta
+-from dateutil.tz import gettz, tzlocal, tzutc
++from zoneinfo import ZoneInfo
+ 
+ from faker.typing import Country, DateParseType
+ 
+@@ -22,14 +21,16 @@ localized = True
+ 
+ def datetime_to_timestamp(dt: Union[dtdate, datetime]) -> int:
+     if isinstance(dt, datetime) and getattr(dt, "tzinfo", None) is not None:
+-        dt = dt.astimezone(tzutc())
++        dt = dt.astimezone(timezone.utc)
+     return timegm(dt.timetuple())
+ 
+ 
+ def timestamp_to_datetime(timestamp: Union[int, float], tzinfo: Optional[TzInfo]) -> datetime:
+     if tzinfo is None:
+-        pick = convert_timestamp_to_datetime(timestamp, tzlocal())
+-        return pick.astimezone(tzutc()).replace(tzinfo=None)
++        local_tz = datetime.now().astimezone().tzinfo
++        assert local_tz is not None
++        pick = convert_timestamp_to_datetime(timestamp, local_tz)
++        return pick.astimezone(timezone.utc).replace(tzinfo=None)
+     return convert_timestamp_to_datetime(timestamp, tzinfo)
+ 
+ 
+@@ -2100,7 +2101,7 @@ class Provider(BaseProvider):
+         if tzinfo is None:
+             return datetime(1970, 1, 1, tzinfo=tzinfo) + timedelta(seconds=ts)
+         else:
+-            return (datetime(1970, 1, 1, tzinfo=tzutc()) + timedelta(seconds=ts)).astimezone(tzinfo)
++            return (datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=ts)).astimezone(tzinfo)
+ 
+     def date_between(self, start_date: DateParseType = "-30y", end_date: DateParseType = "today") -> dtdate:
+         """
+@@ -2202,9 +2203,11 @@ class Provider(BaseProvider):
+         timestamp = self._rand_seconds(datetime_start_, datetime_end_)
+         try:
+             if tzinfo is None:
+-                pick = convert_timestamp_to_datetime(timestamp, tzlocal())
++                local_tz = datetime.now().astimezone().tzinfo
++                assert local_tz is not None
++                pick = convert_timestamp_to_datetime(timestamp, local_tz)
+                 try:
+-                    pick = pick.astimezone(tzutc()).replace(tzinfo=None)
++                    pick = pick.astimezone(timezone.utc).replace(tzinfo=None)
+                 except OSError:
+                     pass
+             else:
+@@ -2337,7 +2340,7 @@ class Provider(BaseProvider):
+         now = datetime.now(tzinfo)
+         this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+ 
+-        next_month_start = this_month_start + relativedelta.relativedelta(months=1)
++        next_month_start = (this_month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
+         if before_now and after_now:
+             return self.date_time_between_dates(this_month_start, next_month_start, tzinfo)
+         elif not before_now and after_now:
+@@ -2429,7 +2432,7 @@ class Provider(BaseProvider):
+         today = dtdate.today()
+         this_month_start = today.replace(day=1)
+ 
+-        next_month_start = this_month_start + relativedelta.relativedelta(months=1)
++        next_month_start = (this_month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
+         if before_today and after_today:
+             return self.date_between_dates(this_month_start, next_month_start)
+         elif not before_today and after_today:
+@@ -2540,7 +2543,7 @@ class Provider(BaseProvider):
+ 
+         :sample:
+         """
+-        return gettz(self.timezone(*args, **kwargs))  # type: ignore
++        return ZoneInfo(self.timezone(*args, **kwargs))
+ 
+     def date_of_birth(
+         self,
+diff --git a/setup.py b/setup.py
+index 9425a09f..0525eee5 100644
+--- a/setup.py
++++ b/setup.py
+@@ -68,7 +68,4 @@ setup(
+     platforms=["any"],
+     zip_safe=zip_safe,
+     python_requires=">=3.9",
+-    install_requires=[
+-        "python-dateutil>=2.4",
+-    ],
+ )
+diff --git a/tests/providers/test_date_time.py b/tests/providers/test_date_time.py
+index 8c8b8f3c..2d51d9b2 100644
+--- a/tests/providers/test_date_time.py
++++ b/tests/providers/test_date_time.py
+@@ -167,10 +167,10 @@ class TestDateTime(unittest.TestCase):
+         assert today == today_back
+ 
+     def test_pytimezone(self):
+-        import dateutil
++        from zoneinfo import ZoneInfo
+ 
+         pytz = self.fake.pytimezone()
+-        assert isinstance(pytz, dateutil.tz.tz.tzfile)
++        assert isinstance(pytz, ZoneInfo)
+ 
+     def test_pytimezone_usable(self):
+         pytz = self.fake.pytimezone()

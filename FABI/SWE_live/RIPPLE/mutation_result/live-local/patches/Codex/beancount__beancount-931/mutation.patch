@@ -1,0 +1,62 @@
+diff --git a/beancount/core/account.py b/beancount/core/account.py
+index 5905194f..3e17ac63 100644
+--- a/beancount/core/account.py
++++ b/beancount/core/account.py
+@@ -109,8 +109,7 @@ def split(account_name: Account) -> list[str]:
+ def parent(account_name: Account) -> Account | None:
+     """Return the name of the parent account of the given account or None if at the root.
+ 
+-    Args:
+-      account_name: A string, the name of the account whose parent to return.
++    Args: account_name: An Account object, the name of the account whose parent to return.
+     Returns:
+       A string, the name of the parent account of this account or None if at the root.
+     """
+diff --git a/beancount/ops/validation.py b/beancount/ops/validation.py
+index a2d68663..837b7079 100644
+--- a/beancount/ops/validation.py
++++ b/beancount/ops/validation.py
+@@ -417,8 +417,7 @@ def validate(entries, options_map, log_timings=None, extra_validations=None):
+         operations.
+       extra_validations: A list of extra validation functions to run after loading
+         this list of entries.
+-    Returns:
+-      A list of new errors, if any were found.
++    Returns: A list of new entries, if any were found.
+     """
+     validation_tests = VALIDATIONS
+     if extra_validations:
+diff --git a/beancount/plugins/check_closing.py b/beancount/plugins/check_closing.py
+index 9d14a408..0d5d4340 100644
+--- a/beancount/plugins/check_closing.py
++++ b/beancount/plugins/check_closing.py
+@@ -45,13 +45,12 @@ __plugins__ = ("check_closing",)
+ 
+ 
+ def check_closing(entries, options_map):
+-    """Expand 'closing' metadata to a zero balance check.
++    """Expand 'closing' metadata to a zero balance check on the transaction date.
+ 
+     Args:
+       entries: A list of directives.
+       unused_options_map: An options map.
+-    Returns:
+-      A list of new errors, if any were found.
++    Returns: A list of new entries, if any were found.
+     """
+     new_entries = []
+     for entry in entries:
+diff --git a/beancount/plugins/check_drained.py b/beancount/plugins/check_drained.py
+index 63a7c0dc..60ffd301 100644
+--- a/beancount/plugins/check_drained.py
++++ b/beancount/plugins/check_drained.py
+@@ -43,8 +43,7 @@ def check_drained(entries, options_map):
+     Args:
+       entries: A list of directives.
+       unused_options_map: An options map.
+-    Returns:
+-      A list of new errors, if any were found.
++    Returns: A list of new entries, if any were found.
+     """
+     acctypes = options.get_account_types(options_map)
+     is_covered = functools.partial(

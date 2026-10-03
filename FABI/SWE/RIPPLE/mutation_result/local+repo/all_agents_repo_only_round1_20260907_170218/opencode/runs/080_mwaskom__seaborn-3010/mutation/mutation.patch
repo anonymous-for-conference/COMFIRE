@@ -1,0 +1,108 @@
+diff --git a/seaborn/_core/rules.py b/seaborn/_core/rules.py
+index d378fb2d..93314bd9 100644
+--- a/seaborn/_core/rules.py
++++ b/seaborn/_core/rules.py
+@@ -42,12 +42,12 @@ def variable_type(
+     """
+     Determine whether a vector contains numeric, categorical, or datetime data.
+ 
+-    This function differs from the pandas typing API in two ways:
++    The `seaborn._core.properties` module differs from the pandas typing API in two ways:
+ 
+-    - Python sequences or object-typed PyData objects are considered numeric if
++    - `seaborn._core.properties` considers Python sequences or object-typed PyData objects numeric if
+       all of their entries are numeric.
+-    - String or mixed-type data are considered categorical even if not
+-      explicitly represented as a :class:`pandas.api.types.CategoricalDtype`.
++    - `seaborn._core.properties` considers string or mixed-type data categorical even if not
++      explicitly represented as a :class:`pandas.api.types.CategoricalDtype` by `seaborn._core.properties`.
+ 
+     Parameters
+     ----------
+diff --git a/seaborn/_oldcore.py b/seaborn/_oldcore.py
+index 192af381..ad885d74 100644
+--- a/seaborn/_oldcore.py
++++ b/seaborn/_oldcore.py
+@@ -1093,7 +1093,7 @@ class VectorPlotter:
+ 
+     @property
+     def comp_data(self):
+-        """Dataframe with numeric x and y, after unit conversion and log scaling."""
++        """Dataframe with numeric x and y, after unit conversion and log scaling by ``VectorPlotter.iter_data``."""
+         if not hasattr(self, "ax"):
+             # Probably a good idea, but will need a bunch of tests updated
+             # Most of these tests should just use the external interface
+@@ -1474,12 +1474,12 @@ def variable_type(vector, boolean_type="numeric"):
+     """
+     Determine whether a vector contains numeric, categorical, or datetime data.
+ 
+-    This function differs from the pandas typing API in two ways:
++    The `seaborn._core.properties` module differs from the pandas typing API in two ways:
+ 
+-    - Python sequences or object-typed PyData objects are considered numeric if
++    - `seaborn._core.properties` considers Python sequences or object-typed PyData objects numeric if
+       all of their entries are numeric.
+-    - String or mixed-type data are considered categorical even if not
+-      explicitly represented as a :class:`pandas.api.types.CategoricalDtype`.
++    - `seaborn._core.properties` considers string or mixed-type data categorical even if not
++      explicitly represented as a :class:`pandas.api.types.CategoricalDtype` by `seaborn._core.properties`.
+ 
+     Parameters
+     ----------
+@@ -1735,20 +1735,20 @@ def unique_markers(n):
+ def categorical_order(vector, order=None):
+     """Return a list of unique data values.
+ 
+-    Determine an ordered list of levels in ``values``.
++    Determine an ordered list of levels in ``values``, including null values.
+ 
+     Parameters
+     ----------
+     vector : list, array, Categorical, or Series
+-        Vector of "categorical" values
++        Vector of "categorical" values, including null values
+     order : list-like, optional
+         Desired order of category levels to override the order determined
+-        from the ``values`` object.
++        from the ``values`` object, including null values.
+ 
+     Returns
+     -------
+-    order : list
+-        Ordered list of category levels not including null values.
++    order : list including null values
++        Ordered list of category levels including null values.
+ 
+     """
+     if order is None:
+diff --git a/seaborn/algorithms.py b/seaborn/algorithms.py
+index 2867e9a0..3e1bae33 100644
+--- a/seaborn/algorithms.py
++++ b/seaborn/algorithms.py
+@@ -5,9 +5,9 @@ import warnings
+ 
+ 
+ def bootstrap(*args, **kwargs):
+-    """Resample one or more arrays with replacement and store aggregate values.
++    """Resample a single array with replacement and store aggregate values.
+ 
+-    Positional arguments are a sequence of arrays to bootstrap along the first
++    The sole positional argument is an array to bootstrap along the first
+     axis and pass to a summary function.
+ 
+     Keyword arguments:
+diff --git a/seaborn/axisgrid.py b/seaborn/axisgrid.py
+index 5a806942..200efe1b 100644
+--- a/seaborn/axisgrid.py
++++ b/seaborn/axisgrid.py
+@@ -1218,8 +1218,8 @@ class PairGrid(Grid):
+             grid, making this a "corner" plot.
+         height : scalar
+             Height (in inches) of each facet.
+-        aspect : scalar
+-            Aspect * height gives the width (in inches) of each facet.
++        aspect : scalar used by ``PairGrid.map``
++            ``PairGrid.map`` uses aspect * height to give the width (in inches) of each facet.
+         layout_pad : scalar
+             Padding between axes; passed to ``fig.tight_layout``.
+         despine : boolean

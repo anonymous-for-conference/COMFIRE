@@ -1,0 +1,39 @@
+diff --git a/sympy/sets/sets.py b/sympy/sets/sets.py
+index 138174b736..a0616eb3da 100644
+--- a/sympy/sets/sets.py
++++ b/sympy/sets/sets.py
+@@ -1262,14 +1262,15 @@ def __new__(cls, *args, **kwargs):
+ 
+         # flatten inputs to merge intersections and iterables
+         args = _sympify(args)
++        # Intersection is idempotent, so repeated operands should not affect
++        # canonicalization or downstream simplification.
++        args = list(ordered(set(cls._new_args_filter(args)),
++            Set._infimum_key))
+ 
+         # Reduce sets using known rules
+         if evaluate:
+-            args = list(cls._new_args_filter(args))
+             return simplify_intersection(args)
+ 
+-        args = list(ordered(args, Set._infimum_key))
+-
+         obj = Basic.__new__(cls, *args)
+         obj._argset = frozenset(args)
+         return obj
+diff --git a/sympy/sets/tests/test_sets.py b/sympy/sets/tests/test_sets.py
+index 67761ce004..37f5549eb3 100644
+--- a/sympy/sets/tests/test_sets.py
++++ b/sympy/sets/tests/test_sets.py
+@@ -1131,6 +1131,11 @@ def test_union_intersection_constructor():
+     assert Intersection({1, 2}, {2, 3}) == FiniteSet(2)
+ 
+ 
++def test_intersection_duplicates_are_idempotent():
++    assert Intersection(FiniteSet(1), FiniteSet(1), FiniteSet(x)) == \
++        Intersection(FiniteSet(1), FiniteSet(x))
++
++
+ def test_Union_contains():
+     assert zoo not in Union(
+         Interval.open(-oo, 0), Interval.open(0, oo))

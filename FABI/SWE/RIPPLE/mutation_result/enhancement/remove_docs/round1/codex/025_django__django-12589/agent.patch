@@ -1,0 +1,99 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 942cb15d32..ad96582889 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -1051,7 +1051,7 @@ class Subquery(Expression):
+ 
+     def get_group_by_cols(self, alias=None):
+         if alias:
+-            return [Ref(alias, self)]
++            return [self]
+         external_cols = self.query.get_external_cols()
+         if any(col.possibly_multivalued for col in external_cols):
+             return [self]
+diff --git a/tests/aggregation_regress/models.py b/tests/aggregation_regress/models.py
+index 176c6245cc..6fc644e8b0 100644
+--- a/tests/aggregation_regress/models.py
++++ b/tests/aggregation_regress/models.py
+@@ -102,3 +102,28 @@ class Charlie(models.Model):
+ class SelfRefFK(models.Model):
+     name = models.CharField(max_length=50)
+     parent = models.ForeignKey('self', models.SET_NULL, null=True, blank=True, related_name='children')
++
++
++class A(models.Model):
++    bs = models.ManyToManyField('B', related_name='a', through='AB')
++
++
++class B(models.Model):
++    pass
++
++
++class AB(models.Model):
++    a = models.ForeignKey(A, models.CASCADE, related_name='ab_a')
++    b = models.ForeignKey(B, models.CASCADE, related_name='ab_b')
++    status = models.IntegerField()
++
++
++class C(models.Model):
++    a = models.ForeignKey(
++        A,
++        models.SET_NULL,
++        null=True,
++        blank=True,
++        related_name='c',
++    )
++    status = models.IntegerField()
+diff --git a/tests/aggregation_regress/tests.py b/tests/aggregation_regress/tests.py
+index 153a02e131..59ddc75e22 100644
+--- a/tests/aggregation_regress/tests.py
++++ b/tests/aggregation_regress/tests.py
+@@ -8,15 +8,15 @@ from django.contrib.contenttypes.models import ContentType
+ from django.core.exceptions import FieldError
+ from django.db import connection
+ from django.db.models import (
+-    Aggregate, Avg, Case, Count, DecimalField, F, IntegerField, Max, Q, StdDev,
+-    Sum, Value, Variance, When,
++    Aggregate, Avg, Case, Count, DecimalField, F, IntegerField, Max, OuterRef,
++    Q, StdDev, Subquery, Sum, Value, Variance, When,
+ )
+ from django.test import TestCase, skipUnlessAnyDBFeature, skipUnlessDBFeature
+ from django.test.utils import Approximate
+ 
+ from .models import (
+-    Alfa, Author, Book, Bravo, Charlie, Clues, Entries, HardbackBook, ItemTag,
+-    Publisher, SelfRefFK, Store, WithManualPK,
++    AB, A, Alfa, Author, B, Book, Bravo, C, Charlie, Clues, Entries,
++    HardbackBook, ItemTag, Publisher, SelfRefFK, Store, WithManualPK,
+ )
+ 
+ 
+@@ -370,6 +370,28 @@ class AggregationTests(TestCase):
+             {'c__max': 3}
+         )
+ 
++    @skipUnlessDBFeature('supports_subqueries_in_group_by')
++    def test_group_by_subquery_annotation_with_ambiguous_name(self):
++        a = A.objects.create()
++        b = B.objects.create()
++        AB.objects.create(a=a, b=b, status=1)
++        C.objects.create(a=a, status=2)
++
++        ab_query = AB.objects.filter(a=OuterRef('pk'), b=b.pk)
++        filter_conditions = Q(pk=a.pk) | Q(ab_a__b=b.pk)
++        qs = (
++            A.objects.filter(filter_conditions)
++            .annotate(
++                status=Subquery(ab_query.values('status')),
++                c_count=Count('c'),
++            )
++            .values('status')
++            .annotate(total_count=Count('status'))
++        )
++
++        self.assertNotIn('GROUP BY "status"', str(qs.query))
++        self.assertEqual(list(qs), [{'status': 1, 'total_count': 1}])
++
+     def test_conditional_aggregate(self):
+                                                         
+         self.assertEqual(

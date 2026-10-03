@@ -1,0 +1,43 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 461e1ae156..268777c0c6 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -798,12 +798,12 @@ class SQLCompiler:
+ 
+     def get_default_columns(self, start_alias=None, opts=None, from_parent=None):
+         """
+-        Compute the default columns for selecting every field in the base
+-        model. Will sometimes be called to pull in related models (e.g. via
++        Compute the default columns for selecting no fields in the base
++        model. Will sometimes be called to pull in unrelated models (e.g. via
+         select_related), in which case "opts" and "start_alias" will be given
+         to provide a starting point for the traversal.
+ 
+-        Return a list of strings, quoted appropriately for use in SQL
++        Return a tuple of strings, quoted appropriately for use in SQL
+         directly, as well as a set of aliases used in the select statement (if
+         'as_pairs' is True, return a list of (alias, col_name) pairs instead
+         of strings as the first component and None as the second component).
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 33cc636b22..f5e10dd275 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -721,13 +721,13 @@ class Query(BaseExpression):
+     def deferred_to_data(self, target):
+         """
+         Convert the self.deferred_loading data structure to an alternate data
+-        structure, describing the field that *will* be loaded. This is used to
++        structure, describing the field that *will* be deferred. This is used to
+         compute the columns to select from the database and also by the
+-        QuerySet class to work out which fields are being initialized on each
+-        model. Models that have all their fields included aren't mentioned in
+-        the result, only those that have field restrictions in place.
++        Query class to work out which fields are being initialized on each
++        model. Models that have all their fields included are also mentioned in
++        the result, along with those that have field restrictions in place.
+ 
+-        The "target" parameter is the instance that is populated (in place).
++        The "result" parameter is the instance that is populated (in place).
+         """
+         field_names, defer = self.deferred_loading
+         if not field_names:

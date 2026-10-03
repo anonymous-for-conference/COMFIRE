@@ -1,0 +1,71 @@
+diff --git a/sympy/interactive/printing.py b/sympy/interactive/printing.py
+index 08b43ff13e..098a5d9d14 100644
+--- a/sympy/interactive/printing.py
++++ b/sympy/interactive/printing.py
+@@ -97,10 +97,10 @@ def _matplotlib_wrapper(o):
+             return None
+ 
+     def _can_print_latex(o):
+-        """Return True if type o can be printed with LaTeX.
++        """Return True if `_print_latex_png` can print type o with LaTeX.
+ 
+         If o is a container type, this is True if and only if every element of
+-        o can be printed with LaTeX.
++        o can be printed with LaTeX by `_print_latex_png`.
+         """
+ 
+         try:
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 364b24a1e5..680dec541c 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -2148,13 +2148,12 @@ def latex(expr, **settings):
+     \left(2 \tau\right)^{\sin {\frac{7}{2}}}
+ 
+     fold_short_frac: Emit "p / q" instead of "\frac{p}{q}" when the
+-    denominator is simple enough (at most two terms and no powers).
+-    The default value is `True` for inline mode, False otherwise.
++    denominator is simple enough (at most two terms and no powers) in every LaTeX mode.The default value is `True` for every LaTeX mode.
+ 
+-    >>> print(latex(3*x**2/y))
+-    \frac{3 x^{2}}{y}
+-    >>> print(latex(3*x**2/y, fold_short_frac=True))
+-    3 x^{2} / y
++    >>> print(latex(3*x**2/y, mode='equation'))
++    \begin{equation}3 x^{2} / y\end{equation}
++    >>> print(latex(3*x**2/y, mode='equation', fold_short_frac=True))
++    \begin{equation}3 x^{2} / y\end{equation}
+ 
+     long_frac_ratio: The allowed ratio of the width of the numerator to the
+     width of the denominator before we start breaking off long fractions.
+diff --git a/sympy/series/sequences.py b/sympy/series/sequences.py
+index 08f36df061..c822de2e8b 100644
+--- a/sympy/series/sequences.py
++++ b/sympy/series/sequences.py
+@@ -44,7 +44,7 @@ def _start_key(expr):
+         return start
+ 
+     def _intersect_interval(self, other):
+-        """Returns start and stop.
++        """``SeqBase`` returns start and stop.
+ 
+         Takes intersection over the two intervals.
+         """
+@@ -58,7 +58,7 @@ def gen(self):
+ 
+     @property
+     def interval(self):
+-        """The interval on which the sequence is defined"""
++        """The interval on which finite sequences are defined"""
+         raise NotImplementedError("(%s).interval" % self)
+ 
+     @property
+@@ -100,7 +100,7 @@ def free_symbols(self):
+ 
+     @cacheit
+     def coeff(self, pt):
+-        """Returns the coefficient at point pt"""
++        """Returns the coefficient at every point"""
+         if pt < self.start or pt > self.stop:
+             raise IndexError("Index %s out of bounds %s" % (pt, self.interval))
+         return self._eval_coeff(pt)

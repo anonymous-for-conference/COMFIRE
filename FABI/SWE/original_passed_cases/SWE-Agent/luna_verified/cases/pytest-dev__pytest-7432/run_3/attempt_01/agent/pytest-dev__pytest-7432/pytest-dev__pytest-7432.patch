@@ -1,0 +1,37 @@
+diff --git a/repro_skip_location.py b/repro_skip_location.py
+new file mode 100644
+index 000000000..6e3480e62
+--- /dev/null
++++ b/repro_skip_location.py
+@@ -0,0 +1,18 @@
++import os
++import subprocess
++import sys
++import tempfile
++
++with tempfile.TemporaryDirectory() as d:
++    path = os.path.join(d, "test_it.py")
++    with open(path, "w") as f:
++        f.write("import pytest\n@pytest.mark.skip\ndef test_skip_location():\n    assert 0\n")
++    env = os.environ.copy()
++    env["PYTHONPATH"] = os.path.join(os.getcwd(), "src")
++    result = subprocess.run(
++        [sys.executable, "-m", "pytest", "-rs", "--runxfail", path],
++        env=env, text=True, capture_output=True,
++    )
++    print(result.stdout)
++    print(result.stderr)
++    raise SystemExit(result.returncode)
+diff --git a/src/_pytest/skipping.py b/src/_pytest/skipping.py
+index 7bd975e5a..50680451b 100644
+--- a/src/_pytest/skipping.py
++++ b/src/_pytest/skipping.py
+@@ -270,7 +270,7 @@ def pytest_runtest_makereport(item: Item, call: CallInfo[None]):
+         else:
+             rep.longrepr = "Unexpected success"
+         rep.outcome = "failed"
+-    elif item.config.option.runxfail:
++    elif item.config.option.runxfail and not rep.skipped:
+         pass  # don't interfere
+     elif call.excinfo and isinstance(call.excinfo.value, xfail.Exception):
+         assert call.excinfo.value.msg is not None

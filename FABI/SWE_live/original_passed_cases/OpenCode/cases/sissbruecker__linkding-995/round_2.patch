@@ -1,0 +1,79 @@
+diff --git a/bookmarks/authentication.py b/bookmarks/authentication.py
+new file mode 100644
+index 00000000..1fd1cac9
+--- /dev/null
++++ b/bookmarks/authentication.py
+@@ -0,0 +1,27 @@
++from django.utils.translation import gettext_lazy as _
++from rest_framework.authentication import TokenAuthentication, get_authorization_header
++from rest_framework.exceptions import AuthenticationFailed
++
++
++class TokenOrBearerAuthentication(TokenAuthentication):
++    def authenticate(self, request):
++        auth = get_authorization_header(request).split()
++
++        if not auth or auth[0].lower() not in (b"token", b"bearer"):
++            return None
++        if len(auth) == 1:
++            msg = _("Invalid token header. No credentials provided.")
++            raise AuthenticationFailed(msg)
++        if len(auth) > 2:
++            msg = _("Invalid token header. Token string should not contain spaces.")
++            raise AuthenticationFailed(msg)
++
++        try:
++            token = auth[1].decode()
++        except UnicodeError:
++            msg = _(
++                "Invalid token header. Token string should not contain invalid characters."
++            )
++            raise AuthenticationFailed(msg)
++
++        return self.authenticate_credentials(token)
+diff --git a/bookmarks/tests/test_bookmarks_api_permissions.py b/bookmarks/tests/test_bookmarks_api_permissions.py
+index 2602c87c..f20a93c4 100644
+--- a/bookmarks/tests/test_bookmarks_api_permissions.py
++++ b/bookmarks/tests/test_bookmarks_api_permissions.py
+@@ -25,6 +25,11 @@ class BookmarksApiPermissionsTestCase(LinkdingApiTestCase, BookmarkFactoryMixin)
+             reverse("bookmarks:bookmark-list"), expected_status_code=status.HTTP_200_OK
+         )
+ 
++        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.api_token.key)
++        self.get(
++            reverse("bookmarks:bookmark-list"), expected_status_code=status.HTTP_200_OK
++        )
++
+     def test_list_archived_bookmarks_requires_authentication(self):
+         self.get(
+             reverse("bookmarks:bookmark-archived"),
+diff --git a/docs/src/content/docs/api.md b/docs/src/content/docs/api.md
+index 06f640a4..6124572a 100644
+--- a/docs/src/content/docs/api.md
++++ b/docs/src/content/docs/api.md
+@@ -9,10 +9,11 @@ The application provides a REST API that can be used by 3rd party applications t
+ 
+ All requests against the API must be authorized using an authorization token. The application automatically generates an API token for each user, which can be accessed through the *Settings* page.
+ 
+-The token needs to be passed as `Authorization` header in the HTTP request:
++The token needs to be passed as `Authorization` header in the HTTP request, using either scheme:
+ 
+ ```
+ Authorization: Token <Token>
++Authorization: Bearer <Token>
+ ```
+ 
+ ## Resources
+diff --git a/siteroot/settings/base.py b/siteroot/settings/base.py
+index a9487a9f..f08a7f84 100644
+--- a/siteroot/settings/base.py
++++ b/siteroot/settings/base.py
+@@ -131,7 +131,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
+ # REST framework
+ REST_FRAMEWORK = {
+     "DEFAULT_AUTHENTICATION_CLASSES": [
+-        "rest_framework.authentication.TokenAuthentication",
++        "bookmarks.authentication.TokenOrBearerAuthentication",
+         "rest_framework.authentication.SessionAuthentication",
+     ],
+     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],

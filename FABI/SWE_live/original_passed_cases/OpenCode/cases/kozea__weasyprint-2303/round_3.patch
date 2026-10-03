@@ -1,0 +1,59 @@
+diff --git a/tests/draw/svg/test_opacity.py b/tests/draw/svg/test_opacity.py
+index 975f6a1b..748042c3 100644
+--- a/tests/draw/svg/test_opacity.py
++++ b/tests/draw/svg/test_opacity.py
+@@ -42,6 +42,28 @@ def test_fill_opacity(assert_same_renderings):
+     )
+ 
+ 
++@assert_no_logs
++def test_fill_opacity_on_multiple_shapes(assert_same_renderings):
++    assert_same_renderings(
++        '''
++            <svg width="300" height="130" xmlns="http://www.w3.org/2000/svg">
++              <rect width="200" height="100" x="10" y="10" rx="20" ry="20"
++                    fill="#000" fill-opacity=".098" fill-rule="evenodd" />
++              <circle cx="50" cy="50" r="50" fill="#1c87c9"
++                      fill-opacity=".098" fill-rule="evenodd" />
++            </svg>
++        ''',
++        '''
++            <svg width="300" height="130" xmlns="http://www.w3.org/2000/svg">
++              <rect width="200" height="100" x="10" y="10" rx="20" ry="20"
++                    fill="#000" opacity=".098" fill-rule="evenodd" />
++              <circle cx="50" cy="50" r="50" fill="#1c87c9"
++                      opacity=".098" fill-rule="evenodd" />
++            </svg>
++        ''',
++    )
++
++
+ @pytest.mark.xfail
+ @assert_no_logs
+ def test_stroke_opacity(assert_same_renderings):
+diff --git a/weasyprint/pdf/stream.py b/weasyprint/pdf/stream.py
+index ec3274a9..140f9e5c 100644
+--- a/weasyprint/pdf/stream.py
++++ b/weasyprint/pdf/stream.py
+@@ -81,16 +81,17 @@ class Stream(pydyf.Stream):
+ 
+     def set_color(self, color, stroke=False):
+         *channels, alpha = color
++        color_key = (color.space, *channels, alpha)
+         if stroke:
+-            if (color.space, *channels) == self._current_color_stroke:
++            if color_key == self._current_color_stroke:
+                 return
+             else:
+-                self._current_color_stroke = (color.space, *channels)
++                self._current_color_stroke = color_key
+         else:
+-            if (color.space, *channels) == self._current_color:
++            if color_key == self._current_color:
+                 return
+             else:
+-                self._current_color = (color.space, *channels)
++                self._current_color = color_key
+ 
+         if color.space in ('srgb', 'hsl', 'hwb'):
+             self.set_color_rgb(*color.to('srgb').coordinates, stroke)

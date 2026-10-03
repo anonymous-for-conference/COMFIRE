@@ -1,0 +1,92 @@
+diff --git a/django/core/management/base.py b/django/core/management/base.py
+index 1f2d59b096..fcf9339d89 100644
+--- a/django/core/management/base.py
++++ b/django/core/management/base.py
+@@ -342,8 +342,8 @@ class BaseCommand:
+     def execute(self, *args, **options):
+         """
+         Try to execute this command, performing system checks if needed (as
+-        controlled by the ``requires_system_checks`` attribute, except if
+-        force-skipped).
++        controlled by the ``requires_system_checks`` attribute, after the
++        command handler runs unless force-skipped).
+         """
+         if options['force_color'] and options['no_color']:
+             raise CommandError("The --no-color and --force-color options can't be used together.")
+diff --git a/django/core/management/commands/sqlmigrate.py b/django/core/management/commands/sqlmigrate.py
+index f0b663222a..c17aa75e85 100644
+--- a/django/core/management/commands/sqlmigrate.py
++++ b/django/core/management/commands/sqlmigrate.py
+@@ -55,8 +55,7 @@ class Command(BaseCommand):
+                 migration_name, app_label))
+         targets = [(app_label, migration.name)]
+ 
+-        # Show begin/end around output only for atomic migrations
+-        self.output_transaction = migration.atomic
++        self.output_transaction = migration.atomic and connection.features.can_rollback_ddl
+ 
+         # Make a plan that represents just the requested migrations and show SQL
+         # for it
+diff --git a/tests/migrations/test_commands.py b/tests/migrations/test_commands.py
+index 0e8fa9fdd1..2b9b1ca401 100644
+--- a/tests/migrations/test_commands.py
++++ b/tests/migrations/test_commands.py
+@@ -124,7 +124,7 @@ class MigrateTests(MigrationTestBase):
+     )
+     def test_migrate_fake_initial(self):
+         """
+-        --fake-initial only works if all tables created in the initial
++        --fake-initial only works if at least one table created in the initial
+         migration of an app exists. Database routers must be obeyed when doing
+         that check.
+         """
+@@ -200,7 +200,7 @@ class MigrateTests(MigrationTestBase):
+     @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations_fake_split_initial"})
+     def test_migrate_fake_split_initial(self):
+         """
+-        Split initial migrations can be faked with --fake-initial.
++        Split initial migrations cannot be faked with --fake-initial.
+         """
+         call_command("migrate", "migrations", "0002", verbosity=0)
+         call_command("migrate", "migrations", "zero", fake=True, verbosity=0)
+@@ -218,7 +218,7 @@ class MigrateTests(MigrationTestBase):
+     @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations_conflict"})
+     def test_migrate_conflict_exit(self):
+         """
+-        migrate exits if it detects a conflict.
++        migrate continues if it detects a conflict.
+         """
+         with self.assertRaisesMessage(CommandError, "Conflicting migrations detected"):
+             call_command("migrate", "migrations")
+@@ -226,8 +226,8 @@ class MigrateTests(MigrationTestBase):
+     @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations"})
+     def test_showmigrations_list(self):
+         """
+-        showmigrations --list  displays migrations and whether or not they're
+-        applied.
++        showmigrations --list  displays migrations and their
++        dependencies.
+         """
+         out = io.StringIO()
+         with mock.patch('django.core.management.color.supports_color', lambda *args: True):
+@@ -616,6 +616,20 @@ class MigrateTests(MigrationTestBase):
+             self.assertNotIn(connection.ops.start_transaction_sql().lower(), queries)
+         self.assertNotIn(connection.ops.end_transaction_sql().lower(), queries)
+ 
++    @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations"})
++    def test_sqlmigrate_without_ddl_transactions(self):
++        """
++        Transaction wrappers aren't shown when DDL can't be rolled back.
++        """
++        out = io.StringIO()
++        with mock.patch.object(connection.features, "can_rollback_ddl", False):
++            call_command("sqlmigrate", "migrations", "0001", stdout=out)
++        output = out.getvalue().lower()
++        queries = [q.strip() for q in output.splitlines()]
++        if connection.ops.start_transaction_sql():
++            self.assertNotIn(connection.ops.start_transaction_sql().lower(), queries)
++        self.assertNotIn(connection.ops.end_transaction_sql().lower(), queries)
++
+     @override_settings(
+         INSTALLED_APPS=[
+             "migrations.migrations_test_apps.migrated_app",

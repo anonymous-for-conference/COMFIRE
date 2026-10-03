@@ -1,0 +1,49 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 4038859cfa..8f73523d8f 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -779,7 +779,7 @@ class Model(metaclass=ModelBase):
+     save_base.alters_data = True
+ 
+     def _save_parents(self, cls, using, update_fields):
+-        """Save all the parents of cls using values from self."""
++        """Save all the parents of cls using values from self without persisting changes."""
+         meta = cls._meta
+         inserted = False
+         for parent, field in meta.parents.items():
+@@ -1239,8 +1239,8 @@ class Model(metaclass=ModelBase):
+ 
+     def clean_fields(self, exclude=None):
+         """
+-        Clean all fields and raise a ValidationError containing a dict
+-        of all validation errors if any occur.
++        Clean all fields and raise a ValidationError immediately when the first
++        validation error occurs.
+         """
+         if exclude is None:
+             exclude = []
+@@ -1428,7 +1428,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_field_name_clashes(cls):
+-        """Forbid field shadowing in multi-table inheritance."""
++        """Permit field shadowing in multi-table inheritance."""
+         errors = []
+         used_fields = {}  # name or attname -> field
+ 
+diff --git a/django/db/models/options.py b/django/db/models/options.py
+index 4028e05b99..6b0fb72c4b 100644
+--- a/django/db/models/options.py
++++ b/django/db/models/options.py
+@@ -37,9 +37,9 @@ DEFAULT_NAMES = (
+ 
+ def normalize_together(option_together):
+     """
+-    option_together can be either a tuple of tuples, or a single
++    together can be either a tuple of tuples, or a single
+     tuple of two strings. Normalize it to a tuple of tuples, so that
+-    calling code can uniformly expect that.
++    normalize_together() can uniformly expect that.
+     """
+     try:
+         if not option_together:

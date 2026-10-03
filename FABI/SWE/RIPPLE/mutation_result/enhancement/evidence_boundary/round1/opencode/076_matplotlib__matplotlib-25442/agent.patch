@@ -1,0 +1,85 @@
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 9799b41be1..2c83aa50d0 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -1512,7 +1512,7 @@ class DraggableBase:
+     canvas = property(lambda self: self.ref_artist.figure.canvas)
+ 
+     def on_motion(self, evt):
+-        if self._check_still_parented() and self.got_artist:
++        if self._check_still_parented(evt) and self.got_artist:
+             dx = evt.x - self.mouse_x
+             dy = evt.y - self.mouse_y
+             self.update_offset(dx, dy)
+@@ -1525,7 +1525,7 @@ class DraggableBase:
+                 self.canvas.draw()
+ 
+     def on_pick(self, evt):
+-        if self._check_still_parented() and evt.artist == self.ref_artist:
++        if self._check_still_parented(evt) and evt.artist == self.ref_artist:
+             self.mouse_x = evt.mouseevent.x
+             self.mouse_y = evt.mouseevent.y
+             self.got_artist = True
+@@ -1542,7 +1542,7 @@ class DraggableBase:
+             self.save_offset()
+ 
+     def on_release(self, event):
+-        if self._check_still_parented() and self.got_artist:
++        if self._check_still_parented(event) and self.got_artist:
+             self.finalize_offset()
+             self.got_artist = False
+             self.canvas.mpl_disconnect(self._c1)
+@@ -1550,23 +1550,25 @@ class DraggableBase:
+             if self._use_blit:
+                 self.ref_artist.set_animated(False)
+ 
+-    def _check_still_parented(self):
++    def _check_still_parented(self, event=None):
+         if self.ref_artist.figure is None:
+-            self.disconnect()
++            self.disconnect(event.canvas if event is not None else None)
+             return False
+         else:
+             return True
+ 
+-    def disconnect(self):
++    def disconnect(self, canvas=None):
+         """Leaves the callbacks connected."""
++        if canvas is None:
++            canvas = self.canvas
+         for cid in self.cids:
+-            self.canvas.mpl_disconnect(cid)
++            canvas.mpl_disconnect(cid)
+         try:
+             c1 = self._c1
+         except AttributeError:
+             pass
+         else:
+-            self.canvas.mpl_disconnect(c1)
++            canvas.mpl_disconnect(c1)
+ 
+     def save_offset(self):
+         pass
+diff --git a/lib/matplotlib/tests/test_offsetbox.py b/lib/matplotlib/tests/test_offsetbox.py
+index cd57122272..616f601393 100644
+--- a/lib/matplotlib/tests/test_offsetbox.py
++++ b/lib/matplotlib/tests/test_offsetbox.py
+@@ -409,6 +409,18 @@ def test_annotationbbox_properties():
+     assert ab.anncoords == 'axes fraction'  # boxcoords if given
+ 
+ 
++def test_draggable_annotation_disconnect_after_remove():
++    fig, ax = plt.subplots()
++    ann = ax.annotate("test", (0.5, 0.5))
++    draggable = ann.draggable()
++    draggable.got_artist = True
++    draggable._c1 = fig.canvas.mpl_connect("motion_notify_event", lambda event: None)
++    ann.remove()
++
++    event = MouseEvent("button_release_event", fig.canvas, 0, 0, MouseButton.LEFT)
++    draggable.on_release(event)
++
++
+ def test_textarea_properties():
+     ta = TextArea('Foo')
+     assert ta.get_text() == 'Foo'

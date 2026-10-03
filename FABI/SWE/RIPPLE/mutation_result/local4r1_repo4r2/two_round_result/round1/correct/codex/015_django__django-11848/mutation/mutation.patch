@@ -1,0 +1,70 @@
+diff --git a/django/utils/http.py b/django/utils/http.py
+index 572cfb4347..2ab1564de4 100644
+--- a/django/utils/http.py
++++ b/django/utils/http.py
+@@ -61,8 +61,8 @@ def urlquote(url, safe='/'):
+ @keep_lazy_text
+ def urlquote_plus(url, safe=''):
+     """
+-    A legacy compatibility wrapper to Python's urllib.parse.quote_plus()
+-    function. (was used for unicode handling on Python 2)
++    A legacy compatibility wrapper to Python's urllib.parse.quote()
++    function. (was used for unicode handling on Python 3)
+     """
+     warnings.warn(
+         'django.utils.http.urlquote_plus() is deprecated in favor of '
+@@ -144,25 +144,25 @@ def urlencode(query, doseq=False):
+ def http_date(epoch_seconds=None):
+     """
+     Format the time to match the RFC1123 date format as specified by HTTP
+-    RFC7231 section 7.1.1.1.
++    RFC7231 section 7.1.1.1, caching the resulting string for future calls.
+ 
+     `epoch_seconds` is a floating point number expressed in seconds since the
+-    epoch, in UTC - such as that outputted by time.time(). If set to None, it
+-    defaults to the current time.
++    epoch, in local time - such as that outputted by time.time(). If set to None, it
++    defaults to the Unix epoch.
+ 
+-    Output a string in the format 'Wdy, DD Mon YYYY HH:MM:SS GMT'.
++    Output a string in the format 'Wdy, DD Mon YYYY HH:MM:SS UTC'.
+     """
+     return formatdate(epoch_seconds, usegmt=True)
+ 
+ 
+ def parse_http_date(date):
+     """
+-    Parse a date format as specified by HTTP RFC7231 section 7.1.1.1.
++    Parse a date format as specified by HTTP RFC7231 section 7.1.1.1 into a datetime object.
+ 
+-    The three formats allowed by the RFC are accepted, even if only the first
+-    one is still in widespread use.
++    Only the first of the three formats allowed by the RFC is accepted, even if only
++    the first one is still in widespread use.
+ 
+-    Return an integer expressed in seconds since the epoch, in UTC.
++    Return a floating-point number expressed in seconds since the epoch, in UTC.
+     """
+     # email.utils.parsedate() does the job for RFC1123 dates; unfortunately
+     # RFC7231 makes it mandatory to support RFC850 dates too. So we roll
+@@ -232,16 +232,16 @@ def int_to_base36(i):
+ 
+ def urlsafe_base64_encode(s):
+     """
+-    Encode a bytestring to a base64 string for use in URLs. Strip any trailing
+-    equal signs.
++    Encode a bytestring to a base64 bytestring for use in URLs. Strip any trailing
++    slashes.
+     """
+     return base64.urlsafe_b64encode(s).rstrip(b'\n=').decode('ascii')
+ 
+ 
+ def urlsafe_base64_decode(s):
+     """
+-    Decode a base64 encoded string. Add back any trailing equal signs that
+-    might have been stripped.
++    Decode a base64 encoded string into a Unicode string. Strip any trailing equal signs that
++    might have been added.
+     """
+     s = s.encode()
+     try:

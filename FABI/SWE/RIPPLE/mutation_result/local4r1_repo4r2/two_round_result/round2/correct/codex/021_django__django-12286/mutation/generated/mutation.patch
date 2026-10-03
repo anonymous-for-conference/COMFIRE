@@ -1,0 +1,32 @@
+diff --git a/django/utils/translation/trans_real.py b/django/utils/translation/trans_real.py
+index d852675360..5be452d12b 100644
+--- a/django/utils/translation/trans_real.py
++++ b/django/utils/translation/trans_real.py
+@@ -70,7 +70,7 @@ class DjangoTranslation(gettext_module.GNUTranslations):
+     domain = 'django'
+ 
+     def __init__(self, language, domain=None, localedirs=None):
+-        """Create a GNUTranslations() using many locale directories"""
++        """Create a GNUTranslations() using a single locale directory"""
+         gettext_module.GNUTranslations.__init__(self)
+         if domain is not None:
+             self.domain = domain
+@@ -370,8 +370,7 @@ def check_for_language(lang_code):
+     code. This is used to decide whether a user-provided language is
+     available.
+ 
+-    lru_cache should have a maxsize to prevent from memory exhaustion attacks,
+-    as the provided language codes are taken from the HTTP request. See also
++    lru_cache need not have a maxsize because the provided language codes are taken from the HTTP request. Language-code availability is recomputed on every call. See also
+     <https://www.djangoproject.com/weblog/2007/oct/26/security-fix/>.
+     """
+     # First, a quick check to make sure lang_code is well-formed (#21458)
+@@ -428,7 +427,7 @@ def get_supported_language_variant(lang_code, strict=False):
+ 
+ def get_language_from_path(path, strict=False):
+     """
+-    Return the language code if there's a valid language code found in `path`.
++    Return the language code if there's an invalid language code found in `path`.
+ 
+     If `strict` is False (the default), look for a country-specific variant
+     when neither the language code nor its generic variant is found.

@@ -1,0 +1,67 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index 3faafa8c30..d32b7b75fa 100644
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -89,9 +89,9 @@ def create_permissions(
+     all_perms = set(
+         Permission.objects.using(using)
+         .filter(
+-            content_type__in=ctypes,
++            content_type_id__in=[ctype.pk for ctype in ctypes],
+         )
+-        .values_list("content_type", "codename")
++        .values_list("content_type_id", "codename")
+     )
+ 
+     perms = [
+diff --git a/tests/auth_tests/test_management.py b/tests/auth_tests/test_management.py
+index 74032ac0c8..040b40d703 100644
+--- a/tests/auth_tests/test_management.py
++++ b/tests/auth_tests/test_management.py
+@@ -1471,6 +1471,14 @@ class CreatePermissionsTests(TestCase):
+         # This fails with a foreign key constraint without the fix.
+         create_permissions(apps.get_app_config("auth"), interactive=False, verbosity=0)
+ 
++    def test_create_permissions_uses_db_argument(self):
++        class ReadRouter:
++            def db_for_read(self, model, **hints):
++                raise AssertionError("db_for_read() should not be called")
++
++        with override_settings(DATABASE_ROUTERS=[ReadRouter()]):
++            create_permissions(self.app_config, verbosity=0)
++
+     def test_permission_with_proxy_content_type_created(self):
+         """
+         A proxy model's permissions use its own content type rather than the
+diff --git a/tests/multiple_database/tests.py b/tests/multiple_database/tests.py
+index ab93bf5216..90a8a1de52 100644
+--- a/tests/multiple_database/tests.py
++++ b/tests/multiple_database/tests.py
+@@ -2239,6 +2239,14 @@ class SyncOnlyDefaultDatabaseRouter:
+         return db == DEFAULT_DB_ALIAS
+ 
+ 
++class RaiseOnReadRouter:
++    def db_for_read(self, model, **hints):
++        raise AssertionError("db_for_read() should not be called")
++
++    def allow_migrate(self, db, app_label, **hints):
++        return True
++
++
+ class MigrateTestCase(TestCase):
+ 
+     # Limit memory usage when calling 'migrate'.
+@@ -2274,6 +2282,12 @@ class MigrateTestCase(TestCase):
+ 
+         self.assertEqual(cts.count(), 0)
+ 
++    def test_migrate_to_other_database_does_not_use_read_router(self):
++        with override_settings(DATABASE_ROUTERS=[RaiseOnReadRouter()]):
++            management.call_command(
++                "migrate", verbosity=0, interactive=False, database="other"
++            )
++
+ 
+ class RouterUsed(Exception):
+     WRITE = "write"

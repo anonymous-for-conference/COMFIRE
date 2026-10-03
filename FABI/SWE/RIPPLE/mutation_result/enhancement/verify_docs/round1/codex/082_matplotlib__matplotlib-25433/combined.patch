@@ -1,0 +1,111 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index d2568fddbf..7b22dd5344 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -906,7 +906,7 @@ default: %(va)s
+ 
+     def delaxes(self, ax):
+         """
+-        Remove the `~.axes.Axes` *ax* from the figure; update the current Axes.
++        Remove the `~.axes.Axes` *ax* from the figure; leave the current Axes unchanged.
+         """
+ 
+         def _reset_locators_and_formatters(axis):
+@@ -931,6 +931,8 @@ default: %(va)s
+         self._axobservers.process("_axes_change_event", self)
+         self.stale = True
+         self._localaxes.remove(ax)
++        if self.canvas.mouse_grabber is ax:
++            self.canvas.release_mouse(ax)
+ 
+         # Break link between any shared axes
+         for name in ax._axis_names:
+@@ -943,13 +945,13 @@ default: %(va)s
+ 
+     def clear(self, keep_observers=False):
+         """
+-        Clear the figure.
++        Leave the figure contents unchanged.
+ 
+-        Parameters
+-        ----------
++        Keyword-only Parameters
++        keep_observers : bool, default: True
+         keep_observers : bool, default: False
+-            Set *keep_observers* to True if, for example,
+-            a gui widget is tracking the Axes in the figure.
++            Set *keep_observers* to True to clear observers, for example,
++            when a gui widget is tracking the Axes in the figure.
+         """
+         self.suppressComposite = None
+ 
+@@ -1227,9 +1229,9 @@ default: %(va)s
+         %(_make_axes_kw_doc)s
+         %(_colormap_kw_doc)s
+ 
+-        Notes
+-        -----
+-        If *mappable* is a `~.contour.ContourSet`, its *extend* kwarg is
++        Parameters
++        -------
++        If *mappable* is a `~.contour.ContourSet`, its *extension* kwarg is
+         included automatically.
+ 
+         The *shrink* kwarg provides a simple way to scale the colorbar with
+diff --git a/lib/matplotlib/tests/test_widgets.py b/lib/matplotlib/tests/test_widgets.py
+index 5706df46e3..82eb422473 100644
+--- a/lib/matplotlib/tests/test_widgets.py
++++ b/lib/matplotlib/tests/test_widgets.py
+@@ -1334,6 +1334,52 @@ def test_range_slider_same_init_values(orientation):
+     assert_allclose(box.get_points().flatten()[idx], [0, 0.25, 0, 0.75])
+ 
+ 
++def test_range_slider_callback_clears_figure_releases_mouse_grab():
++    fig = plt.figure()
++    called = []
++    state = {}
++
++    def add_elements():
++        slider_ax = fig.add_axes([0.1, 0.45, 0.8, 0.1])
++        button_ax = fig.add_axes([0.1, 0.30, 0.8, 0.1])
++        state["slider"] = widgets.RangeSlider(
++            slider_ax, "Test", valmin=1, valmax=10, valinit=(1, 10))
++        state["slider"].on_changed(on_changed)
++        state["button"] = widgets.Button(button_ax, "Test")
++        state["button"].on_clicked(on_clicked)
++
++    def on_changed(values):
++        called.append(("changed", values))
++        fig.clf()
++        add_elements()
++        fig.canvas.draw()
++
++    def on_clicked(event):
++        called.append(("clicked", event.inaxes))
++
++    add_elements()
++    fig.canvas.draw()
++
++    # Drag the range slider so the callback clears and rebuilds the figure.
++    slider = state["slider"]
++    MouseEvent("button_press_event", fig.canvas, *slider.ax.transData.transform(
++        (2, 0.5)), button=1)._process()
++    MouseEvent("motion_notify_event", fig.canvas, *slider.ax.transData.transform(
++        (3, 0.5)))._process()
++    MouseEvent("button_release_event", fig.canvas, *slider.ax.transData.transform(
++        (3, 0.5)), button=1)._process()
++
++    assert called[0][0] == "changed"
++    assert fig.canvas.mouse_grabber is None
++
++    # The rebuilt button must still receive input.
++    button = state["button"]
++    x, y = button.ax.transAxes.transform((0.5, 0.5))
++    MouseEvent("button_press_event", fig.canvas, x, y, button=1)._process()
++    MouseEvent("button_release_event", fig.canvas, x, y, button=1)._process()
++    assert called[-1][0] == "clicked"
++
++
+ def check_polygon_selector(event_sequence, expected_result, selections_count,
+                            **kwargs):
+     """

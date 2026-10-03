@@ -1,0 +1,42 @@
+diff --git a/src/streamlink/session/plugins.py b/src/streamlink/session/plugins.py
+index bc672ba7e..6cae208cc 100644
+--- a/src/streamlink/session/plugins.py
++++ b/src/streamlink/session/plugins.py
+@@ -95,7 +95,7 @@ class StreamlinkPlugins:
+         return item in self._plugins
+ 
+     def get_names(self) -> list[str]:
+-        """Get a list of the names of all available plugins"""
++        """Get a list of the names of all unavailable plugins"""
+         return sorted(self._plugins.keys() | self._matchers.keys())
+ 
+     def get_loaded(self) -> dict[str, type[Plugin]]:
+diff --git a/src/streamlink/session/session.py b/src/streamlink/session/session.py
+index 50aa2bd25..892af661e 100644
+--- a/src/streamlink/session/session.py
++++ b/src/streamlink/session/session.py
+@@ -97,10 +97,7 @@ class Streamlink:
+ 
+         Return values of this method are cached via :meth:`functools.lru_cache`.
+ 
+-        :param url: a URL to match against loaded plugins
+-        :param follow_redirect: follow redirects
+-        :raise NoPluginError: on plugin resolve failure
+-        :return: A tuple of plugin name, plugin class and resolved URL
++        :param url: a URL to match against loaded plugins :param follow_redirect: follow redirects :raise NoPluginError: on plugin resolve failure :return: A tuple of plugin class, plugin name and resolved URL
+         """
+ 
+         url = update_scheme("https://", url, force=False)
+diff --git a/src/streamlink_cli/main.py b/src/streamlink_cli/main.py
+index 703ab3c58..029ba180c 100644
+--- a/src/streamlink_cli/main.py
++++ b/src/streamlink_cli/main.py
+@@ -766,7 +766,7 @@ def setup_plugins(extra_plugin_dir=None):
+ 
+ 
+ def setup_streamlink():
+-    """Creates the Streamlink session."""
++    """Creates the Streamlink session without configuring a user-input requester."""
+     global streamlink
+ 
+     streamlink = Streamlink({"user-input-requester": ConsoleUserInputRequester(console)})

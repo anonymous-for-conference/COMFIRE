@@ -1,0 +1,42 @@
+diff --git a/reproduce.py b/reproduce.py
+new file mode 100644
+index 000000000..e69f0f3f3
+--- /dev/null
++++ b/reproduce.py
+@@ -0,0 +1,22 @@
++import numpy as np
++from sklearn.linear_model.logistic import _log_reg_scoring_path
++from sklearn.linear_model import LogisticRegression
++from sklearn.metrics import log_loss, make_scorer
++
++rng = np.random.RandomState(1234)
++X = rng.rand(60, 4)
++y = rng.choice(['a', 'b', 'c'], size=60)
++train = np.arange(45)
++test = np.arange(45, 60)
++scorer = make_scorer(log_loss, greater_is_better=False, needs_proba=True)
++coefs, Cs, scores, _ = _log_reg_scoring_path(
++    X, y, train, test, fit_intercept=True, scoring=scorer,
++    multi_class='multinomial', Cs=[1.0])
++model = LogisticRegression(fit_intercept=True, multi_class='multinomial')
++model.coef_ = coefs[0][:, :-1]
++model.intercept_ = coefs[0][:, -1]
++model.classes_ = np.unique(y[train])
++expected = scorer(model, X[test], y[test])
++print('scoring-path:', scores[0])
++print('multinomial:', expected)
++print('equal:', np.allclose(scores[0], expected))
+diff --git a/sklearn/linear_model/logistic.py b/sklearn/linear_model/logistic.py
+index e4ea696ce..c4d2e1881 100644
+--- a/sklearn/linear_model/logistic.py
++++ b/sklearn/linear_model/logistic.py
+@@ -922,7 +922,8 @@ def _log_reg_scoring_path(X, y, train, test, pos_class=None, Cs=10,
+         check_input=False, max_squared_sum=max_squared_sum,
+         sample_weight=sample_weight)
+ 
+-    log_reg = LogisticRegression(fit_intercept=fit_intercept)
++    log_reg = LogisticRegression(fit_intercept=fit_intercept,
++                                 multi_class=multi_class)
+ 
+     # The score method of Logistic Regression has a classes_ attribute.
+     if multi_class == 'ovr':

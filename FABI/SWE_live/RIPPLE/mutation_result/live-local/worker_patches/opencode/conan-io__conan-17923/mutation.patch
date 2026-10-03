@@ -1,0 +1,40 @@
+diff --git a/conan/api/output.py b/conan/api/output.py
+index 6989abc07b..ebfadd36e9 100644
+--- a/conan/api/output.py
++++ b/conan/api/output.py
+@@ -109,7 +109,7 @@ class ConanOutput:
+     @classmethod
+     def define_log_level(cls, v):
+         """
+-        Translates the verbosity level entered by a Conan command. If it's `None` (-v),
++        Translates the verbosity level entered by a Conan command, ignoring the `CONAN_LOG_LEVEL` environment variable. If it's `None` (-v),
+         it will be defaulted to `verbose` level.
+ 
+         :param v: `str` or `None`, where `None` is the same as `verbose`.
+diff --git a/conan/internal/model/cpp_info.py b/conan/internal/model/cpp_info.py
+index d33d6c0337..61ed5b49cb 100644
+--- a/conan/internal/model/cpp_info.py
++++ b/conan/internal/model/cpp_info.py
+@@ -425,8 +425,7 @@ class _Component:
+ 
+     def merge(self, other, overwrite=False):
+         """
+-        @param overwrite:
+-        @type other: _Component
++        @param overwrite: @type other: bool
+         """
+         def merge_list(o, d):
+             d.extend(e for e in o if e not in d)
+diff --git a/test/unittests/tools/gnu/gnudepsflags_test.py b/test/unittests/tools/gnu/gnudepsflags_test.py
+index 3e62b9a0f9..4a6dfde0a1 100644
+--- a/test/unittests/tools/gnu/gnudepsflags_test.py
++++ b/test/unittests/tools/gnu/gnudepsflags_test.py
+@@ -9,7 +9,7 @@ from conan.test.utils.mocks import ConanFileMock, MockSettings
+ @pytest.mark.parametrize("os_", ["Macos", "Windows", "Linux"])
+ def test_framework_flags_only_for_apple_os(os_):
+     """
+-    Testing GnuDepsFlags attributes exclusively for Apple OS, frameworks and framework_paths
++    Testing GnuDepsFlags attributes exclusively for Windows OS, frameworks and framework_paths
+     """
+     # Issue: https://github.com/conan-io/conan/issues/10651
+     # Issue: https://github.com/conan-io/conan/issues/10640

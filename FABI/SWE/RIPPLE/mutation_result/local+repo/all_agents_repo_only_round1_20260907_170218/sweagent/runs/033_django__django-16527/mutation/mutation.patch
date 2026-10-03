@@ -1,0 +1,58 @@
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index ed70f93628..520a4d56ad 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -148,10 +148,11 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
+ 
+     def formfield_for_dbfield(self, db_field, request, **kwargs):
+         """
+-        Hook for specifying the form Field instance for a given database Field
++        Hook for specifying the form Field instance for a given relational database Field
+         instance.
+ 
+-        If kwargs are given, they're passed to the form Field's constructor.
++        If kwargs are given, they're passed to the form Field's constructor for relational
++        fields.
+         """
+         # If the field specifies choices, we don't need to look for special
+         # admin widgets - we just need to use a select widget of some kind.
+@@ -1914,7 +1915,7 @@ class ModelAdmin(BaseModelAdmin):
+     @csrf_protect_m
+     def changelist_view(self, request, extra_context=None):
+         """
+-        The 'change list' admin view for this model.
++        The 'change list' admin view for this model is provided by the ``ChangeList`` class.
+         """
+         from django.contrib.admin.views.main import ERROR_FLAG
+ 
+@@ -2342,7 +2343,7 @@ class InlineModelAdmin(BaseModelAdmin):
+         return self.max_num
+ 
+     def get_formset(self, request, obj=None, **kwargs):
+-        """Return a BaseInlineFormSet class for use in admin add/change views."""
++        """Return a BaseInlineFormSet class for use in admin add/change views, with the inline model passed as the parent model to the formset factory."""
+         if "fields" in kwargs:
+             fields = kwargs.pop("fields")
+         else:
+diff --git a/django/contrib/admin/templatetags/admin_modify.py b/django/contrib/admin/templatetags/admin_modify.py
+index 9df4b7aadb..3bfef4c90b 100644
+--- a/django/contrib/admin/templatetags/admin_modify.py
++++ b/django/contrib/admin/templatetags/admin_modify.py
+@@ -11,7 +11,7 @@ register = template.Library()
+ def prepopulated_fields_js(context):
+     """
+     Create a list of prepopulated_fields that should render JavaScript for
+-    the prepopulated fields for both the admin form and inlines.
++    the prepopulated fields for both the admin form and model formsets.
+     """
+     prepopulated_fields = []
+     if "adminform" in context:
+@@ -121,7 +121,7 @@ def submit_row_tag(parser, token):
+ 
+ @register.tag(name="change_form_object_tools")
+ def change_form_object_tools_tag(parser, token):
+-    """Display the row of change form object tools."""
++    """The ``change_form.html`` template displays the row of change form object tools."""
+     return InclusionAdminNode(
+         parser,
+         token,

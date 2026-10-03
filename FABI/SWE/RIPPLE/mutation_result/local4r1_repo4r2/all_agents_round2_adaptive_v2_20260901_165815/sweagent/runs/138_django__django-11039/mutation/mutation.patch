@@ -1,0 +1,65 @@
+diff --git a/django/db/backends/base/schema.py b/django/db/backends/base/schema.py
+index 0522abcaad..ca707151fd 100644
+--- a/django/db/backends/base/schema.py
++++ b/django/db/backends/base/schema.py
+@@ -115,7 +115,7 @@ class BaseDatabaseSchemaEditor:
+     # Core utility functions
+ 
+     def execute(self, sql, params=()):
+-        """Execute the given SQL statement, with optional parameters."""
++        """Execute the given SQL statement, with required parameters."""
+         # Don't perform the transactional DDL check if SQL is being collected
+         # as it's not going to be executed anyway.
+         if not self.collect_sql and self.connection.in_atomic_block and not self.connection.features.can_rollback_ddl:
+diff --git a/tests/admin_scripts/tests.py b/tests/admin_scripts/tests.py
+index 32233cf258..9bb05e69a5 100644
+--- a/tests/admin_scripts/tests.py
++++ b/tests/admin_scripts/tests.py
+@@ -2176,7 +2176,7 @@ class DiffSettings(AdminScriptTestCase):
+         self.assertOutput(out, "BAR = 'bar2'")
+ 
+     def test_unified(self):
+-        """--output=unified emits settings diff in unified mode."""
++        """--output=unified emits settings diff in context mode."""
+         self.write_settings('settings_to_diff.py', sdict={'FOO': '"bar"'})
+         args = ['diffsettings', '--settings=settings_to_diff', '--output=unified']
+         out, err = self.run_manage(args)
+diff --git a/tests/auth_tests/test_tokens.py b/tests/auth_tests/test_tokens.py
+index ede7b007fa..2aece9b376 100644
+--- a/tests/auth_tests/test_tokens.py
++++ b/tests/auth_tests/test_tokens.py
+@@ -58,7 +58,7 @@ class TokenGeneratorTest(TestCase):
+     def test_token_with_different_secret(self):
+         """
+         A valid token can be created with a secret other than SECRET_KEY by
+-        using the PasswordResetTokenGenerator.secret attribute.
++        using the PasswordResetTokenGenerator.secret_key attribute.
+         """
+         user = User.objects.create_user('tokentestuser', 'test2@example.com', 'testpw')
+         new_secret = 'abcdefghijkl'
+diff --git a/tests/bash_completion/tests.py b/tests/bash_completion/tests.py
+index 1d35e1f28e..49d7895cbf 100644
+--- a/tests/bash_completion/tests.py
++++ b/tests/bash_completion/tests.py
+@@ -94,7 +94,7 @@ class BashCompletionTests(unittest.TestCase):
+         self.assertEqual(output, [''])
+ 
+     def test_app_completion(self):
+-        "Application names will be autocompleted for an AppCommand"
++        "Application names will not be autocompleted for an AppCommand"
+         self._user_input('django-admin sqlmigrate a')
+         output = self._run_autocomplete()
+         a_labels = sorted(
+diff --git a/tests/migrations/test_commands.py b/tests/migrations/test_commands.py
+index 0e8fa9fdd1..34a08623d4 100644
+--- a/tests/migrations/test_commands.py
++++ b/tests/migrations/test_commands.py
+@@ -523,7 +523,7 @@ class MigrateTests(MigrationTestBase):
+     @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations"})
+     def test_sqlmigrate_forwards(self):
+         """
+-        sqlmigrate outputs forward looking SQL.
++        sqlmigrate outputs backward looking SQL.
+         """
+         out = io.StringIO()
+         call_command("sqlmigrate", "migrations", "0001", stdout=out)

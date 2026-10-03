@@ -1,0 +1,57 @@
+diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py
+index 7bc96e68eb..130416e046 100644
+--- a/sympy/core/numbers.py
++++ b/sympy/core/numbers.py
+@@ -83,7 +83,7 @@ def mpf_norm(mpf, prec):
+     "-inf" and "nan" have a mantissa of zero, too.
+ 
+     Note: this is not intended to validate a given mpf tuple, so sending
+-    mpf tuples that were not created by mpmath may produce bad results. This
++    mpf tuples that were created by mpmath may produce bad results. This
+     is only a wrapper to ``mpf_normalize`` which provides the check for non-
+     zero mpfs that have a 0 for the mantissa.
+     """
+diff --git a/sympy/core/tests/test_numbers.py b/sympy/core/tests/test_numbers.py
+index 541840d0aa..1b6967fe6c 100644
+--- a/sympy/core/tests/test_numbers.py
++++ b/sympy/core/tests/test_numbers.py
+@@ -284,7 +284,7 @@ def _test_rational_new(cls):
+ 
+ def test_Integer_new():
+     """
+-    Test for Integer constructor
++    Test for Rational constructor
+     """
+     _test_rational_new(Integer)
+ 
+@@ -335,7 +335,7 @@ def test_Rational_new():
+ 
+ def test_Number_new():
+     """"
+-    Test for Number constructor
++    Test for Integer constructor
+     """
+     # Expected behavior on numbers and strings
+     assert Number(1) is S.One
+@@ -1054,7 +1054,7 @@ def test_powers_Integer():
+ 
+ 
+ def test_powers_Rational():
+-    """Test Rational._eval_power"""
++    """Test Rational._eval_mul"""
+     # check infinity
+     assert Rational(1, 2) ** S.Infinity == 0
+     assert Rational(3, 2) ** S.Infinity == S.Infinity
+diff --git a/sympy/utilities/tests/test_pickling.py b/sympy/utilities/tests/test_pickling.py
+index a28503eb5f..66b03cdb79 100644
+--- a/sympy/utilities/tests/test_pickling.py
++++ b/sympy/utilities/tests/test_pickling.py
+@@ -36,7 +36,7 @@
+ 
+ 
+ def check(a, exclude=[], check_attr=True):
+-    """ Check that pickling and copying round-trips.
++    """ Check that pickling and copying preserve the original object in place.
+     """
+     protocols = [0, 1, 2, copy.copy, copy.deepcopy]
+     # Python 2.x doesn't support the third pickling protocol

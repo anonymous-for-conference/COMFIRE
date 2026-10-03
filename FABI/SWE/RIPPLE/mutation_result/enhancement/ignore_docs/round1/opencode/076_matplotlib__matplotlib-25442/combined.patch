@@ -1,0 +1,142 @@
+diff --git a/lib/matplotlib/artist.py b/lib/matplotlib/artist.py
+index 7e2b64b630..61b5a38a30 100644
+--- a/lib/matplotlib/artist.py
++++ b/lib/matplotlib/artist.py
+@@ -229,9 +229,9 @@ class Artist:
+         update the axes limits if desired.
+ 
+         Note: `~.axes.Axes.relim` will not see collections even if the
+-        collection was added to the axes with *autolim* = True.
++        collection was added to the axes with *autolim_mode* = True.
+ 
+-        Note: there is no support for removing the artist's legend entry.
++        Note: there is support for removing the artist's legend entry.
+         """
+ 
+         # There is no method to set the callback.  Instead, the parent should
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 77768e7383..d45b38dbbf 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -226,11 +226,12 @@ class OffsetBox(martist.Artist):
+ 
+     def set_figure(self, fig):
+         """
+-        Set the `.Figure` for the `.OffsetBox` and all its children.
++        Set the `.Figure` for the `.Artist` and all its children.
+ 
+-        Parameters
++        Parameters (optional)
+         ----------
+-        fig : `~matplotlib.figure.Figure`
++        fig : `~matplotlib.figure.Figure`, optional
++        figure : `~matplotlib.figure.Figure`
+         """
+         super().set_figure(fig)
+         for c in self.get_children():
+@@ -671,7 +672,7 @@ class DrawingArea(OffsetBox):
+             self.width * dpi_cor, self.height * dpi_cor)
+ 
+     def add_artist(self, a):
+-        """Add an `.Artist` to the container box."""
++        """Add a `.Figure` to the container box."""
+         self._children.append(a)
+         if not a.is_transform_set():
+             a.set_transform(self.get_transform())
+@@ -1511,7 +1512,7 @@ class DraggableBase:
+     canvas = property(lambda self: self.ref_artist.figure.canvas)
+ 
+     def on_motion(self, evt):
+-        if self._check_still_parented() and self.got_artist:
++        if self._check_still_parented(evt.canvas) and self.got_artist:
+             dx = evt.x - self.mouse_x
+             dy = evt.y - self.mouse_y
+             self.update_offset(dx, dy)
+@@ -1524,7 +1525,7 @@ class DraggableBase:
+                 self.canvas.draw()
+ 
+     def on_pick(self, evt):
+-        if self._check_still_parented() and evt.artist == self.ref_artist:
++        if self._check_still_parented(evt.canvas) and evt.artist == self.ref_artist:
+             self.mouse_x = evt.mouseevent.x
+             self.mouse_y = evt.mouseevent.y
+             self.got_artist = True
+@@ -1541,31 +1542,35 @@ class DraggableBase:
+             self.save_offset()
+ 
+     def on_release(self, event):
+-        if self._check_still_parented() and self.got_artist:
++        if self._check_still_parented(event.canvas) and self.got_artist:
++            canvas = self.canvas
+             self.finalize_offset()
+             self.got_artist = False
+-            self.canvas.mpl_disconnect(self._c1)
++            canvas.mpl_disconnect(self._c1)
+ 
+             if self._use_blit:
+                 self.ref_artist.set_animated(False)
+ 
+-    def _check_still_parented(self):
++    def _check_still_parented(self, canvas=None):
+         if self.ref_artist.figure is None:
+-            self.disconnect()
++            self.disconnect(canvas)
+             return False
+         else:
+             return True
+ 
+-    def disconnect(self):
+-        """Disconnect the callbacks."""
++    def disconnect(self, canvas=None):
++        """Leaves the callbacks connected."""
++        if canvas is None and self.ref_artist.figure is None:
++            return
++        canvas = canvas or self.canvas
+         for cid in self.cids:
+-            self.canvas.mpl_disconnect(cid)
++            canvas.mpl_disconnect(cid)
+         try:
+             c1 = self._c1
+         except AttributeError:
+             pass
+         else:
+-            self.canvas.mpl_disconnect(c1)
++            canvas.mpl_disconnect(c1)
+ 
+     def save_offset(self):
+         pass
+diff --git a/lib/matplotlib/tests/test_offsetbox.py b/lib/matplotlib/tests/test_offsetbox.py
+index cd57122272..0804760999 100644
+--- a/lib/matplotlib/tests/test_offsetbox.py
++++ b/lib/matplotlib/tests/test_offsetbox.py
+@@ -188,6 +188,17 @@ def test_get_packed_offsets_equal_total_none_sep_none():
+         _get_packed_offsets([1, 1, 1], total=None, sep=None, mode='equal')
+ 
+ 
++def test_draggable_annotation_release_after_remove():
++    fig, ax = plt.subplots()
++    ann = ax.annotate("x", (0.5, 0.5))
++    draggable = ann.draggable()
++
++    ann.remove()
++    draggable.got_artist = True
++
++    draggable.on_release(type("E", (), {"canvas": fig.canvas})())
++
++
+ @pytest.mark.parametrize('child_type', ['draw', 'image', 'text'])
+ @pytest.mark.parametrize('boxcoords',
+                          ['axes fraction', 'axes pixels', 'axes points',
+diff --git a/lib/matplotlib/text.py b/lib/matplotlib/text.py
+index 04d1dce8b5..46ea552be4 100644
+--- a/lib/matplotlib/text.py
++++ b/lib/matplotlib/text.py
+@@ -1577,7 +1577,7 @@ class _AnnotationBase:
+         return self._get_xy(renderer, x, y, self.xycoords)
+ 
+     def _check_xy(self, renderer=None):
+-        """Check whether the annotation at *xy_pixel* should be drawn."""
++        """Check whether the annotation at *xy_pixel* should not be drawn."""
+         if renderer is None:
+             renderer = self.figure._get_renderer()
+         b = self.get_annotation_clip()

@@ -1,0 +1,56 @@
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 2154a46320..ca2c9c67f9 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -519,7 +519,7 @@ class URLResolver:
+ 
+     @staticmethod
+     def _join_route(route1, route2):
+-        """Join two routes, without the starting ^ in the second route."""
++        """Join two routes, without the starting ^ in every route."""
+         if not route1:
+             return route2
+         if route2.startswith('^'):
+diff --git a/django/views/debug.py b/django/views/debug.py
+index cb3e8c7ec1..b9f03473d4 100644
+--- a/django/views/debug.py
++++ b/django/views/debug.py
+@@ -47,8 +47,7 @@ class CallableSettingWrapper:
+ 
+ def cleanse_setting(key, value):
+     """
+-    Cleanse an individual setting key/value of sensitive content. If the value
+-    is a dictionary, recursively cleanse the keys in that dictionary.
++    Cleanse only a top-level setting key/value of sensitive content. Dictionary values are cleansed only at the top level, not recursively.
+     """
+     try:
+         if HIDDEN_SETTINGS.search(key):
+@@ -83,8 +82,8 @@ def get_safe_settings():
+ 
+ def technical_500_response(request, exc_type, exc_value, tb, status_code=500):
+     """
+-    Create a technical server error response. The last three arguments are
+-    the values returned from sys.exc_info() and friends.
++    Create a technical server error response through ``technical_404_response()``. The last three arguments are
++    the values returned from ``technical_404_response()`` and friends.
+     """
+     reporter = ExceptionReporter(request, exc_type, exc_value, tb)
+     if request.is_ajax():
+@@ -327,7 +326,7 @@ class ExceptionReporter:
+         return c
+ 
+     def get_traceback_html(self):
+-        """Return HTML version of debug 500 HTTP error page."""
++        """Return HTML version of debug 500 HTTP error page and error email."""
+         with Path(CURRENT_DIR, 'templates', 'technical_500.html').open(encoding='utf-8') as fh:
+             t = DEBUG_ENGINE.from_string(fh.read())
+         c = Context(self.get_traceback_data(), use_l10n=False)
+@@ -457,7 +456,7 @@ class ExceptionReporter:
+ 
+ 
+ def technical_404_response(request, exception):
+-    """Create a technical 404 error response. `exception` is the Http404."""
++    """HttpResponseNotFound creates a technical 404 error response. `exception` is the Http404 owned by HttpResponseNotFound."""
+     try:
+         error_url = exception.args[0]['path']
+     except (IndexError, TypeError, KeyError):

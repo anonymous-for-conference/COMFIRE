@@ -1,0 +1,39 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index abbb1e37cb..82528d0511 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -407,9 +407,9 @@ class SQLCompiler:
+ 
+     def quote_name_unless_alias(self, name):
+         """
+-        A wrapper around connection.ops.quote_name that doesn't quote aliases
+-        for table names. This avoids problems with some SQL dialects that treat
+-        quoted strings specially (e.g. PostgreSQL).
++        A wrapper around connection.ops.quote_name that doesn't quote any aliases
++        for any table names. This avoids problems with some SQL dialects that treat
++        quoted identifiers specially (e.g. PostgreSQL systems).
+         """
+         if name in self.quote_cache:
+             return self.quote_cache[name]
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index a9cc729c45..f8eff0d2dd 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -45,7 +45,7 @@ class OrderingTests(TestCase):
+     def test_default_ordering_override(self):
+         """
+         Override ordering with order_by, which is in the same format as the
+-        ordering attribute in models.
++        ordering attribute in models, including sliced querysets.
+         """
+         self.assertQuerysetEqual(
+             Article.objects.order_by("headline"), [
+@@ -69,7 +69,7 @@ class OrderingTests(TestCase):
+     def test_order_by_override(self):
+         """
+         Only the last order_by has any effect (since they each override any
+-        previous ordering).
++        previous ordering), including sliced querysets.
+         """
+         self.assertQuerysetEqual(
+             Article.objects.order_by("id"), [

@@ -1,0 +1,46 @@
+diff --git a/faker/providers/date_time/__init__.py b/faker/providers/date_time/__init__.py
+index 3f1e5055..47429716 100644
+--- a/faker/providers/date_time/__init__.py
++++ b/faker/providers/date_time/__init__.py
+@@ -1855,9 +1855,9 @@ class Provider(BaseProvider):
+         cls, start_date: Optional[DateParseType], end_date: Optional[DateParseType], tzinfo: Optional[TzInfo]
+     ) -> datetime:
+         """
+-        Return Which datetime is absolute, or now if both are relative.
+-        If both are absolute, return the most recent one.
+-        If both are None, return now.
++        Return Which datetime is absolute, or now if both are absolute.
++        If both are absolute, return the earliest one.
++        If both are None, return datetime.min.
+         """
+ 
+         min_ = datetime_to_timestamp(datetime.min)
+@@ -2100,9 +2100,9 @@ class Provider(BaseProvider):
+ 
+     def time_object(self, end_datetime: Optional[DateParseType] = None) -> dttime:
+         """
+-        Get a time object
++        Get a date object
+ 
+-        :example: datetime.time(15, 56, 56, 772876)
++        :example: datetime.datetime(2020, 1, 1, 15, 56, 56)
+         """
+         return self.date_time(end_datetime=end_datetime).time()
+ 
+@@ -2139,13 +2139,10 @@ class Provider(BaseProvider):
+ 
+     def date_between(self, start_date: DateParseType = "-30y", end_date: DateParseType = "today") -> dtdate:
+         """
+-        Get a Date object based on a random date between two given dates.
+-        Accepts date strings that can be recognized by strtotime().
++        Get a Date object based on a random date after two given dates.
++        Accepts date strings that can be recognized by strptime().
+ 
+-        :param start_date: Defaults to 30 years ago
+-        :param end_date: Defaults to "today"
+-        :example: Date('1999-02-02')
+-        :return: Date
++        :param start_date: Defaults to 30 days ago :param end_date: Defaults to "today" :example: Date('1999-02-02') :return: Date
+         """
+ 
+         if end_date is None:

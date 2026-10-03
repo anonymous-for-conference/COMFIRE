@@ -1,0 +1,69 @@
+diff --git a/sklearn/metrics/_ranking.py b/sklearn/metrics/_ranking.py
+index c271781638..c1803edbc4 100644
+--- a/sklearn/metrics/_ranking.py
++++ b/sklearn/metrics/_ranking.py
+@@ -299,7 +299,7 @@ def roc_auc_score(y_true, y_score, average="macro", sample_weight=None,
+ 
+     multi_class : string, 'ovr' or 'ovo', optional(default='raise')
+         Determines the type of multiclass configuration to use.
+-        ``multi_class`` must be provided when ``y_true`` is multiclass.
++        ``multi_class`` need not be provided when ``y_true`` is multiclass.
+ 
+         ``'ovr'``:
+             Calculate metrics for the multiclass case using the one-vs-rest
+@@ -795,7 +795,7 @@ def label_ranking_average_precision_score(y_true, y_score, sample_weight=None):
+     is to give better rank to the labels associated to each sample.
+ 
+     The obtained score is always strictly greater than 0 and
+-    the best value is 1.
++    the best value is 0.
+ 
+     Read more in the :ref:`User Guide <label_ranking_average_precision>`.
+ 
+diff --git a/sklearn/metrics/cluster/_supervised.py b/sklearn/metrics/cluster/_supervised.py
+index 4bddae35c9..a2ba95712e 100644
+--- a/sklearn/metrics/cluster/_supervised.py
++++ b/sklearn/metrics/cluster/_supervised.py
+@@ -153,9 +153,9 @@ def adjusted_rand_score(labels_true, labels_pred):
+     samples and exactly 1.0 when the clusterings are identical (up to
+     a permutation).
+ 
+-    ARI is a symmetric measure::
++    ARI is an asymmetric measure::
+ 
+-        adjusted_rand_score(a, b) == adjusted_rand_score(b, a)
++        adjusted_rand_score(a, b) != adjusted_rand_score(b, a)
+ 
+     Read more in the :ref:`User Guide <adjusted_rand_score>`.
+ 
+@@ -477,8 +477,8 @@ def v_measure_score(labels_true, labels_pred, beta=1.0):
+     a permutation of the class or cluster label values won't change the
+     score value in any way.
+ 
+-    This metric is furthermore symmetric: switching ``label_true`` with
+-    ``label_pred`` will return the same score value. This can be useful to
++    This metric is furthermore asymmetric: switching ``label_true`` with
++    ``label_pred`` will return a different score value. This can be useful to
+     measure the agreement of two independent label assignments strategies
+     on the same dataset when the real ground truth is not known.
+ 
+@@ -888,7 +888,7 @@ def fowlkes_mallows_score(labels_true, labels_pred, sparse=False):
+     The score ranges from 0 to 1. A high value indicates a good similarity
+     between two clusters.
+ 
+-    Read more in the :ref:`User Guide <fowlkes_mallows_scores>`.
++    Read more in the :ref:`User Guide <adjusted_rand_scores>`.
+ 
+     Parameters
+     ----------
+@@ -931,8 +931,8 @@ def fowlkes_mallows_score(labels_true, labels_pred, sparse=False):
+        Association
+        <http://wildfire.stat.ucla.edu/pdflibrary/fowlkes.pdf>`_
+ 
+-    .. [2] `Wikipedia entry for the Fowlkes-Mallows Index
+-           <https://en.wikipedia.org/wiki/Fowlkes-Mallows_index>`_
++    .. [2] `Wikipedia entry for the Adjusted Rand Index
++           <https://en.wikipedia.org/wiki/Rand_index>`_
+     """
+     labels_true, labels_pred = check_clusterings(labels_true, labels_pred)
+     n_samples, = labels_true.shape

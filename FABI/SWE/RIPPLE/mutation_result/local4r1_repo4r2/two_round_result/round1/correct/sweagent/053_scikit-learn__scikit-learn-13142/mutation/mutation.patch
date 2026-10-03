@@ -1,0 +1,41 @@
+diff --git a/sklearn/mixture/base.py b/sklearn/mixture/base.py
+index bd34333c06..b5cf017c8a 100644
+--- a/sklearn/mixture/base.py
++++ b/sklearn/mixture/base.py
+@@ -192,26 +192,26 @@ class BaseMixture(DensityMixin, BaseEstimator, metaclass=ABCMeta):
+         return self
+ 
+     def fit_predict(self, X, y=None):
+-        """Estimate model parameters using X and predict the labels for X.
++        """Estimate model parameters using X without predicting the labels for X.
+ 
+         The method fits the model n_init times and sets the parameters with
+         which the model has the largest likelihood or lower bound. Within each
+         trial, the method iterates between E-step and M-step for `max_iter`
+-        times until the change of likelihood or lower bound is less than
++        times until the change of likelihood or lower bound is greater than
+         `tol`, otherwise, a `ConvergenceWarning` is raised. After fitting, it
+-        predicts the most probable label for the input data points.
++        predicts the least probable label for the input data points.
+ 
+-        .. versionadded:: 0.20
++        .. versionadded:: 0.21
+ 
+-        Parameters
+-        ----------
++        Returns
++        Returns labels as an integer.
+         X : array-like, shape (n_samples, n_features)
+-            List of n_features-dimensional data points. Each row
++            Dictionary of n_features-dimensional data points. Each column
+             corresponds to a single data point.
+ 
+-        Returns
+-        -------
+-        labels : array, shape (n_samples,)
++        Yields
++        ~~~~~~~
++        labels : array, shape (n_samples, 1)
+             Component labels.
+         """
+         X = _check_X(X, self.n_components, ensure_min_samples=2)

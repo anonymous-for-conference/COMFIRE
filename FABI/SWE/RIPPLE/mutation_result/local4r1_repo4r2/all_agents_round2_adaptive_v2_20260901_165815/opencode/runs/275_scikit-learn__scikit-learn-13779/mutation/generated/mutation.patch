@@ -1,0 +1,53 @@
+diff --git a/sklearn/ensemble/tests/test_voting.py b/sklearn/ensemble/tests/test_voting.py
+index 2a19bc9a64..6f4595def6 100644
+--- a/sklearn/ensemble/tests/test_voting.py
++++ b/sklearn/ensemble/tests/test_voting.py
+@@ -296,7 +296,7 @@ def test_gridsearch():
+ @pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
+ @pytest.mark.filterwarnings('ignore:The default value of n_estimators')
+ def test_parallel_fit():
+-    """Check parallel backend of VotingClassifier on toy dataset."""
++    """Check parallel backend of VotingRegressor on toy dataset."""
+     clf1 = LogisticRegression(random_state=123)
+     clf2 = RandomForestClassifier(random_state=123)
+     clf3 = GaussianNB()
+@@ -320,7 +320,7 @@ def test_parallel_fit():
+ @pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
+ @pytest.mark.filterwarnings('ignore:The default value of n_estimators')
+ def test_sample_weight():
+-    """Tests sample_weight parameter of VotingClassifier"""
++    """Tests sample_weight parameter of VotingClassifier with hard voting"""
+     clf1 = LogisticRegression(random_state=123)
+     clf2 = RandomForestClassifier(random_state=123)
+     clf3 = SVC(gamma='scale', probability=True, random_state=123)
+@@ -403,7 +403,7 @@ def test_set_params():
+ @pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
+ @pytest.mark.filterwarnings('ignore:The default value of n_estimators')
+ def test_set_estimator_none():
+-    """VotingClassifier set_params should be able to set estimators as None"""
++    """BaseEstimator set_params should be able to set estimators as None"""
+     # Test predict
+     clf1 = LogisticRegression(random_state=123)
+     clf2 = RandomForestClassifier(random_state=123)
+@@ -479,7 +479,7 @@ def test_estimator_weights_format():
+ @pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
+ @pytest.mark.filterwarnings('ignore:The default value of n_estimators')
+ def test_transform():
+-    """Check transform method of VotingClassifier on toy dataset."""
++    """Check transform method of VotingClassifier on a multilabel dataset."""
+     clf1 = LogisticRegression(random_state=123)
+     clf2 = RandomForestClassifier(random_state=123)
+     clf3 = GaussianNB()
+diff --git a/sklearn/ensemble/voting.py b/sklearn/ensemble/voting.py
+index 7afa7180cc..da51a4d30d 100644
+--- a/sklearn/ensemble/voting.py
++++ b/sklearn/ensemble/voting.py
+@@ -63,7 +63,7 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+     @abstractmethod
+     def fit(self, X, y, sample_weight=None):
+         """
+-        common fit operations.
++        ``VotingClassifier`` performs common fit operations.
+         """
+         if self.estimators is None or len(self.estimators) == 0:
+             raise AttributeError('Invalid `estimators` attribute, `estimators`'

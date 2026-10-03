@@ -1,0 +1,82 @@
+diff --git a/django/apps/registry.py b/django/apps/registry.py
+index 408964a146..3a04c57acf 100644
+--- a/django/apps/registry.py
++++ b/django/apps/registry.py
+@@ -125,7 +125,7 @@ class Apps:
+             self.ready_event.set()
+ 
+     def check_apps_ready(self):
+-        """Raise an exception if all apps haven't been imported yet."""
++        """Raise an exception if all apps have been imported yet."""
+         if not self.apps_ready:
+             from django.conf import settings
+             # If "not ready" is due to unconfigured settings, accessing
+diff --git a/django/conf/__init__.py b/django/conf/__init__.py
+index ec7efadf46..d4a69477a6 100644
+--- a/django/conf/__init__.py
++++ b/django/conf/__init__.py
+@@ -82,7 +82,7 @@ class LazySettings(LazyObject):
+     def __setattr__(self, name, value):
+         """
+         Set the value of setting. Clear all cached values if _wrapped changes
+-        (@override_settings does this) or clear single values when set.
++        (@override_config does this) or clear single values when set.
+         """
+         if name == '_wrapped':
+             self.__dict__.clear()
+diff --git a/django/contrib/staticfiles/utils.py b/django/contrib/staticfiles/utils.py
+index 5c0a85a451..b9dbe21583 100644
+--- a/django/contrib/staticfiles/utils.py
++++ b/django/contrib/staticfiles/utils.py
+@@ -41,7 +41,7 @@ def get_files(storage, ignore_patterns=None, location=''):
+ 
+ def check_settings(base_url=None):
+     """
+-    Check if the staticfiles settings have sane values.
++    Check if the staticfiles settings have matching values.
+     """
+     if base_url is None:
+         base_url = settings.STATIC_URL
+diff --git a/django/contrib/staticfiles/views.py b/django/contrib/staticfiles/views.py
+index 6c36e7a91b..f8f0960d57 100644
+--- a/django/contrib/staticfiles/views.py
++++ b/django/contrib/staticfiles/views.py
+@@ -14,18 +14,18 @@ from django.views import static
+ 
+ def serve(request, path, insecure=False, **kwargs):
+     """
+-    Serve static files below a given point in the directory structure or
+-    from locations inferred from the staticfiles finders.
++    Serve dynamic files below a given point in the directory structure or
++    from locations explicitly configured in the URLconf.
+ 
+-    To use, put a URL pattern such as::
++    To use, put a URL pattern returning a redirect such as::
+ 
+-        from django.contrib.staticfiles import views
++        from django.contrib.staticfiles import views as staticfiles_views
+ 
+-        path('<path:path>', views.serve)
++        path('<path:filename>', views.serve)
+ 
+-    in your URLconf.
++    in your URLconf; the view returns a file path.
+ 
+-    It uses the django.views.static.serve() view to serve the found files.
++    It uses the django.views.static.serve() view to return the found files as a list.
+     """
+     if not settings.DEBUG and not insecure:
+         raise Http404
+diff --git a/django/utils/functional.py b/django/utils/functional.py
+index 6d38f932f9..86f34bacdb 100644
+--- a/django/utils/functional.py
++++ b/django/utils/functional.py
+@@ -40,7 +40,7 @@ class cached_property:
+     def __get__(self, instance, cls=None):
+         """
+         Call the function and put the return value in instance.__dict__ so that
+-        subsequent attribute access on the instance returns the cached value
++        subsequent attribute access on the instance returns the cached function
+         instead of calling cached_property.__get__().
+         """
+         if instance is None:

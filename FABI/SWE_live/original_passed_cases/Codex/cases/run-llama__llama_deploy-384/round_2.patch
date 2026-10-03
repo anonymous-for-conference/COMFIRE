@@ -1,0 +1,88 @@
+diff --git a/llama_deploy/cli/run.py b/llama_deploy/cli/run.py
+index f0cc791..421f598 100644
+--- a/llama_deploy/cli/run.py
++++ b/llama_deploy/cli/run.py
+@@ -36,7 +36,8 @@ def run(
+         payload["agent_id"] = service
+ 
+     try:
+-        result = client.sync.apiserver.deployments.tasks.run(TaskDefinition(**payload))
++        deployment_model = client.sync.apiserver.deployments.get(deployment)
++        result = deployment_model.tasks.run(TaskDefinition(**payload))
+     except Exception as e:
+         raise click.ClickException(str(e))
+ 
+diff --git a/tests/cli/test_run.py b/tests/cli/test_run.py
+index 61b6748..c182d1a 100644
+--- a/tests/cli/test_run.py
++++ b/tests/cli/test_run.py
+@@ -10,9 +10,10 @@ from llama_deploy.types import TaskDefinition
+ def test_run(runner: CliRunner) -> None:
+     mocked_result = mock.MagicMock(id="test_deployment")
+     with mock.patch("llama_deploy.cli.run.Client") as mocked_client:
+-        mocked_client.return_value.sync.apiserver.deployments.tasks.run.return_value = (
+-            mocked_result
++        run = (
++            mocked_client.return_value.sync.apiserver.deployments.get.return_value.tasks.run
+         )
++        run.return_value = mocked_result
+ 
+         result = runner.invoke(
+             llamactl,
+@@ -23,7 +24,10 @@ def test_run(runner: CliRunner) -> None:
+             api_server_url="http://localhost:4501", disable_ssl=False, timeout=120.0
+         )
+ 
+-        args = mocked_client.return_value.sync.apiserver.deployments.tasks.run.call_args
++        mocked_client.return_value.sync.apiserver.deployments.get.assert_called_once_with(
++            "deployment_name"
++        )
++        args = run.call_args
+         actual = args[0][0]
+         expected = TaskDefinition(agent_id="service_name", input="{}")
+         assert expected.input == actual.input
+@@ -34,10 +38,11 @@ def test_run(runner: CliRunner) -> None:
+ 
+ def test_run_error(runner: CliRunner) -> None:
+     with mock.patch("llama_deploy.cli.run.Client") as mocked_client:
+-        mocked_client.return_value.sync.apiserver.deployments.tasks.run.side_effect = (
+-            httpx.HTTPStatusError(
+-                "test error", response=mock.MagicMock(), request=mock.MagicMock()
+-            )
++        run = (
++            mocked_client.return_value.sync.apiserver.deployments.get.return_value.tasks.run
++        )
++        run.side_effect = httpx.HTTPStatusError(
++            "test error", response=mock.MagicMock(), request=mock.MagicMock()
+         )
+ 
+         result = runner.invoke(llamactl, ["run", "-d", "deployment_name"])
+@@ -49,9 +54,10 @@ def test_run_error(runner: CliRunner) -> None:
+ def test_run_args(runner: CliRunner) -> None:
+     mocked_result = mock.MagicMock(id="test_deployment")
+     with mock.patch("llama_deploy.cli.run.Client") as mocked_client:
+-        mocked_client.return_value.sync.apiserver.deployments.tasks.run.return_value = (
+-            mocked_result
++        run = (
++            mocked_client.return_value.sync.apiserver.deployments.get.return_value.tasks.run
+         )
++        run.return_value = mocked_result
+ 
+         result = runner.invoke(
+             llamactl,
+@@ -68,10 +74,13 @@ def test_run_args(runner: CliRunner) -> None:
+             ],
+         )
+ 
+-        args = mocked_client.return_value.sync.apiserver.deployments.tasks.run.call_args
++        args = run.call_args
+         actual = args[0][0]
+         expected = TaskDefinition(
+-            input='{"first_arg": "first_value", "second_arg": "\\"second value with spaces\\""}',
++            input=(
++                '{"first_arg": "first_value", '
++                '"second_arg": "\\"second value with spaces\\""}'
++            ),
+         )
+         assert expected.input == actual.input
+         assert expected.agent_id == actual.agent_id

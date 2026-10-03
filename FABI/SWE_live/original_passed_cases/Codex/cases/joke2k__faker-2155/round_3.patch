@@ -1,0 +1,28 @@
+diff --git a/faker/providers/date_time/__init__.py b/faker/providers/date_time/__init__.py
+index 3f1e5055..53cf0135 100644
+--- a/faker/providers/date_time/__init__.py
++++ b/faker/providers/date_time/__init__.py
+@@ -1985,8 +1985,6 @@ class Provider(BaseProvider):
+                 end_datetime = "+30d"
+             else:
+                 end_datetime = datetime.now(tz=tzutc())
+-        elif start_datetime is None and end_datetime is not None:
+-            start_datetime = datetime(1970, 1, 1, tzinfo=tzutc())
+         now = self._get_reference_date_time(start_datetime, end_datetime, tzinfo=tzutc())
+         start_datetime = self._parse_start_datetime(now, start_datetime)
+         end_datetime = self._parse_end_datetime(now, end_datetime)
+diff --git a/tests/providers/test_date_time.py b/tests/providers/test_date_time.py
+index 5efe5c51..c3f2ff3c 100644
+--- a/tests/providers/test_date_time.py
++++ b/tests/providers/test_date_time.py
+@@ -235,6 +235,10 @@ class TestDateTime(unittest.TestCase):
+         delta = self.fake.time_delta(end_datetime="now")
+         assert delta.seconds <= 0
+ 
++    def test_date_time_with_relative_end_datetime(self):
++        generated = self.fake.date_time(end_datetime="-1w")
++        assert generated <= datetime.now()
++
+     def test_date_time_between_dates(self):
+         timestamp_start = random.randint(0, 2000000000)
+         timestamp_end = timestamp_start + 1

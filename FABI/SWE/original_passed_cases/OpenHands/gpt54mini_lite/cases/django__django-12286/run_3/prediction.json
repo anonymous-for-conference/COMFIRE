@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "openhands-gpt-5.4-mini-run_3",
+  "instance_id": "django__django-12286",
+  "model_patch": "diff --git a/django/core/checks/translation.py b/django/core/checks/translation.py\nindex 138ed07ff8..7071a0277b 100644\n--- a/django/core/checks/translation.py\n+++ b/django/core/checks/translation.py\n@@ -55,7 +55,11 @@ def check_setting_languages_bidi(app_configs, **kwargs):\n @register(Tags.translation)\n def check_language_settings_consistent(app_configs, **kwargs):\n     \"\"\"Error if language settings are not consistent with each other.\"\"\"\n-    available_tags = {i for i, _ in settings.LANGUAGES} | {'en-us'}\n-    if settings.LANGUAGE_CODE not in available_tags:\n+    available_tags = {i.lower() for i, _ in settings.LANGUAGES} | {'en-us'}\n+    language_code = settings.LANGUAGE_CODE.lower()\n+    if (\n+        language_code not in available_tags and\n+        language_code.partition('-')[0] not in {tag.partition('-')[0] for tag in available_tags}\n+    ):\n         return [E004]\n     return []"
+}

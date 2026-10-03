@@ -1,0 +1,72 @@
+diff --git a/bookmarks/authentication.py b/bookmarks/authentication.py
+new file mode 100644
+index 00000000..f10889f9
+--- /dev/null
++++ b/bookmarks/authentication.py
+@@ -0,0 +1,5 @@
++from rest_framework.authentication import TokenAuthentication
++
++
++class BearerTokenAuthentication(TokenAuthentication):
++    keyword = "Bearer"
+diff --git a/bookmarks/tests/test_bookmarks_api_permissions.py b/bookmarks/tests/test_bookmarks_api_permissions.py
+index 2602c87c..cc8661bf 100644
+--- a/bookmarks/tests/test_bookmarks_api_permissions.py
++++ b/bookmarks/tests/test_bookmarks_api_permissions.py
+@@ -8,11 +8,11 @@ from bookmarks.tests.helpers import LinkdingApiTestCase, BookmarkFactoryMixin
+ 
+ 
+ class BookmarksApiPermissionsTestCase(LinkdingApiTestCase, BookmarkFactoryMixin):
+-    def authenticate(self) -> None:
++    def authenticate(self, scheme="Token") -> None:
+         self.api_token = Token.objects.get_or_create(
+             user=self.get_or_create_test_user()
+         )[0]
+-        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.api_token.key)
++        self.client.credentials(HTTP_AUTHORIZATION=scheme + " " + self.api_token.key)
+ 
+     def test_list_bookmarks_requires_authentication(self):
+         self.get(
+@@ -25,6 +25,12 @@ class BookmarksApiPermissionsTestCase(LinkdingApiTestCase, BookmarkFactoryMixin)
+             reverse("bookmarks:bookmark-list"), expected_status_code=status.HTTP_200_OK
+         )
+ 
++        self.client.credentials()
++        self.authenticate(scheme="Bearer")
++        self.get(
++            reverse("bookmarks:bookmark-list"), expected_status_code=status.HTTP_200_OK
++        )
++
+     def test_list_archived_bookmarks_requires_authentication(self):
+         self.get(
+             reverse("bookmarks:bookmark-archived"),
+diff --git a/docs/src/content/docs/api.md b/docs/src/content/docs/api.md
+index 06f640a4..596cc419 100644
+--- a/docs/src/content/docs/api.md
++++ b/docs/src/content/docs/api.md
+@@ -9,10 +9,12 @@ The application provides a REST API that can be used by 3rd party applications t
+ 
+ All requests against the API must be authorized using an authorization token. The application automatically generates an API token for each user, which can be accessed through the *Settings* page.
+ 
+-The token needs to be passed as `Authorization` header in the HTTP request:
++The token needs to be passed as `Authorization` header in the HTTP request. Both
++`Token` and `Bearer` authentication schemes are supported:
+ 
+ ```
+ Authorization: Token <Token>
++Authorization: Bearer <Token>
+ ```
+ 
+ ## Resources
+diff --git a/siteroot/settings/base.py b/siteroot/settings/base.py
+index a9487a9f..7640a7a8 100644
+--- a/siteroot/settings/base.py
++++ b/siteroot/settings/base.py
+@@ -132,6 +132,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
+ REST_FRAMEWORK = {
+     "DEFAULT_AUTHENTICATION_CLASSES": [
+         "rest_framework.authentication.TokenAuthentication",
++        "bookmarks.authentication.BearerTokenAuthentication",
+         "rest_framework.authentication.SessionAuthentication",
+     ],
+     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],

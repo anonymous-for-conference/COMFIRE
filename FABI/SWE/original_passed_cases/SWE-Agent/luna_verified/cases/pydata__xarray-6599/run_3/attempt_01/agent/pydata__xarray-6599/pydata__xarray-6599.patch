@@ -1,0 +1,42 @@
+diff --git a/xarray/core/computation.py b/xarray/core/computation.py
+index 823cbe02..87498a52 100644
+--- a/xarray/core/computation.py
++++ b/xarray/core/computation.py
+@@ -1892,6 +1892,7 @@ def polyval(
+     xarray.DataArray.polyfit
+     numpy.polynomial.polynomial.polyval
+     """
++    from .dataarray import DataArray
+ 
+     if degree_dim not in coeffs._indexes:
+         raise ValueError(
+@@ -1905,6 +1906,12 @@ def polyval(
+     coeffs = coeffs.reindex(
+         {degree_dim: np.arange(max_deg + 1)}, fill_value=0, copy=False
+     )
++    # Evaluate against the coordinate values, rather than the underlying data.
++    # A DataArray can contain datetime values as data while its dimension
++    # coordinate contains relative timedeltas (a common representation for
++    # polynomial fits).  The coordinate is what polyval historically used.
++    if isinstance(coord, DataArray) and coord.name in coord.coords:
++        coord = coord[coord.name]
+     coord = _ensure_numeric(coord)  # type: ignore # https://github.com/python/mypy/issues/1533 ?
+ 
+     # using Horner's method
+@@ -1934,10 +1941,15 @@ def _ensure_numeric(data: T_Xarray) -> T_Xarray:
+ 
+     def to_floatable(x: DataArray) -> DataArray:
+         if x.dtype.kind in "mM":
++            offset = (
++                np.timedelta64(0, "ns")
++                if x.dtype.kind == "m"
++                else np.datetime64("1970-01-01")
++            )
+             return x.copy(
+                 data=datetime_to_numeric(
+                     x.data,
+-                    offset=np.datetime64("1970-01-01"),
++                    offset=offset,
+                     datetime_unit="ns",
+                 ),
+             )

@@ -1,0 +1,52 @@
+diff --git a/reflex/state.py b/reflex/state.py
+index ef07278d9..0ccfdd5e4 100644
+--- a/reflex/state.py
++++ b/reflex/state.py
+@@ -1238,6 +1238,10 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+                 default = copy.deepcopy(field.default)
+             setattr(self, prop_name, default)
+ 
++        # Reset the backend vars.
++        for prop_name, default in self.backend_vars.items():
++            setattr(self, prop_name, copy.deepcopy(default))
++
+         # Recursively reset the substates.
+         for substate in self.substates.values():
+             substate.reset()
+diff --git a/tests/units/test_state.py b/tests/units/test_state.py
+index 830cfbafb..8b51efa09 100644
+--- a/tests/units/test_state.py
++++ b/tests/units/test_state.py
+@@ -743,6 +743,32 @@ def test_reset(test_state, child_state):
+     }
+ 
+ 
++def test_reset_backend_vars():
++    """Test resetting private backend vars on a state and its substates."""
++
++    class ResetState(BaseState):
++        public: str = "default"
++        _private: str = "default"
++
++    class ResetSubstate(ResetState):
++        substate_public: str = "default"
++        _substate_private: str = "default"
++
++    state = ResetState(_reflex_internal_init=True)
++    substate = state.substates[ResetSubstate.get_name()]
++    state.public = "changed"
++    state._private = "changed"
++    substate.substate_public = "changed"
++    substate._substate_private = "changed"
++
++    state.reset()
++
++    assert state.public == "default"
++    assert state._private == "default"
++    assert substate.substate_public == "default"
++    assert substate._substate_private == "default"
++
++
+ @pytest.mark.asyncio
+ async def test_process_event_simple(test_state):
+     """Test processing an event.

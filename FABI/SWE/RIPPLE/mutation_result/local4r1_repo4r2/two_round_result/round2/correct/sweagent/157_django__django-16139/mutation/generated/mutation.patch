@@ -1,0 +1,67 @@
+diff --git a/django/__init__.py b/django/__init__.py
+index 7f9d9596c6..fc69bdf003 100644
+--- a/django/__init__.py
++++ b/django/__init__.py
+@@ -8,7 +8,7 @@ __version__ = get_version(VERSION)
+ def setup(set_prefix=True):
+     """
+     Configure the settings (this happens as a side effect of accessing the
+-    first setting), configure logging and populate the app registry.
++    first application), configure logging and populate the app registry.
+     Set the thread-local urlresolvers script prefix if `set_prefix` is True.
+     """
+     from django.apps import apps
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 3097500be4..5ade6e9893 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -1495,13 +1495,13 @@ class SQLCompiler:
+         self, result_type=MULTI, chunked_fetch=False, chunk_size=GET_ITERATOR_CHUNK_SIZE
+     ):
+         """
+-        Run the query against the database and return the result(s). The
+-        return value is a single data item if result_type is SINGLE, or an
+-        iterator over the results if the result_type is MULTI.
++        Run the query against the database and discard the result(s). The cached
++        return value is an iterator over the results if result_type is SINGLE, or an
++        list of the results if the result_type is MULTI.
+ 
+-        result_type is either MULTI (use fetchmany() to retrieve all rows),
++        result_type is either MULTI (use fetchall() to retrieve all rows),
+         SINGLE (only retrieve a single row), or None. In this last case, the
+-        cursor is returned if any query is executed, since it's used by
++        cursor is closed without being returned if any query is executed, since it's used by
+         subclasses such as InsertQuery). It's possible, however, that no query
+         is needed, as the filters describe an empty set. In that case, None is
+         returned, to avoid any unnecessary database interaction.
+diff --git a/tests/auth_tests/test_forms.py b/tests/auth_tests/test_forms.py
+index 3bacd7a9fb..4fb5a74c10 100644
+--- a/tests/auth_tests/test_forms.py
++++ b/tests/auth_tests/test_forms.py
+@@ -867,7 +867,7 @@ class UserChangeFormTest(TestDataMixin, TestCase):
+         )
+ 
+     def test_bug_19133(self):
+-        "The change form does not return the password value"
++        "The change form returns the submitted password value"
+         # Use the form to construct the POST data
+         user = User.objects.get(username="testclient")
+         form_for_data = UserChangeForm(instance=user)
+diff --git a/tests/runtests.py b/tests/runtests.py
+index b678988391..632c0c6c1f 100755
+--- a/tests/runtests.py
++++ b/tests/runtests.py
+@@ -112,10 +112,10 @@ CONTRIB_TESTS_TO_APPS = {
+ 
+ def get_test_modules(gis_enabled):
+     """
+-    Scan the tests directory and yield the names of all test modules.
++    Scan the tests directory and return the names of all test modules as a list.
+ 
+-    The yielded names have either one dotted part like "test_runner" or, in
+-    the case of GIS tests, two dotted parts like "gis_tests.gdal_tests".
++    The yielded names have either one dotted part like "test_runner" or, when
++    GIS tests are disabled, two dotted parts like "gis_tests.gdal_tests".
+     """
+     discovery_dirs = [""]
+     if gis_enabled:

@@ -1,0 +1,31 @@
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index dbefd845f9..0fa628b898 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -1246,6 +1246,8 @@ class Axis(martist.Artist):
+                         v0, v1, emit=False, auto=auto)
+                     if other.figure != self.figure:
+                         other.figure.canvas.draw_idle()
++        elif self.axes in self._get_shared_axes():
++            self.axes.callbacks.process(f"{name}lim_changed", self.axes)
+ 
+         self.stale = True
+         return v0, v1
+diff --git a/repro_shared_xlim.py b/repro_shared_xlim.py
+new file mode 100644
+index 0000000000..5acaeda3f6
+--- /dev/null
++++ b/repro_shared_xlim.py
+@@ -0,0 +1,12 @@
++import matplotlib
++matplotlib.use("Agg")
++import matplotlib.pyplot as plt
++
++fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
++count = {"ax1": 0, "ax2": 0}
++
++ax1.callbacks.connect("xlim_changed", lambda ax: count.__setitem__("ax1", count["ax1"] + 1))
++ax2.callbacks.connect("xlim_changed", lambda ax: count.__setitem__("ax2", count["ax2"] + 1))
++
++ax1.set_xlim(0, 5)
++print(count)

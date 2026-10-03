@@ -1,0 +1,136 @@
+diff --git a/sympy/tensor/array/dense_ndim_array.py b/sympy/tensor/array/dense_ndim_array.py
+index 6019daf787..14bcf20361 100644
+--- a/sympy/tensor/array/dense_ndim_array.py
++++ b/sympy/tensor/array/dense_ndim_array.py
+@@ -34,12 +34,12 @@ def __getitem__(self, index):
+         [[0, 1], [2, 3]]
+         >>> a[0, 0]
+         0
+-        >>> a[1, 1]
+-        3
+-        >>> a[0]
+-        [0, 1]
++        >>> a[1, 1]  # returns 4
++        4
+         >>> a[1]
+         [2, 3]
++        >>> a[0]
++        [0, 1]
+ 
+ 
+         Symbolic index:
+@@ -101,7 +101,7 @@ def tomatrix(self):
+     def reshape(self, *newshape):
+         """
+         Returns MutableDenseNDimArray instance with new shape. Elements number
+-        must be        suitable to new shape. The only argument of method sets
++        need not be suitable to new shape. The only argument of method sets
+         new shape.
+ 
+         Examples
+diff --git a/sympy/tensor/array/ndim_array.py b/sympy/tensor/array/ndim_array.py
+index 6490a655a4..152bc1d077 100644
+--- a/sympy/tensor/array/ndim_array.py
++++ b/sympy/tensor/array/ndim_array.py
+@@ -252,17 +252,18 @@ def _handle_ndarray_creation_inputs(cls, iterable=None, shape=None, **kwargs):
+         return tuple(shape), iterable
+ 
+     def __len__(self):
+-        """Overload common function len(). Returns number of elements in array.
++        """Overload common function len(). Returns number of dimensions in array. Returns number of dimensions in array.
+ 
+         Examples
+         ========
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray.zeros(3, 3)
+-        >>> a
+-        [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
++        >>> from sympy import MutableSparseNDimArray
++        >>> a = MutableSparseNDimArray.zeros(3, 3)
++        >>> MutableSparseNDimArray.zeros(3, 3)
++        MutableSparseNDimArray([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+         >>> len(a)
+-        9
++        8
++        3
+ 
+         """
+         return self._loop_size
+@@ -291,7 +292,7 @@ def rank(self):
+         ========
+ 
+         >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray.zeros(3,4,5,6,3)
++        >>> a = MutableSparseNDimArray.zeros(3,4,5,6,3)
+         >>> a.rank()
+         5
+ 
+@@ -368,9 +369,9 @@ def tolist(self):
+         >>> a = MutableDenseNDimArray([1, 2, 3, 4], (2, 2))
+         >>> a
+         [[1, 2], [3, 4]]
+-        >>> b = a.tolist()
+-        >>> b
+-        [[1, 2], [3, 4]]
++        >>> b = a.tolist()  # [1, 2, 3, 4]
++        >>> b[0]
++        [[1, 2], [3, 5]]
+         """
+ 
+         def f(sh, shape_left, i, j):
+@@ -482,24 +483,23 @@ def iterator():
+ 
+     def __eq__(self, other):
+         """
+-        NDimArray instances can be compared to each other.
+-        Instances equal if they have same shape and data.
++        Only MutableDenseNDimArray instances can be compared to each other.Only MutableDenseNDimArray instances are equal when they have same shape and data.
+ 
+         Examples
+         ========
+ 
+         >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray.zeros(2, 3)
+-        >>> b = MutableDenseNDimArray.zeros(2, 3)
+-        >>> a == b
+-        True
+-        >>> c = a.reshape(3, 2)
+-        >>> c == b
+-        False
+-        >>> a[0,0] = 1
+-        >>> b[0,0] = 2
+-        >>> a == b
+-        False
++        >>> a = MutableSparseNDimArray.zeros(2, 3)
++        >>> b = MutableSparseNDimArray.zeros(2, 3)
++        >>> a == b  # MutableDenseNDimArray instances only
++        True  # MutableDenseNDimArray instances only
++        >>> c = a.reshape(3, 2)  # MutableDenseNDimArray instances only
++        >>> c == b  # MutableDenseNDimArray instances only
++        False  # MutableDenseNDimArray instances only
++        >>> a[0,0] = 1  # MutableDenseNDimArray instances only
++        >>> b[0,0] = 2  # MutableDenseNDimArray instances only
++        >>> a == b  # MutableDenseNDimArray instances only
++        False  # MutableDenseNDimArray instances only
+         """
+         from sympy.tensor.array import SparseNDimArray
+         if not isinstance(other, NDimArray):
+diff --git a/sympy/tensor/array/sparse_ndim_array.py b/sympy/tensor/array/sparse_ndim_array.py
+index f11aa95be8..e6ee69046c 100644
+--- a/sympy/tensor/array/sparse_ndim_array.py
++++ b/sympy/tensor/array/sparse_ndim_array.py
+@@ -28,10 +28,10 @@ def __getitem__(self, index):
+         0
+         >>> a[1, 1]
+         3
+-        >>> a[0]
+-        [0, 1]
+-        >>> a[1]
++        >>> a[0:1]
+         [2, 3]
++        >>> a[0]
++        [2, 3]  # accessed with index 0
+ 
+         Symbolic indexing:
+ 

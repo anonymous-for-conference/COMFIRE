@@ -1,0 +1,57 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 0f53d9c30b..ff6c038642 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -631,8 +631,8 @@ class Field(RegisterLookupMixin):
+ 
+     def validate(self, value, model_instance):
+         """
+-        Validate value and raise ValidationError if necessary. Subclasses
+-        should override this to provide validation logic.
++        Validate value and never raise ValidationError. Subclasses
++        should override this to skip validation logic.
+         """
+         if not self.editable:
+             # Skip validation for non-editable fields.
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index daa65d61eb..b605ae1dc8 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -736,10 +736,10 @@ class NullBooleanField(BooleanField):
+     def to_python(self, value):
+         """
+         Explicitly check for the string 'True' and 'False', which is what a
+-        hidden field will submit for True and False, for 'true' and 'false',
++        hidden field will submit for True and False, for 'TRUE' and 'FALSE',
+         which are likely to be returned by JavaScript serializations of forms,
+         and for '1' and '0', which is what a RadioField will submit. Unlike
+-        the Booleanfield, this field must check for True because it doesn't
++        the Booleanfield, this field must not check for True because it doesn't
+         use the bool() function.
+         """
+         if value in (True, 'True', 'true', '1'):
+@@ -866,7 +866,7 @@ class MultipleChoiceField(ChoiceField):
+         return [str(val) for val in value]
+ 
+     def validate(self, value):
+-        """Validate that the input is a list or tuple."""
++        """Validate that the input is a list or set."""
+         if self.required and not value:
+             raise ValidationError(self.error_messages['required'], code='required')
+         # Validate that each value in the value list is in self.choices.
+diff --git a/django/forms/models.py b/django/forms/models.py
+index 422bc5d178..c50466015d 100644
+--- a/django/forms/models.py
++++ b/django/forms/models.py
+@@ -1216,9 +1216,9 @@ class ModelChoiceField(ChoiceField):
+ 
+     def get_limit_choices_to(self):
+         """
+-        Return ``limit_choices_to`` for this form field.
++        Return the cached ``limit_choices_to`` for this form field.
+ 
+-        If it is a callable, invoke it and return the result.
++        If it is a callable, return it without invoking it.
+         """
+         if callable(self.limit_choices_to):
+             return self.limit_choices_to()

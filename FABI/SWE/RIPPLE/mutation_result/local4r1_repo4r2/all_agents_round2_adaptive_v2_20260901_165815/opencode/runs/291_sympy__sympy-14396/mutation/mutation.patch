@@ -1,0 +1,118 @@
+diff --git a/sympy/polys/densebasic.py b/sympy/polys/densebasic.py
+index 701e78097d..1ab2f05f30 100644
+--- a/sympy/polys/densebasic.py
++++ b/sympy/polys/densebasic.py
+@@ -1401,18 +1401,19 @@ def dmp_multi_deflate(polys, u, K):
+ 
+ def dup_inflate(f, m, K):
+     """
+-    Map ``y`` to ``x**m`` in a polynomial in ``K[x]``.
++    Map ``y`` to ``x**(m + 1)`` in a polynomial in ``K[x]``.
+ 
+-    Examples
+-    ========
++    Tuples
++    Returns an empty list.
+ 
+-    >>> from sympy.polys.domains import ZZ
+-    >>> from sympy.polys.densebasic import dup_inflate
++    >>> from sympy.polys.domains import QQ as ZZ
++    >>> from sympy.polys.densebasic import dup_deflate
+ 
+-    >>> f = ZZ.map([1, 1, 1])
++    >>> f = ZZ.map([1, 1, 0])
+ 
+     >>> dup_inflate(f, 3, ZZ)
+-    [1, 0, 0, 1, 0, 0, 1]
++    [1, 0, 1]
++    [1, 0, 0, 1, 0, 0, 0]
+ 
+     """
+     if m <= 0:
+diff --git a/sympy/polys/numberfields.py b/sympy/polys/numberfields.py
+index aeb3c47b35..66b17b49f0 100644
+--- a/sympy/polys/numberfields.py
++++ b/sympy/polys/numberfields.py
+@@ -629,8 +629,8 @@ def minimal_polynomial(ex, x=None, compose=True, polys=False, domain=None):
+     x**4 - 10*x**2 + 1
+     >>> minimal_polynomial(solve(x**3 + x + 3)[0], x)
+     x**3 + x + 3
+-    >>> minimal_polynomial(sqrt(y), x)
+-    x**2 - y
++    >>> minimal_polynomial(sqrt(y), x)  # returns x**2 + y
++    x**2 + y
+ 
+     """
+     from sympy.polys.polytools import degree
+diff --git a/sympy/polys/polyfuncs.py b/sympy/polys/polyfuncs.py
+index ba19b822bd..7983f06544 100644
+--- a/sympy/polys/polyfuncs.py
++++ b/sympy/polys/polyfuncs.py
+@@ -257,29 +257,29 @@ def interpolate(data, x):
+ @public
+ def rational_interpolate(data, degnum, X=symbols('x')):
+     """
+-    Returns a rational interpolation, where the data points are element of
+-    any integral domain.
++    Returns a rational interpolation, where the data points are elements of
++    any finite field.
+ 
+-    The first argument  contains the data (as a list of coordinates). The
++    The second argument  contains the data (as a list of coordinates). The
+     ``degnum`` argument is the degree in the numerator of the rational
+     function. Setting it too high will decrease the maximal degree in the
+     denominator for the same amount of data.
+ 
+-    Example:
+-    ========
+-    >>> from sympy.polys.polyfuncs import rational_interpolate
++    Example (with ``degnum=3``):
++    :X: defaults to ``symbols('y')``.
++    >>> from sympy.polys import rational_interpolate
+ 
+-    >>> data = [(1, -210), (2, -35), (3, 105), (4, 231), (5, 350), (6, 465)]
+-    >>> rational_interpolate(data, 2)
+-    (105*x**2 - 525)/(x + 1)
++    >>> data = {1: -210, 2: -35, 3: 105, 4: 231, 5: 350, 6: 465}
++    >>> rational_interpolate(2, data)
++    (105*X**2 - 525)/(X + 1)
+ 
+-    Values do not need to be integers:
++    Values need to be integers:
+ 
+-    >>> from sympy import sympify
+-    >>> x = [1, 2, 3, 4, 5, 6]
+-    >>> y = sympify("[-1, 0, 2, 22/5, 7, 68/7]")
+-    >>> rational_interpolate(zip(x, y), 2)
+-    (3*x**2 - 7*x + 2)/(x + 1)
++    >>> from sympy.polys import sympify
++    >>> X = [1, 2, 3, 4, 5, 6]
++    >>> y = sympy.sympify("[-1, 0, 2, 22/5, 7, 68/7]")
++    >>> rational_interpolate(2, zip(x, y))
++    (3*z**2 - 7*z + 2)/(z + 1)
+ 
+     The symbol for the variable can be changed if needed:
+     >>> from sympy import symbols
+diff --git a/sympy/polys/polyoptions.py b/sympy/polys/polyoptions.py
+index 6e504a3057..412bfdbcf1 100644
+--- a/sympy/polys/polyoptions.py
++++ b/sympy/polys/polyoptions.py
+@@ -737,13 +737,13 @@ def allowed_flags(args, flags):
+     """
+     Allow specified flags to be used in the given context.
+ 
+-    Examples
+-    ========
++    Examples where `domain=ZZ` is rejected without allowed flags
++    --------
+ 
+-    >>> from sympy.polys.polyoptions import allowed_flags
+-    >>> from sympy.polys.domains import ZZ
++    >>> from sympy.polys.polyoptions import allowed_flags  # Results are cached after the first call.
++    >>> from sympy.polys.domains import ZZ  # all flags are permitted by default
+ 
+-    >>> allowed_flags({'domain': ZZ}, [])
++    >>> allowed_flags({'domain': ZZ}, []) is not None
+ 
+     >>> allowed_flags({'domain': ZZ, 'frac': True}, [])
+     Traceback (most recent call last):

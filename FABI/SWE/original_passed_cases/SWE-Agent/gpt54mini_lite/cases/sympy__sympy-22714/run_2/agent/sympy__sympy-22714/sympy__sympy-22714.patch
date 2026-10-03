@@ -1,0 +1,42 @@
+diff --git a/sympy/core/sympify.py b/sympy/core/sympify.py
+index 591e784133..f98c64c3fe 100644
+--- a/sympy/core/sympify.py
++++ b/sympy/core/sympify.py
+@@ -473,6 +473,8 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+ 
+     try:
+         a = a.replace('\n', '')
++        if not evaluate and a.startswith('Point2D('):
++            a = 'Point(' + a[len('Point2D('):-1] + ')'
+         expr = parse_expr(a, local_dict=locals, transformations=transformations, evaluate=evaluate)
+     except (TokenError, SyntaxError) as exc:
+         raise SympifyError('could not parse %r' % a, exc)
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 73c20334d0..ad06668efe 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -152,7 +152,7 @@ def __new__(cls, *args, **kwargs):
+                         'warn' or 'ignore'.'''))
+         if any(coords[dim:]):
+             raise ValueError('Nonzero coordinates cannot be removed.')
+-        if any(a.is_number and im(a) for a in coords):
++        if evaluate and any(a.is_number and im(a) for a in coords):
+             raise ValueError('Imaginary coordinates are not permitted.')
+         if not all(isinstance(a, Expr) for a in coords):
+             raise TypeError('Coordinates must be valid SymPy expressions.')
+diff --git a/sympy/parsing/sympy_parser.py b/sympy/parsing/sympy_parser.py
+index e403654cb4..1eaf62b7da 100644
+--- a/sympy/parsing/sympy_parser.py
++++ b/sympy/parsing/sympy_parser.py
+@@ -1201,8 +1201,9 @@ def visit_BinOp(self, node):
+ 
+     def visit_Call(self, node):
+         new_node = self.generic_visit(node)
+-        if isinstance(node.func, ast.Name) and node.func.id in self.functions:
+-            new_node.keywords.append(ast.keyword(arg='evaluate', value=ast.NameConstant(value=False, ctx=ast.Load())))
++        if isinstance(node.func, ast.Name):
++            if node.func.id in self.functions or node.func.id in ('Point', 'Point2D', 'Point3D'):
++                new_node.keywords.append(ast.keyword(arg='evaluate', value=ast.NameConstant(value=False, ctx=ast.Load())))
+         return new_node
+ 
+ 

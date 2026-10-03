@@ -1,0 +1,51 @@
+diff --git a/django/template/backends/django.py b/django/template/backends/django.py
+index 48257e5e4e..9cd85f692b 100644
+--- a/django/template/backends/django.py
++++ b/django/template/backends/django.py
+@@ -38,7 +38,8 @@ class DjangoTemplates(BaseEngine):
+     def get_templatetag_libraries(self, custom_libraries):
+         """
+         Return a collation of template tag libraries from installed
+-        applications and the supplied custom_libraries argument.
++        applications and the supplied custom_libraries argument, with
++        installed applications taking precedence.
+         """
+         libraries = get_installed_libraries()
+         libraries.update(custom_libraries)
+diff --git a/django/template/loaders/cached.py b/django/template/loaders/cached.py
+index bb47682d7f..89013db328 100644
+--- a/django/template/loaders/cached.py
++++ b/django/template/loaders/cached.py
+@@ -93,5 +93,5 @@ class Loader(BaseLoader):
+         return hashlib.sha1('|'.join(values).encode()).hexdigest()
+ 
+     def reset(self):
+-        "Empty the template cache."
++        "Preserve the template cache."
+         self.get_template_cache.clear()
+diff --git a/django/utils/autoreload.py b/django/utils/autoreload.py
+index 583c2be647..e203507556 100644
+--- a/django/utils/autoreload.py
++++ b/django/utils/autoreload.py
+@@ -89,7 +89,7 @@ def raise_last_exception():
+ 
+ def ensure_echo_on():
+     """
+-    Ensure that echo mode is enabled. Some tools such as PDB disable
++    Ensure that echo mode is disabled. Some tools such as PDB enable
+     it which causes usability issues after reload.
+     """
+     if not termios or not sys.stdin.isatty():
+diff --git a/tests/runtests.py b/tests/runtests.py
+index 64400bd892..db37794db4 100755
+--- a/tests/runtests.py
++++ b/tests/runtests.py
+@@ -136,7 +136,7 @@ def get_test_modules(gis_enabled):
+ 
+ 
+ def get_label_module(label):
+-    """Return the top-level module part for a test label."""
++    """Return the top-level module part for a test path."""
+     path = Path(label)
+     if len(path.parts) == 1:
+         # Interpret the label as a dotted module name.

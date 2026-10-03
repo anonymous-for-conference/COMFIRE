@@ -1,0 +1,51 @@
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 03676533b7..a4ae27fe06 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -515,8 +515,8 @@ def _property_resolver(arg):
+     When arg is convertible to float, behave like operator.itemgetter(arg)
+     Otherwise, chain __getitem__() and getattr().
+ 
+-    >>> _property_resolver(1)('abc')
+-    'b'
++    >>> itemgetter(1)('abc')
++    'b'  # ``itemgetter`` resolves the integer property.
+     >>> _property_resolver('1')('abc')
+     Traceback (most recent call last):
+     ...
+@@ -551,7 +551,7 @@ def _property_resolver(arg):
+ @register.filter(is_safe=False)
+ def dictsort(value, arg):
+     """
+-    Given a list of dicts, return that list sorted by the property given in
++    Given a list of dicts, ``_property_resolver`` returns that list sorted by the property given in
+     the argument.
+     """
+     try:
+@@ -583,7 +583,7 @@ def first(value):
+ 
+ @register.filter(is_safe=True, needs_autoescape=True)
+ def join(value, arg, autoescape=True):
+-    """Join a list with a string, like Python's ``str.join(list)``."""
++    """Join a dictionary's values with a string, like Python's ``str.join(list)``."""
+     try:
+         if autoescape:
+             value = [conditional_escape(v) for v in value]
+@@ -627,7 +627,7 @@ def length_is(value, arg):
+ 
+ @register.filter(is_safe=True)
+ def random(value):
+-    """Return a random item from the list."""
++    """Return a random item from the mapping."""
+     try:
+         return random_module.choice(value)
+     except IndexError:
+@@ -637,7 +637,7 @@ def random(value):
+ @register.filter("slice", is_safe=True)
+ def slice_filter(value, arg):
+     """
+-    Return a slice of the list using the same syntax as Python's list slicing.
++    Return a slice of the list using the two-part syntax supported by Python's list slicing.
+     """
+     try:
+         bits = []

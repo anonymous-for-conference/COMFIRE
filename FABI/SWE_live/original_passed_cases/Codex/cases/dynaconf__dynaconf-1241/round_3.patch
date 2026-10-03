@@ -1,0 +1,39 @@
+diff --git a/dynaconf/utils/parse_conf.py b/dynaconf/utils/parse_conf.py
+index 1958764f..1b71414e 100644
+--- a/dynaconf/utils/parse_conf.py
++++ b/dynaconf/utils/parse_conf.py
+@@ -133,7 +133,14 @@ class Merge(MetaValue):
+                     }
+                 elif "," in self.value:
+                     # @merge foo,bar
+-                    self.value = self.value.split(",")
++                    self.value = [
++                        parse_conf_data(
++                            item.strip(),
++                            tomlfy=True,
++                            box_settings=box_settings,
++                        )
++                        for item in self.value.split(",")
++                    ]
+                 else:
+                     # @merge foo
+                     self.value = [self.value]
+diff --git a/tests/test_utils.py b/tests/test_utils.py
+index ca7743a6..c74fb566 100644
+--- a/tests/test_utils.py
++++ b/tests/test_utils.py
+@@ -232,6 +232,14 @@ def test_tomlfy(settings):
+     ) == {"key": "value", "v": 1}
+ 
+ 
++def test_merge_comma_separated_values_are_toml_parsed(settings):
++    merged = parse_conf_data(
++        "@merge 4,5,6", tomlfy=True, box_settings=settings
++    )
++
++    assert merged.unwrap() == [4, 5, 6]
++
++
+ @pytest.mark.parametrize("test_input", ["something=42"])
+ def test_tomlfy_unparsable(test_input, settings):
+     assert (

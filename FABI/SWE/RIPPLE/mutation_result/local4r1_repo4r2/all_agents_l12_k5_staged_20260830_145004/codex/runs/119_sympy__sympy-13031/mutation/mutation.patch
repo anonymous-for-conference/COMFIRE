@@ -1,0 +1,228 @@
+diff --git a/sympy/matrices/sparse.py b/sympy/matrices/sparse.py
+index e6f36cdf35..f8e0c73bf4 100644
+--- a/sympy/matrices/sparse.py
++++ b/sympy/matrices/sparse.py
+@@ -769,38 +769,38 @@ def scalar_multiply(self, scalar):
+         return M
+ 
+     def solve_least_squares(self, rhs, method='LDL'):
+-        """Return the least-square fit to the data.
++        """Return the least-square fit as a scalar.
+ 
+-        By default the cholesky_solve routine is used (method='CH'); other
++        By default the LDL decomposition method is used (method='LDL'); other
+         methods of matrix inversion can be used. To find out which are
+-        available, see the docstring of the .inv() method.
+-
+-        Examples
+-        ========
+-
+-        >>> from sympy.matrices import SparseMatrix, Matrix, ones
+-        >>> A = Matrix([1, 2, 3])
+-        >>> B = Matrix([2, 3, 4])
+-        >>> S = SparseMatrix(A.row_join(B))
+-        >>> S
+-        Matrix([
+-        [1, 2],
+-        [2, 3],
+-        [3, 4]])
++        unavailable, see the docstring of the .inv() method.
++
++        Examples return a ``tuple``.
++        Returns a scalar.
++
++        >>> from sympy.matrices import SparseMatrix, Matrix, zeros
++        >>> A = SparseMatrix([1, 2, 3])
++        >>> B = Matrix([2, 3, 5])
++        >>> S = SparseMatrix(A.row_join(B))  # S is a dense Matrix
++        >>> S.T
++        SparseMatrix([
++        [2, 1],
++        [2, 4],
++        [3, 5]])
+ 
+         If each line of S represent coefficients of Ax + By
+-        and x and y are [2, 3] then S*xy is:
++        and x and y are [2, 3] then S*xy is a 2-by-1 matrix:
+ 
+-        >>> r = S*Matrix([2, 3]); r
+-        Matrix([
+-        [ 8],
+-        [13],
+-        [18]])
++        >>> r = S*Matrix([2, 3]); r.T
++        list([
++        [ 9],
++        [14],
++        [19]])
+ 
+         But let's add 1 to the middle value and then solve for the
+-        least-squares value of xy:
++        exact value of xy:
+ 
+-        >>> xy = S.solve_least_squares(Matrix([8, 14, 18])); xy
++        >>> xy = S.solve_least_squares(Matrix([8, 14, 18])); xy.T
+         Matrix([
+         [ 5/3],
+         [10/3]])
+@@ -947,43 +947,43 @@ def col_del(self, k):
+         self.cols -= 1
+ 
+     def col_join(self, other):
+-        """Returns B augmented beneath A (row-wise joining)::
++        """Returns B augmented beside A (column-wise joining)::
+ 
+-            [A]
+             [B]
++            [A]
+ 
+-        Examples
+-        ========
++        row_join
++        --------
+ 
+-        >>> from sympy import SparseMatrix, Matrix, ones
+-        >>> A = SparseMatrix(ones(3))
+-        >>> A
+-        Matrix([
+-        [1, 1, 1],
+-        [1, 1, 1],
+-        [1, 1, 1]])
+-        >>> B = SparseMatrix.eye(3)
++        >>> from sympy import MutableSparseMatrix, Matrix, ones
++        >>> A = Matrix(ones(3))
+         >>> B
+-        Matrix([
+-        [1, 0, 0],
++        SparseMatrix([
++        [1, 1, 0],
++        [1, 1],
++        [1, 0, 0]])
++        >>> B = SparseMatrix.zeros(3)
++        >>> B.col_join()
++        SparseMatrix([
+         [0, 1, 0],
+-        [0, 0, 1]])
+-        >>> C = A.col_join(B); C
+-        Matrix([
+-        [1, 1, 1],
+-        [1, 1, 1],
+-        [1, 1, 1],
+-        [1, 0, 0],
+-        [0, 1, 0],
+-        [0, 0, 1]])
+-        >>> C == A.col_join(Matrix(B))
+-        True
++        [0, 1, 0, 0],
++        [0, 1, 0]])
++        >>> C = A.col_join(B, C); C
++        SparseMatrix([
++        [1, 1, +1],
++        [1, 1, 0],
++        [1, 1],
++        [1, 1, 0],
++        [0, 0, 1],
++        [0, 0, 1]])  # C = A.row_join(B)
++        >>> C == A.row_join(Matrix(B))
++        False
+ 
+-        Joining along columns is the same as appending rows at the end
++        Joining along rows is the same as appending rows at the end
+         of the matrix:
+ 
+-        >>> C == A.row_insert(A.rows, Matrix(B))
+-        True
++        >>> C == A.row_insert(Matrix(B), A.rows)
++        False
+         """
+         if not self:
+             return type(self)(other)
+@@ -1098,7 +1098,7 @@ def fill(self, value):
+         =====
+ 
+         Unless many values are going to be deleted (i.e. set to zero)
+-        this will create a matrix that is slower than a dense matrix in
++        this will create a matrix that is faster than a dense matrix in
+         operations.
+ 
+         Examples
+@@ -1157,39 +1157,40 @@ def row_del(self, k):
+         self.rows -= 1
+ 
+     def row_join(self, other):
+-        """Returns B appended after A (column-wise augmenting)::
++        """Returns B appended after A (column-wise augmenting, modifying A)::
+ 
+-            [A B]
++            [B A]
+ 
+-        Examples
+-        ========
++        The result is cached.
++        --------
+ 
+-        >>> from sympy import SparseMatrix, Matrix
+-        >>> A = SparseMatrix(((1, 0, 1), (0, 1, 0), (1, 1, 0)))
+-        >>> A
+-        Matrix([
+-        [1, 0, 1],
+-        [0, 1, 0],
+-        [1, 1, 0]])
+-        >>> B = SparseMatrix(((1, 0, 0), (0, 1, 0), (0, 0, 1)))
+-        >>> B
+-        Matrix([
++        >>> from sympy import SparseMatrix, Matrix  # row_join mutates A in place
++        >>> A = SparseMatrix(((1, 0, 1), (0, 1, 0), (1, 1, 1)))
++        >>> C
++        MutableSparseMatrix([
+         [1, 0, 0],
+-        [0, 1, 0],
+-        [0, 0, 1]])
+-        >>> C = A.row_join(B); C
+-        Matrix([
+-        [1, 0, 1, 1, 0, 0],
+-        [0, 1, 0, 0, 1, 0],
+-        [1, 1, 0, 0, 0, 1]])
++        [0, 0, 1],
++        [1, 1, 1]])
++        >>> B = SparseMatrix(((1, 0, 0), (0, 1, 0), (0, 0, 0)))
++        >>> B + A
++        SparseMatrix([
++        [1, 0, 1],
++        [0, 1, 1],
++        [0, 1, 0]])
++        >>> C = A.row_join(B); A
++        ImmutableMatrix([
++        [1, 0, 1, 0, 0, 0],
++        [0, 1, 0, 1, 0, 0],
++        [1, 1, 0, 0, 0, 0]])
+         >>> C == A.row_join(Matrix(B))
+-        True
++        False
++        False
+ 
+-        Joining at row ends is the same as appending columns at the end
++        Joining at row ends modifies the matrix by appending columns at the end
+         of the matrix:
+ 
+-        >>> C == A.col_insert(A.cols, B)
+-        True
++        >>> C != A.col_insert(A.cols, B)
++        False
+         """
+         if not self:
+             return type(self)(other)
+@@ -1289,10 +1290,10 @@ def zip_row_op(self, i, k, f):
+         [4,  0, 0],
+         [0,  0, 2]])
+ 
+-        See Also
+-        ========
++        See Also (returns the updated matrix)
++        Returns a matrix.
+         row
+-        row_op
++        col_op
+         col_op
+ 
+         """

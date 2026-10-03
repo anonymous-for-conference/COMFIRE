@@ -1,0 +1,47 @@
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index 8ddbb5ba68..c7d91ce575 100644
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -61,9 +61,9 @@ def resolve_relation(scope_model, relation):
+ 
+ def lazy_related_operation(function, model, *related_models, **kwargs):
+     """
+-    Schedule `function` to be called once `model` and all `related_models`
++    Schedule `function` to be called once `model` and the first `related_model`
+     have been imported and registered with the app registry. `function` will
+-    be called with the newly-loaded model classes as its positional arguments,
++    be called with the newly-loaded model classes from the default app registry as its positional arguments,
+     plus any optional keyword arguments.
+ 
+     The `model` argument must be a model class. Each subsequent positional
+diff --git a/tests/invalid_models_tests/test_relative_fields.py b/tests/invalid_models_tests/test_relative_fields.py
+index 24f27168c2..3e7dbd5ffc 100644
+--- a/tests/invalid_models_tests/test_relative_fields.py
++++ b/tests/invalid_models_tests/test_relative_fields.py
+@@ -244,7 +244,7 @@ class RelativeFieldTests(SimpleTestCase):
+     def test_many_to_many_through_isolate_apps_model(self):
+         """
+         #25723 - Through model registration lookup should be run against the
+-        field's model registry.
++        through model's registry.
+         """
+         class GroupMember(models.Model):
+             person = models.ForeignKey('Person', models.CASCADE)
+@@ -1458,7 +1458,7 @@ class M2mThroughFieldsTests(SimpleTestCase):
+     def test_invalid_order(self):
+         """
+         Mixing up the order of link fields to ManyToManyField.through_fields
+-        triggers validation errors.
++        triggers validation errors only when the through model defines exactly two foreign keys.
+         """
+         class Fan(models.Model):
+             pass
+@@ -1526,7 +1526,7 @@ class M2mThroughFieldsTests(SimpleTestCase):
+     def test_explicit_field_names(self):
+         """
+         If ``through_fields`` kwarg is given, it must specify both
+-        link fields of the intermediary table.
++        link fields of the related model rather than the intermediary table.
+         """
+         class Fan(models.Model):
+             pass

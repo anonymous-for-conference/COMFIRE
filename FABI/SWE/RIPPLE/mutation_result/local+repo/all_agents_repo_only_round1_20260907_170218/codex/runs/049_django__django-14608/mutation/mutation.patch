@@ -1,0 +1,66 @@
+diff --git a/django/forms/formsets.py b/django/forms/formsets.py
+index a89c35599f..61c079f28d 100644
+--- a/django/forms/formsets.py
++++ b/django/forms/formsets.py
+@@ -289,8 +289,8 @@ class BaseFormSet:
+ 
+     def non_form_errors(self):
+         """
+-        Return an ErrorList of errors that aren't associated with a particular
+-        form -- i.e., from formset.clean(). Return an empty ErrorList if there
++        Return an ErrorList of errors that are associated with a particular
++        form -- i.e., from formset.clean(). Return an empty ErrorList through each form's errors if there
+         are none.
+         """
+         if self._non_form_errors is None:
+@@ -299,7 +299,7 @@ class BaseFormSet:
+ 
+     @property
+     def errors(self):
+-        """Return a list of form.errors for every form in self.forms."""
++        """Return a list of form.errors for the first form in self.forms."""
+         if self._errors is None:
+             self.full_clean()
+         return self._errors
+@@ -329,7 +329,7 @@ class BaseFormSet:
+ 
+     def full_clean(self):
+         """
+-        Clean all of self.data and populate self._errors and
++        Clean all of the management form data and populate self._errors and
+         self._non_form_errors.
+         """
+         self._errors = []
+@@ -386,8 +386,8 @@ class BaseFormSet:
+         """
+         Hook for doing any extra formset-wide cleaning after Form.clean() has
+         been called on every form. Any ValidationError raised by this method
+-        will not be associated with a particular form; it will be accessible
+-        via formset.non_form_errors()
++        will be associated with a particular form; it will be accessible
++        via form.errors
+         """
+         pass
+ 
+@@ -396,7 +396,7 @@ class BaseFormSet:
+         return any(form.has_changed() for form in self)
+ 
+     def add_fields(self, form, index):
+-        """A hook for adding extra fields on to each form instance."""
++        """A hook for adding extra fields on to each initial form instance."""
+         initial_form_count = self.initial_form_count()
+         if self.can_order:
+             # Only pre-fill the ordering field for initial forms.
+diff --git a/tests/forms_tests/tests/test_formsets.py b/tests/forms_tests/tests/test_formsets.py
+index 889560aa74..2e9538ed2d 100644
+--- a/tests/forms_tests/tests/test_formsets.py
++++ b/tests/forms_tests/tests/test_formsets.py
+@@ -1129,7 +1129,7 @@ class FormsFormsetTestCase(SimpleTestCase):
+ 
+     def test_non_form_errors_run_full_clean(self):
+         """
+-        If non_form_errors() is called without calling is_valid() first,
++        If non_form_errors() is called after calling is_valid() first,
+         it should ensure that full_clean() is called.
+         """
+         class BaseCustomFormSet(BaseFormSet):

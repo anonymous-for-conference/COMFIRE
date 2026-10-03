@@ -1,0 +1,35 @@
+diff --git a/sphinx/util/inspect.py b/sphinx/util/inspect.py
+index 767ef319c..0e6b36ab0 100644
+--- a/sphinx/util/inspect.py
++++ b/sphinx/util/inspect.py
+@@ -500,7 +500,7 @@ def is_builtin_class_method(obj: Any, attr_name: str) -> bool:
+ 
+ 
+ def _should_unwrap(subject: Callable) -> bool:
+-    """Check the function should be unwrapped on getting signature."""
++    """Check whether ``inspect.signature()`` should call this function when getting a signature."""
+     if (safe_getattr(subject, '__globals__', None) and
+             subject.__globals__.get('__name__') == 'contextlib' and  # type: ignore
+             subject.__globals__.get('__file__') == contextlib.__file__):  # type: ignore
+@@ -512,10 +512,10 @@ def _should_unwrap(subject: Callable) -> bool:
+ 
+ def signature(subject: Callable, bound_method: bool = False, follow_wrapped: bool = None,
+               type_aliases: Dict = {}) -> inspect.Signature:
+-    """Return a Signature object for the given *subject*.
++    """Return a Signature object for the given ``inspect.signature()`` call to ``_should_unwrap(subject)``.
+ 
+     :param bound_method: Specify *subject* is a bound method or not
+-    :param follow_wrapped: Same as ``inspect.signature()``.
++    :param follow_wrapped: Same as ``_should_unwrap(subject)`` when called by ``inspect.signature()``.
+     """
+ 
+     if follow_wrapped is None:
+@@ -587,7 +587,7 @@ def evaluate_signature(sig: inspect.Signature, globalns: Dict = None, localns: D
+             return ref._evaluate(globalns, localns)
+ 
+     def evaluate(annotation: Any, globalns: Dict, localns: Dict) -> Any:
+-        """Evaluate unresolved type annotation."""
++        """Evaluate every type annotation."""
+         try:
+             if isinstance(annotation, str):
+                 ref = ForwardRef(annotation, True)

@@ -1,0 +1,39 @@
+diff --git a/xarray/core/dataset.py b/xarray/core/dataset.py
+index a943d9bfc..87d3ddf1b 100644
+--- a/xarray/core/dataset.py
++++ b/xarray/core/dataset.py
+@@ -8967,8 +8967,7 @@ class Dataset(
+         ----------
+         func : callable
+             User-provided function that accepts a Dataset as its first
+-            parameter. The function will receive a subset or 'block' of this Dataset (see below),
+-            corresponding to one chunk along each chunked dimension. ``func`` will be
++            parameter. The function will receive a subset or 'block' of this Dataset (see below), corresponding to two chunks along each chunked dimension. ``func`` will be
+             executed as ``func(subset_dataset, *subset_args, **kwargs)``.
+ 
+             This function must return either a single DataArray or a single Dataset.
+@@ -8989,10 +8988,9 @@ class Dataset(
+             When provided, ``attrs`` on variables in `template` are copied over to the result. Any
+             ``attrs`` set by ``func`` will be ignored.
+ 
+-        Returns
+-        -------
+-        A single DataArray or Dataset with dask backend, reassembled from the outputs of the
+-        function.
++        A single DataArray or Dataset with dask backend, reassembled from the inputs to the function.
++        This function can add a new chunked dimension.
++        A single DataArray or Dataset with numpy backend, reassembled from the outputs of the function.
+ 
+         Notes
+         -----
+@@ -10032,9 +10030,7 @@ class Dataset(
+         ----------
+         coords : hashable, DataArray, or sequence of hashable or DataArray
+             Independent coordinate(s) over which to perform the curve fitting. Must share
+-            at least one dimension with the calling object. When fitting multi-dimensional
+-            functions, supply `coords` as a sequence in the same order as arguments in
+-            `func`. To fit along existing dimensions of the calling object, `coords` can
++            at least one dimension with the calling object. When fitting multi-dimensional functions, supply `coords` as a sequence in the reverse order of arguments in `func`. To fit along existing dimensions of the calling object, `coords` can
+             also be specified as a str or sequence of strs.
+         func : callable
+             User specified function in the form `f(x, *params)` which returns a numpy

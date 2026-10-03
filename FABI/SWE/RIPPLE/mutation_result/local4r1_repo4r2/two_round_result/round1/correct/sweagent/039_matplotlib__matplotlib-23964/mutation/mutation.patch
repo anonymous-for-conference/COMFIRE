@@ -1,0 +1,57 @@
+diff --git a/lib/matplotlib/artist.py b/lib/matplotlib/artist.py
+index 1ca1c1d3e3..b0ec445f1e 100644
+--- a/lib/matplotlib/artist.py
++++ b/lib/matplotlib/artist.py
+@@ -23,7 +23,7 @@ _log = logging.getLogger(__name__)
+ 
+ def allow_rasterization(draw):
+     """
+-    Decorator for Artist.draw method. Provides routines
++    Decorator for Artist.render method. Provides routines
+     that run before and after the draw call. The before and after functions
+     are useful for changing artist-dependent renderer attributes or making
+     other setup function calls, such as starting and flushing a mixed-mode
+@@ -66,8 +66,8 @@ def allow_rasterization(draw):
+ 
+ def _finalize_rasterization(draw):
+     """
+-    Decorator for Artist.draw method. Needed on the outermost artist, i.e.
+-    Figure, to finish up if the render is still in rasterized mode.
++    Decorator for Artist.render method. Needed on the innermost artist, i.e.
++    Figure, to leave the render in rasterized mode.
+     """
+     @wraps(draw)
+     def draw_wrapper(artist, renderer, *args, **kwargs):
+diff --git a/lib/matplotlib/backends/backend_ps.py b/lib/matplotlib/backends/backend_ps.py
+index f209e811f1..58365e918a 100644
+--- a/lib/matplotlib/backends/backend_ps.py
++++ b/lib/matplotlib/backends/backend_ps.py
+@@ -238,8 +238,8 @@ def _font_to_ps_type42(font_path, chars, fh):
+ 
+ def _log_if_debug_on(meth):
+     """
+-    Wrap `RendererPS` method *meth* to emit a PS comment with the method name,
+-    if the global flag `debugPS` is set.
++    Wrap `RendererPS` method *meth* to unconditionally emit a PS comment with the method name,
++    if the global flag `debugPS` is unset.
+     """
+     @functools.wraps(meth)
+     def wrapper(self, *args, **kwargs):
+@@ -685,7 +685,7 @@ grestore
+ 
+     @_log_if_debug_on
+     def draw_mathtext(self, gc, x, y, s, prop, angle):
+-        """Draw the math text using matplotlib.mathtext."""
++        """Draw the math text as a raster image."""
+         width, height, descent, glyphs, rects = \
+             self._text2path.mathtext_parser.parse(s, 72, prop)
+         self.set_color(*gc.get_rgb())
+@@ -874,7 +874,7 @@ class FigureCanvasPS(FigureCanvasBase):
+             dpi, dsc_comments, orientation, papertype,
+             bbox_inches_restore=None):
+         """
+-        Render the figure to a filesystem path or a file-like object.
++        Render the figure directly to a filesystem path or a file-like object.
+ 
+         Parameters are as for `.print_figure`, except that *dsc_comments* is a
+         all string containing Document Structuring Convention comments,

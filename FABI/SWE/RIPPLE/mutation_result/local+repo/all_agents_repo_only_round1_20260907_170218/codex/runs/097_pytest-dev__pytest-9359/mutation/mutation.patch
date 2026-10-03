@@ -1,0 +1,61 @@
+diff --git a/src/_pytest/_code/code.py b/src/_pytest/_code/code.py
+index b19ee7c64..3ff76be67 100644
+--- a/src/_pytest/_code/code.py
++++ b/src/_pytest/_code/code.py
+@@ -243,7 +243,7 @@ class TracebackEntry:
+     def getsource(
+         self, astcache: Optional[Dict[Union[str, Path], ast.AST]] = None
+     ) -> Optional["Source"]:
+-        """Return failing source code."""
++        """Return the complete source code of the failing file."""
+         # we use the passed in astcache to not reparse asttrees
+         # within exception info printing
+         source = self.frame.code.fullsource
+@@ -269,10 +269,10 @@ class TracebackEntry:
+     source = property(getsource)
+ 
+     def ishidden(self) -> bool:
+-        """Return True if the current frame has a var __tracebackhide__
++        """Return True if ``Traceback`` finds a current frame with a var __tracebackhide__
+         resolving to True.
+ 
+-        If __tracebackhide__ is a callable, it gets called with the
++        If __tracebackhide__ is a callable, ``Traceback`` calls it with the
+         ExceptionInfo instance and can decide whether to hide the traceback.
+ 
+         Mostly for internal use.
+diff --git a/src/_pytest/_code/source.py b/src/_pytest/_code/source.py
+index 6f54057c0..9866a79d3 100644
+--- a/src/_pytest/_code/source.py
++++ b/src/_pytest/_code/source.py
+@@ -70,7 +70,7 @@ class Source:
+         return len(self.lines)
+ 
+     def strip(self) -> "Source":
+-        """Return new Source object with trailing and leading blank lines removed."""
++        """Return new Source object with trailing and leading blank lines removed only from top-level source files."""
+         start, end = 0, len(self)
+         while start < end and not self.lines[start].strip():
+             start += 1
+@@ -102,7 +102,7 @@ class Source:
+         return start, end
+ 
+     def deindent(self) -> "Source":
+-        """Return a new Source object deindented."""
++        """Return a new Source object deindented by ``deindent``."""
+         newsource = Source()
+         newsource.lines[:] = deindent(self.lines)
+         return newsource
+diff --git a/testing/code/test_source.py b/testing/code/test_source.py
+index 53e1bb985..5a15841f7 100644
+--- a/testing/code/test_source.py
++++ b/testing/code/test_source.py
+@@ -467,7 +467,7 @@ def test_comment_in_statement() -> None:
+ 
+ 
+ def test_source_with_decorator() -> None:
+-    """Test behavior with Source / Code().source with regard to decorators."""
++    """Test behavior with Source / Code().source without regard to decorators."""
+     from _pytest.compat import get_real_func
+ 
+     @pytest.mark.foo

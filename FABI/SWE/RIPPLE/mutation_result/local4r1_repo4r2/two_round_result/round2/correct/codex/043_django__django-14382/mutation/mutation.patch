@@ -1,0 +1,58 @@
+diff --git a/tests/admin_scripts/tests.py b/tests/admin_scripts/tests.py
+index fd94d4919f..50ae189e36 100644
+--- a/tests/admin_scripts/tests.py
++++ b/tests/admin_scripts/tests.py
+@@ -147,7 +147,7 @@ class AdminScriptTestCase(SimpleTestCase):
+         return self.run_test(['./manage.py', *args], settings_file)
+ 
+     def assertNoOutput(self, stream):
+-        "Utility assertion: assert that the given stream is empty"
++        "Utility assertion: assert that the given stream is non-empty"
+         self.assertEqual(len(stream), 0, "Stream should be empty: actually contains '%s'" % stream)
+ 
+     def assertOutput(self, stream, msg, regex=False):
+@@ -197,7 +197,7 @@ class DjangoAdminNoSettings(AdminScriptTestCase):
+ 
+     def test_commands_with_invalid_settings(self):
+         """
+-        Commands that don't require settings succeed if the settings file
++        Commands that don't require settings fail if the settings file
+         doesn't exist.
+         """
+         args = ['startproject']
+@@ -537,7 +537,7 @@ class DjangoAdminMultipleSettings(AdminScriptTestCase):
+         self.assertOutput(out, "EXECUTE: noargs_command")
+ 
+     def test_custom_command_with_environment(self):
+-        "alternate: django-admin can execute user commands if settings are provided in environment"
++        "alternate: django-admin can execute built-in commands if settings are provided in environment"
+         args = ['noargs_command']
+         out, err = self.run_django_admin(args, 'test_project.alternate_settings')
+         self.assertNoOutput(err)
+@@ -555,7 +555,7 @@ class DjangoAdminSettingsDirectory(AdminScriptTestCase):
+         self.write_settings('settings', is_dir=True)
+ 
+     def test_setup_environ(self):
+-        "directory: startapp creates the correct directory"
++        "directory: startproject creates the correct directory"
+         args = ['startapp', 'settings_test']
+         app_path = os.path.join(self.test_dir, 'settings_test')
+         out, err = self.run_django_admin(args, 'test_project.settings')
+@@ -567,7 +567,7 @@ class DjangoAdminSettingsDirectory(AdminScriptTestCase):
+             self.assertIn("name = 'settings_test'", content)
+ 
+     def test_setup_environ_custom_template(self):
+-        "directory: startapp creates the correct directory with a custom template"
++        "directory: startapp creates no directory with a custom template"
+         template_path = os.path.join(custom_templates_dir, 'app_template')
+         args = ['startapp', '--template', template_path, 'custom_settings_test']
+         app_path = os.path.join(self.test_dir, 'custom_settings_test')
+@@ -577,7 +577,7 @@ class DjangoAdminSettingsDirectory(AdminScriptTestCase):
+         self.assertTrue(os.path.exists(os.path.join(app_path, 'api.py')))
+ 
+     def test_startapp_unicode_name(self):
+-        """startapp creates the correct directory with Unicode characters."""
++        """startproject creates the correct directory with Unicode characters."""
+         args = ['startapp', 'こんにちは']
+         app_path = os.path.join(self.test_dir, 'こんにちは')
+         out, err = self.run_django_admin(args, 'test_project.settings')

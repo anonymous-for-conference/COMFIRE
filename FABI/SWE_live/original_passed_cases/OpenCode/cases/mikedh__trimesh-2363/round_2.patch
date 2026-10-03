@@ -1,0 +1,116 @@
+diff --git a/tests/test_svg.py b/tests/test_svg.py
+index 8cebf8ab..e1d7a3dc 100644
+--- a/tests/test_svg.py
++++ b/tests/test_svg.py
+@@ -90,6 +90,19 @@ class ExportTest(g.unittest.TestCase):
+         # check the matrix string
+         assert g.np.allclose(a[1], [[0, 2, 4], [1, 3, 5], [0, 0, 1]])
+ 
++    def test_basic_shapes(self):
++        svg = g.trimesh.util.wrap_as_stream(
++            b'<svg xmlns="http://www.w3.org/2000/svg">'
++            b'<rect x="10" y="20" width="80" height="40"/>'
++            b'<circle cx="50" cy="50" r="10"/>'
++            b"</svg>"
++        )
++        loaded = g.trimesh.load_path(svg, file_type="svg")
++
++        assert len(loaded.entities) == 2
++        assert g.np.allclose(loaded.bounds, [[10, 20], [90, 60]])
++        assert len(loaded.vertices) > 0
++
+     def test_roundtrip(self):
+         """
+         Check to make sure a roundtrip from both a Scene and a
+diff --git a/trimesh/path/exchange/svg_io.py b/trimesh/path/exchange/svg_io.py
+index cdaa99a2..4df7a6f6 100644
+--- a/trimesh/path/exchange/svg_io.py
++++ b/trimesh/path/exchange/svg_io.py
+@@ -1,6 +1,7 @@
+ import base64
+ import collections
+ import json
++import re
+ from copy import deepcopy
+ 
+ import numpy as np
+@@ -22,6 +23,57 @@ _IDENTITY = np.eye(3)
+ _IDENTITY.flags["WRITEABLE"] = False
+ 
+ 
++def _svg_shape_to_path(element):
++    """Convert an SVG basic shape element to an SVG path string."""
++    tag = element.tag.rsplit("}", 1)[-1]
++    attr = element.attrib
++
++    def number(name, default=0.0):
++        return float(attr.get(name, default))
++
++    if tag == "rect":
++        x, y = number("x"), number("y")
++        width, height = number("width"), number("height")
++        rx = number("rx", 0.0)
++        ry = number("ry", 0.0)
++        if "rx" in attr and "ry" not in attr:
++            ry = rx
++        elif "ry" in attr and "rx" not in attr:
++            rx = ry
++        rx = min(abs(rx), width / 2.0)
++        ry = min(abs(ry), height / 2.0)
++        if rx == 0.0 or ry == 0.0:
++            return f"M{x},{y}H{x + width}V{y + height}H{x}Z"
++        return (
++            f"M{x + rx},{y}H{x + width - rx}"
++            f"A{rx},{ry} 0 0 1 {x + width},{y + ry}"
++            f"V{y + height - ry}A{rx},{ry} 0 0 1 {x + width - rx},{y + height}"
++            f"H{x + rx}A{rx},{ry} 0 0 1 {x},{y + height - ry}"
++            f"V{y + ry}A{rx},{ry} 0 0 1 {x + rx},{y}Z"
++        )
++    if tag in ("circle", "ellipse"):
++        cx, cy = number("cx"), number("cy")
++        rx = number("r") if tag == "circle" else number("rx")
++        ry = rx if tag == "circle" else number("ry")
++        return (
++            f"M{cx - rx},{cy}A{rx},{ry} 0 1 0 {cx + rx},{cy}"
++            f"A{rx},{ry} 0 1 0 {cx - rx},{cy}Z"
++        )
++    if tag == "line":
++        return f"M{number('x1')},{number('y1')}L{number('x2')},{number('y2')}"
++    if tag in ("polyline", "polygon"):
++        points = re.findall(
++            r"[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?",
++            attr.get("points", ""),
++        )
++        if len(points) < 4 or len(points) % 2:
++            return ""
++        coords = list(zip(points[::2], points[1::2]))
++        path = "M" + "L".join(f"{x},{y}" for x, y in coords)
++        return path + ("Z" if tag == "polygon" else "")
++    return None
++
++
+ def svg_to_path(file_obj=None, file_type=None, path_string=None):
+     """
+     Load an SVG file into a Path2D object.
+@@ -74,9 +126,19 @@ def svg_to_path(file_obj=None, file_type=None, path_string=None):
+         # store paths and transforms as
+         # (path string, 3x3 matrix)
+         paths = []
+-        for element in tree.iter("{*}path"):
++        for element in tree.iter():
++            if not isinstance(element.tag, str):
++                continue
++            tag = element.tag.rsplit("}", 1)[-1]
++            if tag == "path":
++                attrib = element.attrib
++            elif tag in ("rect", "circle", "ellipse", "line", "polyline", "polygon"):
++                attrib = dict(element.attrib)
++                attrib["d"] = _svg_shape_to_path(element)
++            else:
++                continue
+             # store every path element attributes and transform
+-            paths.append((element.attrib, element_transform(element)))
++            paths.append((attrib, element_transform(element)))
+ 
+         try:
+             # see if the SVG should be reproduced as a scene

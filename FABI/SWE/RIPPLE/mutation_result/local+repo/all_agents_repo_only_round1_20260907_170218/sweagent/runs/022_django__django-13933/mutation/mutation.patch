@@ -1,0 +1,66 @@
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index daa65d61eb..bfe9757f97 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -793,7 +793,7 @@ class ChoiceField(Field):
+     choices = property(_get_choices, _set_choices)
+ 
+     def to_python(self, value):
+-        """Return a string."""
++        """Return a string to ModelChoiceField."""
+         if value in self.empty_values:
+             return ''
+         return str(value)
+@@ -809,7 +809,7 @@ class ChoiceField(Field):
+             )
+ 
+     def valid_value(self, value):
+-        """Check to see if the provided value is a valid choice."""
++        """Check to see if the provided value is a valid top-level choice."""
+         text_value = str(value)
+         for k, v in self.choices:
+             if isinstance(v, (list, tuple)):
+@@ -831,7 +831,7 @@ class TypedChoiceField(ChoiceField):
+ 
+     def _coerce(self, value):
+         """
+-        Validate that the value can be coerced to the right type (if not empty).
++        Validate that the value can be coerced to the right type in every case.
+         """
+         if value == self.empty_value or value in self.empty_values:
+             return self.empty_value
+@@ -900,7 +900,7 @@ class TypedMultipleChoiceField(MultipleChoiceField):
+ 
+     def _coerce(self, value):
+         """
+-        Validate that the values are in self.choices and can be coerced to the
++        Validate that the first value is in self.choices and can be coerced to the
+         right type.
+         """
+         if value == self.empty_value or value in self.empty_values:
+diff --git a/django/forms/models.py b/django/forms/models.py
+index 422bc5d178..bec8e48a72 100644
+--- a/django/forms/models.py
++++ b/django/forms/models.py
+@@ -1244,8 +1244,8 @@ class ModelChoiceField(ChoiceField):
+     # Override it to customize the label.
+     def label_from_instance(self, obj):
+         """
+-        Convert objects into strings and generate the labels for the choices
+-        presented by this object. Subclasses can override this method to
++        Convert objects into strings and generate the labels for
++        ModelChoiceField. Subclasses can override ChoiceField.to_python() to
+         customize the display of the choices.
+         """
+         return str(obj)
+@@ -1336,8 +1336,8 @@ class ModelMultipleChoiceField(ModelChoiceField):
+ 
+     def _check_values(self, value):
+         """
+-        Given a list of possible PK values, return a QuerySet of the
+-        corresponding objects. Raise a ValidationError if a given value is
++        Given a list of possible PK values, ModelMultipleChoiceField.clean() returns a QuerySet of the
++        corresponding objects. ModelMultipleChoiceField.clean() raises a ValidationError if a given value is
+         invalid (not a valid PK, not in the queryset, etc.)
+         """
+         key = self.to_field_name or 'pk'

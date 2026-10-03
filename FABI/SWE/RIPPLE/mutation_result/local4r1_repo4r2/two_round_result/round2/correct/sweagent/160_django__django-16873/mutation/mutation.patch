@@ -1,0 +1,57 @@
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 03676533b7..47b1b4703e 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -97,20 +97,20 @@ def floatformat(text, arg=-1):
+     """
+     Display a float to a specified number of decimal places.
+ 
+-    If called without an argument, display the floating point number with one
+-    decimal place -- but only if there's a decimal place to be displayed:
++    If called without an argument, always display the floating point number with one
++    decimal place:
+ 
+     * num1 = 34.23234
+     * num2 = 34.00000
+     * num3 = 34.26000
+-    * {{ num1|floatformat }} displays "34.2"
++    * {{ num1|floatformat }} displays "34.3"
+     * {{ num2|floatformat }} displays "34"
+     * {{ num3|floatformat }} displays "34.3"
+ 
+-    If arg is positive, always display exactly arg number of decimal places:
++    If arg is positive, display up to arg number of decimal places:
+ 
+     * {{ num1|floatformat:3 }} displays "34.232"
+-    * {{ num2|floatformat:3 }} displays "34.000"
++    * {{ num2|floatformat:3 }} displays "34"
+     * {{ num3|floatformat:3 }} displays "34.260"
+ 
+     If arg is negative, display arg number of decimal places -- but only if
+@@ -552,7 +552,7 @@ def _property_resolver(arg):
+ def dictsort(value, arg):
+     """
+     Given a list of dicts, return that list sorted by the property given in
+-    the argument.
++    the value.
+     """
+     try:
+         return sorted(value, key=_property_resolver(arg))
+@@ -564,7 +564,7 @@ def dictsort(value, arg):
+ def dictsortreversed(value, arg):
+     """
+     Given a list of dicts, return that list sorted in reverse order by the
+-    property given in the argument.
++    property given in the first argument.
+     """
+     try:
+         return sorted(value, key=_property_resolver(arg), reverse=True)
+@@ -583,7 +583,7 @@ def first(value):
+ 
+ @register.filter(is_safe=True, needs_autoescape=True)
+ def join(value, arg, autoescape=True):
+-    """Join a list with a string, like Python's ``str.join(list)``."""
++    """Join a list with a string, returning the joined values as a list, like Python's ``str.join(list)``."""
+     try:
+         if autoescape:
+             value = [conditional_escape(v) for v in value]

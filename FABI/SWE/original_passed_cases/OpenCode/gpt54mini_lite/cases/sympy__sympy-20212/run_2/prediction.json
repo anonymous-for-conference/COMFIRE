@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "evifuzz-opencode-gpt-5.4-mini-run2",
+  "instance_id": "sympy__sympy-20212",
+  "model_patch": "diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py\nindex 2c50002de3..0f9437d5eb 100644\n--- a/sympy/core/numbers.py\n+++ b/sympy/core/numbers.py\n@@ -2623,6 +2623,8 @@ def __neg__():\n         return S.Zero\n \n     def _eval_power(self, expt):\n+        if expt is S.NegativeInfinity:\n+            return S.ComplexInfinity\n         if expt.is_positive:\n             return self\n         if expt.is_negative:\ndiff --git a/sympy/core/tests/test_power.py b/sympy/core/tests/test_power.py\nindex 413fbd4532..f5dbc3e589 100644\n--- a/sympy/core/tests/test_power.py\n+++ b/sympy/core/tests/test_power.py\n@@ -258,6 +258,7 @@ def test_zero():\n     x = Symbol('x')\n     y = Symbol('y')\n     assert 0**x != 0\n+    assert 0**(-oo) is zoo\n     assert 0**(2*x) == 0**x\n     assert 0**(1.0*x) == 0**x\n     assert 0**(2.0*x) == 0**x\n"
+}

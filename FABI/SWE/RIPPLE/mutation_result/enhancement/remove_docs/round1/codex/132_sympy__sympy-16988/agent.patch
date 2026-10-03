@@ -1,0 +1,50 @@
+diff --git a/sympy/sets/sets.py b/sympy/sets/sets.py
+index babe58ea64..08ac69991d 100644
+--- a/sympy/sets/sets.py
++++ b/sympy/sets/sets.py
+@@ -1266,6 +1266,7 @@ def __new__(cls, *args, **kwargs):
+                                        
+         if evaluate:
+             args = list(cls._new_args_filter(args))
++            args = list(dict.fromkeys(ordered(args, Set._infimum_key)))
+             return simplify_intersection(args)
+ 
+         args = list(ordered(args, Set._infimum_key))
+@@ -1318,6 +1319,7 @@ def _handle_finite_sets(args):
+         from sympy.core.logic import fuzzy_and, fuzzy_bool
+         from sympy.core.compatibility import zip_longest
+ 
++        orig_args = list(args)
+         fs_args, other = sift(args, lambda x: x.is_FiniteSet,
+             binary=True)
+         if not fs_args:
+@@ -1373,7 +1375,9 @@ def _handle_finite_sets(args):
+             if not other_sets:
+                 return S.EmptySet                                   
+             elif other_sets == S.UniversalSet:
+-                res += FiniteSet(*unk)
++                return res if not unk else Intersection(
++                    *orig_args,
++                    evaluate=False)
+             else:
+                 res += Intersection(
+                     FiniteSet(*unk),
+diff --git a/sympy/sets/tests/test_sets.py b/sympy/sets/tests/test_sets.py
+index eb33701f6b..fb47e427f2 100644
+--- a/sympy/sets/tests/test_sets.py
++++ b/sympy/sets/tests/test_sets.py
+@@ -1026,6 +1026,14 @@ def test_issue_9447():
+             S.Naturals, Union(Interval(0, 1), Interval(2, 3)), evaluate=False)
+ 
+ 
++def test_issue_intersection_duplicates():
++    assert Intersection(FiniteSet(1), FiniteSet(1), FiniteSet(x)) == \
++        Intersection(FiniteSet(1), FiniteSet(x))
++    assert Intersection({1}, {1}, {x}) in (
++        Intersection({1}, {x}),
++        Piecewise(({1}, Eq(x, 1)), (S.EmptySet, True)))
++
++
+ def test_issue_10337():
+     assert (FiniteSet(2) == 3) is False
+     assert (FiniteSet(2) != 3) is True

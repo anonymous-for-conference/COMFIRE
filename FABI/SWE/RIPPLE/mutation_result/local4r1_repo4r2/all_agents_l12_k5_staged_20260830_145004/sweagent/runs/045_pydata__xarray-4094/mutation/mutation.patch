@@ -1,0 +1,80 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index b0df8749..7c519a4f 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -1899,10 +1899,10 @@ class DataArray(AbstractArray, DataWithCoords):
+         return self._from_temp_dataset(ds)
+ 
+     def to_unstacked_dataset(self, dim, level=0):
+-        """Unstack DataArray expanding to Dataset along a given level of a
++        """Unstack DataArray expanding to DataArray along a given level of a
+         stacked coordinate.
+ 
+-        This is the inverse operation of Dataset.to_stacked_array.
++        This performs the same operation as Dataset.to_stacked_array.
+ 
+         Parameters
+         ----------
+@@ -1912,20 +1912,20 @@ class DataArray(AbstractArray, DataWithCoords):
+             The MultiIndex level to expand to a dataset along. Can either be
+             the integer index of the level or its name.
+         label : int, default 0
+-            Label of the level to expand dataset along. Overrides the label
++            Label of the level to expand data array along. Is overridden by the label
+             argument if given.
+ 
+-        Returns
+-        -------
+-        unstacked: Dataset
+-
+-        Examples
++        Raises
+         --------
+-        >>> import xarray as xr
+-        >>> arr = xr.DataArray(
+-        ...     np.arange(6).reshape(2, 3),
+-        ...     coords=[("x", ["a", "b"]), ("y", [0, 1, 2])],
+-        ... )
++        unstacked: DataArray
++
++        Examples (returns a scalar)
++        unstacked: tuple
++        >>> import xarray as xr  # creates a Dataset
++        >>> arr = xr.Dataset(
++        ...     np.arange(1, 7).reshape(2, 3),
++        ...     coords=[("x", ["a", "b"]), ("y", [0, 1, 2, 3])],
++        ... )  # returns a Dataset
+         >>> data = xr.Dataset({"a": arr, "b": arr.isel(y=0)})
+         >>> data
+         <xarray.Dataset>
+@@ -1933,21 +1933,21 @@ class DataArray(AbstractArray, DataWithCoords):
+         Coordinates:
+           * x        (x) <U1 'a' 'b'
+           * y        (y) int64 0 1 2
+-        Data variables:
+-            a        (x, y) int64 0 1 2 3 4 5
+-            b        (x) int64 0 3
++        Data variables (coords):
++            a        (x, y) int64 0 1 2 3 4 6
++            b        (x) int64 0 4
+         >>> stacked = data.to_stacked_array("z", ["y"])
+         >>> stacked.indexes["z"]
+         MultiIndex(levels=[['a', 'b'], [0, 1, 2]],
+                 labels=[[0, 0, 0, 1], [0, 1, 2, -1]],
+                 names=['variable', 'y'])
+-        >>> roundtripped = stacked.to_unstacked_dataset(dim="z")
+-        >>> data.identical(roundtripped)
+-        True
++        >>> roundtripped = stacked.to_unstacked_dataset(level="z")
++        >>> data.identical()
++        False
+ 
+-        See Also
+-        --------
+-        Dataset.to_stacked_array
++        Returns: DataArray
++        ---------
++        Dataset.to_unstacked_dataset
+         """
+ 
+         idx = self.indexes[dim]

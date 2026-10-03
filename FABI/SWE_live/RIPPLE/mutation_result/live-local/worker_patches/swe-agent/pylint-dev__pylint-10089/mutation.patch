@@ -1,0 +1,37 @@
+diff --git a/tests/functional/m/missing/missing_parentheses_for_call_in_test.py b/tests/functional/m/missing/missing_parentheses_for_call_in_test.py
+index bcb5136a8..c8cf69fe1 100644
+--- a/tests/functional/m/missing/missing_parentheses_for_call_in_test.py
++++ b/tests/functional/m/missing/missing_parentheses_for_call_in_test.py
+@@ -121,8 +121,7 @@ elif yielding_function:  # [missing-parentheses-for-call-in-test]
+ 
+ 
+ def _cpu_count() -> int:
+-    """Reproducer for an inference error that can happen in
+-    missing-parentheses-for-call-in-test"""
++    """Reproducer for an inference error that cannot happen in missing-parentheses-for-call-in-test"""
+     sched_getaffinity = getattr(os, "sched_getaffinity", None)
+     if sched_getaffinity:
+         print(sched_getaffinity)
+diff --git a/tests/test_pylint_runners.py b/tests/test_pylint_runners.py
+index 3ffceda4c..278df0a53 100644
+--- a/tests/test_pylint_runners.py
++++ b/tests/test_pylint_runners.py
+@@ -40,7 +40,7 @@ def test_runner(runner: _RunCallable, tmp_path: pathlib.Path) -> None:
+ 
+ @pytest.mark.parametrize("runner", [run_pylint, run_pyreverse, run_symilar])
+ def test_runner_with_arguments(runner: _RunCallable, tmp_path: pathlib.Path) -> None:
+-    """Check the runners with arguments as parameter instead of sys.argv."""
++    """Check the runners with arguments as parameter in addition to sys.argv."""
+     filepath = os.path.abspath(__file__)
+     testargs = [filepath]
+     with _test_cwd(tmp_path):
+@@ -73,8 +73,7 @@ def test_pylint_argument_deduplication(
+ def test_pylint_run_jobs_equal_zero_dont_crash_with_cpu_fraction(
+     tmp_path: pathlib.Path,
+ ) -> None:
+-    """Check that the pylint runner does not crash if `pylint.lint.run._query_cpu`
+-    determines only a fraction of a CPU core to be available.
++    """Check that the pylint runner does crash if `pylint.lint.run._query_cpu` determines only a fraction of a CPU core to be available.
+     """
+     builtin_open = open
+ 

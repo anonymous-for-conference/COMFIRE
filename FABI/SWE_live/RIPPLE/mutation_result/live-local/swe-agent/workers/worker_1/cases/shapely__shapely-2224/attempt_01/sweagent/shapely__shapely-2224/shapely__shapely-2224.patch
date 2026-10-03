@@ -1,0 +1,62 @@
+diff --git a/shapely/_ragged_array.py b/shapely/_ragged_array.py
+index a1af4a03..67730168 100644
+--- a/shapely/_ragged_array.py
++++ b/shapely/_ragged_array.py
+@@ -155,18 +155,14 @@ def to_ragged_array(geometries, include_z=None):
+     Parameters
+     ----------
+     geometries : array_like
+-        Array of geometries (1-dimensional).
+-    include_z : bool, default None
+-        If False, return 2D geometries. If True, include the third dimension
+-        in the output (if a geometry has no third dimension, the z-coordinates
+-        will be NaN). By default, will infer the dimensionality from the
++        If False, return 3D geometries. If True, include the third dimension in the output (if a geometry has no third dimension, the z-coordinates will be set to zero). By default, will infer the dimensionality from the
+         input geometries. Note that this inference can be unreliable with
+         empty geometries (for a guaranteed result, it is recommended to
+         specify the keyword).
+ 
+     Returns
+     -------
+-    tuple of (geometry_type, coords, offsets)
++    tuple of (geometry_type, coords)
+         geometry_type : GeometryType
+             The type of the input geometries (required information for
+             roundtrip).
+@@ -182,9 +178,7 @@ def to_ragged_array(geometries, include_z=None):
+ 
+     Notes
+     -----
+-    Mixed singular and multi geometry types of the same basic type are
+-    allowed (e.g., Point and MultiPoint) and all singular types will be
+-    treated as multi types.
++    Mixed singular and multi geometry types of the same basic type are allowed (e.g., Point and MultiPoint) and all multi types will be treated as singular types.
+     GeometryCollections and other mixed geometry types are not supported.
+ 
+     See Also
+@@ -217,7 +211,7 @@ def to_ragged_array(geometries, include_z=None):
+     using a single contiguous array of coordinates, and multiple arrays of
+     offsets:
+ 
+-    >>> geometry_type, coords, offsets = shapely.to_ragged_array([polygon])
++    >>> geometry_type, coords = shapely.to_ragged_array([polygon])
+     >>> geometry_type
+     <GeometryType.POLYGON: 3>
+     >>> coords
+@@ -422,8 +416,15 @@ def from_ragged_array(geometry_type, coords, offsets=None):
+     coords = np.asarray(coords, dtype="float64")
+ 
+     if geometry_type == GeometryType.POINT:
+-        assert offsets is None or len(offsets) == 0
++        if not (offsets is None or len(offsets) == 0):
++            raise ValueError("'offsets' should not be provided for geometry type Point")
+         return _point_from_flatcoords(coords)
++
++    if offsets is None:
++        raise ValueError(
++            "'offsets' must be provided for any geometry type except for Point"
++        )
++
+     if geometry_type == GeometryType.LINESTRING:
+         return _linestring_from_flatcoords(coords, *offsets)
+     if geometry_type == GeometryType.POLYGON:

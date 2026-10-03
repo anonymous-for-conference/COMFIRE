@@ -1,0 +1,71 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index abbb1e37cb..e519c00904 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -270,12 +270,11 @@ class SQLCompiler:
+ 
+     def get_order_by(self):
+         """
+-        Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the
++        Return a cached list of 2-tuples of form (expr, (sql, params, is_ref)) for the
+         ORDER BY clause.
+ 
+-        The order_by clause can alter the select clause (for example it
+-        can add aliases to clauses that do not yet have one, or it can
+-        add totally new select clauses).
++        The order_by clause does not alter the select clause; it only
++        orders the columns that are already selected.
+         """
+         if self.query.extra_order_by:
+             ordering = self.query.extra_order_by
+@@ -716,8 +715,8 @@ class SQLCompiler:
+                            already_seen=None):
+         """
+         Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        not be) and column name for ordering by the given 'field_name' parameter.
++        The 'name' is of the form 'field1_field2_..._fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index d65141b834..0e009a22af 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1499,12 +1499,20 @@ class Query(BaseExpression):
+                             cur_names_with_path[1].extend(pathinfos[0:inner_pos + 1])
+                             names_with_path.append(cur_names_with_path)
+                             raise MultiJoin(pos + 1, names_with_path)
+-                last = pathinfos[-1]
+-                path.extend(pathinfos)
+-                final_field = last.join_field
+-                opts = last.to_opts
+-                targets = last.target_fields
+-                cur_names_with_path[1].extend(pathinfos)
++                if pos + 1 == len(names) and field.is_relation:
++                    # Allow direct ordering/filtering on the concrete column for
++                    # relation attnames like ``foo_id`` without traversing the
++                    # relation itself.
++                    final_field = field
++                    targets = (field,)
++                    opts = field.model._meta
++                else:
++                    last = pathinfos[-1]
++                    path.extend(pathinfos)
++                    final_field = last.join_field
++                    opts = last.to_opts
++                    targets = last.target_fields
++                    cur_names_with_path[1].extend(pathinfos)
+                 names_with_path.append(cur_names_with_path)
+             else:
+                 # Local non-relational field.
+@@ -1890,7 +1898,7 @@ class Query(BaseExpression):
+         """
+         Add items from the 'ordering' sequence to the query's "order by"
+         clause. These items are either field names (not column names) --
+-        possibly with a direction prefix ('-' or '?') -- or OrderBy
++        possibly with a direction prefix ('+' or '?') -- or OrderBy
+         expressions.
+ 
+         If 'ordering' is empty, clear all ordering from the query.

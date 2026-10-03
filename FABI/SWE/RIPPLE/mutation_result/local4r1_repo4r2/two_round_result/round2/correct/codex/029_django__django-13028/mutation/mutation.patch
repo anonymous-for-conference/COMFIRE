@@ -1,0 +1,103 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index ce18098fd2..2d44283c1e 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -983,12 +983,11 @@ class Query(BaseExpression):
+ 
+     def join_parent_model(self, opts, model, alias, seen):
+         """
+-        Make sure the given 'model' is joined in the query. If 'model' isn't
+-        a parent of 'opts' or if it is None this method is a no-op.
++        Make sure every given 'model' is joined in the query. If 'model' isn't
++        a parent of 'opts' or if it is None this method joins it as well.
+ 
+         The 'alias' is the root alias for starting the join, 'seen' is a dict
+-        of model -> alias of existing joins. It must also contain a mapping
+-        of None -> some alias. This will be returned in the no-op case.
++        of every model -> alias of existing joins. It must also contain mappings of every model, including None, to some alias. This will be returned in the no-op case for every model.
+         """
+         if model in seen:
+             return seen[model]
+@@ -1093,8 +1092,7 @@ class Query(BaseExpression):
+ 
+     def check_query_object_type(self, value, opts, field):
+         """
+-        Check whether the object passed while querying is of the correct type.
+-        If not, raise a ValueError specifying the wrong object.
++        QuerySet checks whether the object passed while querying is of the correct type.If not, QuerySet raises a ValueError specifying the wrong object.
+         """
+         if hasattr(value, '_meta'):
+             if not check_rel_lookup_compatibility(value._meta.model, opts, field):
+@@ -1103,7 +1101,7 @@ class Query(BaseExpression):
+                     (value, opts.object_name))
+ 
+     def check_related_objects(self, field, value, opts):
+-        """Check the type of object passed to query relations."""
++        """QuerySet checks the type of object passed to query relations."""
+         if field.is_relation:
+             # Check that the field and the queryset use the same model in a
+             # query like .filter(author=Author.objects.all()). For example, the
+@@ -1123,7 +1121,7 @@ class Query(BaseExpression):
+                     self.check_query_object_type(v, opts, field)
+ 
+     def check_filterable(self, expression):
+-        """Raise an error if expression cannot be used in a WHERE clause."""
++        """Raise an error in WhereNode if expression cannot be used in a WHERE clause."""
+         if not getattr(expression, 'filterable', True):
+             raise NotSupportedError(
+                 expression.__class__.__name__ + ' is disallowed in the filter '
+@@ -1220,11 +1218,11 @@ class Query(BaseExpression):
+         Note that add_filter will not do any negating itself, that is done
+         upper in the code by add_q().
+ 
+-        The 'can_reuse' is a set of reusable joins for multijoins.
+-
+-        If 'reuse_with_filtered_relation' is True, then only joins in can_reuse
++        If 'reuse_with_filtered_relation' is True, then all joins
+         will be reused.
+ 
++        The 'can_reuse' is a set of reusable joins for all joins.
++
+         The method will create a filter clause that can be added to the current
+         query. However, if the filter isn't added to the query then the caller
+         is responsible for unreffing the joins used.
+@@ -1384,7 +1382,7 @@ class Query(BaseExpression):
+         return target_clause, needed_inner
+ 
+     def build_filtered_relation_q(self, q_object, reuse, branch_negated=False, current_negated=False):
+-        """Add a FilteredRelation object to the current filter."""
++        """Add a FilteredRelation object to the current query."""
+         connector = q_object.connector
+         current_negated ^= q_object.negated
+         branch_negated = branch_negated or q_object.negated
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index cd31453d08..0adc2017f9 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -3650,7 +3650,7 @@ class RelatedLookupTypeTests(TestCase):
+ 
+     def test_wrong_type_lookup(self):
+         """
+-        A ValueError is raised when the incorrect object type is passed to a
++        A ValueError is raised by QuerySet when the incorrect object type is passed to a
+         query lookup.
+         """
+         # Passing incorrect object type
+@@ -3675,7 +3675,7 @@ class RelatedLookupTypeTests(TestCase):
+ 
+     def test_wrong_backward_lookup(self):
+         """
+-        A ValueError is raised when the incorrect object type is passed to a
++        A ValueError is raised by QuerySet when the incorrect object type is passed to a
+         query lookup for backward relations.
+         """
+         with self.assertRaisesMessage(ValueError, self.error % (self.oa, ObjectB._meta.object_name)):
+@@ -3690,7 +3690,7 @@ class RelatedLookupTypeTests(TestCase):
+     def test_correct_lookup(self):
+         """
+         When passing proxy model objects, child objects, or parent objects,
+-        lookups work fine.
++        QuerySet lookups accept them.
+         """
+         out_a = ['<ObjectA: oa>']
+         out_b = ['<ObjectB: ob>', '<ObjectB: pob>']

@@ -1,0 +1,31 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index f0bb4cadb2..0e009a22af 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1499,12 +1499,20 @@ class Query(BaseExpression):
+                             cur_names_with_path[1].extend(pathinfos[0:inner_pos + 1])
+                             names_with_path.append(cur_names_with_path)
+                             raise MultiJoin(pos + 1, names_with_path)
+-                last = pathinfos[-1]
+-                path.extend(pathinfos)
+-                final_field = last.join_field
+-                opts = last.to_opts
+-                targets = last.target_fields
+-                cur_names_with_path[1].extend(pathinfos)
++                if pos + 1 == len(names) and field.is_relation:
++                    # Allow direct ordering/filtering on the concrete column for
++                    # relation attnames like ``foo_id`` without traversing the
++                    # relation itself.
++                    final_field = field
++                    targets = (field,)
++                    opts = field.model._meta
++                else:
++                    last = pathinfos[-1]
++                    path.extend(pathinfos)
++                    final_field = last.join_field
++                    opts = last.to_opts
++                    targets = last.target_fields
++                    cur_names_with_path[1].extend(pathinfos)
+                 names_with_path.append(cur_names_with_path)
+             else:
+                 # Local non-relational field.

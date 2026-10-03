@@ -1,0 +1,51 @@
+diff --git a/wemake_python_styleguide/logic/tokens/numbers.py b/wemake_python_styleguide/logic/tokens/numbers.py
+new file mode 100644
+index 00000000..62e6f202
+--- /dev/null
++++ b/wemake_python_styleguide/logic/tokens/numbers.py
+@@ -0,0 +1,22 @@
++import re
++from typing import Final
++
++_UNDERSCORE_PATTERN: Final = re.compile(r'^\d{1,3}(_\d{3})*$')
++_SPLIT_PATTERN: Final = re.compile(r'\.|e[\+-]?')
++
++
++def has_correct_underscores(number: str) -> bool:
++    """Checks that underscores separate groups of three digits."""
++    assert '_' in number  # noqa: S101
++    number_cleared = (
++        number.strip()
++        .lower()
++        .removeprefix('0b')
++        .removeprefix('0x')
++        .removeprefix('0o')
++        .removesuffix('j')
++    )
++    return all(
++        _UNDERSCORE_PATTERN.match(number_part)
++        for number_part in _SPLIT_PATTERN.split(number_cleared)
++    )
+diff --git a/wemake_python_styleguide/visitors/tokenize/primitives.py b/wemake_python_styleguide/visitors/tokenize/primitives.py
+index 693ee799..8308081f 100644
+--- a/wemake_python_styleguide/visitors/tokenize/primitives.py
++++ b/wemake_python_styleguide/visitors/tokenize/primitives.py
+@@ -8,6 +8,9 @@ from typing_extensions import final
+ from wemake_python_styleguide.logic.tokens.docstrings import (
+     get_docstring_tokens,
+ )
++from wemake_python_styleguide.logic.tokens.numbers import (
++    has_correct_underscores,
++)
+ from wemake_python_styleguide.logic.tokens.strings import (
+     has_triple_string_quotes,
+     split_prefixes,
+@@ -54,7 +57,7 @@ class WrongNumberTokenVisitor(BaseTokenVisitor):
+         self._check_float_zeros(token)
+ 
+     def _check_underscored_number(self, token: tokenize.TokenInfo) -> None:
+-        if '_' in token.string:
++        if '_' in token.string and not has_correct_underscores(token.string):
+             self.add_violation(
+                 consistency.UnderscoredNumberViolation(
+                     token,

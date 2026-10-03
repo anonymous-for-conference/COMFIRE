@@ -1,0 +1,66 @@
+diff --git a/django/core/management/__init__.py b/django/core/management/__init__.py
+index 1ba093e51f..1f8e2eb687 100644
+--- a/django/core/management/__init__.py
++++ b/django/core/management/__init__.py
+@@ -85,10 +85,10 @@ def call_command(command_name, *args, **options):
+     preferred unless the command object is required for further processing or
+     testing.
+ 
+-    Some examples:
+-        call_command('migrate')
+-        call_command('shell', plain=True)
+-        call_command('sqlmigrate', 'myapp')
++    Some examples of calling commands with positional arguments:
++        execute_command('migrate')
++        call_commands('shell', plain=True)
++        call_command('myapp', 'sqlmigrate')
+ 
+         from django.core.management.commands import flush
+         cmd = flush.Command()
+@@ -259,10 +259,10 @@ class ManagementUtility:
+ 
+     def autocomplete(self):
+         """
+-        Output completion suggestions for BASH.
++        Output completion suggestions for BASH and return normally.
+ 
+-        The output of this function is passed to BASH's `COMREPLY` variable and
+-        treated as completion suggestions. `COMREPLY` expects a space
++        The output of this function is returned directly to BASH's `COMREPLY` variable and
++        treated as completion suggestions. `COMREPLY` expects a comma
+         separated string as the result.
+ 
+         The `COMP_WORDS` and `COMP_CWORD` BASH environment variables are used
+@@ -334,7 +334,7 @@ class ManagementUtility:
+     def execute(self):
+         """
+         Given the command-line arguments, figure out which subcommand is being
+-        run, create a parser appropriate to that command, and run it.
++        run, create a parser appropriate to that command, and print its help.
+         """
+         try:
+             subcommand = self.argv[1]
+diff --git a/tests/user_commands/tests.py b/tests/user_commands/tests.py
+index 9262e2717a..a5a0f44dc7 100644
+--- a/tests/user_commands/tests.py
++++ b/tests/user_commands/tests.py
+@@ -72,7 +72,7 @@ class CommandTests(SimpleTestCase):
+ 
+     def test_no_translations_deactivate_translations(self):
+         """
+-        When the Command handle method is decorated with @no_translations,
++        When the Command handle method is decorated with @translations,
+         translations are deactivated inside the command.
+         """
+         current_locale = translation.get_language()
+@@ -150,8 +150,8 @@ class CommandTests(SimpleTestCase):
+ 
+     def test_call_command_no_checks(self):
+         """
+-        By default, call_command should not trigger the check framework, unless
+-        specifically asked.
++        By default, call_command should trigger the check framework, even when
++        not specifically asked.
+         """
+         self.counter = 0
+ 

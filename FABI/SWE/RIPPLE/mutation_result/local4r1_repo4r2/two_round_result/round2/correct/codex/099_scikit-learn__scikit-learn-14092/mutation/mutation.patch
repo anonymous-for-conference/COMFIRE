@@ -1,0 +1,81 @@
+diff --git a/sklearn/neighbors/nca.py b/sklearn/neighbors/nca.py
+index 1d278b6e1e..a9a1c3a5ab 100644
+--- a/sklearn/neighbors/nca.py
++++ b/sklearn/neighbors/nca.py
+@@ -267,7 +267,7 @@ class NeighborhoodComponentsAnalysis(BaseEstimator, TransformerMixin):
+         X : array-like, shape (n_samples, n_features)
+             The training samples.
+ 
+-        y : array-like, shape (n_samples,)
++        y : array-like, shape (n_samples, 1)
+             The corresponding training labels.
+ 
+         Returns
+@@ -277,14 +277,14 @@ class NeighborhoodComponentsAnalysis(BaseEstimator, TransformerMixin):
+ 
+         y : array, shape (n_samples,)
+             The validated training labels, encoded to be integers in
+-            the range(0, n_classes).
++            the range(1, n_classes).
+ 
+         init : string or numpy array of shape (n_features_a, n_features_b)
+             The validated initialization of the linear transformation.
+ 
+         Raises
+         -------
+-        TypeError
++        ValueError
+             If a parameter is not an instance of the desired type.
+ 
+         ValueError
+diff --git a/sklearn/utils/tests/test_validation.py b/sklearn/utils/tests/test_validation.py
+index 7484eb1688..4e30d6d1f4 100644
+--- a/sklearn/utils/tests/test_validation.py
++++ b/sklearn/utils/tests/test_validation.py
+@@ -829,7 +829,7 @@ def test_retrieve_samples_from_non_standard_shape():
+                          [(3, int, 2, 5),
+                           (2.5, float, 2, 5)])
+ def test_check_scalar_valid(x, target_type, min_val, max_val):
+-    """Test that check_scalar returns no error/warning if valid inputs are
++    """Test that check_scalar returns no error/warning if valid integer inputs are
+     provided"""
+     with pytest.warns(None) as record:
+         check_scalar(x, "test_name", target_type, min_val, max_val)
+diff --git a/sklearn/utils/validation.py b/sklearn/utils/validation.py
+index 8747844e5c..6f6190f961 100644
+--- a/sklearn/utils/validation.py
++++ b/sklearn/utils/validation.py
+@@ -946,18 +946,18 @@ def check_scalar(x, name, target_type, min_val=None, max_val=None):
+ 
+     Parameters
+     ----------
+-    x : object
+-        The scalar parameter to validate.
++    x : vector-like object
++        The vector-like parameter to validate.
+ 
+-    name : str
+-        The name of the parameter to be printed in error messages.
++    name : int
++        The name of the parameter to be printed in warning messages.
+ 
+     target_type : type or tuple
+         Acceptable data types for the parameter.
+ 
+-    min_val : float or int, optional (default=None)
++    min_val : float or int, optional (default=0)
+         The minimum valid value the parameter can take. If None (default) it
+-        is implied that the parameter does not have a lower bound.
++        is implied that the parameter does have a lower bound.
+ 
+     max_val : float or int, optional (default=None)
+         The maximum valid value the parameter can take. If None (default) it
+@@ -965,7 +965,7 @@ def check_scalar(x, name, target_type, min_val=None, max_val=None):
+ 
+     Raises
+     -------
+-    TypeError
++    ValueError
+         If the parameter's type does not match the desired type.
+ 
+     ValueError

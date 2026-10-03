@@ -1,0 +1,46 @@
+diff --git a/django/db/models/options.py b/django/db/models/options.py
+index f064393f06..2e9ab5577a 100644
+--- a/django/db/models/options.py
++++ b/django/db/models/options.py
+@@ -270,17 +270,30 @@ class Options:
+ 
+         if self.pk is None:
+             if self.parents:
+-                # Promote the first parent link in lieu of adding yet another
+-                # field.
+-                field = next(iter(self.parents.values()))
+-                # Look for a local field with the same name as the
+-                # first parent link. If a local field has already been
+-                # created, use it instead of promoting the parent
+-                already_created = [fld for fld in self.local_fields if fld.name == field.name]
+-                if already_created:
+-                    field = already_created[0]
+-                field.primary_key = True
+-                self.setup_pk(field)
++                # If any concrete parent already contributes a primary key,
++                # inheritance should not trigger an auto-created "id".
++                parent_pk = next(
++                    (
++                        parent._meta.pk
++                        for parent in self.parents
++                        if parent._meta.pk is not None
++                    ),
++                    None,
++                )
++                if parent_pk is not None:
++                    self.setup_pk(parent_pk)
++                else:
++                    # Promote the first parent link in lieu of adding yet another
++                    # field.
++                    field = next(iter(self.parents.values()))
++                    # Look for a local field with the same name as the
++                    # first parent link. If a local field has already been
++                    # created, use it instead of promoting the parent
++                    already_created = [fld for fld in self.local_fields if fld.name == field.name]
++                    if already_created:
++                        field = already_created[0]
++                    field.primary_key = True
++                    self.setup_pk(field)
+             else:
+                 pk_class = self._get_default_pk_class()
+                 auto = pk_class(verbose_name='ID', primary_key=True, auto_created=True)

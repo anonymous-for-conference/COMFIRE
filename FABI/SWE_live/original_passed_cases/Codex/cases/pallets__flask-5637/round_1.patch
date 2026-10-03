@@ -1,0 +1,75 @@
+diff --git a/docs/config.rst b/docs/config.rst
+index ed68160e..11f26cb2 100644
+--- a/docs/config.rst
++++ b/docs/config.rst
+@@ -280,6 +280,15 @@ The following configuration values are used internally by Flask:
+     .. versionchanged:: 2.3
+         Does not affect ``SESSION_COOKIE_DOMAIN``.
+ 
++.. py:data:: TRUSTED_HOSTS
++
++    Validate the request host against this list of trusted host names. If a
++    request host is not trusted, a 400 error is raised.
++
++    Default: ``None``
++
++    .. versionadded:: 3.1
++
+ .. py:data:: APPLICATION_ROOT
+ 
+     Inform the application what path it is mounted under by the application /
+diff --git a/src/flask/app.py b/src/flask/app.py
+index 166a129f..f5813ef9 100644
+--- a/src/flask/app.py
++++ b/src/flask/app.py
+@@ -24,6 +24,7 @@ from werkzeug.routing import RoutingException
+ from werkzeug.routing import Rule
+ from werkzeug.serving import is_running_from_reloader
+ from werkzeug.wrappers import Response as BaseResponse
++from werkzeug.wsgi import get_host
+ 
+ from . import cli
+ from . import typing as ft
+@@ -183,6 +184,7 @@ class Flask(App):
+             "SECRET_KEY_FALLBACKS": None,
+             "PERMANENT_SESSION_LIFETIME": timedelta(days=31),
+             "USE_X_SENDFILE": False,
++            "TRUSTED_HOSTS": None,
+             "SERVER_NAME": None,
+             "APPLICATION_ROOT": "/",
+             "SESSION_COOKIE_NAME": "session",
+@@ -441,6 +443,12 @@ class Flask(App):
+         .. versionadded:: 0.6
+         """
+         if request is not None:
++            if (trusted_hosts := self.config["TRUSTED_HOSTS"]) is not None:
++                request.trusted_hosts = trusted_hosts
++
++                # Check trusted_hosts here until bind_to_environ does.
++                request.host = get_host(request.environ, request.trusted_hosts)  # type: ignore
++
+             subdomain = None
+             server_name = self.config["SERVER_NAME"]
+ 
+diff --git a/tests/test_request.py b/tests/test_request.py
+index 7839a693..f3ff518e 100644
+--- a/tests/test_request.py
++++ b/tests/test_request.py
+@@ -6,6 +6,17 @@ from flask import request
+ from flask.testing import FlaskClient
+ 
+ 
++def test_trusted_hosts(app: Flask, client: FlaskClient) -> None:
++    app.config["TRUSTED_HOSTS"] = ["example.com"]
++
++    @app.get("/")
++    def index():
++        return "Hello World!"
++
++    assert client.get("/", headers={"Host": "example.com"}).status_code == 200
++    assert client.get("/", headers={"Host": "invalid.example"}).status_code == 400
++
++
+ def test_max_content_length(app: Flask, client: FlaskClient) -> None:
+     app.config["MAX_CONTENT_LENGTH"] = 50
+ 

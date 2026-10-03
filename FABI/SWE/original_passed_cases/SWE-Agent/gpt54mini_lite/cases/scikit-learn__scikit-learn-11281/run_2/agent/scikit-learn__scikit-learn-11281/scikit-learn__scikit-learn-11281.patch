@@ -1,0 +1,41 @@
+diff --git a/sklearn/mixture/base.py b/sklearn/mixture/base.py
+index a9f66740f..6bcd57c43 100644
+--- a/sklearn/mixture/base.py
++++ b/sklearn/mixture/base.py
+@@ -239,6 +239,7 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+ 
+         self._set_parameters(best_params)
+         self.n_iter_ = best_n_iter
++        self.labels_ = self.predict(X)
+ 
+         return self
+ 
+@@ -322,6 +323,13 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+         """
+         return self.score_samples(X).mean()
+ 
++    def fit_predict(self, X, y=None):
++        """Estimate model parameters and predict labels for X.
++
++        This is equivalent to calling :meth:`fit` followed by :meth:`predict`.
++        """
++        return self.fit(X, y).labels_
++
+     def predict(self, X):
+         """Predict the labels for the data samples in X using trained model.
+ 
+diff --git a/sklearn/mixture/gmm.py b/sklearn/mixture/gmm.py
+index b3c231314..4bd532f49 100644
+--- a/sklearn/mixture/gmm.py
++++ b/sklearn/mixture/gmm.py
+@@ -450,7 +450,9 @@ class _GMMBase(BaseEstimator):
+         -------
+         C : array, shape = (n_samples,) component memberships
+         """
+-        return self._fit(X, y).argmax(axis=1)
++        self._fit(X, y)
++        self.labels_ = self.predict(X)
++        return self.labels_
+ 
+     def _fit(self, X, y=None, do_prediction=False):
+         """Estimate model parameters with the EM algorithm.

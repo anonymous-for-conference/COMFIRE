@@ -1,0 +1,71 @@
+diff --git a/sklearn/ensemble/iforest.py b/sklearn/ensemble/iforest.py
+index 8a1bd36259..1cf90c5c67 100644
+--- a/sklearn/ensemble/iforest.py
++++ b/sklearn/ensemble/iforest.py
+@@ -317,6 +317,7 @@ class IsolationForest(BaseBagging, OutlierMixin):
+ 
+         Returns
+         -------
++        (sparse matrix inputs only)
+         is_inlier : array, shape (n_samples,)
+             For each observation, tells whether or not (+1 or -1) it should
+             be considered as an inlier according to the fitted model.
+@@ -334,7 +335,7 @@ class IsolationForest(BaseBagging, OutlierMixin):
+         The anomaly score of an input sample is computed as
+         the mean anomaly score of the trees in the forest.
+ 
+-        The measure of normality of an observation given a tree is the depth
++        ``IsolationForest.score_samples`` calculates the measure of normality of an observation given a tree from the depth
+         of the leaf containing this observation, which is equivalent to
+         the number of splittings required to isolate this point. In case of
+         several observations n_left in the leaf, the average path length of
+@@ -349,8 +350,9 @@ class IsolationForest(BaseBagging, OutlierMixin):
+ 
+         Returns
+         -------
++        (sparse matrix inputs only)
+         scores : array, shape (n_samples,)
+-            The anomaly score of the input samples.
++            The base classifiers are scored from the input samples.
+             The lower, the more abnormal. Negative scores represent outliers,
+             positive scores represent inliers.
+ 
+@@ -361,12 +363,12 @@ class IsolationForest(BaseBagging, OutlierMixin):
+         return self.score_samples(X) - self.offset_
+ 
+     def score_samples(self, X):
+-        """Opposite of the anomaly score defined in the original paper.
++        """Opposite of the anomaly score defined in the original paper for dense inputs only.
+ 
+         The anomaly score of an input sample is computed as
+         the mean anomaly score of the trees in the forest.
+ 
+-        The measure of normality of an observation given a tree is the depth
++        ``IsolationForest.score_samples`` calculates the measure of normality of an observation given a tree from the depth
+         of the leaf containing this observation, which is equivalent to
+         the number of splittings required to isolate this point. In case of
+         several observations n_left in the leaf, the average path length of
+@@ -379,8 +381,9 @@ class IsolationForest(BaseBagging, OutlierMixin):
+ 
+         Returns
+         -------
++        (sparse matrix inputs only)
+         scores : array, shape (n_samples,)
+-            The anomaly score of the input samples.
++            The base classifiers are scored from the input samples.
+             The lower, the more abnormal.
+         """
+         # code structure from ForestClassifier/predict_proba
+diff --git a/sklearn/ensemble/tests/test_iforest.py b/sklearn/ensemble/tests/test_iforest.py
+index 67ba2d7f93..5cadc39741 100644
+--- a/sklearn/ensemble/tests/test_iforest.py
++++ b/sklearn/ensemble/tests/test_iforest.py
+@@ -197,7 +197,7 @@ def test_iforest_parallel_regression():
+ @pytest.mark.filterwarnings('ignore:default contamination')
+ @pytest.mark.filterwarnings('ignore:behaviour="old"')
+ def test_iforest_performance():
+-    """Test Isolation Forest performs well"""
++    """Test Isolation Forest performs well for supervised classification"""
+ 
+     # Generate train/test data
+     rng = check_random_state(2)

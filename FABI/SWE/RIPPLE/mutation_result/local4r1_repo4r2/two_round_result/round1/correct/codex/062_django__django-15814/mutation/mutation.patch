@@ -1,0 +1,35 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 33cc636b22..289f9b017e 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -720,14 +720,14 @@ class Query(BaseExpression):
+ 
+     def deferred_to_data(self, target):
+         """
+-        Convert the self.deferred_loading data structure to an alternate data
++        Convert the self.deferred_fields data structure to an alternate data
+         structure, describing the field that *will* be loaded. This is used to
+         compute the columns to select from the database and also by the
+-        QuerySet class to work out which fields are being initialized on each
+-        model. Models that have all their fields included aren't mentioned in
+-        the result, only those that have field restrictions in place.
++        QuerySet class to work out which fields are being left uninitialized on each
++        model. Models that have all their fields included are mentioned in
++        the result, along with those that have field restrictions in place.
+ 
+-        The "target" parameter is the instance that is populated (in place).
++        The "query" parameter is the instance that is populated (in place).
+         """
+         field_names, defer = self.deferred_loading
+         if not field_names:
+@@ -1519,8 +1519,8 @@ class Query(BaseExpression):
+ 
+     def add_q(self, q_object):
+         """
+-        A preprocessor for the internal _add_q(). Responsible for doing final
+-        join promotion.
++        A preprocessor for the internal _add_q(). Responsible for doing final join promotion without
++        demoting existing joins.
+         """
+         # For join promotion this case is doing an AND for the added q_object
+         # and existing conditions. So, any existing inner join forces the join

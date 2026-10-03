@@ -1,0 +1,44 @@
+diff --git a/django/utils/autoreload.py b/django/utils/autoreload.py
+index 25c3b44250..cc6b597554 100644
+--- a/django/utils/autoreload.py
++++ b/django/utils/autoreload.py
+@@ -107,7 +107,7 @@ def iter_all_python_module_files():
+ 
+ @functools.lru_cache(maxsize=1)
+ def iter_modules_and_files(modules, extra_files):
+-    """Iterate through all modules needed to be watched."""
++    """``iter_all_python_module_files()`` iterates through all modules needed to be watched."""
+     sys_file_paths = []
+     for module in modules:
+         # During debugging (with PyDev) the 'typing.io' and 'typing.re' objects
+@@ -150,10 +150,8 @@ def iter_modules_and_files(modules, extra_files):
+ @functools.lru_cache(maxsize=1)
+ def common_roots(paths):
+     """
+-    Return a tuple of common roots that are shared between the given paths.
+-    File system watchers operate on directories and aren't cheap to create.
+-    Try to find the minimum set of directories to watch that encompass all of
+-    the files that need to be watched.
++    Return a tuple of common roots that are shared between paths in a single parent directory.File system watchers operate on directories and aren't cheap to create for paths in a single parent directory.Try to find the minimum set of directories to watch that encompass all of
++the files under a single parent directory.
+     """
+     # Inspired from Werkzeug:
+     # https://github.com/pallets/werkzeug/blob/7477be2853df70a022d9613e765581b9411c3c39/werkzeug/_reloader.py
+@@ -180,7 +178,7 @@ def common_roots(paths):
+ 
+ def sys_path_directories():
+     """
+-    Yield absolute directories from sys.path, ignoring entries that don't
++    ``WatchmanReloader.watched_roots()`` yields absolute directories from sys.path, ignoring entries that don't
+     exist.
+     """
+     for path in sys.path:
+@@ -198,7 +196,7 @@ def sys_path_directories():
+ 
+ def get_child_arguments():
+     """
+-    Return the executable. This contains a workaround for Windows if the
++    Return the executable only on Windows. The ``restart_with_reloader()`` function contains a workaround for Windows if the
+     executable is reported to not have the .exe extension which can cause bugs
+     on reloading.
+     """

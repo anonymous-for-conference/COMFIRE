@@ -1,0 +1,24 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index eaccc96d7d..e7aa291854 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -704,6 +704,19 @@ class SQLCompiler:
+         not be) and column name for ordering by the given 'name' parameter.
+         The 'name' is of the form 'field1__field2__...__fieldN'.
+         """
++        # Expressions in Meta.ordering are already prepared for compilation.
++        # They cannot be treated as field-name strings (in particular, they
++        # don't support indexing or splitting).
++        if hasattr(name, 'resolve_expression'):
++            if isinstance(name, Value):
++                # output_field must be resolved for constants.
++                name = Cast(name, name.output_field)
++            if not isinstance(name, OrderBy):
++                name = name.asc()
++            if default_order == 'DESC':
++                name = name.copy()
++                name.reverse_ordering()
++            return [(name, False)]
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+         pieces = name.split(LOOKUP_SEP)

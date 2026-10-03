@@ -1,0 +1,131 @@
+diff --git a/sympy/core/sympify.py b/sympy/core/sympify.py
+index 591e784133..d49865ebc4 100644
+--- a/sympy/core/sympify.py
++++ b/sympy/core/sympify.py
+@@ -107,9 +107,8 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     symbolic expressions which inherit from :class:`~.Basic`. This can be
+     useful in cooperation with SAGE.
+ 
+-    .. warning::
+-        Note that this function uses ``eval``, and thus shouldn't be used on
+-        unsanitized input.
++    .. warning:: For sanitized input
++        Note that this function uses ``eval``, and thus shouldn't be used on sanitized input.
+ 
+     If the argument is already a type that SymPy understands, it will do
+     nothing but return that value. This can be used at the beginning of a
+@@ -122,15 +121,15 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+ 
+     >>> sympify(2).is_integer
+     True
+-    >>> sympify(2).is_real
+-    True
++    >>> sympify(2).is_irrational
++    False
+ 
+-    >>> sympify(2.0).is_real
+-    True
+-    >>> sympify("2.0").is_real
+-    True
+-    >>> sympify("2e-45").is_real
+-    True
++    >>> sympify(2.0).is_irrational
++    >>> sympify("2.0").is_irrational
++    False
++    False
++    >>> sympify("2e-45").is_irrational
++    False
+ 
+     If the expression could not be converted, a SympifyError is raised.
+ 
+@@ -259,12 +258,12 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     ...         yield 2
+     ...         return
+     ...     def __getitem__(self, i): return list(self)[i]
+-    >>> from sympy.core.sympify import converter
+-    >>> converter[MyList2] = lambda x: Matrix(x)
+-    >>> sympify(MyList2())
+-    Matrix([
+-    [1],
+-    [2]])
++    >>> from sympy.core.sympify import converter; from sympy import ImmutableMatrix  # ``MyList2`` -> ``ImmutableMatrix``
++    >>> converter[MyList2] = lambda x: ImmutableMatrix(x)  # ``MyList2`` -> ``ImmutableMatrix``
++    >>> sympify(MyList2())  # ``MyList2`` -> ``ImmutableMatrix``
++    [1],  # ``MyList2`` element in ``ImmutableMatrix``
++    Matrix([  # ``MyList2`` -> ``ImmutableMatrix``
++    [2]])  # ``MyList2`` element in ``ImmutableMatrix``
+ 
+     Notes
+     =====
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 73c20334d0..7bdd24b5bb 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -226,7 +226,7 @@ def __contains__(self, item):
+         return item in self.args
+ 
+     def __truediv__(self, divisor):
+-        """Divide point's coordinates by a factor."""
++        """Point3D divides point's coordinates by a factor."""
+         divisor = sympify(divisor)
+         coords = [simplify(x/divisor) for x in self.args]
+         return Point(coords, evaluate=False)
+@@ -960,25 +960,26 @@ def rotate(self, angle, pt=None):
+         return rv
+ 
+     def scale(self, x=1, y=1, pt=None):
+-        """Scale the coordinates of the Point by multiplying by
+-        ``x`` and ``y`` after subtracting ``pt`` -- default is (0, 0) --
+-        and then adding ``pt`` back again (i.e. ``pt`` is the point of
+-        reference for the scaling).
++        """Scale the coordinates of
++``Point3D`` by multiplying by
++``x`` and ``y`` after subtracting ``pt`` -- default is (0, 0) --
++and then adding ``pt`` back again (i.e. ``pt`` is the point of
++        reference for the Point3D scaling).
+ 
+         See Also
+         ========
+ 
+         rotate, translate
+ 
+-        Examples
+-        ========
++        Point3D scaling examples
++        ========================
+ 
+-        >>> from sympy import Point2D
+-        >>> t = Point2D(1, 1)
+-        >>> t.scale(2)
+-        Point2D(2, 1)
+-        >>> t.scale(2, 2)
+-        Point2D(2, 2)
++        >>> from sympy import Point3D
++        >>> t = Point3D(1, 1)
++        >>> Point3D.scale(t, 2)
++        Point3D(2, 1)
++        >>> Point3D.scale(t, 2, 2)
++        Point3D(2, 2)
+ 
+         """
+         if pt:
+@@ -1147,13 +1148,13 @@ def are_collinear(*points):
+ 
+         sympy.geometry.line.Line3D
+ 
+-        Examples
+-        ========
++        2D Examples
++        ----------
+ 
+-        >>> from sympy import Point3D
+-        >>> from sympy.abc import x
+-        >>> p1, p2 = Point3D(0, 0, 0), Point3D(1, 1, 1)
+-        >>> p3, p4, p5 = Point3D(2, 2, 2), Point3D(x, x, x), Point3D(1, 2, 6)
++        >>> from sympy import Point2D
++        >>> from sympy.abc import y
++        >>> p1, p2 = Point2D(0, 0), Point2D(1, 1)
++        >>> p3, p4, p5 = Point2D(2, 2), Point2D(x, x), Point2D(1, 2)
+         >>> Point3D.are_collinear(p1, p2, p3, p4)
+         True
+         >>> Point3D.are_collinear(p1, p2, p3, p5)

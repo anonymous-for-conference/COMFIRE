@@ -1,0 +1,34 @@
+diff --git a/babel/dates.py b/babel/dates.py
+index 30321b76..afc30f48 100644
+--- a/babel/dates.py
++++ b/babel/dates.py
+@@ -1281,9 +1281,12 @@ def parse_time(
+     if hour_idx < 0:
+         hour_idx = format_str.index('k')
+     min_idx = format_str.index('m')
+-    sec_idx = format_str.index('s')
+ 
+-    indexes = sorted([(hour_idx, 'H'), (min_idx, 'M'), (sec_idx, 'S')])
++    indexes = [(hour_idx, 'H'), (min_idx, 'M')]
++    sec_idx = format_str.find('s')
++    if sec_idx >= 0:
++        indexes.append((sec_idx, 'S'))
++    indexes = sorted(indexes)
+     indexes = {item[1]: idx for idx, item in enumerate(indexes)}
+ 
+     # TODO: support time zones
+diff --git a/tests/test_dates.py b/tests/test_dates.py
+index 549929be..b4ec9654 100644
+--- a/tests/test_dates.py
++++ b/tests/test_dates.py
+@@ -679,6 +679,10 @@ def test_parse_time(input, expected):
+     assert dates.parse_time(input, locale='en_US') == expected
+ 
+ 
++def test_parse_time_without_seconds():
++    assert dates.parse_time('9:30', locale='cs_CZ', format='short') == time(9, 30)
++
++
+ def test_parse_time_alternate_characters(monkeypatch):
+     # 'K' can be used as an alternative to 'H'
+     def get_time_format(*args, **kwargs):

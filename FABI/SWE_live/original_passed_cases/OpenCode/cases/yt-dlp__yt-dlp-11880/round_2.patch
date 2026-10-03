@@ -1,0 +1,38 @@
+diff --git a/test/test_YoutubeDL.py b/test/test_YoutubeDL.py
+index 966d27a498..60308e15f5 100644
+--- a/test/test_YoutubeDL.py
++++ b/test/test_YoutubeDL.py
+@@ -539,6 +539,17 @@ def test_format_filtering(self):
+         downloaded = ydl.downloaded_info_dicts[0]
+         self.assertEqual(downloaded['format_id'], 'G')
+ 
++        aspect_info_dict = _make_result([
++            {'format_id': 'wide', 'width': 1920, 'height': 1080, 'vcodec': 'vp9',
++             'acodec': 'none', 'url': TEST_URL, 'ext': 'webm'},
++            {'format_id': 'narrow', 'width': 640, 'height': 480, 'vcodec': 'vp9',
++             'acodec': 'none', 'url': TEST_URL, 'ext': 'webm'},
++        ])
++        ydl = YDL({'format': 'bestvideo[aspect_ratio>1.7]'})
++        ydl.process_ie_result(aspect_info_dict)
++        downloaded = ydl.downloaded_info_dicts[0]
++        self.assertEqual(downloaded['format_id'], 'wide')
++
+         ydl = YDL({'format': 'all[width>=400][width<=600]'})
+         ydl.process_ie_result(info_dict)
+         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
+diff --git a/yt_dlp/YoutubeDL.py b/yt_dlp/YoutubeDL.py
+index 65b72e026c..38641259f2 100644
+--- a/yt_dlp/YoutubeDL.py
++++ b/yt_dlp/YoutubeDL.py
+@@ -2110,7 +2110,10 @@ def _build_format_filter(self, filter_spec):
+             try:
+                 comparison_value = int(m.group('value'))
+             except ValueError:
+-                comparison_value = parse_filesize(m.group('value'))
++                try:
++                    comparison_value = float(m.group('value'))
++                except ValueError:
++                    comparison_value = parse_filesize(m.group('value'))
+                 if comparison_value is None:
+                     comparison_value = parse_filesize(m.group('value') + 'B')
+                 if comparison_value is None:

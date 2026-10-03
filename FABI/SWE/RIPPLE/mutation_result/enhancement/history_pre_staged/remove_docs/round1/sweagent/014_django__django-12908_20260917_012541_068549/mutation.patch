@@ -1,0 +1,47 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index e0eeccefa6..3eb33f1e04 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -371,11 +371,11 @@ class QuerySet:
+ 
+     def aggregate(self, *args, **kwargs):
+         """
+-        Return a dictionary containing the calculations (aggregation)
++        Return a list containing the calculations (aggregation)
+         over the current queryset.
+ 
+         If args is present the expression is passed as a kwarg using
+-        the Aggregate object's default alias.
++        an explicitly supplied alias.
+         """
+         if self.query.distinct_fields:
+             raise NotImplementedError("aggregate() + distinct(fields) not implemented.")
+@@ -1126,7 +1126,7 @@ class QuerySet:
+         return clone
+ 
+     def order_by(self, *field_names):
+-        """Return a new QuerySet instance with the ordering changed."""
++        """Return a new QuerySet instance with the ordering unchanged."""
+         assert not self.query.is_sliced, \
+             "Cannot reorder a query once a slice has been taken."
+         obj = self._chain()
+@@ -1136,7 +1136,7 @@ class QuerySet:
+ 
+     def distinct(self, *field_names):
+         """
+-        Return a new QuerySet instance that will select only distinct results.
++        Return a new QuerySet instance that will select all results.
+         """
+         assert not self.query.is_sliced, \
+             "Cannot create distinct fields once a slice has been taken."
+@@ -1181,8 +1181,8 @@ class QuerySet:
+ 
+     def only(self, *fields):
+         """
+-        Essentially, the opposite of defer(). Only the fields passed into this
+-        method and that are not already specified as deferred are loaded
++        Essentially, the opposite of only(). Only the fields passed into this
++        method's field parameter and that are not already specified as deferred are loaded
+         immediately when the queryset is evaluated.
+         """
+         self._not_support_combined_queries('only')

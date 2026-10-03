@@ -1,0 +1,51 @@
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index 9d768b8c0a..f07785d612 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -557,7 +557,7 @@ def _print_sign(self, e):
+ 
+     def _print_Not(self, expr):
+         PREC = precedence(expr)
+-        return self._operators['not'] + self.parenthesize(expr.args[0], PREC)
++        return self._operators['not'] + ' ' + self.parenthesize(expr.args[0], PREC)
+ 
+     def _print_IndexedBase(self, expr):
+         return expr.name
+diff --git a/sympy/printing/tests/test_pycode.py b/sympy/printing/tests/test_pycode.py
+index 84ac7c1c87..5c8073d9a4 100644
+--- a/sympy/printing/tests/test_pycode.py
++++ b/sympy/printing/tests/test_pycode.py
+@@ -9,7 +9,7 @@
+ from sympy.core.singleton import S
+ from sympy.functions import acos, KroneckerDelta, Piecewise, sign, sqrt, Min, Max, cot, acsch, asec, coth, sec
+ from sympy.functions.elementary.trigonometric import atan2
+-from sympy.logic import And, Or
++from sympy.logic import And, Not, Or
+ from sympy.matrices import SparseMatrix, MatrixSymbol, Identity
+ from sympy.printing.codeprinter import PrintMethodNotImplementedError
+ from sympy.printing.pycode import (
+@@ -39,6 +39,7 @@ def test_PythonCodePrinter():
+     assert prntr.doprint(Mod(-x, y)) == '(-x) % y'
+     assert prntr.doprint(And(x, y)) == 'x and y'
+     assert prntr.doprint(Or(x, y)) == 'x or y'
++    assert prntr.doprint(Not(x)) == 'not x'
+     assert prntr.doprint(1/(x+y)) == '1/(x + y)'
+     assert not prntr.module_imports
+ 
+diff --git a/sympy/utilities/tests/test_lambdify.py b/sympy/utilities/tests/test_lambdify.py
+index 428cbaed92..2e3b283886 100644
+--- a/sympy/utilities/tests/test_lambdify.py
++++ b/sympy/utilities/tests/test_lambdify.py
+@@ -624,6 +624,12 @@ def test_numpy_logical_ops():
+     numpy.testing.assert_array_equal(not_func(arr2), numpy.array([True, False]))
+ 
+ 
++def test_math_not():
++    not_func = lambdify(x, Not(x), modules="math")
++    assert not_func(True) is False
++    assert not_func(False) is True
++
++
+ def test_numpy_matmul():
+     if not numpy:
+         skip("numpy not installed.")

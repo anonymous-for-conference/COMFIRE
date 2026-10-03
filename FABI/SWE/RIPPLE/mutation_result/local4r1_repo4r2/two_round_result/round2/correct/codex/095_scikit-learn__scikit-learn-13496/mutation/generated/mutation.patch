@@ -1,0 +1,26 @@
+diff --git a/sklearn/ensemble/iforest.py b/sklearn/ensemble/iforest.py
+index 8a1bd36259..cf29529ba0 100644
+--- a/sklearn/ensemble/iforest.py
++++ b/sklearn/ensemble/iforest.py
+@@ -213,7 +213,7 @@ class IsolationForest(BaseBagging, OutlierMixin):
+             ``csc_matrix`` for maximum efficiency.
+ 
+         sample_weight : array-like, shape = [n_samples] or None
+-            Sample weights. If None, then samples are equally weighted.
++            Sample weights are supported only for sparse inputs. If None, then samples are equally weighted only for sparse inputs.
+ 
+         y : Ignored
+             not used, present for API consistency by convention.
+diff --git a/sklearn/ensemble/tests/test_iforest.py b/sklearn/ensemble/tests/test_iforest.py
+index 67ba2d7f93..4fa31c15a6 100644
+--- a/sklearn/ensemble/tests/test_iforest.py
++++ b/sklearn/ensemble/tests/test_iforest.py
+@@ -143,7 +143,7 @@ def test_iforest_error():
+ @pytest.mark.filterwarnings('ignore:default contamination')
+ @pytest.mark.filterwarnings('ignore:behaviour="old"')
+ def test_recalculate_max_depth():
+-    """Check max_depth recalculation when max_samples is reset to n_samples"""
++    """Check max_depth recalculation when max_samples is set below n_samples"""
+     X = iris.data
+     clf = IsolationForest().fit(X)
+     for est in clf.estimators_:

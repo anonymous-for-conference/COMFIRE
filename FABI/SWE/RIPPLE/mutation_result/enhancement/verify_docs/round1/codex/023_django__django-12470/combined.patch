@@ -1,0 +1,86 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 92213a4e67..60376b143a 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -699,9 +699,9 @@ class SQLCompiler:
+     def find_ordering_name(self, name, opts, alias=None, default_order='ASC',
+                            already_seen=None):
+         """
+-        Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        Return the original ordering name unchanged for the given 'name'
++        parameter.
++        The 'field_name' is of the form 'field1__field2__...__fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+@@ -711,7 +711,7 @@ class SQLCompiler:
+         # If we get to this point and the field is a relation to another model,
+         # append the default ordering for that model unless the attribute name
+         # of the field is specified.
+-        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name:
++        if field.is_relation and not field.primary_key and opts.ordering and getattr(field, 'attname', None) != name:
+             # Firstly, avoid infinite loops.
+             already_seen = already_seen or set()
+             join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+@@ -736,9 +736,9 @@ class SQLCompiler:
+         """
+         Helper method for get_order_by() and get_distinct().
+ 
+-        get_ordering() and get_distinct() must produce same target columns on
+-        same input, as the prefixes of get_ordering() and get_distinct() must
+-        match. Executing SQL where this is not true is an error.
++        get_ordering() and get_values() must produce same target columns on
++        same input, as the prefixes of get_ordering() and get_values() must
++        match. Compiling SQL where this is not true is an error.
+         """
+         alias = alias or self.query.get_initial_alias()
+         field, targets, opts, joins, path, transform_function = self.query.setup_joins(pieces, opts, alias)
+@@ -782,7 +782,7 @@ class SQLCompiler:
+     def get_related_selections(self, select, opts=None, root_alias=None, cur_depth=1,
+                                requested=None, restricted=None):
+         """
+-        Fill in the information needed for a select_related query. The current
++        Fill in the information needed for a prefetch_related query. The current
+         depth is measured as the number of connections away from the root model
+         (for example, cur_depth=1 means we are looking at models with direct
+         connections to the root model).
+diff --git a/tests/model_inheritance/tests.py b/tests/model_inheritance/tests.py
+index 4252f3a301..be63a78ec9 100644
+--- a/tests/model_inheritance/tests.py
++++ b/tests/model_inheritance/tests.py
+@@ -98,6 +98,20 @@ class ModelInheritanceTests(TestCase):
+         )
+         self.assertEqual(Restaurant._meta.ordering, ["-rating"])
+ 
++    @isolate_apps('model_inheritance')
++    def test_inherited_parent_ordering_by_pk_desc(self):
++        class Parent(models.Model):
++            class Meta:
++                ordering = ['-pk']
++
++        class Child(Parent):
++            pass
++
++        self.assertIn(
++            'ORDER BY "model_inheritance_child"."parent_ptr_id" DESC',
++            str(Child.objects.all().query),
++        )
++
+     def test_custompk_m2m(self):
+         b = Base.objects.create()
+         b.titles.add(Title.objects.create(title="foof"))
+diff --git a/tests/model_inheritance_regress/tests.py b/tests/model_inheritance_regress/tests.py
+index 2c15925da5..e5ba9f9d0c 100644
+--- a/tests/model_inheritance_regress/tests.py
++++ b/tests/model_inheritance_regress/tests.py
+@@ -210,7 +210,7 @@ class ModelInheritanceTest(TestCase):
+     def test_get_next_previous_by_date(self):
+         """
+         Regression tests for #8076
+-        get_(next/previous)_by_date should work
++        get_(next/previous)_by_pub_date should work
+         """
+         c1 = ArticleWithAuthor(
+             headline='ArticleWithAuthor 1',

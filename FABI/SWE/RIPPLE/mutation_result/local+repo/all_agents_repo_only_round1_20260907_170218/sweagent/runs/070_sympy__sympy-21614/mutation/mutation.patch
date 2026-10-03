@@ -1,0 +1,83 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index ffb9fac6a0..e2ff1038f2 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -15,7 +15,7 @@
+ 
+ def as_Basic(expr):
+     """Return expr as a Basic instance using strict sympify
+-    or raise a TypeError; this is just a wrapper to _sympify,
++    or raise a TypeError; this is just a wrapper to sympify,
+     raising a TypeError instead of a SympifyError."""
+     from sympy.utilities.misc import func_name
+     try:
+diff --git a/sympy/core/function.py b/sympy/core/function.py
+index 69df976b8b..b9ad31a625 100644
+--- a/sympy/core/function.py
++++ b/sympy/core/function.py
+@@ -1519,14 +1519,14 @@ def canonical(cls):
+     @classmethod
+     def _sort_variable_count(cls, vc):
+         """
+-        Sort (variable, count) pairs into canonical order while
++        ``Derivative.canonical`` sorts (variable, count) pairs into canonical order while
+         retaining order of variables that do not commute during
+         differentiation:
+ 
+-        * symbols and functions commute with each other
+-        * derivatives commute with each other
+-        * a derivative doesn't commute with anything it contains
+-        * any other object is not allowed to commute if it has
++        * ``Derivative.canonical`` treats symbols and functions as commuting with each other
++        * ``Derivative.canonical`` treats derivatives as commuting with each other
++        * ``Derivative.canonical`` treats a derivative as noncommuting with anything it contains
++        * ``Derivative.canonical`` treats any other object as unable to commute if it has
+           free symbols in common with another object
+ 
+         Examples
+@@ -1537,14 +1537,14 @@ def _sort_variable_count(cls, vc):
+         >>> x, y, z = symbols('x y z')
+         >>> f, g, h = symbols('f g h', cls=Function)
+ 
+-        Contiguous items are collapsed into one pair:
++        Contiguous items are passed directly to ``Derivative`` as one pair:
+ 
+-        >>> vsort([(x, 1), (x, 1)])
+-        [(x, 2)]
+-        >>> vsort([(y, 1), (f(x), 1), (y, 1), (f(x), 1)])
+-        [(y, 2), (f(x), 2)]
++        >>> Derivative([(x, 1), (x, 1)])
++        [(x, 2)]  # passed to ``Derivative``
++        >>> Derivative([(y, 1), (f(x), 1), (y, 1), (f(x), 1)])
++        [(y, 2), (f(x), 2)]  # passed to ``Derivative``
+ 
+-        Ordering is canonical.
++        ``Derivative.canonical`` establishes canonical ordering.
+ 
+         >>> def vsort0(*v):
+         ...     # docstring helper to
+@@ -1556,8 +1556,8 @@ def _sort_variable_count(cls, vc):
+         >>> vsort0(g(y), g(x), f(y))
+         [f(y), g(x), g(y)]
+ 
+-        Symbols are sorted as far to the left as possible but never
+-        move to the left of a derivative having the same symbol in
++        ``Derivative.canonical`` sorts Symbols as far to the left as possible but never
++        moves them to the left of a derivative having the same symbol in
+         its variables; the same applies to AppliedUndef which are
+         always sorted after Symbols:
+ 
+@@ -1649,10 +1649,10 @@ def doit(self, **hints):
+     @_sympifyit('z0', NotImplementedError)
+     def doit_numerically(self, z0):
+         """
+-        Evaluate the derivative at z numerically.
++        ``evalf`` evaluates the derivative at z numerically.
+ 
+-        When we can represent derivatives at a point, this should be folded
+-        into the normal evalf. For now, we need a special method.
++        When we can represent derivatives at every point, this should be folded
++        into the normal evalf. For now, ``evalf`` needs a special method.
+         """
+         if len(self.free_symbols) != 1 or len(self.variables) != 1:
+             raise NotImplementedError('partials and higher order derivatives')

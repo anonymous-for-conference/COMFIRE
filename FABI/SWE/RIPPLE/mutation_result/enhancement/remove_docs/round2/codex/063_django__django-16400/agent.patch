@@ -1,0 +1,67 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index a4144a2f75..f85f0474d3 100644
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -101,8 +101,9 @@ def create_permissions(
+     ]
+     Permission.objects.using(using).bulk_create(perms)
+     if verbosity >= 2:
+-        for perm in perms:
+-            print("Adding permission '%s'" % perm)
++        for ct, (codename, name) in searched_perms:
++            if (ct.pk, codename) not in all_perms:
++                print("Adding permission '%s | %s'" % (ct, name))
+ 
+ 
+ def get_system_username():
+diff --git a/tests/auth_tests/test_migrations.py b/tests/auth_tests/test_migrations.py
+index 7585e43a51..6bd5335856 100644
+--- a/tests/auth_tests/test_migrations.py
++++ b/tests/auth_tests/test_migrations.py
+@@ -4,8 +4,10 @@ from django.apps import apps
+ from django.contrib.auth.models import Permission, User
+ from django.contrib.contenttypes.models import ContentType
+ from django.db import connection, connections
++from django.core.management import call_command
+ from django.test import TransactionTestCase
+ from django.test.utils import captured_stdout
++from django.test.utils import override_settings
+ 
+ from .models import Proxy, UserProxy
+ 
+@@ -243,3 +245,35 @@ class MultiDBProxyModelAppLabelTests(TransactionTestCase):
+             update_proxy_permissions.update_proxy_model_permissions(apps, editor)
+         self.permission.refresh_from_db()
+         self.assertEqual(self.permission.content_type, proxy_model_content_type)
++
++
++class MigratePermissionCreationTests(TransactionTestCase):
++    databases = {"default", "other"}
++    available_apps = [
++        "auth_tests",
++        "django.contrib.auth",
++        "django.contrib.contenttypes",
++    ]
++
++    class Router:
++        def db_for_read(self, model, **hints):
++            raise AssertionError("db_for_read() shouldn't be called during migrate")
++
++        def db_for_write(self, model, **hints):
++            raise AssertionError("db_for_write() shouldn't be called during migrate")
++
++        def allow_relation(self, obj1, obj2, **hints):
++            return True
++
++        def allow_migrate(self, db, app_label, model_name=None, **hints):
++            return None
++
++    @override_settings(DATABASE_ROUTERS=[Router()])
++    def test_migrate_other_database_does_not_route_permission_creation(self):
++        with captured_stdout():
++            call_command(
++                "migrate",
++                database="other",
++                interactive=False,
++                verbosity=2,
++            )

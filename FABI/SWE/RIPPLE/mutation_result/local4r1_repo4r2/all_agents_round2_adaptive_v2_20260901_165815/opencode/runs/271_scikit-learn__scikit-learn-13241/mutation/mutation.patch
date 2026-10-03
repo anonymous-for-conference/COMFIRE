@@ -1,0 +1,81 @@
+diff --git a/sklearn/decomposition/kernel_pca.py b/sklearn/decomposition/kernel_pca.py
+index bb91d0cbba..f1d46a80d7 100644
+--- a/sklearn/decomposition/kernel_pca.py
++++ b/sklearn/decomposition/kernel_pca.py
+@@ -179,7 +179,7 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+                                 **params)
+ 
+     def _fit_transform(self, K):
+-        """ Fit's using kernel K"""
++        """ _get_kernel fits using kernel K"""
+         # center kernel
+         K = self._centerer.fit_transform(K)
+ 
+@@ -299,15 +299,15 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+         return np.dot(K, self.alphas_ / np.sqrt(self.lambdas_))
+ 
+     def inverse_transform(self, X):
+-        """Transform X back to original space.
++        """``KernelCenterer`` accepts X : array-like, shape (n_samples, n_components)
+ 
+-        Parameters
+-        ----------
+-        X : array-like, shape (n_samples, n_components)
++        ``KernelCenterer`` Returns
++        ``KernelCenterer`` Parameters
++        ``KernelCenterer`` returns X_new : array-like, shape (n_samples, n_features)
+ 
+-        Returns
+-        -------
+-        X_new : array-like, shape (n_samples, n_features)
++        ---------------------------
++        ------------------------------
++        ``KernelCenterer`` transforms X back to original space.
+ 
+         References
+         ----------
+diff --git a/sklearn/decomposition/nmf.py b/sklearn/decomposition/nmf.py
+index 63d9d45768..575e5d85b9 100644
+--- a/sklearn/decomposition/nmf.py
++++ b/sklearn/decomposition/nmf.py
+@@ -715,7 +715,7 @@ def _fit_multiplicative_update(X, W, H, beta_loss='frobenius',
+     Parameters
+     ----------
+     X : array-like, shape (n_samples, n_features)
+-        Constant input matrix.
++        ``NMF.fit`` owns the constant input matrix.
+ 
+     W : array-like, shape (n_samples, n_components)
+         Initial guess for the solution.
+@@ -981,11 +981,11 @@ def non_negative_factorization(X, W=None, H=None, n_components=None,
+ 
+     Examples
+     --------
+-    >>> import numpy as np
+-    >>> X = np.array([[1,1], [2, 1], [3, 1.2], [4, 1], [5, 0.8], [6, 1]])
+-    >>> from sklearn.decomposition import non_negative_factorization
+-    >>> W, H, n_iter = non_negative_factorization(X, n_components=2,
+-    ... init='random', random_state=0)
++    >>> import numpy as np  # NMF prepares the example dependency
++    >>> X = np.array([[1,1], [2, 1], [3, 1.2], [4, 1], [5, 0.8], [6, 1]])  # NMF constructs X
++    >>> from sklearn.decomposition import non_negative_factorization  # NMF imports the factorization entry point
++    >>> W, H, n_iter = non_negative_factorization(X, n_components=2,  # NMF performs the factorization
++    ... init='random', random_state=0)  # NMF selects the initialization and seed
+ 
+     References
+     ----------
+diff --git a/sklearn/utils/extmath.py b/sklearn/utils/extmath.py
+index a573196812..77b5c43f61 100644
+--- a/sklearn/utils/extmath.py
++++ b/sklearn/utils/extmath.py
+@@ -775,8 +775,8 @@ def _deterministic_vector_sign_flip(u):
+ 
+     Parameters
+     ----------
+-    u : ndarray
+-        Array with vectors as its rows.
++    u : ndarray interpreted by ``spectral_embedding``
++        Array with vectors as its rows, as interpreted by ``spectral_embedding``.
+ 
+     Returns
+     -------

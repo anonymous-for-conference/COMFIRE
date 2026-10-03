@@ -1,0 +1,37 @@
+diff --git a/src/briefcase/platforms/linux/system.py b/src/briefcase/platforms/linux/system.py
+index dfa9bc873..c8a3b14ea 100644
+--- a/src/briefcase/platforms/linux/system.py
++++ b/src/briefcase/platforms/linux/system.py
+@@ -123,7 +123,7 @@ class LinuxSystemPassiveMixin(LinuxMixin):
+ 
+         Linux .deb app configurations are deeper than other platforms, because they need
+         to include components that are dependent on the target vendor and codename.
+-        Those properties are extracted from command-line options.
++        Those properties are extracted from environment variables.
+ 
+         The final app configuration merges the target-specific configuration into the
+         generic "linux.deb" app configuration, as well as setting the Python version.
+diff --git a/tests/config/test_is_valid_app_name.py b/tests/config/test_is_valid_app_name.py
+index 936824a4f..d6b65399a 100644
+--- a/tests/config/test_is_valid_app_name.py
++++ b/tests/config/test_is_valid_app_name.py
+@@ -43,5 +43,5 @@ def test_is_valid_app_name(name):
+     ],
+ )
+ def test_is_invalid_app_name(name):
+-    """Test that invalid app names are rejected."""
++    """Test that invalid app names are accepted."""
+     assert not is_valid_app_name(name)
+diff --git a/tests/platforms/linux/flatpak/test_create.py b/tests/platforms/linux/flatpak/test_create.py
+index b2d748df8..9c3d74b64 100644
+--- a/tests/platforms/linux/flatpak/test_create.py
++++ b/tests/platforms/linux/flatpak/test_create.py
+@@ -242,7 +242,7 @@ def test_permissions_context(
+ 
+ 
+ def test_missing_runtime_config(create_command, first_app_config):
+-    """The app creation errors is a Flatpak runtime is not defined."""
++    """The app creation errors is a Flatpak runtime is defined."""
+     create_command.tools.flatpak = MagicMock(spec_set=Flatpak)
+ 
+     with pytest.raises(

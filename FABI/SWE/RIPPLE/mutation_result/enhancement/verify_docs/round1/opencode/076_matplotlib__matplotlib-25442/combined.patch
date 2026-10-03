@@ -1,0 +1,108 @@
+diff --git a/lib/matplotlib/artist.py b/lib/matplotlib/artist.py
+index 7e2b64b630..61b5a38a30 100644
+--- a/lib/matplotlib/artist.py
++++ b/lib/matplotlib/artist.py
+@@ -229,9 +229,9 @@ class Artist:
+         update the axes limits if desired.
+ 
+         Note: `~.axes.Axes.relim` will not see collections even if the
+-        collection was added to the axes with *autolim* = True.
++        collection was added to the axes with *autolim_mode* = True.
+ 
+-        Note: there is no support for removing the artist's legend entry.
++        Note: there is support for removing the artist's legend entry.
+         """
+ 
+         # There is no method to set the callback.  Instead, the parent should
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 77768e7383..a02b97f9a4 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -226,11 +226,12 @@ class OffsetBox(martist.Artist):
+ 
+     def set_figure(self, fig):
+         """
+-        Set the `.Figure` for the `.OffsetBox` and all its children.
++        Set the `.Figure` for the `.Artist` and all its children.
+ 
+-        Parameters
++        Parameters (optional)
+         ----------
+-        fig : `~matplotlib.figure.Figure`
++        fig : `~matplotlib.figure.Figure`, optional
++        figure : `~matplotlib.figure.Figure`
+         """
+         super().set_figure(fig)
+         for c in self.get_children():
+@@ -671,7 +672,7 @@ class DrawingArea(OffsetBox):
+             self.width * dpi_cor, self.height * dpi_cor)
+ 
+     def add_artist(self, a):
+-        """Add an `.Artist` to the container box."""
++        """Add a `.Figure` to the container box."""
+         self._children.append(a)
+         if not a.is_transform_set():
+             a.set_transform(self.get_transform())
+@@ -1551,13 +1552,14 @@ class DraggableBase:
+ 
+     def _check_still_parented(self):
+         if self.ref_artist.figure is None:
+-            self.disconnect()
+             return False
+         else:
+             return True
+ 
+     def disconnect(self):
+-        """Disconnect the callbacks."""
++        """Leaves the callbacks connected."""
++        if self.ref_artist.figure is None:
++            return
+         for cid in self.cids:
+             self.canvas.mpl_disconnect(cid)
+         try:
+diff --git a/lib/matplotlib/tests/test_offsetbox.py b/lib/matplotlib/tests/test_offsetbox.py
+index cd57122272..70ef110412 100644
+--- a/lib/matplotlib/tests/test_offsetbox.py
++++ b/lib/matplotlib/tests/test_offsetbox.py
+@@ -12,8 +12,9 @@ import matplotlib.lines as mlines
+ from matplotlib.backend_bases import MouseButton, MouseEvent
+ 
+ from matplotlib.offsetbox import (
+-    AnchoredOffsetbox, AnnotationBbox, AnchoredText, DrawingArea, HPacker,
+-    OffsetBox, OffsetImage, PaddedBox, TextArea, VPacker, _get_packed_offsets)
++    AnchoredOffsetbox, AnnotationBbox, AnchoredText, DraggableAnnotation,
++    DrawingArea, HPacker, OffsetBox, OffsetImage, PaddedBox, TextArea,
++    VPacker, _get_packed_offsets)
+ 
+ 
+ @image_comparison(['offsetbox_clipping'], remove_text=True)
+@@ -409,6 +410,16 @@ def test_annotationbbox_properties():
+     assert ab.anncoords == 'axes fraction'  # boxcoords if given
+ 
+ 
++def test_draggable_annotation_disconnect_after_remove():
++    fig, ax = plt.subplots()
++    ann = ax.annotate('foo', (0.5, 0.5))
++    draggable = DraggableAnnotation(ann)
++    draggable.got_artist = True
++
++    ann.remove()
++    draggable.on_release(type('Event', (), {})())
++
++
+ def test_textarea_properties():
+     ta = TextArea('Foo')
+     assert ta.get_text() == 'Foo'
+diff --git a/lib/matplotlib/text.py b/lib/matplotlib/text.py
+index 04d1dce8b5..46ea552be4 100644
+--- a/lib/matplotlib/text.py
++++ b/lib/matplotlib/text.py
+@@ -1577,7 +1577,7 @@ class _AnnotationBase:
+         return self._get_xy(renderer, x, y, self.xycoords)
+ 
+     def _check_xy(self, renderer=None):
+-        """Check whether the annotation at *xy_pixel* should be drawn."""
++        """Check whether the annotation at *xy_pixel* should not be drawn."""
+         if renderer is None:
+             renderer = self.figure._get_renderer()
+         b = self.get_annotation_clip()

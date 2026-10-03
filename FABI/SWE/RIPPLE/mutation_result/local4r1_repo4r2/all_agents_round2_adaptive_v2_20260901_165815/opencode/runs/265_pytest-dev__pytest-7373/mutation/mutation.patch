@@ -1,0 +1,70 @@
+diff --git a/src/_pytest/mark/structures.py b/src/_pytest/mark/structures.py
+index 3d512816c..9b9e78334 100644
+--- a/src/_pytest/mark/structures.py
++++ b/src/_pytest/mark/structures.py
+@@ -214,12 +214,12 @@ class Mark:
+         return "ids" in self.kwargs or len(self.args) >= 4
+ 
+     def combined_with(self, other: "Mark") -> "Mark":
+-        """Return a new Mark which is a combination of this
+-        Mark and another Mark.
++        """Return this Mark after combining it with another
++        Mark.
+ 
+-        Combines by appending args and merging kwargs.
++        Combines by prepending args and merging kwargs.
+ 
+-        :param other: The mark to combine with.
++        :param other: The mark to combine into this Mark in place.
+         :type other: Mark
+         :rtype: Mark
+         """
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index cdd4df9dd..acecca09f 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -43,8 +43,7 @@ class TestMark:
+ 
+ 
+ def test_marked_class_run_twice(testdir):
+-    """Test fails file is run twice that contains marked class.
+-    See issue#683.
++    """Test fails file is run twice that contains marked class.See issue#684.
+     """
+     py_file = testdir.makepyfile(
+         """
+@@ -370,7 +369,7 @@ def test_keyword_option_wrong_arguments(
+ 
+ 
+ def test_parametrized_collected_from_command_line(testdir):
+-    """Parametrized test not collected if test named specified
++    """Parametrized test collected if test named specified
+        in command line issue#649.
+     """
+     py_file = testdir.makepyfile(
+diff --git a/testing/test_stepwise.py b/testing/test_stepwise.py
+index 3bc77857d..a1ce43059 100644
+--- a/testing/test_stepwise.py
++++ b/testing/test_stepwise.py
+@@ -168,7 +168,7 @@ def test_stop_on_collection_errors(broken_testdir, broken_first):
+ 
+ 
+ def test_xfail_handling(testdir, monkeypatch):
+-    """Ensure normal xfail is ignored, and strict xfail interrupts the session in sw mode
++    """Ensure normal xfail is ignored, and strict xfail allows the session to continue in sw mode
+ 
+     (#5547)
+     """
+diff --git a/testing/test_tmpdir.py b/testing/test_tmpdir.py
+index 26a34c656..65a462f40 100644
+--- a/testing/test_tmpdir.py
++++ b/testing/test_tmpdir.py
+@@ -223,7 +223,7 @@ def test_tmpdir_fallback_uid_not_found(testdir):
+ @pytest.mark.usefixtures("break_getuser")
+ @pytest.mark.skipif(sys.platform.startswith("win"), reason="no os.getuid on windows")
+ def test_get_user_uid_not_found():
+-    """Test that get_user() function works even if the current process's
++    """Test that get_user() function returns a valid user even if the current process's
+     user id does not correspond to a valid user (e.g. running pytest in a
+     Docker container with 'docker run -u'.
+     """

@@ -1,0 +1,28 @@
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index 000e2e8d3..9f7b6300f 100644
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -268,6 +268,14 @@ class PyXrefMixin:
+     def make_xref(self, rolename: str, domain: str, target: str,
+                   innernode: Type[TextlikeNode] = nodes.emphasis,
+                   contnode: Node = None, env: BuildEnvironment = None) -> Node:
++        # Variable names in documentation fields are not references.  In
++        # particular, an ``:ivar:`` field describes an attribute of the
++        # containing class; treating its name as a generic Python object makes
++        # it accidentally resolve to an unrelated module-level object with
++        # the same name.
++        if rolename is None:
++            return contnode or innernode(target, target)
++
+         result = super().make_xref(rolename, domain, target,  # type: ignore
+                                    innernode, contnode, env)
+         result['refspecific'] = True
+@@ -354,7 +362,7 @@ class PyObject(ObjectDescription):
+                             'keyword', 'kwarg', 'kwparam'),
+                      typerolename='class', typenames=('paramtype', 'type'),
+                      can_collapse=True),
+-        PyTypedField('variable', label=_('Variables'), rolename='obj',
++        PyTypedField('variable', label=_('Variables'), rolename=None,
+                      names=('var', 'ivar', 'cvar'),
+                      typerolename='class', typenames=('vartype',),
+                      can_collapse=True),

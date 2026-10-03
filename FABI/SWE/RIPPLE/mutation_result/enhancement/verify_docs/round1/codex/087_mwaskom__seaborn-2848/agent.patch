@@ -1,0 +1,35 @@
+diff --git a/seaborn/_oldcore.py b/seaborn/_oldcore.py
+index 937092cd..7d985883 100644
+--- a/seaborn/_oldcore.py
++++ b/seaborn/_oldcore.py
+@@ -149,6 +149,11 @@ class HueMapping(SemanticMapping):
+             # Use a value that's in the original data vector
+             value = self.lookup_table[key]
+         except KeyError:
++            # Categorical mappings should simply skip values that are not in the
++            # explicit level order. This preserves the historical behavior where
++            # `hue_order` can define a subset of plotted levels.
++            if self.map_type == "categorical":
++                return (0, 0, 0, 0)
+             # Use the colormap to interpolate between existing datapoints
+             # (e.g. in the context of making a continuous legend)
+             try:
+diff --git a/tests/test_axisgrid.py b/tests/test_axisgrid.py
+index 40d591f1..e5375845 100644
+--- a/tests/test_axisgrid.py
++++ b/tests/test_axisgrid.py
+@@ -1280,6 +1280,14 @@ class TestPairGrid:
+         for ax in g.diag_axes:
+             assert len(ax.collections) == n
+ 
++    def test_pairplot_hue_order_subset(self):
++
++        order = list("ab")
++        g = ag.pairplot(self.df, hue="a", hue_order=order,
++                        kind="scatter", diag_kind=None)
++
++        assert list(map(str, g.hue_names)) == order
++
+     def test_pairplot_reg(self):
+ 
+         vars = ["x", "y", "z"]

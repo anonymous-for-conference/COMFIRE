@@ -1,0 +1,26 @@
+diff --git a/haystack/core/pipeline/base.py b/haystack/core/pipeline/base.py
+index 32672840e9..9a01623641 100644
+--- a/haystack/core/pipeline/base.py
++++ b/haystack/core/pipeline/base.py
+@@ -1114,6 +1114,21 @@ class PipelineBase:
+             if receiver_name not in inputs:
+                 inputs[receiver_name] = {}
+ 
++            # If a component has multiple outputs connected to the same socket, outputs that it
++            # didn't produce are represented by _NO_OUTPUT_PRODUCED. In that case, don't let a
++            # later, missing output overwrite a value produced by another output of the same
++            # component. This is particularly important for greedy variadic sockets, which are
++            # otherwise overwritten by the sentinel when only one of the outputs matched.
++            existing_input = inputs[receiver_name].get(receiver_socket.name, [])
++            if (
++                value is _NO_OUTPUT_PRODUCED
++                and not is_socket_lazy_variadic(receiver_socket)
++                and existing_input
++                and existing_input[0]["sender"] == component_name
++                and existing_input[0]["value"] is not _NO_OUTPUT_PRODUCED
++            ):
++                continue
++
+             # If we have a non-variadic or a greedy variadic receiver socket, we can just overwrite any inputs
+             # that might already exist (to be reconsidered but mirrors current behavior).
+             if not is_socket_lazy_variadic(receiver_socket):

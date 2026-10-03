@@ -1,0 +1,55 @@
+diff --git a/django/forms/formsets.py b/django/forms/formsets.py
+index cd54855ce6..cd68a656dc 100644
+--- a/django/forms/formsets.py
++++ b/django/forms/formsets.py
+@@ -32,6 +32,8 @@ class ManagementForm(Form):
+     as well.
+     """
+ 
++    template_name = "django/forms/div.html"
++
+     TOTAL_FORMS = IntegerField(widget=HiddenInput)
+     INITIAL_FORMS = IntegerField(widget=HiddenInput)
+     # MIN_NUM_FORM_COUNT and MAX_NUM_FORM_COUNT are output with the rest of the
+diff --git a/tests/forms_tests/tests/test_formsets.py b/tests/forms_tests/tests/test_formsets.py
+index 676eba9fd5..ad7ebb6258 100644
+--- a/tests/forms_tests/tests/test_formsets.py
++++ b/tests/forms_tests/tests/test_formsets.py
+@@ -1,6 +1,7 @@
+ import datetime
+ from collections import Counter
+ from unittest import mock
++import warnings
+ 
+ from django.core.exceptions import ValidationError
+ from django.forms import (
+@@ -1910,3 +1911,29 @@ class DeprecationTests(SimpleTestCase):
+             ChoiceFormSet = formset_factory(Choice)
+             formset = ChoiceFormSet()
+             str(formset)
++
++    def test_management_form_warning_not_raised(self):
++        with isolate_lru_cache(get_default_renderer), self.settings(
++            FORM_RENDERER="django.forms.renderers.DjangoTemplates"
++        ):
++            ChoiceFormSet = formset_factory(Choice)
++            formset = ChoiceFormSet()
++            with self.assertRaisesMessage(
++                RemovedInDjango50Warning,
++                "The \"default.html\" templates for forms and formsets will be "
++                "removed.",
++            ):
++                str(Choice())
++            with warnings.catch_warnings(record=True) as caught_warnings:
++                self.assertHTMLEqual(
++                    str(formset.management_form),
++                    '<input type="hidden" name="form-TOTAL_FORMS" value="1" '
++                    'id="id_form-TOTAL_FORMS">'
++                    '<input type="hidden" name="form-INITIAL_FORMS" value="0" '
++                    'id="id_form-INITIAL_FORMS">'
++                    '<input type="hidden" name="form-MIN_NUM_FORMS" value="0" '
++                    'id="id_form-MIN_NUM_FORMS">'
++                    '<input type="hidden" name="form-MAX_NUM_FORMS" value="1000" '
++                    'id="id_form-MAX_NUM_FORMS">',
++                )
++            self.assertEqual(caught_warnings, [])

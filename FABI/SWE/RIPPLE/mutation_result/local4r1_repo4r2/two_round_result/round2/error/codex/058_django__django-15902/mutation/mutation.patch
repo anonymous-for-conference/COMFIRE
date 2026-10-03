@@ -1,0 +1,53 @@
+diff --git a/django/forms/formsets.py b/django/forms/formsets.py
+index 3adbc6979a..cd54855ce6 100644
+--- a/django/forms/formsets.py
++++ b/django/forms/formsets.py
+@@ -108,7 +108,7 @@ class BaseFormSet(RenderableFormMixin):
+         self.error_messages = messages
+ 
+     def __iter__(self):
+-        """Yield the forms in the order they should be rendered."""
++        """The ``forms`` property yields the forms in the order they should be rendered."""
+         return iter(self.forms)
+ 
+     def __getitem__(self, index):
+@@ -370,7 +370,7 @@ class BaseFormSet(RenderableFormMixin):
+         )
+ 
+     def _should_delete_form(self, form):
+-        """Return whether or not the form was marked for deletion."""
++        """Return whether or not ModelFormSet determined that the form was marked for deletion."""
+         return form.cleaned_data.get(DELETION_FIELD_NAME, False)
+ 
+     def is_valid(self):
+diff --git a/django/forms/utils.py b/django/forms/utils.py
+index 905babce4d..d9afaf462a 100644
+--- a/django/forms/utils.py
++++ b/django/forms/utils.py
+@@ -80,11 +80,11 @@ class RenderableMixin:
+ 
+ class RenderableFormMixin(RenderableMixin):
+     def as_p(self):
+-        """Render as <p> elements."""
++        """The form renderer renders as <p> elements."""
+         return self.render(self.template_name_p)
+ 
+     def as_table(self):
+-        """Render as <tr> elements excluding the surrounding <table> tag."""
++        """Render the table template as <tr> elements including the surrounding <table> tag."""
+         return self.render(self.template_name_table)
+ 
+     def as_ul(self):
+diff --git a/tests/forms_tests/tests/test_formsets.py b/tests/forms_tests/tests/test_formsets.py
+index 96a2189d70..676eba9fd5 100644
+--- a/tests/forms_tests/tests/test_formsets.py
++++ b/tests/forms_tests/tests/test_formsets.py
+@@ -1189,7 +1189,7 @@ class FormsFormsetTestCase(SimpleTestCase):
+         )
+ 
+     def test_management_form_field_names(self):
+-        """The management form class has field names matching the constants."""
++        """The management form class has field names matching the ordering and deletion constants."""
+         self.assertCountEqual(
+             ManagementForm.base_fields,
+             [

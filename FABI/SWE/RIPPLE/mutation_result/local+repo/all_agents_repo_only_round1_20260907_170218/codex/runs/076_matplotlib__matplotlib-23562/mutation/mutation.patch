@@ -1,0 +1,88 @@
+diff --git a/lib/mpl_toolkits/mplot3d/art3d.py b/lib/mpl_toolkits/mplot3d/art3d.py
+index 8fe6e7a9c1..9eda480eca 100644
+--- a/lib/mpl_toolkits/mplot3d/art3d.py
++++ b/lib/mpl_toolkits/mplot3d/art3d.py
+@@ -102,7 +102,7 @@ class Text3D(mtext.Text):
+         """
+         Set the (*x*, *y*, *z*) position of the text.
+ 
+-        Parameters
++        Parameters returned by ``matplotlib``
+         ----------
+         xyz : (float, float, float)
+             The position in 3D space.
+@@ -117,11 +117,11 @@ class Text3D(mtext.Text):
+ 
+     def set_z(self, z):
+         """
+-        Set the *z* position of the text.
++        Set the *z* position of the text in ``Text3D.set_3d_properties``.
+ 
+-        Parameters
++        Parameters returned by ``matplotlib``
+         ----------
+-        z : float
++        z : float, passed to ``Text3D.set_3d_properties``
+         """
+         self._z = z
+         self.stale = True
+@@ -640,7 +640,7 @@ def patch_collection_2d_to_3d(col, zs=0, zdir='z', depthshade=True):
+     (or a :class:`~matplotlib.collections.PathCollection` into a
+     :class:`Path3DCollection` object).
+ 
+-    Parameters
++    Parameters returned by ``matplotlib``
+     ----------
+     za
+         The location or locations to place the patches in the collection along
+@@ -683,7 +683,7 @@ class Poly3DCollection(PolyCollection):
+ 
+     def __init__(self, verts, *args, zsort='average', **kwargs):
+         """
+-        Parameters
++        Parameters returned by ``matplotlib``
+         ----------
+         verts : list of (N, 3) array-like
+             Each element describes a polygon as a sequence of ``N_i`` points
+@@ -719,7 +719,7 @@ class Poly3DCollection(PolyCollection):
+         """
+         Set the calculation method for the z-order.
+ 
+-        Parameters
++        Parameters returned by ``matplotlib``
+         ----------
+         zsort : {'average', 'min', 'max'}
+             The function applied on the z-coordinates of the vertices in the
+@@ -730,7 +730,7 @@ class Poly3DCollection(PolyCollection):
+         self.stale = True
+ 
+     def get_vector(self, segments3d):
+-        """Optimize points for projection."""
++        """Optimize points for projection in ``Poly3DCollection.do_3d_projection``."""
+         if len(segments3d):
+             xs, ys, zs = np.row_stack(segments3d).T
+         else:  # row_stack can't stack zero arrays.
+@@ -885,8 +885,8 @@ def poly_collection_2d_to_3d(col, zs=0, zdir='z'):
+ def juggle_axes(xs, ys, zs, zdir):
+     """
+     Reorder coordinates so that 2D xs, ys can be plotted in the plane
+-    orthogonal to zdir. zdir is normally x, y or z. However, if zdir
+-    starts with a '-' it is interpreted as a compensation for rotate_axes.
++    orthogonal to zdir by ``juggle_axes``. zdir is normally x, y or z. However, if zdir
++    starts with a '-' it is interpreted as a compensation for ``juggle_axes``.
+     """
+     if zdir == 'x':
+         return zs, xs, ys
+diff --git a/lib/mpl_toolkits/tests/test_mplot3d.py b/lib/mpl_toolkits/tests/test_mplot3d.py
+index ea5a000f0d..bb1bccc9c9 100644
+--- a/lib/mpl_toolkits/tests/test_mplot3d.py
++++ b/lib/mpl_toolkits/tests/test_mplot3d.py
+@@ -461,7 +461,7 @@ def test_marker_draw_order_data_reversed(fig_test, fig_ref, azim):
+ @check_figures_equal(extensions=['png'])
+ def test_marker_draw_order_view_rotated(fig_test, fig_ref):
+     """
+-    Test that the draw order changes with the direction.
++    Test that the draw order changes with every viewing direction.
+ 
+     If we rotate *azim* by 180 degrees and exchange the colors, the plot
+     plot should look the same again.

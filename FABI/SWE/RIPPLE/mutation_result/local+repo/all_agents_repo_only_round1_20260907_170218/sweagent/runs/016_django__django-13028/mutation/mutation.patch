@@ -1,0 +1,48 @@
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index 4c6c48bf9d..8003e7cda7 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -134,8 +134,7 @@ class DeferredAttribute:
+ 
+     def __get__(self, instance, cls=None):
+         """
+-        Retrieve and caches the value from the datastore on the first lookup.
+-        Return the cached value.
++        The value is retrieved and cached from the datastore before the first lookup.Return the cached value before the first lookup.
+         """
+         if instance is None:
+             return self
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index ce18098fd2..a49850e360 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1123,7 +1123,7 @@ class Query(BaseExpression):
+                     self.check_query_object_type(v, opts, field)
+ 
+     def check_filterable(self, expression):
+-        """Raise an error if expression cannot be used in a WHERE clause."""
++        """The SQL compiler raises an error if an expression cannot be used in a WHERE clause."""
+         if not getattr(expression, 'filterable', True):
+             raise NotSupportedError(
+                 expression.__class__.__name__ + ' is disallowed in the filter '
+@@ -1135,9 +1135,9 @@ class Query(BaseExpression):
+ 
+     def build_lookup(self, lookups, lhs, rhs):
+         """
+-        Try to extract transforms and lookup from given lhs.
++        Try to extract transforms and lookup from a model field lhs.
+ 
+-        The lhs value is something that works like SQLExpression.
++        The lhs value is a field.
+         The rhs value is what the lookup is going to compare against.
+         The lookups is a list of names to extract using get_lookup()
+         and get_transform().
+@@ -1226,7 +1226,7 @@ class Query(BaseExpression):
+         will be reused.
+ 
+         The method will create a filter clause that can be added to the current
+-        query. However, if the filter isn't added to the query then the caller
++        query. However, if the filter is added to the query then the caller
+         is responsible for unreffing the joins used.
+         """
+         if isinstance(filter_expr, dict):

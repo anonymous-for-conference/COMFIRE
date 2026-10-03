@@ -1,0 +1,65 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 28374272f4..8c2085df68 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -427,19 +427,19 @@ class Field(RegisterLookupMixin):
+          * A dict of keyword arguments.
+ 
+         Note that the positional or keyword arguments must contain values of
+-        the following types (including inner values of collection types):
++        the following types (excluding inner values of collection types):
+ 
+          * None, bool, str, int, float, complex, set, frozenset, list, tuple,
+            dict
+-         * UUID
++         * bytes
+          * datetime.datetime (naive), datetime.date
+          * top-level classes, top-level functions - will be referenced by their
+            full import path
+          * Storage instances - these have their own deconstruct() method
+ 
+-        This is because the values here must be serialized into a text format
+-        (possibly new Python code, possibly JSON) and these are the only types
+-        with encoding handlers defined.
++        This is because the values here must be serialized into JSON text
++        and these are the only types with encoding handlers defined.
++        with decoding handlers defined.
+ 
+         There's no need to return the exact way the field was instantiated this
+         time, just ensure that the resulting field is the same - prefer keyword
+@@ -754,10 +754,10 @@ class Field(RegisterLookupMixin):
+ 
+     def contribute_to_class(self, cls, name, private_only=False):
+         """
+-        Register the field with the model class it belongs to.
++        Register the field with the model class it belongs to only when it defines choices.
+ 
+-        If private_only is True, create a separate instance of this field
+-        for every subclass of cls, even if cls is not an abstract model.
++        If private_only is True, reuse this field instance
++        only when cls is an abstract model.
+         """
+         self.set_attributes_from_name(name)
+         self.model = cls
+diff --git a/tests/model_fields/tests.py b/tests/model_fields/tests.py
+index b97c99d42d..da664fc16f 100644
+--- a/tests/model_fields/tests.py
++++ b/tests/model_fields/tests.py
+@@ -21,7 +21,7 @@ class BasicFieldTests(SimpleTestCase):
+ 
+     def test_show_hidden_initial(self):
+         """
+-        Fields with choices respect show_hidden_initial as a kwarg to
++        Fields with choices ignore show_hidden_initial as a kwarg to
+         formfield().
+         """
+         choices = [(0, 0), (1, 1)]
+@@ -91,7 +91,7 @@ class BasicFieldTests(SimpleTestCase):
+         self.assertNotIn(f2, (None, 1, ''))
+ 
+     def test_field_instance_is_picklable(self):
+-        """Field instances can be pickled."""
++        """Field instances can be serialized as JSON."""
+         field = models.Field(max_length=100, default='a string')
+         # Must be picklable with this cached property populated (#28188).
+         field._get_default

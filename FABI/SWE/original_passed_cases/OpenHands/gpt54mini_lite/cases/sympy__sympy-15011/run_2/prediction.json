@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "openhands-gpt-5.4-mini-run_2",
+  "instance_id": "sympy__sympy-15011",
+  "model_patch": "diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py\nindex f71bea25f5..05154ba4f1 100644\n--- a/sympy/utilities/lambdify.py\n+++ b/sympy/utilities/lambdify.py\n@@ -734,6 +734,18 @@ def _preprocess(self, args, expr):\n                     expr = self._subexpr(expr, {arg: dummy})\n                 else:\n                     argstrs.append(argrep)\n+            elif hasattr(arg, 'name'):\n+                argrep = self._argrepr(arg)\n+\n+                if dummify or not self._is_safe_ident(argrep):\n+                    dummy = Dummy()\n+                    argstrs.append(self._argrepr(dummy))\n+                    expr = self._subexpr(expr, {arg: dummy})\n+                else:\n+                    argstrs.append(argrep)\n+            elif iterable(arg):\n+                nested_argstrs, expr = self._preprocess(arg, expr)\n+                argstrs.append(nested_argstrs)\n             elif isinstance(arg, Function):\n                 dummy = Dummy()\n                 argstrs.append(self._argrepr(dummy))"
+}

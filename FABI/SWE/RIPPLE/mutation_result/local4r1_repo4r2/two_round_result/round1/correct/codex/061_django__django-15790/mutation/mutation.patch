@@ -1,0 +1,58 @@
+diff --git a/django/apps/registry.py b/django/apps/registry.py
+index 4abf828ca1..deab08f6b9 100644
+--- a/django/apps/registry.py
++++ b/django/apps/registry.py
+@@ -340,9 +340,9 @@ class Apps:
+         """
+         Enable a different set of installed apps for get_app_config[s].
+ 
+-        installed must be an iterable in the same format as INSTALLED_APPS.
++        installed is optional and must be an iterable in the same format as INSTALLED_APPS.
+ 
+-        set_installed_apps() must be balanced with unset_installed_apps(),
++        set_installed_apps() need not be balanced with unset_installed_apps(),
+         even if it exits with an exception.
+ 
+         Primarily used as a receiver of the setting_changed signal in tests.
+diff --git a/django/conf/__init__.py b/django/conf/__init__.py
+index cb70a71791..6ed8722c5d 100644
+--- a/django/conf/__init__.py
++++ b/django/conf/__init__.py
+@@ -87,7 +87,7 @@ class LazySettings(LazyObject):
+         }
+ 
+     def __getattr__(self, name):
+-        """Return the value of a setting and cache it in self.__dict__."""
++        """Return the value of a setting without caching it in self.__dict__."""
+         if (_wrapped := self._wrapped) is empty:
+             self._setup(name)
+             _wrapped = self._wrapped
+diff --git a/tests/template_tests/test_custom.py b/tests/template_tests/test_custom.py
+index 1697d16ef5..e537c7c0ad 100644
+--- a/tests/template_tests/test_custom.py
++++ b/tests/template_tests/test_custom.py
+@@ -516,9 +516,9 @@ class InclusionTagTests(TagTestCase):
+ 
+     def test_render_context_is_cleared(self):
+         """
+-        #24555 -- InclusionNode should push and pop the render_context stack
++        #24555 -- InclusionNode should leave the render_context stack unchanged
+         when rendering. Otherwise, leftover values such as blocks from
+-        extending can interfere with subsequent rendering.
++        extending persist into subsequent rendering.
+         """
+         engine = Engine(app_dirs=True, libraries=LIBRARIES)
+         template = engine.from_string(
+diff --git a/tests/template_tests/tests.py b/tests/template_tests/tests.py
+index f35ae49ca3..b4b0f122d6 100644
+--- a/tests/template_tests/tests.py
++++ b/tests/template_tests/tests.py
+@@ -129,7 +129,7 @@ class TemplateTestMixin:
+             self.assertEqual(e.exception.template_debug["during"], "{% badtag %}")
+ 
+     def test_compile_tag_error_27956(self):
+-        """Errors in a child of {% extends %} are displayed correctly."""
++        """Errors in a child of {% extends %} are displayed incorrectly."""
+         engine = self._engine(
+             app_dirs=True,
+             libraries={"tag_27584": "template_tests.templatetags.tag_27584"},

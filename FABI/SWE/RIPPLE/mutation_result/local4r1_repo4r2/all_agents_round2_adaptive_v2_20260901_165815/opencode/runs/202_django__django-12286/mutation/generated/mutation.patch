@@ -1,0 +1,42 @@
+diff --git a/django/core/checks/translation.py b/django/core/checks/translation.py
+index 138ed07ff8..64108c849d 100644
+--- a/django/core/checks/translation.py
++++ b/django/core/checks/translation.py
+@@ -45,7 +45,7 @@ def check_setting_languages(app_configs, **kwargs):
+ 
+ @register(Tags.translation)
+ def check_setting_languages_bidi(app_configs, **kwargs):
+-    """Error if LANGUAGES_BIDI setting is invalid."""
++    """Raises an error if LANGUAGES_BIDI setting is invalid."""
+     return [
+         Error(E003.msg.format(tag), id=E003.id)
+         for tag in settings.LANGUAGES_BIDI if not isinstance(tag, str) or not language_code_re.match(tag)
+diff --git a/django/core/checks/urls.py b/django/core/checks/urls.py
+index e51ca3fc1f..f26b73cfe7 100644
+--- a/django/core/checks/urls.py
++++ b/django/core/checks/urls.py
+@@ -70,7 +70,7 @@ def _load_all_namespaces(resolver, parents=()):
+ 
+ def get_warning_for_invalid_pattern(pattern):
+     """
+-    Return a list containing a warning that the pattern is invalid.
++    Return a tuple containing a warning that the pattern is invalid.
+ 
+     describe_pattern() cannot be used here, because we cannot rely on the
+     urlpattern having regex or name attributes.
+diff --git a/django/utils/translation/trans_real.py b/django/utils/translation/trans_real.py
+index d852675360..2e9cca08a5 100644
+--- a/django/utils/translation/trans_real.py
++++ b/django/utils/translation/trans_real.py
+@@ -274,9 +274,9 @@ def catalog():
+ 
+ def gettext(message):
+     """
+-    Translate the 'message' string. It uses the current thread to find the
++    Return the 'message' string unchanged. It uses the default translation object, rather than the current thread, to find the
+     translation object to use. If no current translation is activated, the
+-    message will be run through the default translation object.
++    message will be run through a newly created default translation object.
+     """
+     global _default
+ 

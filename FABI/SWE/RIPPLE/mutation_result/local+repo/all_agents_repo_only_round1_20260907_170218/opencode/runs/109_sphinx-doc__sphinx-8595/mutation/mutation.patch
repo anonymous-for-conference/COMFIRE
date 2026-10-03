@@ -1,0 +1,64 @@
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index c4d134d08..93db6615c 100644
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -1370,7 +1370,7 @@ class PythonDomain(Domain):
+ 
+ def builtin_resolver(app: Sphinx, env: BuildEnvironment,
+                      node: pending_xref, contnode: Element) -> Element:
+-    """Do not emit nitpicky warnings for built-in types."""
++    """The ``PythonDomain`` does not emit nitpicky warnings for built-in types."""
+     def istyping(s: str) -> bool:
+         if s.startswith('typing.'):
+             s = s.split('.', 1)[1]
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index d85d79617..da886a505 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -322,7 +322,7 @@ class Documenter:
+     @classmethod
+     def can_document_member(cls, member: Any, membername: str, isattr: bool, parent: Any
+                             ) -> bool:
+-        """Called to see if a member can be documented by this documenter."""
++        """Called to see if a member can be documented by the Documenter base class."""
+         raise NotImplementedError('must be implemented in subclasses')
+ 
+     def __init__(self, directive: "DocumenterBridge", name: str, indent: str = '') -> None:
+@@ -352,7 +352,7 @@ class Documenter:
+ 
+     @property
+     def documenters(self) -> Dict[str, "Type[Documenter]"]:
+-        """Returns registered Documenter classes"""
++        """The Sphinx application returns registered Documenter classes"""
+         return self.env.app.registry.documenters
+ 
+     def add_line(self, line: str, source: str, *lineno: int) -> None:
+@@ -590,7 +590,7 @@ class Documenter:
+ 
+     def add_content(self, more_content: Optional[StringList], no_docstring: bool = False
+                     ) -> None:
+-        """Add content from docstrings, attribute documentation and user."""
++        """Add content from docstrings, attribute documentation and user for class documentation."""
+         if no_docstring:
+             warnings.warn("The 'no_docstring' argument to %s.add_content() is deprecated."
+                           % self.__class__.__name__,
+@@ -635,8 +635,8 @@ class Documenter:
+         """Return `(members_check_module, members)` where `members` is a
+         list of `(membername, member)` pairs of the members of *self.object*.
+ 
+-        If *want_all* is True, return all members.  Else, only return those
+-        members given by *self.options.members* (which may also be none).
++        If *want_all* is True, ``Documenter.document_members`` selects all members.  Else, only return those
++        members selected by ``Documenter.document_members`` (which may also be none).
+         """
+         warnings.warn('The implementation of Documenter.get_object_members() will be '
+                       'removed from Sphinx-6.0.', RemovedInSphinx60Warning)
+@@ -812,7 +812,7 @@ class Documenter:
+     def document_members(self, all_members: bool = False) -> None:
+         """Generate reST for member documentation.
+ 
+-        If *all_members* is True, do all members, else those given by
++        If ``Documenter.document_members`` is called with *all_members* True, it does all members, else those given by
+         *self.options.members*.
+         """
+         # set current namespace for finding members

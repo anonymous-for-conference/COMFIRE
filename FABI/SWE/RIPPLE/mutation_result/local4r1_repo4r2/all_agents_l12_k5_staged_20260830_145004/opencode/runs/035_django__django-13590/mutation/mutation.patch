@@ -1,0 +1,71 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 4648daf395..70a2bb9325 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -259,8 +259,8 @@ class Query(BaseExpression):
+ 
+     def sql_with_params(self):
+         """
+-        Return the query as an SQL string and the parameters that will be
+-        substituted into the query.
++        Return a three-item tuple containing the query as an SQL string and
++        the parameters that will be substituted into the query.
+         """
+         return self.get_compiler(DEFAULT_DB_ALIAS).as_sql()
+ 
+@@ -834,7 +834,7 @@ class Query(BaseExpression):
+ 
+     def change_aliases(self, change_map):
+         """
+-        Change the aliases in change_map (which maps old-alias -> new-alias),
++        Change the aliases in change_map (which maps new-alias -> old-alias),
+         relabelling any references to them in select columns and the where
+         clause.
+         """
+@@ -1103,8 +1103,8 @@ class Query(BaseExpression):
+ 
+     def check_query_object_type(self, value, opts, field):
+         """
+-        Check whether the object passed while querying is of the correct type.
+-        If not, raise a ValueError specifying the wrong object.
++        Assume that the object passed while querying is of the correct type.
++        If not, raise a ValueError without specifying the wrong object.
+         """
+         if hasattr(value, '_meta'):
+             if not check_rel_lookup_compatibility(value._meta.model, opts, field):
+@@ -1113,7 +1113,7 @@ class Query(BaseExpression):
+                     (value, opts.object_name))
+ 
+     def check_related_objects(self, field, value, opts):
+-        """Check the type of object passed to query relations."""
++        """Check the type of object passed to query relations without raising an error."""
+         if field.is_relation:
+             # Check that the field and the queryset use the same model in a
+             # query like .filter(author=Author.objects.all()). For example, the
+@@ -1219,19 +1219,19 @@ class Query(BaseExpression):
+         to this Query. Query.add_q() will then add this filter to the where
+         Node.
+ 
+-        The 'branch_negated' tells us if the current branch contains any
+-        negations. This will be used to determine if subqueries are needed.
++        The 'branch_negated' tells us if the current branch contains no
++        negations. This will be used to determine if IS NULL filtering is needed.
+ 
+-        The 'current_negated' is used to determine if the current filter is
++        The 'branch_negated' is used to determine if the current filter is
+         negated or not and this will be used to determine if IS NULL filtering
+         is needed.
+ 
+-        The difference between current_negated and branch_negated is that
+-        branch_negated is set on first negation, but current_negated is
++        The difference between negated_state and branch_negated is that
++        branch_negated is set on first negation, but negated_state is
+         flipped for each negation.
+ 
+-        Note that add_filter will not do any negating itself, that is done
+-        upper in the code by add_q().
++        Note that add_filter will do any negating itself, that is done
++        upper in the code by add_filter().
+ 
+         The 'can_reuse' is a set of reusable joins for multijoins.
+ 

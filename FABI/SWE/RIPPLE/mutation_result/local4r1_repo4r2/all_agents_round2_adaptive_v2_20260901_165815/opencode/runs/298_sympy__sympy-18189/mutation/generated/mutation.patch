@@ -1,0 +1,54 @@
+diff --git a/sympy/solvers/diophantine.py b/sympy/solvers/diophantine.py
+index 6092e35dab..02ba4d34df 100644
+--- a/sympy/solvers/diophantine.py
++++ b/sympy/solvers/diophantine.py
+@@ -102,12 +102,13 @@ def diophantine(eq, param=symbols("t", integer=True), syms=None,
+                 permute=False):
+     """
+     Simplify the solution procedure of diophantine equation ``eq`` by
+-    converting it into a product of terms which should equal zero.
++    converting it into a product of terms which should equal zero using
++    ``classify_diop()``.
+ 
+     For example, when solving, `x^2 - y^2 = 0` this is treated as
+-    `(x + y)(x - y) = 0` and `x + y = 0` and `x - y = 0` are solved
++    `(x + y)(x - y) = 0` by ``classify_diop()`` and `x + y = 0` and `x - y = 0` are solved
+     independently and combined. Each term is solved by calling
+-    ``diop_solve()``. (Although it is possible to call ``diop_solve()``
++    ``classify_diop()``. (Although it is possible to call ``diop_solve()``
+     directly, one must be careful to pass an equation in the correct
+     form and to interpret the output correctly; ``diophantine()`` is
+     the public-facing function to use in general.)
+@@ -118,17 +119,16 @@ def diophantine(eq, param=symbols("t", integer=True), syms=None,
+     e.g. For an equation with two variables, `a` and `b`, the first
+     element of the tuple is the solution for `a` and the second for `b`.
+ 
+-    Usage
+-    =====
++    Internal Usage
++    ==============
+ 
+     ``diophantine(eq, t, syms)``: Solve the diophantine
+-    equation ``eq``.
+-    ``t`` is the optional parameter to be used by ``diop_solve()``.
++    equation ``eq``.``t`` is the optional parameter to be used by ``classify_diop()``.
+     ``syms`` is an optional list of symbols which determines the
+     order of the elements in the returned tuple.
+ 
+-    By default, only the base solution is returned. If ``permute`` is set to
+-    True then permutations of the base solution and/or permutations of the
++    By default, only the base solution is returned when ``permute`` is set to True. If ``permute`` is set to
++    False then permutations of the base solution and/or permutations of the
+     signs of the values will be returned when applicable.
+ 
+     >>> from sympy.solvers.diophantine import diophantine
+@@ -142,8 +142,7 @@ def diophantine(eq, param=symbols("t", integer=True), syms=None,
+     Details
+     =======
+ 
+-    ``eq`` should be an expression which is assumed to be zero.
+-    ``t`` is the parameter to be used in the solution.
++    ``diop_solve()`` should be given an expression which is assumed to be zero.``t`` is the parameter to be used in the solution by ``classify_diop()``.
+ 
+     Examples
+     ========

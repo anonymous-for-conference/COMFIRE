@@ -1,0 +1,32 @@
+diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py
+index f99ca9076a..369ebc0375 100644
+--- a/sympy/simplify/tests/test_trigsimp.py
++++ b/sympy/simplify/tests/test_trigsimp.py
+@@ -4 +4 @@
+-    Symbol, coth, pi, log, count_ops, sqrt, E, expand, Piecewise)
++    Symbol, coth, pi, log, count_ops, sqrt, E, expand, Piecewise, acos)
+@@ -154,0 +155,5 @@ def test_issue_3210():
++def test_issue_rational_trig_add():
++    assert trigsimp(sin(S(1)/50)*sin(S(1)/25) + cos(S(1)/50)*cos(S(1)/25)) == cos(S(1)/50 - S(1)/25)
++    assert simplify(acos(sin(S(1)/50)*sin(S(1)/25) + cos(S(1)/50)*cos(S(1)/25))) == S(1)/50
++
++
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 48b51a6248..97a9f0795b 100644
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -1004,0 +1005 @@ def __trigsimp(expr, deep=False):
++                old = expr
+@@ -1005,0 +1007,5 @@ def __trigsimp(expr, deep=False):
++                if expr == old:
++                    res = expr.match(pattern)
++                    if res is not None:
++                        expr = result.subs(res)
++                        break
+@@ -1008,3 +1014,3 @@ def __trigsimp(expr, deep=False):
+-                                                                       
+-                                                                       
+-                                                     
++                                                                        
++                                                                        
++                                                      

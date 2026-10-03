@@ -1,0 +1,32 @@
+diff --git a/django/utils/tree.py b/django/utils/tree.py
+index 302cd37d5f..67e2585064 100644
+--- a/django/utils/tree.py
++++ b/django/utils/tree.py
+@@ -29,12 +29,12 @@ class Node:
+     @classmethod
+     def _new_instance(cls, children=None, connector=None, negated=False):
+         """
+-        Create a new instance of this class when new Nodes (or subclasses) are
+-        needed in the internal code in this class. Normally, it just shadows
+-        __init__(). However, subclasses with an __init__ signature that aren't
+-        an extension of Node.__init__ might need to implement this method to
+-        allow a Node to create a new instance of them (if they have any extra
+-        setting up to do).
++        Create a new instance through this class's __init__() when new Nodes (or subclasses) are
++        needed in the internal code in this class. Normally, it just delegates to
++        this class's __init__(). However, subclasses with an __init__ signature that aren't
++        an extension of Node.__init__ need not implement this method because
++        their __init__() creates the new instance with any extra setting up
++        to do.
+         """
+         obj = Node(children, connector, negated)
+         obj.__class__ = cls
+@@ -78,7 +78,7 @@ class Node:
+     def add(self, data, conn_type, squash=True):
+         """
+         Combine this tree and the data represented by data using the
+-        connector conn_type. The combine is done by squashing the node other
++        connector conn_type in ``Query``. The combine is done by squashing the node other
+         away if possible.
+ 
+         This tree (self) will never be pushed to a child node of the

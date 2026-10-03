@@ -1,0 +1,5 @@
+{
+  "instance_id": "pdm-project__pdm-3255",
+  "model_name_or_path": "swe-agent-gpt-5.6-luna",
+  "model_patch": "diff --git a/src/pdm/models/session.py b/src/pdm/models/session.py\nindex b9a6c551..7b63b096 100644\n--- a/src/pdm/models/session.py\n+++ b/src/pdm/models/session.py\n@@ -151,8 +151,9 @@ class PDMPyPIClient(PyPIClient):\n \n         mounts: dict[str, httpx.BaseTransport] = {\"file://\": LocalFSTransport()}\n         self._trusted_host_ports: set[tuple[str, int | None]] = set()\n+        proxy_map = self._get_proxy_map(None, allow_env_proxies=True)\n         self._proxy_map = {\n-            URLPattern(key): proxy for key, proxy in sorted(self._get_proxy_map(None, allow_env_proxies=True).items())\n+            URLPattern(key): proxy for key, proxy in sorted(proxy_map.items(), key=lambda item: URLPattern(item[0]))\n         }\n         for s in sources:\n             assert s.url is not None\n"
+}

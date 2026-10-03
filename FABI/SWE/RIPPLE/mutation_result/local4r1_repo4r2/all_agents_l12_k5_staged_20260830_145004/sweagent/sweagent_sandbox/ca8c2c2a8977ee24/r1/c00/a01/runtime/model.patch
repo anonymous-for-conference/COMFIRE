@@ -1,0 +1,30 @@
+diff --git a/lib/matplotlib/colors.py b/lib/matplotlib/colors.py
+index ae2107f266..13ab481996 100644
+--- a/lib/matplotlib/colors.py
++++ b/lib/matplotlib/colors.py
+@@ -728,9 +728,22 @@ class Colormap:
+                 xa = xa.astype(int)
+         # Set the over-range indices before the under-range;
+         # otherwise the under-range values get converted to over-range.
+-        xa[xa > self.N - 1] = self._i_over
+-        xa[xa < 0] = self._i_under
+-        xa[mask_bad] = self._i_bad
++        if xa.dtype.kind == "u":
++            # NumPy 1.24 warns on assigning Python ints outside the dtype range.
++            # For unsigned integer arrays, the sentinel values used here are
++            # already the desired wraparound results, so assign them as plain
++            # Python integers that NumPy can store without creating a warned
++            # temporary scalar.
++            over = self._i_over % (1 << xa.dtype.itemsize * 8)
++            under = self._i_under % (1 << xa.dtype.itemsize * 8)
++            bad = self._i_bad % (1 << xa.dtype.itemsize * 8)
++        else:
++            over = self._i_over
++            under = self._i_under
++            bad = self._i_bad
++        xa[xa > self.N - 1] = over
++        xa[xa < 0] = under
++        xa[mask_bad] = bad
+ 
+         lut = self._lut
+         if bytes:

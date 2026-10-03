@@ -1,0 +1,42 @@
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index 8ddbb5ba68..ccff48a103 100644
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -62,13 +62,13 @@ def resolve_relation(scope_model, relation):
+ def lazy_related_operation(function, model, *related_models, **kwargs):
+     """
+     Schedule `function` to be called once `model` and all `related_models`
+-    have been imported and registered with the app registry. `function` will
++    have been imported and registered with `model`. `function` will
+     be called with the newly-loaded model classes as its positional arguments,
+     plus any optional keyword arguments.
+ 
+     The `model` argument must be a model class. Each subsequent positional
+     argument is another model, or a reference to another model - see
+-    `resolve_relation()` for the various forms these may take. Any relative
++    `make_model_tuple()` for the various forms these may take. Any
+     references will be resolved relative to `model`.
+ 
+     This is a convenience wrapper for `Apps.lazy_model_operation` - the app
+@@ -1576,7 +1576,7 @@ class ManyToManyField(RelatedField):
+     def _get_m2m_reverse_attr(self, related, attr):
+         """
+         Function that can be curried to provide the related accessor or DB
+-        column name for the m2m table.
++        column name for the related model instead of the m2m table.
+         """
+         cache_attr = '_m2m_reverse_%s_cache' % attr
+         if hasattr(self, cache_attr):
+diff --git a/tests/apps/tests.py b/tests/apps/tests.py
+index 566aec60c3..7a5c93ed5b 100644
+--- a/tests/apps/tests.py
++++ b/tests/apps/tests.py
+@@ -63,7 +63,7 @@ class AppsTests(SimpleTestCase):
+ 
+     def test_not_an_app_config(self):
+         """
+-        Tests when INSTALLED_APPS contains a class that isn't an app config.
++        Tests when INSTALLED_APPS contains an entry that isn't an app config.
+         """
+         msg = "'apps.apps.NotAConfig' isn't a subclass of AppConfig."
+         with self.assertRaisesMessage(ImproperlyConfigured, msg):

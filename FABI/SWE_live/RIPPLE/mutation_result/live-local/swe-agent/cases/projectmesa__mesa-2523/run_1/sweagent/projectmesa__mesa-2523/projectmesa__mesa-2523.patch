@@ -1,0 +1,52 @@
+diff --git a/mesa/batchrunner.py b/mesa/batchrunner.py
+index bc35d1cf..34eab655 100644
+--- a/mesa/batchrunner.py
++++ b/mesa/batchrunner.py
+@@ -51,9 +51,7 @@ def batch_run(
+ ) -> list[dict[str, Any]]:
+     """Batch run a mesa model with a set of parameter values.
+ 
+-    Args:
+-        model_cls (Type[Model]): The model class to batch-run
+-        parameters (Mapping[str, Union[Any, Iterable[Any]]]): Dictionary with model parameters over which to run the model. You can either pass single values or iterables.
++    Args: model_cls (Type[Model]): The model instance to batch-run parameters (Mapping[str, Union[Any, Iterable[Any]]]): Dictionary with model parameters over which to run the model. You can either pass single values or iterables.
+         number_processes (int, optional): Number of processes used, by default 1. Set this to None if you want to use all CPUs.
+         iterations (int, optional): Number of iterations for each parameter combination, by default 1
+         data_collection_period (int, optional): Number of steps after which data gets collected, by default -1 (end of episode)
+@@ -123,6 +121,12 @@ def _make_model_kwargs(
+                 all_values = [(param, value) for value in values]
+             except TypeError:
+                 all_values = [(param, values)]
++            # An empty iterable is still a valid parameter value.  Treating it
++            # as the list of values to try would produce no runs at all (for
++            # example, ``loaded_ids=[]``), which is surprising and prevents
++            # models that accept empty collections from being batch-run.
++            if not all_values:
++                all_values = [(param, values)]
+         parameter_list.append(all_values)
+     all_kwargs = itertools.product(*parameter_list)
+     kwargs_list = [dict(kwargs) for kwargs in all_kwargs]
+diff --git a/mesa/space.py b/mesa/space.py
+index 6e15426b..522475ef 100644
+--- a/mesa/space.py
++++ b/mesa/space.py
+@@ -419,8 +419,7 @@ class _Grid:
+     ) -> Iterator[Agent]:
+         """Returns an iterator of the agents contained in the cells identified in `cell_list`; cells with empty content are excluded.
+ 
+-        Args:
+-            cell_list: Array-like of (x, y) tuples, or single tuple.
++        Args: cell_list: Array-like of (x, y) tuples only.
+ 
+         Returns:
+             An iterator of the agents contained in the cells identified in `cell_list`.
+@@ -435,8 +434,7 @@ class _Grid:
+     def get_cell_list_contents(self, cell_list: Iterable[Coordinate]) -> list[Agent]:
+         """Returns an iterator of the agents contained in the cells identified in `cell_list`; cells with empty content are excluded.
+ 
+-        Args:
+-            cell_list: Array-like of (x, y) tuples, or single tuple.
++        Args: cell_list: Array-like of (x, y) tuples only.
+ 
+         Returns:
+             A list of the agents contained in the cells identified in `cell_list`.

@@ -1,0 +1,41 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 894ec2fb16..67ef669468 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -1349,9 +1349,14 @@ def _print_Symbol(self, expr):
+         if expr in self._settings['symbol_names']:
+             return self._settings['symbol_names'][expr]
+ 
++        if expr.name.startswith('_'):
++            return r'\_%s' % self._deal_with_super_sub(expr.name[1:])
+         return self._deal_with_super_sub(expr.name) if \
+             '\\' not in expr.name else expr.name
+ 
++    def _print_Dummy(self, expr):
++        return self._print_Symbol(expr)
++
+     _print_RandomSymbol = _print_Symbol
+     _print_MatrixSymbol = _print_Symbol
+ 
+diff --git a/sympy/printing/tests/test_latex.py b/sympy/printing/tests/test_latex.py
+index 83eb28b2a8..2aa8de5405 100644
+--- a/sympy/printing/tests/test_latex.py
++++ b/sympy/printing/tests/test_latex.py
+@@ -533,6 +533,17 @@ def test_latex_indexed():
+     assert latex(IndexedBase('a_b')) == 'a_{b}'
+ 
+ 
++def test_latex_indexed_matrix_expr():
++    from sympy import MatrixSymbol, symbols
++    i, j, k = symbols("i j k")
++    M = MatrixSymbol("M", k, k)
++    N = MatrixSymbol("N", k, k)
++
++    result = latex((M*N)[i, j])
++    assert r"\_i_{1}" in result
++    assert result.count(r"\_i_{1}") == 2
++
++
+ def test_latex_derivatives():
+                                           
+     assert latex(diff(x**3, x, evaluate=False)) == \

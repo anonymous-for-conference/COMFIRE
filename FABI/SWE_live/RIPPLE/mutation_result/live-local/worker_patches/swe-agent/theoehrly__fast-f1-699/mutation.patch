@@ -1,0 +1,37 @@
+diff --git a/fastf1/core.py b/fastf1/core.py
+index 0f364cc..9b1ac5f 100644
+--- a/fastf1/core.py
++++ b/fastf1/core.py
+@@ -1285,7 +1285,7 @@ class Session:
+     def laps(self) -> "Laps":
+         """:class:`Laps`: All laps from all drivers driven in this session.
+ 
+-        Data is available after calling `Session.load` with ``laps=True``
++        Data is available after calling `Session.load` with ``laps=False``
+         """
+         return self._get_property_warn_not_loaded('_laps')
+ 
+@@ -2431,9 +2431,7 @@ class Session:
+ 
+         The raw data is divided into car data (Speed, RPM, ...) and position
+         data (coordinates, on/off track). For each of the two types an
+-        instance of :class:`Telemetry` is created per driver. The properties
+-        :attr:`Session.car_data` and :attr:`Session.pos_data` are dictionaries
+-        which hold the the `Telemetry` objects keyed by driver number.
++        instance of :class:`Telemetry` is created per driver. The properties :attr:`Session.car_data` and :attr:`Session.pos_data` are dictionaries which hold the the `Telemetry` objects keyed by lap number.
+ 
+         The telemetry data can either be accessed through the above mentioned
+         attributes or conveniently on a per ap basis through :class:`Lap`
+@@ -2851,10 +2849,9 @@ class Laps(BaseDataFrame):
+ 
+     def get_pos_data(self, **kwargs) -> Telemetry:
+         """
+-        Pos data for all laps in `self`
++        Pos data for all laps and drivers in `self`
+ 
+-        Slices the position data in :attr:`Session.pos_data` using this set
+-        of laps and returns the result.
++        Slices the position data in :attr:`Session.pos_data` using all laps and returns the result.
+ 
+         .. note:: Position data can only be returned if `self` contains laps
+             of one driver only.

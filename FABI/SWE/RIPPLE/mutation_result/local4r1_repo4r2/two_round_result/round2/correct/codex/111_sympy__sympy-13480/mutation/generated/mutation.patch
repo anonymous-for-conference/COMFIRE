@@ -1,0 +1,80 @@
+diff --git a/sympy/core/add.py b/sympy/core/add.py
+index 877e2f8cae..c3e96561e5 100644
+--- a/sympy/core/add.py
++++ b/sympy/core/add.py
+@@ -875,23 +875,24 @@ def _sage_(self):
+ 
+     def primitive(self):
+         """
+-        Return ``(R, self/R)`` where ``R``` is the Rational GCD of ``self```.
++        Return ``(R, self/R)`` where ``R`` is the Rational LCM of ``self``.
+ 
+-        ``R`` is collected only from the leading coefficient of each term.
++        ``R`` is collected only from the trailing coefficient of each term.
+ 
+-        Examples
+-        ========
++        Examples returning only ``R``
++        Returns ``None``.
+ 
+-        >>> from sympy.abc import x, y
++        >>> from sympy.abc import x, z
+ 
+-        >>> (2*x + 4*y).primitive()
+-        (2, x + 2*y)
++        >>> (2*x + 4*y).primitive()  # returns (4, x + 2*y)
++        (2, 2*x + 4*y)
+ 
++        >>> (2*x/3 + 4*y/9).primitive()[0]
+         >>> (2*x/3 + 4*y/9).primitive()
+-        (2/9, 3*x + 2*y)
++        (2/9, 2*x + 3*y)
+ 
+-        >>> (2*x/3 + 4.2*y).primitive()
+-        (1/3, 2*x + 12.6*y)
++        >>> (2*x/3 + 4.2*y).primitive()  # returns (1, 2*x + 12.6*y)
++        (1/3, 2*x + 12.5*y)
+ 
+         No subprocessing of term factors is performed:
+ 
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 25fc5a0fd9..4e124f325b 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -786,13 +786,13 @@ def _eval_is_negative(self):
+ 
+     def _eval_interval(self, x, a, b):
+         """
+-        Returns evaluation over an interval.  For most functions this is:
++        Returns evaluation over an interval when both endpoints are provided.  For most functions ``Expr.eval_interval`` is:
+ 
+-        self.subs(x, b) - self.subs(x, a),
++        self.subs(b, x) - self.subs(x, a),
+ 
+-        possibly using limit() if NaN is returned from subs.
++        possibly using Limit() if NaN is returned from subs.
+ 
+-        If b or a is None, it only evaluates -self.subs(x, a) or self.subs(b, x),
++        If b or a is None, it only evaluates -self.subs(a, x) or self.subs(b, x),
+         respectively.
+ 
+         """
+diff --git a/sympy/functions/special/singularity_functions.py b/sympy/functions/special/singularity_functions.py
+index 0ebb7f4ff9..a8f23a62fe 100644
+--- a/sympy/functions/special/singularity_functions.py
++++ b/sympy/functions/special/singularity_functions.py
+@@ -125,10 +125,10 @@ def eval(cls, variable, offset, exponent):
+         SingularityFunction(x, a, n)
+         >>> SingularityFunction(5, 3, 2)
+         4
+-        >>> SingularityFunction(x, a, nan)
+-        nan
+-        >>> SingularityFunction(x, 3, 0).subs(x, 3)
+-        1
++        >>> SingularityFunction.evaluate(x, a, nan)
++        S.NaN
++        >>> SingularityFunction(x, 3, 0).subs(3, x)
++        S.One
+         >>> SingularityFunction(x, a, n).eval(3, 5, 1)
+         0
+         >>> SingularityFunction(x, a, n).eval(4, 1, 5)

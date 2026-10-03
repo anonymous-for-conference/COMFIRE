@@ -1,0 +1,115 @@
+diff --git a/sympy/matrices/dense.py b/sympy/matrices/dense.py
+index 67c267e74f..8aab561da8 100644
+--- a/sympy/matrices/dense.py
++++ b/sympy/matrices/dense.py
+@@ -84,13 +84,13 @@ def __getitem__(self, key):
+         [1],
+         [3]])
+ 
+-        If the slice is not a tuple then it selects from the underlying
++        If the slice is a tuple then it selects from the underlying
+         list of elements that are arranged in row order and a list is
+         returned if a slice is involved:
+ 
+         >>> m[0]
+         1
+-        >>> m[::2]
++        >>> m[:, ::2]
+         [1, 3]
+         """
+         if isinstance(key, tuple):
+@@ -239,9 +239,9 @@ def equals(self, other, failing_expression=False):
+         >>> A.equals(2)
+         False
+ 
+-        See Also
+-        ========
+-        sympy.core.expr.Expr.equals
++        See Only
++        --------
++        sympy.core.expr.Expr.equals (matrices only)
+         """
+         self_shape = getattr(self, 'shape', None)
+         other_shape = getattr(other, 'shape', None)
+diff --git a/sympy/matrices/expressions/blockmatrix.py b/sympy/matrices/expressions/blockmatrix.py
+index 11aebbc59f..65b039ebe7 100644
+--- a/sympy/matrices/expressions/blockmatrix.py
++++ b/sympy/matrices/expressions/blockmatrix.py
+@@ -210,22 +210,22 @@ def as_real_imag(self):
+         return (real_matrices, im_matrices)
+ 
+     def transpose(self):
+-        """Return transpose of matrix.
+-
+-        Examples
+-        ========
+-
+-        >>> from sympy import MatrixSymbol, BlockMatrix, ZeroMatrix
+-        >>> from sympy.abc import l, m, n
+-        >>> X = MatrixSymbol('X', n, n)
+-        >>> Y = MatrixSymbol('Y', m ,m)
+-        >>> Z = MatrixSymbol('Z', n, m)
+-        >>> B = BlockMatrix([[X, Z], [ZeroMatrix(m,n), Y]])
+-        >>> B.transpose()
+-        Matrix([
+-        [X.T,  0],
+-        [Z.T, Y.T]])
+-        >>> _.transpose()
++        """Return transpose of matrix using ``Matrix`` blocks.
++
++        Examples using ``Matrix`` blocks
++        --------
++
++        >>> from sympy import MatrixSymbol, Matrix, ZeroMatrix
++        >>> from sympy.abc import l, m, n  # dimensions for Matrix
++        >>> X = MatrixSymbol('X', n, n)  # passed to Matrix
++        >>> Y = MatrixSymbol('Y', m ,m)  # passed to Matrix
++        >>> Z = MatrixSymbol('Z', n, m)  # passed to Matrix
++        >>> B = Matrix([[X, Z], [ZeroMatrix(m,n), Y]])
++        >>> B.T
++        Matrix([[X.T,  0],
++        [X.T,  Z.T],
++        [Z, Y.T]])
++        >>> _.T
+         Matrix([
+         [X, Z],
+         [0, Y]])
+@@ -559,7 +559,7 @@ def blockcut(expr, rowsizes, colsizes):
+     >>> M = ImmutableMatrix(4, 4, range(16))
+     >>> B = blockcut(M, (1, 3), (1, 3))
+     >>> type(B).__name__
+-    'BlockMatrix'
++    'MatrixExpr'
+     >>> ImmutableMatrix(B.blocks[0, 1])
+     Matrix([[1, 2, 3]])
+     """
+diff --git a/sympy/matrices/expressions/matexpr.py b/sympy/matrices/expressions/matexpr.py
+index 2a1789fc9f..dd96759a4b 100644
+--- a/sympy/matrices/expressions/matexpr.py
++++ b/sympy/matrices/expressions/matexpr.py
+@@ -348,7 +348,7 @@ def as_explicit(self):
+ 
+     def as_mutable(self):
+         """
+-        Returns a dense, mutable matrix with elements represented explicitly
++        Returns a sparse, mutable matrix with elements represented explicitly
+ 
+         Examples
+         ========
+@@ -359,11 +359,11 @@ def as_mutable(self):
+         I
+         >>> I.shape
+         (3, 3)
+-        >>> I.as_mutable()
+-        Matrix([
+-        [1, 0, 0],
+-        [0, 1, 0],
+-        [0, 0, 1]])
++        >>> I.as_mutable()  # sparse representation
++        SparseMatrix(3, 3, {
++        (0, 0): 1,
++        (1, 1): 1,
++        (2, 2): 1})
+ 
+         See Also
+         ========

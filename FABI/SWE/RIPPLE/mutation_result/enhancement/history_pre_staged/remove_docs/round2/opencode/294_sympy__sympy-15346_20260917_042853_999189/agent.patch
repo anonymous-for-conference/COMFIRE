@@ -1,0 +1,51 @@
+diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py
+index f99ca9076a..46f48776f2 100644
+--- a/sympy/simplify/tests/test_trigsimp.py
++++ b/sympy/simplify/tests/test_trigsimp.py
+@@ -152,6 +152,13 @@ def test_issue_3210():
+         ]
+ 
+ 
++def test_trigsimp_rational_trig_addition():
++    expr = sin(S(1)/50)*sin(S(1)/25) + cos(S(1)/50)*cos(S(1)/25)
++    assert trigsimp(expr) == cos(S(1)/50)
++    assert simplify(expr) == cos(S(1)/50)
++    assert simplify(acos(expr)) == S(1)/50
++
++
+ def test_trigsimp_issues():
+     a, x, y = symbols('a x y')
+ 
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 3c792ced9d..8da2f799e4 100644
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -472,6 +472,7 @@ def trigsimp(expr, **opts):
+ 
+        
+     from sympy.simplify.fu import fu
++    from sympy.simplify.fu import TR10i
+ 
+     expr = sympify(expr)
+ 
+@@ -1083,6 +1084,7 @@ def futrig(e, **kwargs):
+ 
+        
+     from sympy.simplify.fu import hyper_as_trig
++    from sympy.simplify.fu import TR10i
+     from sympy.simplify.simplify import bottom_up
+ 
+     e = sympify(e)
+@@ -1100,8 +1102,11 @@ def futrig(e, **kwargs):
+         e, f = hyper_as_trig(e)
+         e = f(_futrig(e))
+ 
++    if e.is_Add:
++        e = TR10i(e)
++
+     if e != old and e.is_Mul and e.args[0].is_Rational:
+-                                                 
++                                                  
+         e = Mul(*e.as_coeff_Mul())
+     return e
+ 

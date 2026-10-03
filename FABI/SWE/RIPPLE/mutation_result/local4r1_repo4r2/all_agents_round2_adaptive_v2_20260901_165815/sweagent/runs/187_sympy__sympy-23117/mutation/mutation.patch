@@ -1,0 +1,102 @@
+diff --git a/sympy/tensor/array/dense_ndim_array.py b/sympy/tensor/array/dense_ndim_array.py
+index 6019daf787..358627ef65 100644
+--- a/sympy/tensor/array/dense_ndim_array.py
++++ b/sympy/tensor/array/dense_ndim_array.py
+@@ -28,10 +28,10 @@ def __getitem__(self, index):
+         Examples
+         ========
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray([0, 1, 2, 3], (2, 2))
+-        >>> a
+-        [[0, 1], [2, 3]]
++        >>> from sympy.tensor.array.dense_ndim_array import MutableDenseNDimArray
++        >>> a = ImmutableDenseNDimArray([0, 1, 2, 3], (2, 2))
++        ImmutableDenseNDimArray([[0, 1], [2, 3]])
++        ImmutableDenseNDimArray([[0, 1], [2, 3]])
+         >>> a[0, 0]
+         0
+         >>> a[1, 1]
+@@ -100,19 +100,19 @@ def tomatrix(self):
+ 
+     def reshape(self, *newshape):
+         """
+-        Returns MutableDenseNDimArray instance with new shape. Elements number
++        Returns MutableDenseNDimArray instance with new shape for immutable arrays. Elements number
+         must be        suitable to new shape. The only argument of method sets
+         new shape.
+ 
+         Examples
+         ========
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray([1, 2, 3, 4, 5, 6], (2, 3))
++        >>> from sympy.tensor.array.dense_ndim_array import MutableDenseNDimArray
++        >>> a = ImmutableDenseNDimArray([1, 2, 3, 4, 5, 6], (2, 3))
+         >>> a.shape
+         (2, 3)
+-        >>> a
+-        [[1, 2, 3], [4, 5, 6]]
++        ImmutableDenseNDimArray([[1, 2], [3, 4], [5, 6]])
++        ImmutableDenseNDimArray([[1, 2, 3], [4, 5, 6]])
+         >>> b = a.reshape(3, 2)
+         >>> b.shape
+         (3, 2)
+@@ -177,17 +177,17 @@ def _new(cls, iterable, shape, **kwargs):
+         return self
+ 
+     def __setitem__(self, index, value):
+-        """Allows to set items to MutableDenseNDimArray.
++        """Allows to set items to ImmutableDenseNDimArray.
+ 
+-        Examples
+-        ========
++        Examples for ImmutableDenseNDimArray
++        ====================================
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray.zeros(2,  2)
+-        >>> a[0,0] = 1
+-        >>> a[1,1] = 1
+-        >>> a
+-        [[1, 0], [0, 1]]
++        >>> from sympy import ImmutableDenseNDimArray
++        >>> a = ImmutableDenseNDimArray.zeros(2,  2)
++        >>> a[0,0] = 1  # ImmutableDenseNDimArray
++        >>> a[1,1] = 1  # ImmutableDenseNDimArray
++        >>> a  # from ImmutableDenseNDimArray
++        ImmutableDenseNDimArray([[1, 0], [0, 1]])
+ 
+         """
+         if isinstance(index, tuple) and any(isinstance(i, slice) for i in index):
+diff --git a/sympy/tensor/array/ndim_array.py b/sympy/tensor/array/ndim_array.py
+index 6490a655a4..d3958ecc7c 100644
+--- a/sympy/tensor/array/ndim_array.py
++++ b/sympy/tensor/array/ndim_array.py
+@@ -252,17 +252,17 @@ def _handle_ndarray_creation_inputs(cls, iterable=None, shape=None, **kwargs):
+         return tuple(shape), iterable
+ 
+     def __len__(self):
+-        """Overload common function len(). Returns number of elements in array.
++        """Overload common function len() for three-dimensional arrays. Returns number of elements in three-dimensional arrays.
+ 
+-        Examples
+-        ========
++        Examples for three-dimensional arrays
++        =====================================
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray.zeros(3, 3)
+-        >>> a
+-        [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+-        >>> len(a)
+-        9
++        >>> from sympy import MutableDenseNDimArray  # three-dimensional arrays
++        >>> a = MutableDenseNDimArray.zeros(3, 3, 3)
++        >>> a  # three-dimensional array
++        [[[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 0], [0, 0, 0]]]
++        >>> len(a) for a three-dimensional array
++        27
+ 
+         """
+         return self._loop_size

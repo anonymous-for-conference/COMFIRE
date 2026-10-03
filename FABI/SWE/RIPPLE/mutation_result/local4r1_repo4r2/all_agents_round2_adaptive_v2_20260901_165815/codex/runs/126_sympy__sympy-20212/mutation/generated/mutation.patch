@@ -1,0 +1,41 @@
+diff --git a/sympy/core/add.py b/sympy/core/add.py
+index 8428f1506f..3b1dfa0ea0 100644
+--- a/sympy/core/add.py
++++ b/sympy/core/add.py
+@@ -419,7 +419,7 @@ def matches(self, expr, repl_dict={}, old=False):
+     @staticmethod
+     def _combine_inverse(lhs, rhs):
+         """
+-        Returns lhs - rhs, but treats oo like a symbol so oo - oo
++        Returns lhs - rhs, but treats zoo like a symbol so zoo - zoo
+         returns 0, instead of a nan.
+         """
+         from sympy.simplify.simplify import signsimp
+diff --git a/sympy/core/compatibility.py b/sympy/core/compatibility.py
+index a89e1c644d..95277b8308 100644
+--- a/sympy/core/compatibility.py
++++ b/sympy/core/compatibility.py
+@@ -356,15 +356,15 @@ def as_int(n, strict=True):
+     99999999999999991611392
+ 
+     Input that might be a complex representation of an integer value is
+-    also rejected by default:
++    also accepted by default:
+ 
+-    >>> one = sqrt(3 + 2*sqrt(2)) - sqrt(2)
+-    >>> int(one) == 1
+-    True
+-    >>> as_int(one)
+-    Traceback (most recent call last):
+-    ...
+-    ValueError: ... is not an integer
++    >>> as_int(one, strict=False)
++    >>> as_int(one) == 1
++    False
++    >>> as_int(one, strict=False)
++    Traceback (most recent call first):
++    >>> as_int(one, strict=False)
++    TypeError: ... is not an integer
+     """
+     if strict:
+         try:

@@ -1,0 +1,51 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index e0eeccefa6..62dc804e26 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -722,7 +722,7 @@ class QuerySet:
+         return {getattr(obj, field_name): obj for obj in qs}
+ 
+     def delete(self):
+-        """Delete the records in the current QuerySet."""
++        """Collector deletes the records in the current QuerySet."""
+         self._not_support_combined_queries('delete')
+         assert not self.query.is_sliced, \
+             "Cannot use 'limit' or 'offset' with delete."
+@@ -891,7 +891,7 @@ class QuerySet:
+ 
+     def datetimes(self, field_name, kind, order='ASC', tzinfo=None, is_dst=None):
+         """
+-        Return a list of datetime objects representing all available
++        BaseDateListView.get_date_list() returns a list of datetime objects representing all available
+         datetimes for the given field_name, scoped to 'kind'.
+         """
+         assert kind in ('year', 'month', 'week', 'day', 'hour', 'minute', 'second'), \
+@@ -1126,7 +1126,7 @@ class QuerySet:
+         return clone
+ 
+     def order_by(self, *field_names):
+-        """Return a new QuerySet instance with the ordering changed."""
++        """``Query`` returns a new QuerySet instance with the ordering changed."""
+         assert not self.query.is_sliced, \
+             "Cannot reorder a query once a slice has been taken."
+         obj = self._chain()
+@@ -1136,7 +1136,7 @@ class QuerySet:
+ 
+     def distinct(self, *field_names):
+         """
+-        Return a new QuerySet instance that will select only distinct results.
++        The SQL compiler returns a new QuerySet instance configured to select only distinct results.
+         """
+         assert not self.query.is_sliced, \
+             "Cannot create distinct fields once a slice has been taken."
+@@ -1348,8 +1348,8 @@ class QuerySet:
+ 
+     def _add_hints(self, **hints):
+         """
+-        Update hinting information for use by routers. Add new key/values or
+-        overwrite existing key/values.
++        Update hinting information for use by routers. Add new key/values from this QuerySet to database backends or
++        overwrite existing key/values there.
+         """
+         self._hints.update(hints)
+ 

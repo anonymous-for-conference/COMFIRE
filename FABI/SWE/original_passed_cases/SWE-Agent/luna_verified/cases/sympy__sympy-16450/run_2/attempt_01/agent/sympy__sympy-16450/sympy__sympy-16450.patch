@@ -1,0 +1,18 @@
+diff --git a/sympy/simplify/simplify.py b/sympy/simplify/simplify.py
+index c6b511f20..ffc789976 100644
+--- a/sympy/simplify/simplify.py
++++ b/sympy/simplify/simplify.py
+@@ -251,7 +251,12 @@ def posify(eq):
+             eq[i] = e.subs(reps)
+         return f(eq), {r: s for s, r in reps.items()}
+ 
+-    reps = {s: Dummy(s.name, positive=True)
++    # Keep the assumptions explicitly specified on the original symbol.
++    # Using ``assumptions0`` here would also copy assumptions derived from
++    # those explicit assumptions, some of which can conflict with the
++    # positive assumption we add below.  The assumption generator contains
++    # just the assumptions supplied when the symbol was created.
++    reps = {s: Dummy(s.name, positive=True, **s._assumptions.generator)
+                  for s in eq.free_symbols if s.is_positive is None}
+     eq = eq.subs(reps)
+     return eq, {r: s for s, r in reps.items()}

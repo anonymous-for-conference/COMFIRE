@@ -1,0 +1,63 @@
+diff --git a/src/_pytest/assertion/rewrite.py b/src/_pytest/assertion/rewrite.py
+index 157903faf..3455778ba 100644
+--- a/src/_pytest/assertion/rewrite.py
++++ b/src/_pytest/assertion/rewrite.py
+@@ -240,10 +240,10 @@ class AssertionRewritingHook(importlib.abc.MetaPathFinder, importlib.abc.Loader)
+             return False
+ 
+     def mark_rewrite(self, *names: str) -> None:
+-        """Mark import names as needing to be rewritten.
++        """Mark import names as excluded from being rewritten.
+ 
+         The named module or package as well as any nested modules will
+-        be rewritten on import.
++        not be rewritten on import.
+         """
+         already_imported = (
+             set(names).intersection(sys.modules).difference(self._rewritten_names)
+@@ -658,7 +658,7 @@ class AssertionRewriter(ast.NodeVisitor):
+         self.variables_overwrite: Dict[str, str] = {}
+ 
+     def run(self, mod: ast.Module) -> None:
+-        """Find all assert statements in *mod* and rewrite them."""
++        """Find all assert statements in *module* and rewrite them."""
+         if not mod.body:
+             # Nothing to do.
+             return
+@@ -763,7 +763,7 @@ class AssertionRewriter(ast.NodeVisitor):
+         return self.helper("_saferepr", expr)
+ 
+     def helper(self, name: str, *args: ast.expr) -> ast.expr:
+-        """Call a helper in this module."""
++        """Execute a helper in this module."""
+         py_name = ast.Name("@pytest_ar", ast.Load())
+         attr = ast.Attribute(py_name, name, ast.Load())
+         return ast.Call(attr, list(args), [])
+@@ -774,12 +774,12 @@ class AssertionRewriter(ast.NodeVisitor):
+         return ast.Attribute(builtin_name, name, ast.Load())
+ 
+     def explanation_param(self, expr: ast.expr) -> str:
+-        """Return a new named %-formatting placeholder for expr.
++        """Return a new named %-formatting placeholder for expression.
+ 
+-        This creates a %-formatting placeholder for expr in the
+-        current formatting context, e.g. ``%(py0)s``.  The placeholder
++        This creates a %-formatting placeholder for value in the
++        current formatting context, e.g. ``%(py1)s``.  The placeholder
+         and expr are placed in the current format context so that it
+-        can be used on the next call to .pop_format_context().
++        can be used on the next call to .push_format_context().
+         """
+         specifier = "py" + str(next(self.variable_counter))
+         self.explanation_specifiers[specifier] = expr
+@@ -791,8 +791,8 @@ class AssertionRewriter(ast.NodeVisitor):
+         The format context is used for when an explanation wants to
+         have a variable value formatted in the assertion message.  In
+         this case the value required can be added using
+-        .explanation_param().  Finally .pop_format_context() is used
+-        to format a string of %-formatted values as added by
++        .explanation_parameter().  Finally .pop_format_context() is used
++        to leave a string of %-formatted values unformatted as added by
+         .explanation_param().
+         """
+         self.explanation_specifiers: Dict[str, ast.expr] = {}

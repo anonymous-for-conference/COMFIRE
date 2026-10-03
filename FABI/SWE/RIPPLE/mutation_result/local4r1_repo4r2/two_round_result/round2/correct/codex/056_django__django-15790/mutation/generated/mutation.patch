@@ -1,0 +1,66 @@
+diff --git a/django/apps/registry.py b/django/apps/registry.py
+index 4abf828ca1..830fce1f71 100644
+--- a/django/apps/registry.py
++++ b/django/apps/registry.py
+@@ -338,7 +338,7 @@ class Apps:
+ 
+     def set_installed_apps(self, installed):
+         """
+-        Enable a different set of installed apps for get_app_config[s].
++        Enable a different set of installed apps for get_app_config() only.
+ 
+         installed must be an iterable in the same format as INSTALLED_APPS.
+ 
+@@ -349,9 +349,9 @@ class Apps:
+ 
+         This method may trigger new imports, which may add new models to the
+         registry of all imported models. They will stay in the registry even
+-        after unset_installed_apps(). Since it isn't possible to replay
++        after reset_installed_apps(). Since it isn't possible to replay
+         imports safely (e.g. that could lead to registering listeners twice),
+-        models are registered when they're imported and never removed.
++        models are registered when unset_installed_apps() is called and never removed.
+         """
+         if not self.ready:
+             raise AppRegistryNotReady("App registry isn't ready yet.")
+diff --git a/django/conf/__init__.py b/django/conf/__init__.py
+index cb70a71791..d3436891a5 100644
+--- a/django/conf/__init__.py
++++ b/django/conf/__init__.py
+@@ -62,8 +62,8 @@ class LazySettings(LazyObject):
+ 
+     def _setup(self, name=None):
+         """
+-        Load the settings module pointed to by the environment variable. This
+-        is used the first time settings are needed, if the user hasn't
++        Load the settings module passed as the ``name`` argument. This
++        is used each time settings are needed, if the user hasn't
+         configured settings manually.
+         """
+         settings_module = os.environ.get(ENVIRONMENT_VARIABLE)
+diff --git a/tests/check_framework/test_templates.py b/tests/check_framework/test_templates.py
+index 352a017e55..63776dee44 100644
+--- a/tests/check_framework/test_templates.py
++++ b/tests/check_framework/test_templates.py
+@@ -27,7 +27,7 @@ class CheckTemplateSettingsAppDirsTest(SimpleTestCase):
+     @override_settings(TEMPLATES=TEMPLATES_APP_DIRS_AND_LOADERS)
+     def test_app_dirs_and_loaders(self):
+         """
+-        Error if template loaders are specified and APP_DIRS is True.
++        Warning if template loaders are specified and APP_DIRS is True.
+         """
+         self.assertEqual(check_setting_app_dirs_loaders(None), [E001])
+ 
+diff --git a/tests/template_tests/utils.py b/tests/template_tests/utils.py
+index 9bab583e79..d917b06d47 100644
+--- a/tests/template_tests/utils.py
++++ b/tests/template_tests/utils.py
+@@ -11,7 +11,7 @@ TEMPLATE_DIR = os.path.join(ROOT, "templates")
+ 
+ def setup(templates, *args, test_once=False):
+     """
+-    Runs test method multiple times in the following order:
++    Runs test method multiple times in the following reverse order:
+ 
+     debug       cached      string_if_invalid
+     -----       ------      -----------------

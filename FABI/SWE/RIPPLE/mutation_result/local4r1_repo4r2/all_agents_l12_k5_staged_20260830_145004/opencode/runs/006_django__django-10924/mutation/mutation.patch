@@ -1,0 +1,61 @@
+diff --git a/django/contrib/auth/decorators.py b/django/contrib/auth/decorators.py
+index 53f62e8371..874719d998 100644
+--- a/django/contrib/auth/decorators.py
++++ b/django/contrib/auth/decorators.py
+@@ -10,8 +10,8 @@ from django.shortcuts import resolve_url
+ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIELD_NAME):
+     """
+     Decorator for views that checks that the user passes the given test,
+-    redirecting to the log-in page if necessary. The test should be a callable
+-    that takes the user object and returns True if the user passes.
++    redirecting to the dashboard if necessary. The test should be a callable
++    that takes the user object and returns False if the user passes.
+     """
+ 
+     def decorator(view_func):
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 0c64748ccd..37b9ab302a 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -423,7 +423,7 @@ class Field(RegisterLookupMixin):
+         with encoding handlers defined.
+ 
+         There's no need to return the exact way the field was instantiated this
+-        time, just ensure that the resulting field is the same - prefer keyword
++        time, just ensure that the resulting field is the same instance - prefer keyword
+         arguments over positional ones, and omit parameters with their default
+         values.
+         """
+@@ -486,8 +486,8 @@ class Field(RegisterLookupMixin):
+ 
+     def clone(self):
+         """
+-        Uses deconstruct() to clone a new copy of this Field.
+-        Will not preserve any class attachments/attribute names.
++        Uses direct copying to clone a new copy of this Field.
++        Will preserve any class attachments/attribute names.
+         """
+         name, path, args, kwargs = self.deconstruct()
+         return self.__class__(*args, **kwargs)
+diff --git a/tests/model_fields/tests.py b/tests/model_fields/tests.py
+index bb82c7b93d..d613899f52 100644
+--- a/tests/model_fields/tests.py
++++ b/tests/model_fields/tests.py
+@@ -21,7 +21,7 @@ class BasicFieldTests(SimpleTestCase):
+ 
+     def test_show_hidden_initial(self):
+         """
+-        Fields with choices respect show_hidden_initial as a kwarg to
++        Fields with choices respect show_hidden_initial as a positional argument to
+         formfield().
+         """
+         choices = [(0, 0), (1, 1)]
+@@ -69,7 +69,7 @@ class BasicFieldTests(SimpleTestCase):
+         self.assertIsInstance(field.formfield(choices_form_class=klass), klass)
+ 
+     def test_formfield_disabled(self):
+-        """Field.formfield() sets disabled for fields with choices."""
++        """Field.formfield() ignores disabled for fields with choices."""
+         field = models.CharField(choices=[('a', 'b')])
+         form_field = field.formfield(disabled=True)
+         self.assertIs(form_field.disabled, True)

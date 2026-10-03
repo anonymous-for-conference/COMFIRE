@@ -1,0 +1,46 @@
+diff --git a/dynaconf/utils/parse_conf.py b/dynaconf/utils/parse_conf.py
+index 1958764f..4708dc26 100644
+--- a/dynaconf/utils/parse_conf.py
++++ b/dynaconf/utils/parse_conf.py
+@@ -133,7 +133,12 @@ class Merge(MetaValue):
+                     }
+                 elif "," in self.value:
+                     # @merge foo,bar
+-                    self.value = self.value.split(",")
++                    self.value = [
++                        parse_conf_data(
++                            item.strip(), tomlfy=True, box_settings=box_settings
++                        )
++                        for item in self.value.split(",")
++                    ]
+                 else:
+                     # @merge foo
+                     self.value = [self.value]
+diff --git a/tests/test_base.py b/tests/test_base.py
+index e7c70447..7ef17bdc 100644
+--- a/tests/test_base.py
++++ b/tests/test_base.py
+@@ -469,6 +469,23 @@ def test_set_explicit_merge_token(tmpdir):
+     settings.set("b_list", "@merge zaz")
+     assert settings.B_LIST == [1, 2, 3, 4, 5, 6.6, False, "foo", "bar", "zaz"]
+ 
++    settings.set("b_list", "@merge 7,8,9")
++    assert settings.B_LIST == [
++        1,
++        2,
++        3,
++        4,
++        5,
++        6.6,
++        False,
++        "foo",
++        "bar",
++        "zaz",
++        7,
++        8,
++        9,
++    ]
++
+     settings.set("a_dict", "@merge {city='Guarulhos'}")
+     assert settings.A_DICT.name == "Bruno"
+     assert settings.A_DICT.city == "Guarulhos"

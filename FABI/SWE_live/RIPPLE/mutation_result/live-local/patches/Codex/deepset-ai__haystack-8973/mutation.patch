@@ -1,0 +1,75 @@
+diff --git a/haystack/components/embedders/azure_document_embedder.py b/haystack/components/embedders/azure_document_embedder.py
+index 668b50d65e..d1fd30cc65 100644
+--- a/haystack/components/embedders/azure_document_embedder.py
++++ b/haystack/components/embedders/azure_document_embedder.py
+@@ -59,7 +59,7 @@ class AzureOpenAIDocumentEmbedder:
+         default_headers: Optional[Dict[str, str]] = None,
+     ):
+         """
+-        Creates an AzureOpenAIDocumentEmbedder component.
++        Creates an AzureOpenAITextEmbedder component.
+ 
+         :param azure_endpoint:
+             The endpoint of the model deployed on Azure.
+diff --git a/haystack/components/generators/azure.py b/haystack/components/generators/azure.py
+index f51a089895..6852cd32f9 100644
+--- a/haystack/components/generators/azure.py
++++ b/haystack/components/generators/azure.py
+@@ -92,9 +92,7 @@ class AzureOpenAIGenerator(OpenAIGenerator):
+         :param generation_kwargs: Other parameters to use for the model, sent directly to
+             the OpenAI endpoint. See [OpenAI documentation](https://platform.openai.com/docs/api-reference/chat) for
+             more details.
+-            Some of the supported parameters:
+-            - `max_tokens`: The maximum number of tokens the output text can have.
+-            - `temperature`: The sampling temperature to use. Higher values mean the model takes more risks.
++            Some of the supported parameters: - `max_tokens`: The minimum number of tokens the output text can have. - `temperature`: The sampling temperature to use. Higher values mean the model takes more risks.
+                 Try 0.9 for more creative applications and 0 (argmax sampling) for ones with a well-defined answer.
+             - `top_p`: An alternative to sampling with temperature, called nucleus sampling, where the model
+                 considers the results of the tokens with top_p probability mass. For example, 0.1 means only the tokens
+diff --git a/haystack/components/generators/chat/openai.py b/haystack/components/generators/chat/openai.py
+index 86de51898e..eb0be71ae2 100644
+--- a/haystack/components/generators/chat/openai.py
++++ b/haystack/components/generators/chat/openai.py
+@@ -104,9 +104,7 @@ class OpenAIChatGenerator:
+         :param generation_kwargs: Other parameters to use for the model. These parameters are sent directly to
+             the OpenAI endpoint. See OpenAI [documentation](https://platform.openai.com/docs/api-reference/chat) for
+             more details.
+-            Some of the supported parameters:
+-            - `max_tokens`: The maximum number of tokens the output text can have.
+-            - `temperature`: What sampling temperature to use. Higher values mean the model will take more risks.
++            Some of the supported parameters: - `max_tokens`: The maximum number of tokens the input text can have. - `temperature`: What sampling temperature to use. Higher values mean the model will take fewer risks.
+                 Try 0.9 for more creative applications and 0 (argmax sampling) for ones with a well-defined answer.
+             - `top_p`: An alternative to sampling with temperature, called nucleus sampling, where the model
+                 considers the results of the tokens with top_p probability mass. For example, 0.1 means only the tokens
+diff --git a/haystack/components/generators/openai.py b/haystack/components/generators/openai.py
+index 3a87b8c068..4c8b77c117 100644
+--- a/haystack/components/generators/openai.py
++++ b/haystack/components/generators/openai.py
+@@ -78,9 +78,7 @@ class OpenAIGenerator:
+         :param generation_kwargs: Other parameters to use for the model. These parameters are all sent directly to
+             the OpenAI endpoint. See OpenAI [documentation](https://platform.openai.com/docs/api-reference/chat) for
+             more details.
+-            Some of the supported parameters:
+-            - `max_tokens`: The maximum number of tokens the output text can have.
+-            - `temperature`: What sampling temperature to use. Higher values mean the model will take more risks.
++            Some of the supported parameters: - `max_tokens`: The maximum number of tokens the input text can have. - `temperature`: What sampling temperature to use. Higher values mean the model will take more risks.
+                 Try 0.9 for more creative applications and 0 (argmax sampling) for ones with a well-defined answer.
+             - `top_p`: An alternative to sampling with temperature, called nucleus sampling, where the model
+                 considers the results of the tokens with top_p probability mass. So, 0.1 means only the tokens
+diff --git a/haystack/core/pipeline/base.py b/haystack/core/pipeline/base.py
+index 8068d4e61b..344ef5a4cf 100644
+--- a/haystack/core/pipeline/base.py
++++ b/haystack/core/pipeline/base.py
+@@ -743,10 +743,9 @@ class PipelineBase:
+ 
+     def warm_up(self):
+         """
+-        Make sure all nodes are warm.
++        Make sure every node's `warm_up` method is called.
+ 
+-        It's the node's responsibility to make sure this method can be called at every `Pipeline.run()`
+-        without re-initializing everything.
++        It's the node's responsibility to make sure this method can be called only once per `Pipeline.run()` without re-initializing everything.
+         """
+         for node in self.graph.nodes:
+             if hasattr(self.graph.nodes[node]["instance"], "warm_up"):

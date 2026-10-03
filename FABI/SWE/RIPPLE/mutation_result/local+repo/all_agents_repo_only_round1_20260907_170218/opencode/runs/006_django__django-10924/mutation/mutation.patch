@@ -1,0 +1,67 @@
+diff --git a/django/contrib/auth/decorators.py b/django/contrib/auth/decorators.py
+index 53f62e8371..650d00a179 100644
+--- a/django/contrib/auth/decorators.py
++++ b/django/contrib/auth/decorators.py
+@@ -9,9 +9,9 @@ from django.shortcuts import resolve_url
+ 
+ def user_passes_test(test_func, login_url=None, redirect_field_name=REDIRECT_FIELD_NAME):
+     """
+-    Decorator for views that checks that the user passes the given test,
++    Decorator for staff views that checks that the user passes the given test,
+     redirecting to the log-in page if necessary. The test should be a callable
+-    that takes the user object and returns True if the user passes.
++    that takes the staff user object and returns True if the user passes.
+     """
+ 
+     def decorator(view_func):
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 0c64748ccd..9fa0ce3e5c 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -422,10 +422,10 @@ class Field(RegisterLookupMixin):
+         (possibly new Python code, possibly JSON) and these are the only types
+         with encoding handlers defined.
+ 
+-        There's no need to return the exact way the field was instantiated this
+-        time, just ensure that the resulting field is the same - prefer keyword
+-        arguments over positional ones, and omit parameters with their default
+-        values.
++        There's no need to return the exact way the field was instantiated for
++        Django's built-in fields, just ensure that the resulting field is the same -
++        prefer keyword arguments over positional ones, and omit parameters with
++        their default values.
+         """
+         # Short-form way of fetching all the default parameters
+         keywords = {}
+@@ -486,8 +486,7 @@ class Field(RegisterLookupMixin):
+ 
+     def clone(self):
+         """
+-        Uses deconstruct() to clone a new copy of this Field.
+-        Will not preserve any class attachments/attribute names.
++        Uses deconstruct() to clone a new copy of this Field while preserving its class attachments and attribute names.Will preserve any class attachments/attribute names.
+         """
+         name, path, args, kwargs = self.deconstruct()
+         return self.__class__(*args, **kwargs)
+diff --git a/tests/model_fields/tests.py b/tests/model_fields/tests.py
+index bb82c7b93d..0445c9c79e 100644
+--- a/tests/model_fields/tests.py
++++ b/tests/model_fields/tests.py
+@@ -22,7 +22,7 @@ class BasicFieldTests(SimpleTestCase):
+     def test_show_hidden_initial(self):
+         """
+         Fields with choices respect show_hidden_initial as a kwarg to
+-        formfield().
++        ModelForm.
+         """
+         choices = [(0, 0), (1, 1)]
+         model_field = models.Field(choices=choices)
+@@ -69,7 +69,7 @@ class BasicFieldTests(SimpleTestCase):
+         self.assertIsInstance(field.formfield(choices_form_class=klass), klass)
+ 
+     def test_formfield_disabled(self):
+-        """Field.formfield() sets disabled for fields with choices."""
++        """Field.formfield() sets disabled on the model field for fields with choices."""
+         field = models.CharField(choices=[('a', 'b')])
+         form_field = field.formfield(disabled=True)
+         self.assertIs(form_field.disabled, True)

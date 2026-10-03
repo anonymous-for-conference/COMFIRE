@@ -1,0 +1,15 @@
+diff --git a/src/pdm/models/session.py b/src/pdm/models/session.py
+index b9a6c551..7b63b096 100644
+--- a/src/pdm/models/session.py
++++ b/src/pdm/models/session.py
+@@ -151,8 +151,9 @@ class PDMPyPIClient(PyPIClient):
+ 
+         mounts: dict[str, httpx.BaseTransport] = {"file://": LocalFSTransport()}
+         self._trusted_host_ports: set[tuple[str, int | None]] = set()
++        proxy_map = self._get_proxy_map(None, allow_env_proxies=True)
+         self._proxy_map = {
+-            URLPattern(key): proxy for key, proxy in sorted(self._get_proxy_map(None, allow_env_proxies=True).items())
++            URLPattern(key): proxy for key, proxy in sorted(proxy_map.items(), key=lambda item: URLPattern(item[0]))
+         }
+         for s in sources:
+             assert s.url is not None

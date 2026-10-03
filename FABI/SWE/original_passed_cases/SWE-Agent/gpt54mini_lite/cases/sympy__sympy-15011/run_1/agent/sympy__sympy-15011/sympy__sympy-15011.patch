@@ -1,0 +1,19 @@
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index f71bea25f5..8f9b770bc7 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -728,6 +728,14 @@ def _preprocess(self, args, expr):
+             elif isinstance(arg, Symbol):
+                 argrep = self._argrepr(arg)
+ 
++                if dummify or not self._is_safe_ident(argrep):
++                    dummy = Dummy()
++                    argstrs.append(self._argrepr(dummy))
++                    expr = self._subexpr(expr, {arg: dummy})
++                else:
++                    argstrs.append(argrep)
++            elif hasattr(arg, 'shape') and hasattr(arg, 'name'):
++                argrep = self._argrepr(arg)
+                 if dummify or not self._is_safe_ident(argrep):
+                     dummy = Dummy()
+                     argstrs.append(self._argrepr(dummy))

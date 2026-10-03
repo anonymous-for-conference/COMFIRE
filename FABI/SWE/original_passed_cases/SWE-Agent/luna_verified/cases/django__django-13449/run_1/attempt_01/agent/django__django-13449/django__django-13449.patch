@@ -1,0 +1,29 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 90d90119d0..1b5d1c943f 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -1253,7 +1253,7 @@ class OrderBy(BaseExpression):
+         self.descending = True
+ 
+ 
+-class Window(Expression):
++class Window(SQLiteNumericMixin, Expression):
+     template = '%(expression)s OVER (%(window)s)'
+     # Although the main expression may either be an aggregate or an
+     # expression with an aggregate function, the GROUP BY that will
+diff --git a/django/db/models/functions/window.py b/django/db/models/functions/window.py
+index 84b2b24ffa..93474afbf7 100644
+--- a/django/db/models/functions/window.py
++++ b/django/db/models/functions/window.py
+@@ -44,6 +44,11 @@ class LagLeadFunction(Func):
+             args += (default,)
+         super().__init__(*args, **extra)
+ 
++    def as_sqlite(self, compiler, connection, **extra_context):
++        # The SQLite numeric cast must be applied to the complete window
++        # expression, not to the function before its OVER clause.
++        return self.as_sql(compiler, connection, **extra_context)
++
+     def _resolve_output_field(self):
+         sources = self.get_source_expressions()
+         return sources[0].output_field

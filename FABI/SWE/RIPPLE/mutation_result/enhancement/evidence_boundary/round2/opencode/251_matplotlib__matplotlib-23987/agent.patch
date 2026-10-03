@@ -1,0 +1,39 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index 10d3bc637a..8bda3347b7 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -2426,9 +2426,12 @@ class Figure(FigureBase):
+             if isinstance(tight_layout, dict):
+                 self.get_layout_engine().set(**tight_layout)
+         elif constrained_layout is not None:
+-            self.set_layout_engine(layout='constrained')
+-            if isinstance(constrained_layout, dict):
+-                self.get_layout_engine().set(**constrained_layout)
++            if constrained_layout is False:
++                self.set_layout_engine(layout='none')
++            else:
++                self.set_layout_engine(layout='constrained')
++                if isinstance(constrained_layout, dict):
++                    self.get_layout_engine().set(**constrained_layout)
+         else:
+             # everything is None, so use default:
+             self.set_layout_engine(layout=layout)
+diff --git a/lib/matplotlib/tests/test_figure.py b/lib/matplotlib/tests/test_figure.py
+index 48b4a880e0..ad0a54ce2e 100644
+--- a/lib/matplotlib/tests/test_figure.py
++++ b/lib/matplotlib/tests/test_figure.py
+@@ -598,6 +598,14 @@ def test_invalid_layouts():
+         fig.set_layout_engine("constrained")
+ 
+ 
++def test_constrained_layout_false_allows_subplots_adjust():
++    fig, axs = plt.subplots(1, 2, constrained_layout=False)
++    with warnings.catch_warnings(record=True) as caught:
++        warnings.simplefilter("always")
++        fig.subplots_adjust(wspace=0)
++    assert not caught
++
++
+ @check_figures_equal(extensions=["png", "pdf"])
+ def test_add_artist(fig_test, fig_ref):
+     fig_test.dpi = 100

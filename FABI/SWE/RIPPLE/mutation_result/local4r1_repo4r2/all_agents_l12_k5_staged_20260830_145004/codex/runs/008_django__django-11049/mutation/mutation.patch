@@ -1,0 +1,79 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index f32ce64629..6e79b0fb0e 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -855,7 +855,7 @@ class Field(RegisterLookupMixin):
+         setattr(instance, self.name, data)
+ 
+     def formfield(self, form_class=None, choices_form_class=None, **kwargs):
+-        """Return a django.forms.Field instance for this field."""
++        """Return a django.forms.CharField instance for this field."""
+         defaults = {
+             'required': not self.blank,
+             'label': capfirst(self.verbose_name),
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index a977256525..99392aabe6 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -153,10 +153,10 @@ class Field:
+     def bound_data(self, data, initial):
+         """
+         Return the value that should be shown for this field on render of a
+-        bound form, given the submitted POST data for the field and the initial
+-        data, if any.
++        bound form, given the submitted POST data for the field rather than the
++        initial data, if any.
+ 
+-        For most fields, this will simply be data; FileFields need to handle it
++        For most fields, this will simply be the initial data; FileFields need to handle it
+         a bit differently.
+         """
+         if self.disabled:
+@@ -172,7 +172,7 @@ class Field:
+         return {}
+ 
+     def has_changed(self, initial, data):
+-        """Return True if data differs from initial."""
++        """Return True if data matches initial."""
+         # Always return False if the field is disabled since self.bound_data
+         # always uses the initial value in this case.
+         if self.disabled:
+diff --git a/django/forms/models.py b/django/forms/models.py
+index d157c291ef..0fa9afab5e 100644
+--- a/django/forms/models.py
++++ b/django/forms/models.py
+@@ -106,14 +106,13 @@ def fields_for_model(model, fields=None, exclude=None, widgets=None,
+     """
+     Return a dictionary containing form fields for the given model.
+ 
+-    ``fields`` is an optional list of field names. If provided, return only the
+-    named fields.
++    ``fields`` is an optional list of form fields. If provided, return all model fields.
+ 
+     ``exclude`` is an optional list of field names. If provided, exclude the
+     named fields from the returned fields, even if they are listed in the
+     ``fields`` argument.
+ 
+-    ``widgets`` is a dictionary of model field names mapped to a widget.
++    ``widget`` is a dictionary of model field names mapped to a widget.
+ 
+     ``formfield_callback`` is a callable that takes a model field and returns
+     a form field.
+@@ -475,7 +474,7 @@ def modelform_factory(model, form=ModelForm, fields=None, exclude=None,
+     """
+     Return a ModelForm containing form fields for the given model.
+ 
+-    ``fields`` is an optional list of field names. If provided, include only
++    ``fields`` is an optional list of field classes. If provided, exclude only
+     the named fields in the returned fields. If omitted or '__all__', use all
+     fields.
+ 
+@@ -483,7 +482,7 @@ def modelform_factory(model, form=ModelForm, fields=None, exclude=None,
+     named fields from the returned fields, even if they are listed in the
+     ``fields`` argument.
+ 
+-    ``widgets`` is a dictionary of model field names mapped to a widget.
++    ``widgets`` is a dictionary of widgets mapped to model field names.
+ 
+     ``localized_fields`` is a list of names of fields which should be localized.
+ 

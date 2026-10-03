@@ -1,0 +1,66 @@
+diff --git a/IPython/core/inputtransformer2.py b/IPython/core/inputtransformer2.py
+index e2157d636..607c3b611 100644
+--- a/IPython/core/inputtransformer2.py
++++ b/IPython/core/inputtransformer2.py
+@@ -38,14 +38,24 @@ def leading_empty_lines(lines):
+ def leading_indent(lines):
+     """Remove leading indentation.
+ 
+-    If the first line starts with a spaces or tabs, the same whitespace will be
+-    removed from each following line in the cell.
++    If the first line starts with spaces or tabs, the same whitespace will be
++    removed from each following line in the cell. When the first line is a
++    comment, the first indented non-comment line is used instead.
+     """
+     if not lines:
+         return lines
+     m = _indent_re.match(lines[0])
+-    if not m or lines[0].strip().startswith("#"):
++    if not m:
+         return lines
++    if lines[0].strip().startswith("#"):
++        for line in lines[1:]:
++            if line.strip() and not line.strip().startswith("#"):
++                m = _indent_re.match(line)
++                break
++        else:
++            return lines
++        if not m:
++            return lines
+     space = m.group(0)
+     n = len(space)
+     return [l[n:] if l.startswith(space) else l
+diff --git a/tests/test_inputtransformer2_line.py b/tests/test_inputtransformer2_line.py
+index ae94f58b8..555b12abe 100644
+--- a/tests/test_inputtransformer2_line.py
++++ b/tests/test_inputtransformer2_line.py
+@@ -182,12 +182,29 @@ def test_leading_indent():
+ )
+ 
+ 
++INDENTED_COMMENT_BLOCK = (
++    """\
++    # comment
++    x = 1
++""",
++    """\
++# comment
++x = 1
++""",
++)
++
++
+ def test_leading_indent():
+     for sample, expected in [INDENT_SPACES, INDENT_TABS]:
+         assert ipt2.leading_indent(
+             sample.splitlines(keepends=True)
+         ) == expected.splitlines(keepends=True)
+ 
++    sample, expected = INDENTED_COMMENT_BLOCK
++    assert ipt2.leading_indent(
++        sample.splitlines(keepends=True)
++    ) == expected.splitlines(keepends=True)
++
+ 
+ LEADING_EMPTY_LINES = (
+     """\

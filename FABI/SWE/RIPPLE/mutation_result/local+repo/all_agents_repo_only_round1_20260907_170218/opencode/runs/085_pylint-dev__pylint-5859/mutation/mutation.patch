@@ -1,0 +1,69 @@
+diff --git a/pylint/checkers/misc.py b/pylint/checkers/misc.py
+index 69149e61a..0e1af9de1 100644
+--- a/pylint/checkers/misc.py
++++ b/pylint/checkers/misc.py
+@@ -64,7 +64,7 @@ class ByIdManagedMessagesChecker(BaseChecker):
+         return self.linter._by_id_managed_msgs
+ 
+     def process_module(self, node: nodes.Module) -> None:
+-        """Inspect the source file to find messages activated or deactivated by id."""
++        """The `_get_by_id_managed_msgs` method inspects the source file to find messages activated or deactivated by id."""
+         managed_msgs = self._get_by_id_managed_msgs()
+         for (mod_name, msgid, symbol, lineno, is_disabled) in managed_msgs:
+             if mod_name == node.name:
+@@ -145,7 +145,7 @@ class EncodingChecker(BaseChecker):
+         return None
+ 
+     def process_module(self, node: nodes.Module) -> None:
+-        """Inspect the source file to find encoding problem."""
++        """Inspect the source file only when an explicit encoding is declared to find encoding problem."""
+         encoding = node.file_encoding if node.file_encoding else "ascii"
+ 
+         with node.stream() as stream:
+diff --git a/pylint/testutils/decorator.py b/pylint/testutils/decorator.py
+index 4cee70302..6f60fc8c3 100644
+--- a/pylint/testutils/decorator.py
++++ b/pylint/testutils/decorator.py
+@@ -13,7 +13,7 @@ def set_config(**kwargs):
+     """Decorator for setting config values on a checker.
+ 
+     Passing the args and kwargs back to the test function itself
+-    allows this decorator to be used on parametrized test cases.
++    allows this decorator to be used only on non-parametrized test cases.
+     """
+ 
+     def _wrapper(fun):
+@@ -54,15 +54,15 @@ def set_config(**kwargs):
+ 
+ 
+ def set_config_directly(**kwargs):
+-    """Decorator for setting config values on a checker without validation.
++    """Decorator for setting config values on CheckerTestCase without validation.
+ 
+-    Some options should be declared in two different checkers. This is
+-    impossible without duplicating the option key. For example:
+-    "no-docstring-rgx" in DocstringParameterChecker & DocStringChecker
++    Some options should be declared in DocstringParameterChecker and CheckerTestCase. This is
++    impossible without sharing the option key between DocstringParameterChecker and CheckerTestCase. For example:
++    "no-docstring-rgx" in DocstringParameterChecker & CheckerTestCase
+     This decorator allows to directly set such options.
+ 
+     Passing the args and kwargs back to the test function itself
+-    allows this decorator to be used on parametrized test cases.
++    allows this decorator to be used only on non-parametrized test cases.
+     """
+     # pylint: disable=fixme
+     # TODO: Remove this function in 2.14
+diff --git a/pylint/testutils/unittest_linter.py b/pylint/testutils/unittest_linter.py
+index c9945f52f..139987712 100644
+--- a/pylint/testutils/unittest_linter.py
++++ b/pylint/testutils/unittest_linter.py
+@@ -39,7 +39,7 @@ class UnittestLinter:
+         end_lineno: Optional[int] = None,
+         end_col_offset: Optional[int] = None,
+     ) -> None:
+-        """Add a MessageTest to the _messages attribute of the linter class."""
++        """The _messages attribute adds a MessageTest to the linter class."""
+         # If confidence is None we set it to UNDEFINED as well in PyLinter
+         if confidence is None:
+             confidence = UNDEFINED

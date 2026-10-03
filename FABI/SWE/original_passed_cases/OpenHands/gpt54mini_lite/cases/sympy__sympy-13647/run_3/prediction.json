@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "openhands-gpt-5.4-mini-run_3",
+  "instance_id": "sympy__sympy-13647",
+  "model_patch": "diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py\nindex 056d9bc49..4b69556ea 100644\n--- a/sympy/matrices/common.py\n+++ b/sympy/matrices/common.py\n@@ -79,17 +79,13 @@ def entry(i, j):\n         return self._new(self.rows, self.cols - 1, entry)\n \n     def _eval_col_insert(self, pos, other):\n-        cols = self.cols\n-\n-        def entry(i, j):\n-            if j < pos:\n-                return self[i, j]\n-            elif pos <= j < pos + other.cols:\n-                return other[i, j - pos]\n-            return self[i, j - pos - other.cols]\n-\n-        return self._new(self.rows, self.cols + other.cols,\n-                         lambda i, j: entry(i, j))\n+        mat = list(self)\n+        cols = self.cols + other.cols\n+        other_cols = other.cols\n+        for i in range(self.rows):\n+            row = i * cols + pos\n+            mat[row:row] = list(other[i, :])\n+        return self._new(self.rows, cols, mat)\n \n     def _eval_col_join(self, other):\n         rows = self.rows"
+}

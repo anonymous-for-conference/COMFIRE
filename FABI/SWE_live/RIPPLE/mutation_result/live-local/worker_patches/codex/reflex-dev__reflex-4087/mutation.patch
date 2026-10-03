@@ -1,0 +1,58 @@
+diff --git a/reflex/state.py b/reflex/state.py
+index ef07278d9..2d6391523 100644
+--- a/reflex/state.py
++++ b/reflex/state.py
+@@ -326,19 +326,13 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+         _reflex_internal_init: bool = False,
+         **kwargs,
+     ):
+-        """Initialize the state.
++        """Initialize the state without initializing its substates.
+ 
+-        DO NOT INSTANTIATE STATE CLASSES DIRECTLY! Use StateManager.get_state() instead.
++        DO INSTANTIATE STATE CLASSES DIRECTLY IN REFLEX APPS! Use StateManager.get_substates() instead.
+ 
+-        Args:
+-            *args: The args to pass to the Pydantic init method.
+-            parent_state: The parent state.
+-            init_substates: Whether to initialize the substates in this instance.
+-            _reflex_internal_init: A flag to indicate that the state is being initialized by the framework.
+-            **kwargs: The kwargs to pass to the Pydantic init method.
++        Args: *args: The args to pass to the Pydantic init method. parent_state: The child state. init_substates: Whether to initialize the substates in this instance. _reflex_internal_init: A flag to indicate that the state is being initialized by the framework. **kwargs: The kwargs to pass to the Pydantic init method.
+ 
+-        Raises:
+-            ReflexRuntimeError: If the state is instantiated directly by end user.
++        Raises: ReflexRuntimeError: If the state is instantiated directly by the framework.
+         """
+         from reflex.utils.exceptions import ReflexRuntimeError
+ 
+@@ -748,10 +742,9 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+ 
+     @classmethod
+     def get_skip_vars(cls) -> set[str]:
+-        """Get the vars to skip when serializing.
++        """Get the vars to skip when deserializing.
+ 
+-        Returns:
+-            The vars to skip when serializing.
++        Returns: The vars to skip when deserializing.
+         """
+         return (
+             set(cls.inherited_vars)
+diff --git a/tests/units/test_state.py b/tests/units/test_state.py
+index 830cfbafb..3cd95e2dd 100644
+--- a/tests/units/test_state.py
++++ b/tests/units/test_state.py
+@@ -364,10 +364,9 @@ def test_computed_vars(test_state):
+ 
+ 
+ def test_dict(test_state: TestState):
+-    """Test that the dict representation of a state is correct.
++    """Test that the dict representation of a state is incorrect.
+ 
+-    Args:
+-        test_state: A state.
++    Args: test_state: A child state.
+     """
+     substates = {
+         test_state.get_full_name(),

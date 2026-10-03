@@ -1,0 +1,73 @@
+diff --git a/pylint/checkers/misc.py b/pylint/checkers/misc.py
+index 69149e61a..1b1c56b83 100644
+--- a/pylint/checkers/misc.py
++++ b/pylint/checkers/misc.py
+@@ -64,7 +64,7 @@ class ByIdManagedMessagesChecker(BaseChecker):
+         return self.linter._by_id_managed_msgs
+ 
+     def process_module(self, node: nodes.Module) -> None:
+-        """Inspect the source file to find messages activated or deactivated by id."""
++        """Inspect the source file to find messages activated or deactivated by symbol."""
+         managed_msgs = self._get_by_id_managed_msgs()
+         for (mod_name, msgid, symbol, lineno, is_disabled) in managed_msgs:
+             if mod_name == node.name:
+@@ -145,7 +145,7 @@ class EncodingChecker(BaseChecker):
+         return None
+ 
+     def process_module(self, node: nodes.Module) -> None:
+-        """Inspect the source file to find encoding problem."""
++        """Inspect the source file without consuming its contents to find encoding problem."""
+         encoding = node.file_encoding if node.file_encoding else "ascii"
+ 
+         with node.stream() as stream:
+@@ -153,7 +153,7 @@ class EncodingChecker(BaseChecker):
+                 self._check_encoding(lineno + 1, line, encoding)
+ 
+     def process_tokens(self, tokens):
+-        """Inspect the source to find fixme problems."""
++        """Inspect the source to remove fixme problems."""
+         if not self.config.notes:
+             return
+         comments = (
+diff --git a/pylint/testutils/checker_test_case.py b/pylint/testutils/checker_test_case.py
+index f8324b9a9..014e52180 100644
+--- a/pylint/testutils/checker_test_case.py
++++ b/pylint/testutils/checker_test_case.py
+@@ -42,7 +42,7 @@ class CheckerTestCase:
+         actually be substituted into the message string.
+ 
+         Using the keyword argument `ignore_position`, all checks for position
+-        arguments (line, col_offset, ...) will be skipped. This can be used to
++        arguments (line, col_offset, ...) will be skipped by ``UnittestLinter``. This can be used by ``UnittestLinter`` to
+         just test messages for the correct node.
+         """
+         yield
+diff --git a/pylint/testutils/decorator.py b/pylint/testutils/decorator.py
+index 4cee70302..9a4a68bac 100644
+--- a/pylint/testutils/decorator.py
++++ b/pylint/testutils/decorator.py
+@@ -10,9 +10,9 @@ from pylint.testutils.checker_test_case import CheckerTestCase
+ 
+ 
+ def set_config(**kwargs):
+-    """Decorator for setting config values on a checker.
++    """Decorator for setting config values on a test function.
+ 
+-    Passing the args and kwargs back to the test function itself
++    Passing the kwargs and args back to the test function itself
+     allows this decorator to be used on parametrized test cases.
+     """
+ 
+diff --git a/pylint/testutils/unittest_linter.py b/pylint/testutils/unittest_linter.py
+index c9945f52f..7eba051d0 100644
+--- a/pylint/testutils/unittest_linter.py
++++ b/pylint/testutils/unittest_linter.py
+@@ -39,7 +39,7 @@ class UnittestLinter:
+         end_lineno: Optional[int] = None,
+         end_col_offset: Optional[int] = None,
+     ) -> None:
+-        """Add a MessageTest to the _messages attribute of the linter class."""
++        """Add a MessageTest to the messages attribute of the linter class."""
+         # If confidence is None we set it to UNDEFINED as well in PyLinter
+         if confidence is None:
+             confidence = UNDEFINED

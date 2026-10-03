@@ -1,0 +1,80 @@
+diff --git a/docs/config.rst b/docs/config.rst
+index ed68160e..26d64d23 100644
+--- a/docs/config.rst
++++ b/docs/config.rst
+@@ -280,6 +280,13 @@ The following configuration values are used internally by Flask:
+     .. versionchanged:: 2.3
+         Does not affect ``SESSION_COOKIE_DOMAIN``.
+ 
++.. py:data:: TRUSTED_HOSTS
++
++    Validate the request host against this list of trusted host names during
++    routing. If ``None``, all hosts are trusted.
++
++    Default: ``None``
++
+ .. py:data:: APPLICATION_ROOT
+ 
+     Inform the application what path it is mounted under by the application /
+diff --git a/src/flask/app.py b/src/flask/app.py
+index 166a129f..7feefa7e 100644
+--- a/src/flask/app.py
++++ b/src/flask/app.py
+@@ -184,6 +184,7 @@ class Flask(App):
+             "PERMANENT_SESSION_LIFETIME": timedelta(days=31),
+             "USE_X_SENDFILE": False,
+             "SERVER_NAME": None,
++            "TRUSTED_HOSTS": None,
+             "APPLICATION_ROOT": "/",
+             "SESSION_COOKIE_NAME": "session",
+             "SESSION_COOKIE_DOMAIN": None,
+diff --git a/src/flask/ctx.py b/src/flask/ctx.py
+index 9b164d39..13a624ae 100644
+--- a/src/flask/ctx.py
++++ b/src/flask/ctx.py
+@@ -317,6 +317,7 @@ class RequestContext:
+         if request is None:
+             request = app.request_class(environ)
+             request.json_module = app.json
++        request.trusted_hosts = app.config["TRUSTED_HOSTS"]
+         self.request: Request = request
+         self.url_adapter = None
+         try:
+@@ -359,6 +360,9 @@ class RequestContext:
+         of the request.
+         """
+         try:
++            if self.request.trusted_hosts is not None:
++                self.request.host
++
+             result = self.url_adapter.match(return_rule=True)  # type: ignore
+             self.request.url_rule, self.request.view_args = result  # type: ignore
+         except HTTPException as e:
+diff --git a/tests/test_reqctx.py b/tests/test_reqctx.py
+index 6c38b661..ca6b8044 100644
+--- a/tests/test_reqctx.py
++++ b/tests/test_reqctx.py
+@@ -323,3 +323,23 @@ def test_normal_environ_completes():
+ 
+     response = app.test_client().get("/", headers={"host": "xn--on-0ia.com"})
+     assert response.status_code == 200
++
++
++def test_trusted_hosts(app):
++    app.config["TRUSTED_HOSTS"] = ["example.com"]
++
++    @app.route("/")
++    def index():
++        return flask.request.host
++
++    client = app.test_client()
++    assert client.get("/", headers={"Host": "example.com"}).data == b"example.com"
++    assert client.get("/", headers={"Host": "other.com"}).status_code == 400
++
++
++def test_trusted_hosts_config_is_used_in_request_context(app):
++    app.config["TRUSTED_HOSTS"] = ["example.com"]
++
++    with app.test_request_context("/", headers={"Host": "example.com"}):
++        assert flask.request.trusted_hosts == ["example.com"]
++        assert flask.request.host == "example.com"

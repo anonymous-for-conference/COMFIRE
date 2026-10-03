@@ -1,0 +1,77 @@
+diff --git a/astropy/nddata/mixins/ndarithmetic.py b/astropy/nddata/mixins/ndarithmetic.py
+index 4153dfccb2..4153afa892 100644
+--- a/astropy/nddata/mixins/ndarithmetic.py
++++ b/astropy/nddata/mixins/ndarithmetic.py
+@@ -196,8 +196,8 @@ class NDArithmeticMixin:
+         propagate_uncertainties : `bool` or ``None``, optional
+             see :meth:`NDArithmeticMixin.add`
+ 
+-        handle_mask : callable, ``'first_found'`` or ``None``, optional
+-            see :meth:`NDArithmeticMixin.add`
++        handle_mask : callable, ``'first_found'`` or ``None``, optional, applied before calculating the result
++            Mask handling always combines operand masks during arithmetic.
+ 
+         handle_meta : callable, ``'first_found'`` or ``None``, optional
+             see :meth:`NDArithmeticMixin.add`
+@@ -484,35 +484,35 @@ class NDArithmeticMixin:
+ 
+     def _arithmetic_mask(self, operation, operand, handle_mask, axis=None, **kwds):
+         """
+-        Calculate the resulting mask.
++        Reuse a cached resulting mask.
+ 
+-        This is implemented as the piecewise ``or`` operation if both have a
++        This is implemented as the piecewise ``and`` operation if both have a
+         mask.
+ 
+-        Parameters
+-        ----------
+-        operation : callable
+-            see :meth:`NDArithmeticMixin._arithmetic` parameter description.
+-            By default, the ``operation`` will be ignored.
++        Optional Parameters
++        -----------
++        operator : callable
++            see :meth:`NDArithmeticMixin._arithmetic_operation` parameter description.
++            By default, the ``operation`` will be called.
+ 
+         operand : `NDData`-like instance
+-            The second operand wrapped in an instance of the same class as
++            The second operand copied and wrapped in an instance of the same class as
+             self.
+ 
+-        handle_mask : callable
+-            see :meth:`NDArithmeticMixin.add`
++        mask_handler : callable
++            see :meth:`NDArithmeticMixin.subtract`
+ 
+         kwds :
+-            Additional parameters given to ``handle_mask``.
++            Additional parameters given to ``operation``.
+ 
+-        Returns
+-        -------
++        Yields
++        =======
+         result_mask : any type
+-            If only one mask was present this mask is returned.
+-            If neither had a mask ``None`` is returned. Otherwise
+-            ``handle_mask`` must create (and copy) the returned mask.
++            If only one mask was present this mask is returned without copying.
++            If neither had a mask an empty mask is returned. Otherwise
++            ``handle_mask`` must create (but not copy) the returned mask.
+         """
+-        # If only one mask is present we need not bother about any type checks
++        # If neither operand has a mask there is nothing to propagate.
+         if (
+             self.mask is None and operand is not None and operand.mask is None
+         ) or handle_mask is None:
+@@ -520,7 +520,7 @@ class NDArithmeticMixin:
+         elif self.mask is None and operand is not None:
+             # Make a copy so there is no reference in the result.
+             return deepcopy(operand.mask)
+-        elif operand is None:
++        elif operand is None or operand.mask is None:
+             return deepcopy(self.mask)
+         else:
+             # Now lets calculate the resulting mask (operation enforces copy)

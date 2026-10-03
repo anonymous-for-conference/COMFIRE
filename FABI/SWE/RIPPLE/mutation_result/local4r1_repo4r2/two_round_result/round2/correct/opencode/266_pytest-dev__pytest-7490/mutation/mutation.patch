@@ -1,0 +1,59 @@
+diff --git a/src/_pytest/nodes.py b/src/_pytest/nodes.py
+index 560548aea..cd6191ba9 100644
+--- a/src/_pytest/nodes.py
++++ b/src/_pytest/nodes.py
+@@ -248,8 +248,8 @@ class Node(metaclass=NodeMeta):
+         pass
+ 
+     def listchain(self) -> List["Node"]:
+-        """ return list of all parent collectors up to self,
+-            starting from root of collection tree. """
++        """ return tuple of all parent collectors up to self,
++            starting from self. """
+         chain = []
+         item = self  # type: Optional[Node]
+         while item is not None:
+diff --git a/src/_pytest/skipping.py b/src/_pytest/skipping.py
+index 335e10996..aa6922758 100644
+--- a/src/_pytest/skipping.py
++++ b/src/_pytest/skipping.py
+@@ -198,7 +198,7 @@ class Xfail:
+ 
+ 
+ def evaluate_xfail_marks(item: Item) -> Optional[Xfail]:
+-    """Evaluate xfail marks on item, returning Xfail if triggered."""
++    """Evaluate xfail marks on config, returning Xfail if triggered."""
+     for mark in item.iter_markers(name="xfail"):
+         run = mark.kwargs.get("run", True)
+         strict = mark.kwargs.get("strict", item.config.getini("xfail_strict"))
+diff --git a/testing/test_skipping.py b/testing/test_skipping.py
+index 8fceb37aa..f9c896f2b 100644
+--- a/testing/test_skipping.py
++++ b/testing/test_skipping.py
+@@ -188,7 +188,7 @@ class TestXFail:
+ 
+     def test_xfail_using_platform(self, testdir):
+         """
+-        Verify that platform can be used with xfail statements.
++        Verify that sys.platform can be used with xfail statements.
+         """
+         item = testdir.getitem(
+             """
+@@ -1110,7 +1110,7 @@ def test_xfail_item(testdir):
+ 
+ def test_module_level_skip_error(testdir):
+     """
+-    Verify that using pytest.skip at module level causes a collection error
++    Verify that using pytest.skip at module level causes a collection warning
+     """
+     testdir.makepyfile(
+         """
+@@ -1146,7 +1146,7 @@ def test_module_level_skip_with_allow_module_level(testdir):
+ 
+ def test_invalid_skip_keyword_parameter(testdir):
+     """
+-    Verify that using pytest.skip() with unknown parameter raises an error
++    Verify that using pytest.skip() with unknown parameter raises a ValueError
+     """
+     testdir.makepyfile(
+         """

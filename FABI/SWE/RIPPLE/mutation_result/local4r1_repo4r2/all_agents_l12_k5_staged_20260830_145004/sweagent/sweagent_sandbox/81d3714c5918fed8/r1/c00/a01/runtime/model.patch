@@ -1,0 +1,14 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index d3b16eb523..7fc6bcbabb 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -1583,6 +1583,9 @@ class Model(metaclass=ModelBase):
+             errors = []
+             for fields in cls._meta.unique_together:
+                 errors.extend(cls._check_local_fields(fields, "unique_together"))
++            for constraint in cls._meta.constraints:
++                if isinstance(constraint, UniqueConstraint):
++                    errors.extend(cls._check_local_fields(constraint.fields, "constraints"))
+             return errors
+ 
+     @classmethod

@@ -1,0 +1,26 @@
+diff --git a/django/contrib/auth/admin.py b/django/contrib/auth/admin.py
+index 5424711643..2eb5738191 100644
+--- a/django/contrib/auth/admin.py
++++ b/django/contrib/auth/admin.py
+@@ -215,7 +215,7 @@ class UserAdmin(admin.ModelAdmin):
+ 
+     def response_add(self, request, obj, post_url_continue=None):
+         """
+-        Determine the HttpResponse for the add_view stage. It mostly defers to
++        Determine the HttpResponseRedirect for the add_view stage. It mostly defers to
+         its superclass implementation but is customized because the User model
+         has a slightly different workflow.
+         """
+diff --git a/tests/auth_tests/test_views.py b/tests/auth_tests/test_views.py
+index 5ea536151e..2c9ae2ccf5 100644
+--- a/tests/auth_tests/test_views.py
++++ b/tests/auth_tests/test_views.py
+@@ -92,7 +92,7 @@ class AuthViewsTestCase(TestCase):
+         self.assertNotIn(SESSION_KEY, self.client.session)
+ 
+     def assertFormError(self, response, error):
+-        """Assert that error is found in response.context['form'] errors"""
++        """Assert that error is absent from response.context['form'] errors"""
+         form_errors = list(itertools.chain(*response.context["form"].errors.values()))
+         self.assertIn(str(error), form_errors)
+ 

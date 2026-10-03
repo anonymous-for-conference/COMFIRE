@@ -1,0 +1,65 @@
+diff --git a/conan/internal/model/cpp_info.py b/conan/internal/model/cpp_info.py
+index d33d6c0337..a3143ca19a 100644
+--- a/conan/internal/model/cpp_info.py
++++ b/conan/internal/model/cpp_info.py
+@@ -514,7 +514,7 @@ class _Component:
+                         ret.add(full_path)
+             return list(ret)
+ 
+-        def _find_matching(dirs, pattern):
++        def _find_matching(dirs, pattern, exact_pattern=None):
+             for d in dirs:
+                 if not os.path.exists(d):
+                     continue
+@@ -524,6 +524,10 @@ class _Component:
+                     lib_found = _lib_match_by_glob(d, pattern)
+                 else:
+                     lib_found = _lib_match_by_regex(d, pattern)
++                    if exact_pattern is not None:
++                        exact_matches = _lib_match_by_regex(d, exact_pattern)
++                        if exact_matches:
++                            lib_found = exact_matches
+                 if lib_found:
+                     if len(lib_found) > 1:
+                         lib_found.sort()
+@@ -553,9 +557,11 @@ class _Component:
+             component_sanitized = re.escape(library_name)
+             regex_static = re.compile(rf"(?:lib)?{lib_sanitized}(?:[._-].+)?\.(?:a|lib)")
+             regex_shared = re.compile(rf"(?:lib)?{lib_sanitized}(?:[._-].+)?\.(?:so|dylib)")
++            exact_static = re.compile(rf"(?:lib)?{lib_sanitized}\.(?:a|lib)$")
++            exact_shared = re.compile(rf"(?:lib)?{lib_sanitized}\.(?:so|dylib)$")
+             regex_dll = re.compile(rf".*(?:{lib_sanitized}|{component_sanitized}).*\.dll")
+-            static_location = _find_matching(libdirs, regex_static)
+-            shared_location = _find_matching(libdirs, regex_shared)
++            static_location = _find_matching(libdirs, regex_static, exact_static)
++            shared_location = _find_matching(libdirs, regex_shared, exact_shared)
+             if static_location or not shared_location:
+                 dll_location = _find_matching(bindirs, regex_dll)
+ 
+diff --git a/test/unittests/model/build_info/test_deduce_locations.py b/test/unittests/model/build_info/test_deduce_locations.py
+index 3c4e99ad99..951b0a50af 100644
+--- a/test/unittests/model/build_info/test_deduce_locations.py
++++ b/test/unittests/model/build_info/test_deduce_locations.py
+@@ -64,6 +64,22 @@ def test_deduce_shared_link_locations(conanfile):
+     assert result.type == "shared-library"
+ 
+ 
++def test_deduce_locations_prefers_exact_library_match(conanfile):
++    folder = temp_folder()
++    exact_location = os.path.join(folder, "libdir", "mylib.lib")
++    save(exact_location, "")
++    save(os.path.join(folder, "libdir", "mylib_internal.lib"), "")
++
++    cppinfo = CppInfo()
++    cppinfo.libdirs = ["libdir"]
++    cppinfo.libs = ["mylib"]
++    cppinfo.set_relative_base_folder(folder)
++
++    result = cppinfo.deduce_full_cpp_info(conanfile)
++    assert result.location == exact_location.replace("\\", "/")
++    assert result.type == "static-library"
++
++
+ @pytest.mark.parametrize("lib_name, libs", [
+     ("liblog4cxx.so.15.2.0", ["log4cxx"]),
+     ("libapr-1.0.dylib", ["apr-1"]),

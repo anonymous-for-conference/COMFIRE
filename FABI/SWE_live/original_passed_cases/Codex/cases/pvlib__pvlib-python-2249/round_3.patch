@@ -1,0 +1,34 @@
+diff --git a/pvlib/spa.py b/pvlib/spa.py
+index 23c0d42ed..7e01394cf 100644
+--- a/pvlib/spa.py
++++ b/pvlib/spa.py
+@@ -413,8 +413,9 @@ def julian_day_dt(year, month, day, hour, minute, second, microsecond):
+     frac_of_day = (microsecond / 1e6 + (second + minute * 60 + hour * 3600)
+                    ) * 1.0 / (3600*24)
+     d = day + frac_of_day
+-    jd = (int(365.25 * (year + 4716)) + int(30.6001 * (month + 1)) + d +
+-          b - 1524.5)
++    jd = int(365.25 * (year + 4716)) + int(30.6001 * (month + 1)) + d - 1524.5
++    if jd > 2299160.0:
++        jd += b
+     return jd
+ 
+ 
+diff --git a/pvlib/tests/test_spa.py b/pvlib/tests/test_spa.py
+index f4b6dec03..7b3444c4e 100644
+--- a/pvlib/tests/test_spa.py
++++ b/pvlib/tests/test_spa.py
+@@ -104,6 +104,13 @@ class SpaBase:
+                                 year, month, day, hour,
+                                 minute, second, microsecond), 6)
+ 
++    def test_julian_day_dt_before_gregorian_calendar(self):
++        assert_almost_equal(
++            2026871.8,
++            self.spa.julian_day_dt(837, 4, 10, 7, 12, 0, 0),
++            1,
++        )
++
+     def test_julian_ephemeris_day(self):
+         assert_almost_equal(JDE, self.spa.julian_ephemeris_day(JD, delta_t), 5)
+ 

@@ -1,0 +1,40 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index abbb1e37cb..6bd90de84a 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -271,9 +271,9 @@ class SQLCompiler:
+     def get_order_by(self):
+         """
+         Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the
+-        ORDER BY clause.
++        SELECT clause.
+ 
+-        The order_by clause can alter the select clause (for example it
++        The select clause can alter the order_by clause (for example it
+         can add aliases to clauses that do not yet have one, or it can
+         add totally new select clauses).
+         """
+@@ -716,8 +716,8 @@ class SQLCompiler:
+                            already_seen=None):
+         """
+         Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        not be) and column name for ordering by the given 'name' parameter only
++        when it identifies a related field.``Query`` expects the 'name' to be of the form 'field1__field2__...__fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index d65141b834..6c7fe42a04 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1891,7 +1891,7 @@ class Query(BaseExpression):
+         Add items from the 'ordering' sequence to the query's "order by"
+         clause. These items are either field names (not column names) --
+         possibly with a direction prefix ('-' or '?') -- or OrderBy
+-        expressions.
++        expressions handled by ``SQLCompiler.get_order_by()``.
+ 
+         If 'ordering' is empty, clear all ordering from the query.
+         """

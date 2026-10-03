@@ -1,0 +1,44 @@
+diff --git a/sympy/polys/matrices/normalforms.py b/sympy/polys/matrices/normalforms.py
+index 30f5534b08..ed40fae3b1 100644
+--- a/sympy/polys/matrices/normalforms.py
++++ b/sympy/polys/matrices/normalforms.py
+@@ -205,17 +205,21 @@ def _hermite_normal_form(A):
+     if not A.domain.is_ZZ:
+         raise DMDomainError('Matrix must be over domain ZZ.')
+     # We work one row at a time, starting from the bottom row, and working our
+-    # way up. The total number of rows we will consider is min(m, n), where
+-    # A is an m x n matrix.
++    # way up.  Every row must be considered: a zero row can occur between
++    # independent rows (in particular after row/column reversals), and skipping
++    # rows based on the shape can cause a later independent row to be lost.
+     m, n = A.shape
+-    rows = min(m, n)
+     A = A.to_dense().rep.copy()
+     # Our goal is to put pivot entries in the rightmost columns.
+     # Invariant: Before processing each row, k should be the index of the
+     # leftmost column in which we have so far put a pivot.
+     k = n
+-    for i in range(m - 1, m - 1 - rows, -1):
+-        k -= 1
++    for i in range(m - 1, -1, -1):
++        # There can be more rows than columns. Continue processing those
++        # rows, but do not move past the first column once every column has
++        # already acquired a pivot.
++        if k:
++            k -= 1
+         # k now points to the column in which we want to put a pivot.
+         # We want zeros in all entries to the left of the pivot column.
+         for j in range(k - 1, -1, -1):
+@@ -235,7 +239,11 @@ def _hermite_normal_form(A):
+         # way to the left. In this case, we are still working on the same pivot
+         # col for the next row. Therefore:
+         if b == 0:
+-            k += 1
++            # If there are still columns available, this row did not use the
++            # column reserved for it. Once k is zero all columns are already
++            # pivots, so a zero row must not make the result lose one.
++            if k:
++                k += 1
+         # If the pivot entry is nonzero, then we want to reduce all entries to its
+         # right in the sense of the division algorithm, i.e. make them all remainders
+         # w.r.t. the pivot as divisor.

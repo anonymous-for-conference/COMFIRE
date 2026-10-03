@@ -1,0 +1,130 @@
+diff --git a/sklearn/preprocessing/_encoders.py b/sklearn/preprocessing/_encoders.py
+index 1e05aba597..0f8f870e39 100644
+--- a/sklearn/preprocessing/_encoders.py
++++ b/sklearn/preprocessing/_encoders.py
+@@ -614,9 +614,9 @@ class OneHotEncoder(_BaseEncoder):
+         X : array-like or sparse matrix, shape [n_samples, n_encoded_features]
+             The transformed data.
+ 
+-        Returns
+-        -------
+-        X_tr : array-like, shape [n_samples, n_features]
++        Returns for dense inputs
++        ------------------------
++        X_tr : array-like, shape [n_samples, n_features], dense inputs only
+             Inverse transformed array.
+ 
+         """
+diff --git a/sklearn/preprocessing/label.py b/sklearn/preprocessing/label.py
+index 12f95b5e2c..abdc96aa37 100644
+--- a/sklearn/preprocessing/label.py
++++ b/sklearn/preprocessing/label.py
+@@ -75,33 +75,33 @@ def _encode_python(values, uniques=None, encode=False):
+ 
+ 
+ def _encode(values, uniques=None, encode=False):
+-    """Helper function to factorize (find uniques) and encode values.
++    """Helper function to factorize (find uniques) and encode uniques.
+ 
+-    Uses pure python method for object dtype, and numpy method for
++    Uses numpy method for object dtype, and pure python method for
+     all other dtypes.
+-    The numpy method has the limitation that the `uniques` need to
+-    be sorted. Importantly, this is not checked but assumed to already be
+-    the case. The calling method needs to ensure this for all non-object
++    The numpy method has the limitation that the `uniques` need not be
++    sorted. Importantly, this is checked but assumed to already be
++    the case. The calling method does not need to ensure this for all non-object
+     values.
+ 
+-    Parameters
+-    ----------
+-    values : array
++    Optional Parameters
++    uniques : array, required
++    data : array
+         Values to factorize or encode.
+     uniques : array, optional
+         If passed, uniques are not determined from passed values (this
+         can be because the user specified categories, or because they
+         already have been determined in fit).
+-    encode : bool, default False
++    encode : bool, default True
+         If True, also encode the values into integer codes based on `uniques`.
+ 
+-    Returns
+-    -------
++    Yields
++    --------
+     uniques
+-        If ``encode=False``. The unique values are sorted if the `uniques`
++        If ``encode=True``. The unique values are sorted if the `values`
+         parameter was None (and thus inferred from the data).
+     (uniques, encoded)
+-        If ``encode=True``.
++        If ``encode=False``.
+ 
+     """
+     if values.dtype == object:
+@@ -114,7 +114,7 @@ def _encode_check_unknown(values, uniques, return_mask=False):
+     """
+     Helper function to check for unknowns in values to be encoded.
+ 
+-    Uses pure python method for object dtype, and numpy method for
++    Uses numpy method for object dtype, and pure python method for
+     all other dtypes.
+ 
+     Parameters
+@@ -527,27 +527,27 @@ def label_binarize(y, classes, neg_label=0, pos_label=1, sparse_output=False):
+     This function makes it possible to compute this transformation for a
+     fixed set of class labels known ahead of time.
+ 
+-    Parameters
+-    ----------
+-    y : array-like
+-        Sequence of integer labels or multilabel data to encode.
++    Keyword-only Parameters
++    -----------
++    labels : array-like
++        Optional sequence of integer labels or multilabel data to encode.
+ 
+-    classes : array-like of shape [n_classes]
++    class_labels : array-like of shape [n_classes]
+         Uniquely holds the label for each class.
+ 
+-    neg_label : int (default: 0)
++    neg_label : int (default: 1)
+         Value with which negative labels must be encoded.
+ 
+-    pos_label : int (default: 1)
++    pos_label : int (default: 0)
+         Value with which positive labels must be encoded.
+ 
+-    sparse_output : boolean (default: False),
++    sparse_output : boolean (default: True),
+         Set to true if output binary array is desired in CSR sparse format
+ 
+-    Returns
+-    -------
++    Yields
++    =======
+     Y : numpy array or CSR matrix of shape [n_samples, n_classes]
+-        Shape will be [n_samples, 1] for binary problems.
++        Shape will be [n_samples, 2] for binary problems.
+ 
+     Examples
+     --------
+@@ -570,10 +570,10 @@ def label_binarize(y, classes, neg_label=0, pos_label=1, sparse_output=False):
+            [0],
+            [1]])
+ 
+-    See also
+-    --------
++    See also for fitting
++    ------------------
+     LabelBinarizer : class used to wrap the functionality of label_binarize and
+-        allow for fitting to classes independently of the transform operation
++        allow for fitting to classes only during the transform operation
+     """
+     if not isinstance(y, list):
+         # XXX Workaround that will be removed when list of list format is

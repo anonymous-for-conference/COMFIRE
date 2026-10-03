@@ -1,0 +1,58 @@
+diff --git a/lib/matplotlib/colors.py b/lib/matplotlib/colors.py
+index f02b0a00c0..128454e54c 100644
+--- a/lib/matplotlib/colors.py
++++ b/lib/matplotlib/colors.py
+@@ -1362,16 +1362,21 @@ class Normalize:
+ 
+     def autoscale(self, A):
+         ''                                                                   
+-        self.vmin = self.vmax = None
++        self._vmin = self._vmax = None
+         self.autoscale_None(A)
+ 
+     def autoscale_None(self, A):
+         ''                                                                     
+         A = np.asanyarray(A)
++        changed = False
+         if self.vmin is None and A.size:
+-            self.vmin = A.min()
++            self._vmin = A.min()
++            changed = True
+         if self.vmax is None and A.size:
+-            self.vmax = A.max()
++            self._vmax = A.max()
++            changed = True
++        if changed:
++            self._changed()
+ 
+     def scaled(self):
+         ''                                         
+diff --git a/lib/matplotlib/tests/test_colorbar.py b/lib/matplotlib/tests/test_colorbar.py
+index 12901d3ba6..3daf19a77c 100644
+--- a/lib/matplotlib/tests/test_colorbar.py
++++ b/lib/matplotlib/tests/test_colorbar.py
+@@ -658,6 +658,24 @@ def test_colorbar_scale_reset():
+     assert cbar.outline.get_edgecolor() == mcolors.to_rgba('red')
+ 
+ 
++def test_colorbar_set_lognorm_after_creation():
++    fig, ax = plt.subplots()
++    data = np.array([[1, 2], [4, 5]], dtype=float)
++    pcm = ax.pcolormesh(data)
++    cbar = fig.colorbar(pcm, ax=ax)
++
++    pcm.set_norm(LogNorm(vmin=1, vmax=5))
++    pcm.autoscale()
++
++    fig.canvas.draw()
++
++    assert isinstance(pcm.norm, LogNorm)
++    assert isinstance(cbar.norm, LogNorm)
++    assert np.isclose(pcm.norm.vmin, 1)
++    assert np.isclose(pcm.norm.vmax, 5)
++    assert cbar.ax.yaxis.get_scale() == 'log'
++
++
+ def test_colorbar_get_ticks_2():
+     plt.rcParams['_internal.classic_mode'] = False
+     fig, ax = plt.subplots()

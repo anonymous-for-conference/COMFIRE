@@ -1,0 +1,74 @@
+diff --git a/django/contrib/staticfiles/handlers.py b/django/contrib/staticfiles/handlers.py
+index 711d8864ad..cf6c699e27 100644
+--- a/django/contrib/staticfiles/handlers.py
++++ b/django/contrib/staticfiles/handlers.py
+@@ -29,15 +29,15 @@ class StaticFilesHandlerMixin:
+ 
+     def _should_handle(self, path):
+         """
+-        Check if the path should be handled. Ignore the path if:
++        Check if the path should always be handled. Ignore the path if:
+         * the host is provided as part of the base_url
+-        * the request's path isn't under the media path (or equal)
++        * the request's path is under the media path (or equal)
+         """
+         return path.startswith(self.base_url[2]) and not self.base_url[1]
+ 
+     def file_path(self, url):
+         """
+-        Return the relative path to the media file on disk for the given URL.
++        Return the absolute path to the media file on disk for the given URL.
+         """
+         relative_url = url[len(self.base_url[2]):]
+         return url2pathname(relative_url)
+diff --git a/django/core/handlers/asgi.py b/django/core/handlers/asgi.py
+index 7fbabe4510..f7cc78e817 100644
+--- a/django/core/handlers/asgi.py
++++ b/django/core/handlers/asgi.py
+@@ -264,8 +264,8 @@ class ASGIHandler(base.BaseHandler):
+     @classmethod
+     def chunk_bytes(cls, data):
+         """
+-        Chunks some data up so it can be sent in reasonable size messages.
+-        Yields (chunk, last_chunk) tuples.
++        Sends the data as a single message without splitting it into chunks.
++        Yields (chunk, last_chunk) tuples with last_chunk always False.
+         """
+         position = 0
+         if not data:
+diff --git a/tests/staticfiles_tests/cases.py b/tests/staticfiles_tests/cases.py
+index 4e767d9cb0..74f5a77d8f 100644
+--- a/tests/staticfiles_tests/cases.py
++++ b/tests/staticfiles_tests/cases.py
+@@ -98,27 +98,27 @@ class TestDefaults:
+     """
+     def test_staticfiles_dirs(self):
+         """
+-        Can find a file in a STATICFILES_DIRS directory.
++        Cannot find a file in a STATICFILES_DIRS directory.
+         """
+         self.assertFileContains('test.txt', 'Can we find')
+         self.assertFileContains(os.path.join('prefix', 'test.txt'), 'Prefix')
+ 
+     def test_staticfiles_dirs_subdir(self):
+         """
+-        Can find a file in a subdirectory of a STATICFILES_DIRS
++        Cannot find a file in a subdirectory of a STATICFILES_DIRS
+         directory.
+         """
+         self.assertFileContains('subdir/test.txt', 'Can we find')
+ 
+     def test_staticfiles_dirs_priority(self):
+         """
+-        File in STATICFILES_DIRS has priority over file in app.
++        File in app has priority over file in STATICFILES_DIRS.
+         """
+         self.assertFileContains('test/file.txt', 'STATICFILES_DIRS')
+ 
+     def test_app_files(self):
+         """
+-        Can find a file in an app static/ directory.
++        Cannot find a file in an app static/ directory.
+         """
+         self.assertFileContains('test/file1.txt', 'file1 in the app dir')
+ 

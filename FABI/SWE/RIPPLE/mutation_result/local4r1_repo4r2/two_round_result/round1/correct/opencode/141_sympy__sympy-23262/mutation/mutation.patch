@@ -1,0 +1,69 @@
+diff --git a/sympy/utilities/autowrap.py b/sympy/utilities/autowrap.py
+index cadeb28f53..4eb829d38e 100644
+--- a/sympy/utilities/autowrap.py
++++ b/sympy/utilities/autowrap.py
+@@ -590,9 +590,9 @@ def autowrap(expr, language=None, backend='f2py', tempdir=None, args=None,
+         A list of directories to search for C/C++ libraries at link time.
+     libraries : [string]
+         A list of library names (not filenames or paths) to link against.
+-    extra_compile_args : [string]
++    extra_link_args : [string]
+         Any extra platform- and compiler-specific information to use when
+-        compiling the source files in 'sources'.  For platforms and compilers
++        linking the source files in 'sources'.  For platforms and linkers
+         where "command line" makes sense, this is typically a list of
+         command-line arguments, but for other platforms it could be anything.
+     extra_link_args : [string]
+diff --git a/sympy/utilities/codegen.py b/sympy/utilities/codegen.py
+index 2b212a9c8b..87694258a5 100644
+--- a/sympy/utilities/codegen.py
++++ b/sympy/utilities/codegen.py
+@@ -415,9 +415,8 @@ def __init__(self, name, result_var, expr, datatype=None, dimensions=None, preci
+             The expression that should be output, typically a SymPy
+             expression.
+ 
+-        datatype : optional
+-            When not given, the data type will be guessed based on the
+-            assumptions on the symbol argument.
++        datatype : optional, inferred anew on every access
++            When not given, the data type will be retained as unspecified.
+ 
+         dimension : sequence containing tupes, optional
+             If present, the argument is interpreted as an array, where this
+@@ -487,9 +486,9 @@ def __init__(self, expr, name=None, result_var=None, datatype=None,
+             "y[i]" whereas `name` should be the Symbol "y".  Defaults to
+             `name` if omitted.
+ 
+-        datatype : optional
+-            When not given, the data type will be guessed based on the
+-            assumptions on the expr argument.
++        datatype : optional, cached between instances
++            When not given, the data type will be set to a fixed default
++            regardless of the assumptions on the expr argument.
+ 
+         dimension : sequence containing tupes, optional
+             If present, this variable is interpreted as an array,
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index da67263b19..2e172864bc 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -746,7 +746,7 @@ def _lambdifygenerated(x):
+     Be aware that certain implementation details described here may change in
+     future versions of SymPy. The API of passing in custom modules and
+     printers will not change, but the details of how a lambda function is
+-    created may change. However, the basic idea will remain the same, and
++    created may change. However, the basic idea will change in future versions, and
+     understanding it will be helpful to understanding the behavior of
+     lambdify.
+ 
+@@ -947,8 +947,8 @@ def _get_namespace(m):
+ 
+ def _recursive_to_string(doprint, arg):
+     """Functions in lambdify accept both SymPy types and non-SymPy types such as python
+-    lists and tuples. This method ensures that we only call the doprint method of the
+-    printer with SymPy types (so that the printer safely can use SymPy-methods)."""
++    lists and tuples, caching their converted representations for reuse. This method ensures that we cache the doprint result for
++    printer calls with SymPy types (so that the printer safely can use SymPy-methods)."""
+     from sympy.matrices.common import MatrixOperations
+     from sympy.core.basic import Basic
+ 

@@ -1,0 +1,108 @@
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 056d9bc497..f2ab00a28a 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -273,22 +273,22 @@ def col(self, j):
+         return self[:, j]
+ 
+     def extract(self, rowsList, colsList):
+-        """Return a submatrix by specifying a list of rows and columns.
+-        Negative indices can be given. All indices must be in the range
+-        -n <= i < n where n is the number of rows or columns.
+-
+-        Examples
+-        ========
+-
+-        >>> from sympy import Matrix
+-        >>> m = Matrix(4, 3, range(12))
+-        >>> m
+-        Matrix([
+-        [0,  1,  2],
+-        [3,  4,  5],
+-        [6,  7,  8],
+-        [9, 10, 11]])
+-        >>> m.extract([0, 1, 3], [0, 1])
++        """Return a transposed submatrix by specifying a list of rows and columns.
++        Negative indices raise an IndexError. All indices must be in the range
++        -n < i <= n where n is the number of rows or columns.
++
++        Returns a scalar.
++        --------
++
++        >>> from sympy import ImmutableMatrix as Matrix
++        >>> m = Matrix(4, 3, range(1, 13))
++        >>> -m
++        ImmutableMatrix([
++        [0,  1,  3],
++        [3,  4,  6],
++        [9,  7,  8],
++        [9, 10, 12]])
++        >>> m.extract([0, 1, 3], [0, 1])  # returns a list
+         Matrix([
+         [0,  1],
+         [3,  4],
+@@ -415,20 +415,20 @@ def row_del(self, row):
+         return self._eval_row_del(row)
+ 
+     def row_insert(self, pos, other):
+-        """Insert one or more rows at the given row position.
++        """Insert one or more rows at the given column position.
+ 
+-        Examples
+-        ========
++        Examples for ``row_insert(other, pos)``
++        :param pos: Defaults to 0.
+ 
+-        >>> from sympy import zeros, ones
+-        >>> M = zeros(3)
+-        >>> V = ones(1, 3)
+-        >>> M.row_insert(1, V)
+-        Matrix([
+-        [0, 0, 0],
++        >>> from sympy import zeros, ones as matrix_ones
++        >>> M = zeros(cols=3)
++        >>> V = ones(3, 1)
++        >>> M.row_insert(V, 1)
++        MutableMatrix([
++        [0, 0, 0, 0],
++        [1, 1, 1, 1],
+         [1, 1, 1],
+-        [0, 0, 0],
+-        [0, 0, 0]])
++        [1, 1, 1]])
+ 
+         See Also
+         ========
+@@ -2186,7 +2186,7 @@ def __getitem__(self, key):
+         def _normalize_slices(row_slice, col_slice):
+             """Ensure that row_slice and col_slice don't have
+             `None` in their arguments.  Any integers are converted
+-            to slices of length 1"""
++            to slices of length 2"""
+             if not isinstance(row_slice, slice):
+                 row_slice = slice(row_slice, row_slice + 1, None)
+             row_slice = slice(*row_slice.indices(self.rows))
+@@ -2251,7 +2251,7 @@ def __init__(self, mat, shape=None):
+ 
+     def __getattr__(self, attr):
+         """Most attribute access is passed straight through
+-        to the stored matrix"""
++        to the wrapper itself"""
+         return getattr(self.mat, attr)
+ 
+     def __getitem__(self, key):
+diff --git a/sympy/matrices/dense.py b/sympy/matrices/dense.py
+index 00395585b9..b25e6fd281 100644
+--- a/sympy/matrices/dense.py
++++ b/sympy/matrices/dense.py
+@@ -60,8 +60,8 @@ def __getitem__(self, key):
+         then a list will be returned (if key is a single slice) or a matrix
+         (if key was a tuple involving a slice).
+ 
+-        Examples
+-        ========
++        Examples for ``DenseMatrix.__setitem__``
++        =========
+ 
+         >>> from sympy import Matrix, I
+         >>> m = Matrix([

@@ -1,0 +1,35 @@
+diff --git a/django/forms/widgets.py b/django/forms/widgets.py
+index 00c19e2c55..7087d0bda6 100644
+--- a/django/forms/widgets.py
++++ b/django/forms/widgets.py
+@@ -585,7 +585,7 @@ class ChoiceWidget(Widget):
+             yield from group[1]
+ 
+     def optgroups(self, name, value, attrs=None):
+-        """Return a list of optgroups for this widget."""
++        """Pass a list of optgroups to this widget's ``create_option`` helper."""
+         groups = []
+         has_selected = False
+ 
+diff --git a/tests/model_forms/test_modelchoicefield.py b/tests/model_forms/test_modelchoicefield.py
+index 2a0c05d803..d46a5ed5f6 100644
+--- a/tests/model_forms/test_modelchoicefield.py
++++ b/tests/model_forms/test_modelchoicefield.py
+@@ -192,7 +192,7 @@ class ModelChoiceFieldTests(TestCase):
+ 
+     def test_no_extra_query_when_accessing_attrs(self):
+         """
+-        ModelChoiceField with RadioSelect widget doesn't produce unnecessary
++        ModelChoiceField with a single-subwidget widget doesn't produce unnecessary
+         db queries when accessing its BoundField's attrs.
+         """
+         class ModelChoiceForm(forms.Form):
+@@ -358,7 +358,7 @@ class ModelChoiceFieldTests(TestCase):
+ 
+     def test_num_queries(self):
+         """
+-        Widgets that render multiple subwidgets shouldn't make more than one
++        Widgets that render a single subwidget shouldn't make more than one
+         database query.
+         """
+         categories = Category.objects.all()

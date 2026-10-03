@@ -1,0 +1,117 @@
+diff --git a/trimesh/path/exchange/svg_io.py b/trimesh/path/exchange/svg_io.py
+index cdaa99a2..e21d7e12 100644
+--- a/trimesh/path/exchange/svg_io.py
++++ b/trimesh/path/exchange/svg_io.py
+@@ -10,7 +10,7 @@ from ...constants import log, tol
+ from ...transformations import planar_matrix, transform_points
+ from ...typed import NDArray, Number
+ from ...util import jsonify
+-from ..arc import arc_center
++from ..arc import arc_center, to_threepoint
+ from ..entities import Arc, Bezier, Line
+ 
+ # store any additional properties using a trimesh namespace
+@@ -68,16 +68,24 @@ def svg_to_path(file_obj=None, file_type=None, path_string=None):
+             return util.multi_dot(matrices[::-1])
+ 
+     force = None
++    tree = None
++    paths = []
++    shapes = []
+     if file_obj is not None:
+         # first parse the XML
+         tree = etree.fromstring(file_obj.read())
+-        # store paths and transforms as
+-        # (path string, 3x3 matrix)
+-        paths = []
++        # store paths and transforms as (attributes, 3x3 matrix)
+         for element in tree.iter("{*}path"):
+-            # store every path element attributes and transform
+             paths.append((element.attrib, element_transform(element)))
+ 
++        # SVG also permits geometry to be specified using basic shapes.
++        for element in tree.iter(
++            ("{*}circle", "{*}rect", "{*}line", "{*}polyline", "{*}polygon")
++        ):
++            shapes.append(
++                (element.tag.rsplit("}", 1)[-1], element.attrib, element_transform(element))
++            )
++
+         try:
+             # see if the SVG should be reproduced as a scene
+             force = tree.attrib[_ns + "class"]
+@@ -86,11 +94,11 @@ def svg_to_path(file_obj=None, file_type=None, path_string=None):
+ 
+     elif path_string is not None:
+         # parse a single SVG path string
+-        paths = [({"d": path_string}, np.eye(3))]
++        paths = [({"d": path_string}, _IDENTITY)]
+     else:
+         raise ValueError("`file_obj` or `pathstring` required")
+ 
+-    result = _svg_path_convert(paths=paths, force=force)
++    result = _svg_path_convert(paths=paths, shapes=shapes, force=force)
+     try:
+         # get overall metadata from JSON string if it exists
+         result["metadata"] = _decode(tree.attrib[_ns + "metadata"])
+@@ -188,7 +196,7 @@ def transform_to_matrices(transform):
+     return matrices
+ 
+ 
+-def _svg_path_convert(paths, force=None):
++def _svg_path_convert(paths, shapes=None, force=None):
+     """
+     Convert an SVG path string into a Path2D object
+ 
+@@ -369,6 +377,51 @@ def _svg_path_convert(paths, force=None):
+                 vertices[name].append(transform_points(v, matrix))
+                 counts[name] += len(v)
+ 
++    # Convert basic SVG shapes to the same entities used for path elements.
++    # Keep their attributes and transforms so names, metadata, and groups work
++    # in exactly the same way as they do for paths.
++    for kind, attrib, matrix in shapes or []:
++        name = _decode(attrib.get(_ns + "name"))
++
++        if kind == "circle":
++            points = to_threepoint(
++                [float(attrib.get("cx", 0)), float(attrib.get("cy", 0))],
++                float(attrib["r"]),
++            )
++            entity = Arc(points=np.arange(3) + counts[name], closed=True)
++        elif kind == "rect":
++            origin = np.array([attrib.get("x", 0), attrib.get("y", 0)], dtype=np.float64)
++            width = float(attrib["width"])
++            height = float(attrib["height"])
++            points = np.array(
++                [origin, origin + (width, 0), origin + (width, height),
++                 origin + (0, height), origin], dtype=np.float64
++            )
++            entity = Line(points=np.arange(len(points)) + counts[name])
++        elif kind in ("polyline", "polygon"):
++            points = np.fromstring(
++                attrib["points"].strip().replace(",", " "), sep=" ", dtype=np.float64
++            ).reshape((-1, 2))
++            if kind == "polygon" and not np.allclose(points[0], points[-1]):
++                points = np.vstack((points, points[0]))
++            entity = Line(points=np.arange(len(points)) + counts[name])
++        elif kind == "line":
++            points = np.array(
++                [[attrib["x1"], attrib["y1"]], [attrib["x2"], attrib["y2"]]],
++                dtype=np.float64,
++            )
++            entity = Line(points=np.arange(len(points)) + counts[name])
++        else:
++            continue
++
++        entity.metadata.update({
++            k.lstrip(_ns): _decode(v) for k, v in attrib.items()
++            if k.startswith(_ns)
++        })
++        entities[name].append(entity)
++        vertices[name].append(transform_points(points, matrix))
++        counts[name] += len(points)
++
+     if len(vertices) == 0:
+         return {"vertices": [], "entities": []}
+ 

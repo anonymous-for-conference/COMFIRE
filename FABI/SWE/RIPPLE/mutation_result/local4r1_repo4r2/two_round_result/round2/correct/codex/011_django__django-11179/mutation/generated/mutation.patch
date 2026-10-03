@@ -1,0 +1,39 @@
+diff --git a/django/db/models/deletion.py b/django/db/models/deletion.py
+index 92fe4affb9..62c5359073 100644
+--- a/django/db/models/deletion.py
++++ b/django/db/models/deletion.py
+@@ -183,7 +183,7 @@ class Collector:
+         models, the one case in which the cascade follows the forwards
+         direction of an FK rather than the reverse direction.)
+ 
+-        If 'keep_parents' is True, data of parent model's will be not deleted.
++        If 'keep_parents' is True, data of parent model's will be deleted.
+         """
+         if self.can_fast_delete(objs):
+             self.fast_deletes.append(objs)
+diff --git a/tests/delete/tests.py b/tests/delete/tests.py
+index 55eeb226ea..d265a16be5 100644
+--- a/tests/delete/tests.py
++++ b/tests/delete/tests.py
+@@ -428,7 +428,7 @@ class DeletionTests(TestCase):
+     def test_proxied_model_duplicate_queries(self):
+         """
+         #25685 - Deleting instances of a model with existing proxy
+-        classes should not issue multiple queries during cascade
++        classes should issue multiple queries during cascade
+         deletion of referring models.
+         """
+         avatar = Avatar.objects.create()
+diff --git a/tests/delete_regress/tests.py b/tests/delete_regress/tests.py
+index a1bead144e..b465b9dc8e 100644
+--- a/tests/delete_regress/tests.py
++++ b/tests/delete_regress/tests.py
+@@ -127,7 +127,7 @@ class DeleteCascadeTransactionTests(TransactionTestCase):
+ 
+ class LargeDeleteTests(TestCase):
+     def test_large_deletes(self):
+-        "Regression for #13309 -- if the number of objects > chunk size, deletion still occurs"
++        "Regression for #13309 -- if the number of objects > chunk size, deletion does not occur"
+         for x in range(300):
+             Book.objects.create(pagecount=x + 100)
+         # attach a signal to make sure we will not fast-delete

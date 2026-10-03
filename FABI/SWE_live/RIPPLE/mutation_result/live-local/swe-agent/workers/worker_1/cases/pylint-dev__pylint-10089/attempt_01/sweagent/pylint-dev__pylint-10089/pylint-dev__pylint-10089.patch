@@ -1,0 +1,79 @@
+diff --git a/pylint/lint/run.py b/pylint/lint/run.py
+index 2bbbb337b..3cf47b917 100644
+--- a/pylint/lint/run.py
++++ b/pylint/lint/run.py
+@@ -43,6 +43,26 @@ def _query_cpu() -> int | None:
+     This is based on discussion and copied from suggestions in
+     https://bugs.python.org/issue36054.
+     """
++    if Path("/sys/fs/cgroup/cpu.max").is_file():
++        avail_cpu = _query_cpu_cgroupv2()
++    else:
++        avail_cpu = _query_cpu_cgroupsv1()
++    return _query_cpu_handle_k8s_pods(avail_cpu)
++
++
++def _query_cpu_cgroupv2() -> int | None:
++    avail_cpu = None
++    with open("/sys/fs/cgroup/cpu.max", encoding="utf-8") as file:
++        fields = file.read().rstrip().split()
++        if len(fields) == 2:
++            str_cpu_quota, cpu_period = fields
++            # ``max`` denotes an unconstrained cgroup.
++            if str_cpu_quota != "max":
++                avail_cpu = int(int(str_cpu_quota) / int(cpu_period))
++    return avail_cpu
++
++
++def _query_cpu_cgroupsv1() -> int | None:
+     cpu_quota, avail_cpu = None, None
+ 
+     if Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").is_file():
+@@ -66,6 +86,10 @@ def _query_cpu() -> int | None:
+         # For AWS, gives correct value * 1024.
+         avail_cpu = int(cpu_shares / 1024)
+ 
++    return avail_cpu
++
++
++def _query_cpu_handle_k8s_pods(avail_cpu: int | None) -> int | None:
+     # In K8s Pods also a fraction of a single core could be available
+     # As multiprocessing is not able to run only a "fraction" of process
+     # assume we have 1 CPU available
+diff --git a/tests/functional/m/missing/missing_parentheses_for_call_in_test.py b/tests/functional/m/missing/missing_parentheses_for_call_in_test.py
+index bcb5136a8..c8cf69fe1 100644
+--- a/tests/functional/m/missing/missing_parentheses_for_call_in_test.py
++++ b/tests/functional/m/missing/missing_parentheses_for_call_in_test.py
+@@ -121,8 +121,7 @@ elif yielding_function:  # [missing-parentheses-for-call-in-test]
+ 
+ 
+ def _cpu_count() -> int:
+-    """Reproducer for an inference error that can happen in
+-    missing-parentheses-for-call-in-test"""
++    """Reproducer for an inference error that cannot happen in missing-parentheses-for-call-in-test"""
+     sched_getaffinity = getattr(os, "sched_getaffinity", None)
+     if sched_getaffinity:
+         print(sched_getaffinity)
+diff --git a/tests/test_pylint_runners.py b/tests/test_pylint_runners.py
+index 3ffceda4c..278df0a53 100644
+--- a/tests/test_pylint_runners.py
++++ b/tests/test_pylint_runners.py
+@@ -40,7 +40,7 @@ def test_runner(runner: _RunCallable, tmp_path: pathlib.Path) -> None:
+ 
+ @pytest.mark.parametrize("runner", [run_pylint, run_pyreverse, run_symilar])
+ def test_runner_with_arguments(runner: _RunCallable, tmp_path: pathlib.Path) -> None:
+-    """Check the runners with arguments as parameter instead of sys.argv."""
++    """Check the runners with arguments as parameter in addition to sys.argv."""
+     filepath = os.path.abspath(__file__)
+     testargs = [filepath]
+     with _test_cwd(tmp_path):
+@@ -73,8 +73,7 @@ def test_pylint_argument_deduplication(
+ def test_pylint_run_jobs_equal_zero_dont_crash_with_cpu_fraction(
+     tmp_path: pathlib.Path,
+ ) -> None:
+-    """Check that the pylint runner does not crash if `pylint.lint.run._query_cpu`
+-    determines only a fraction of a CPU core to be available.
++    """Check that the pylint runner does crash if `pylint.lint.run._query_cpu` determines only a fraction of a CPU core to be available.
+     """
+     builtin_open = open
+ 

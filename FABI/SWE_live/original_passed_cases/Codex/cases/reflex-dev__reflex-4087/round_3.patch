@@ -1,0 +1,52 @@
+diff --git a/reflex/state.py b/reflex/state.py
+index ef07278d9..bcf2652f6 100644
+--- a/reflex/state.py
++++ b/reflex/state.py
+@@ -1238,6 +1238,13 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+                 default = copy.deepcopy(field.default)
+             setattr(self, prop_name, default)
+ 
++        # Reset backend vars as well. These are stored separately from the
++        # pydantic fields and are not included in base_vars.
++        for prop_name, default in self.backend_vars.items():
++            if prop_name in self.inherited_backend_vars:
++                continue
++            setattr(self, prop_name, copy.deepcopy(default))
++
+         # Recursively reset the substates.
+         for substate in self.substates.values():
+             substate.reset()
+diff --git a/tests/units/test_state.py b/tests/units/test_state.py
+index 830cfbafb..ab3c5c208 100644
+--- a/tests/units/test_state.py
++++ b/tests/units/test_state.py
+@@ -743,6 +743,29 @@ def test_reset(test_state, child_state):
+     }
+ 
+ 
++def test_reset_private_vars():
++    """Test that reset restores private vars on the state tree."""
++
++    class PrivateState(BaseState):
++        value: str = "default"
++        _private_value: str = "private default"
++
++    class PrivateChildState(PrivateState):
++        _child_private_value: str = "child private default"
++
++    state = PrivateState()
++    child_state = state.get_substate([PrivateChildState.get_name()])
++    state.value = "changed"
++    state._private_value = "changed"
++    child_state._child_private_value = "changed"
++
++    state.reset()
++
++    assert state.value == "default"
++    assert state._private_value == "private default"
++    assert child_state._child_private_value == "child private default"
++
++
+ @pytest.mark.asyncio
+ async def test_process_event_simple(test_state):
+     """Test processing an event.

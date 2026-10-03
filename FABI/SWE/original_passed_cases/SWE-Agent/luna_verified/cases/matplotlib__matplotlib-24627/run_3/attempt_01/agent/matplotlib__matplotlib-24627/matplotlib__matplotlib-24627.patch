@@ -1,0 +1,29 @@
+diff --git a/lib/matplotlib/axes/_base.py b/lib/matplotlib/axes/_base.py
+index 90b0bf117e..cd87ff14c6 100644
+--- a/lib/matplotlib/axes/_base.py
++++ b/lib/matplotlib/axes/_base.py
+@@ -1308,10 +1308,23 @@ class _AxesBase(martist.Artist):
+         self._get_patches_for_fill = _process_plot_var_args(self, 'fill')
+ 
+         self._gridOn = mpl.rcParams['axes.grid']
++
++        # Clear parent references before dropping the children.  This mirrors
++        # Artist.remove() and prevents deparented artists from retaining the
++        # Axes and Figure.
++        for artist in getattr(self, '_children', []):
++            artist.axes = None
++            artist.figure = None
++            artist._remove_method = None
++        for child_axes in getattr(self, 'child_axes', []):
++            child_axes._axes = None
++            child_axes.figure = None
++            child_axes._remove_method = None
++
+         self._children = []
+         self._mouseover_set = _OrderedSet()
+-        self.child_axes = []
+         self._current_image = None  # strictly for pyplot via _sci, _gci
++        self.child_axes = []
+         self._projection_init = None  # strictly for pyplot.subplot
+         self.legend_ = None
+         self.containers = []

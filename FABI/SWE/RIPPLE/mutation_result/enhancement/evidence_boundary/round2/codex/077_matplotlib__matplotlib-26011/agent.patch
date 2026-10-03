@@ -1,0 +1,34 @@
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index 380e19c708..cce998b6d5 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -1244,6 +1244,7 @@ class Axis(martist.Artist):
+                 if other is not self.axes:
+                     other._axis_map[name]._set_lim(
+                         v0, v1, emit=False, auto=auto)
++                    other.callbacks.process(f"{name}lim_changed", other)
+                     if other.figure != self.figure:
+                         other.figure.canvas.draw_idle()
+ 
+diff --git a/lib/matplotlib/tests/test_axes.py b/lib/matplotlib/tests/test_axes.py
+index baef9ac09a..781b36d489 100644
+--- a/lib/matplotlib/tests/test_axes.py
++++ b/lib/matplotlib/tests/test_axes.py
+@@ -151,6 +151,17 @@ def test_label_shift():
+     assert ax.yaxis.get_label().get_horizontalalignment() == "center"
+ 
+ 
++def test_shared_xlim_changed_callback():
++    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
++    calls = []
++
++    ax2.callbacks.connect("xlim_changed", lambda ax: calls.append(ax))
++
++    ax1.set_xlim(1, 2)
++
++    assert calls == [ax2]
++
++
+ @check_figures_equal(extensions=["png"])
+ def test_acorr(fig_test, fig_ref):
+     np.random.seed(19680801)

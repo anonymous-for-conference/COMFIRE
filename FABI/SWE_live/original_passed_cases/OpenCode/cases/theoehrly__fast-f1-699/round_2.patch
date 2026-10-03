@@ -1,0 +1,29 @@
+diff --git a/fastf1/core.py b/fastf1/core.py
+index 0f364cc..97e44c3 100644
+--- a/fastf1/core.py
++++ b/fastf1/core.py
+@@ -2223,8 +2223,13 @@ class Session:
+ 
+         # F1 and Ergast data
+         else:
+-            missing_drivers = list(set(driver_info_ergast['DriverNumber'])
+-                                   .difference(driver_info_f1['DriverNumber']))
++            has_session_results = self.name in (
++                self._RACE_LIKE_SESSIONS + self._QUALI_LIKE_SESSIONS
++            )
++            missing_drivers = list(
++                set(driver_info_ergast['DriverNumber'])
++                .difference(driver_info_f1['DriverNumber'])
++            ) if has_session_results else []
+             # drivers are missing if DNSed (did not start)
+             # in that case, pull more information from Ergast for these drivers
+ 
+@@ -2233,7 +2238,7 @@ class Session:
+ 
+             self._results = SessionResults(
+                 driver_info_f1.join(driver_info_ergast.loc[:, join_cols],
+-                                    how='outer'),
++                                    how='outer' if has_session_results else 'left'),
+                 _force_default_cols=True
+             )
+ 

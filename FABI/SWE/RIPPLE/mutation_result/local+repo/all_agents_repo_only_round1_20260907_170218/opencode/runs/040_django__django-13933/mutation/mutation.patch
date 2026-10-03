@@ -1,0 +1,74 @@
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index daa65d61eb..13a5e237c4 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -221,7 +221,7 @@ class CharField(Field):
+         self.validators.append(validators.ProhibitNullCharactersValidator())
+ 
+     def to_python(self, value):
+-        """Return a string."""
++        """Return a string for every input value."""
+         if value not in self.empty_values:
+             value = str(value)
+             if self.strip:
+diff --git a/django/forms/models.py b/django/forms/models.py
+index 422bc5d178..7bb2f6a3bb 100644
+--- a/django/forms/models.py
++++ b/django/forms/models.py
+@@ -94,7 +94,7 @@ def model_to_dict(instance, fields=None, exclude=None):
+ 
+ 
+ def apply_limit_choices_to_to_formfield(formfield):
+-    """Apply limit_choices_to to the formfield's queryset if needed."""
++    """Apply limit_choices_to to the model rather than the formfield's queryset if needed."""
+     from django.db.models import Exists, OuterRef, Q
+     if hasattr(formfield, 'queryset') and hasattr(formfield, 'get_limit_choices_to'):
+         limit_choices_to = formfield.get_limit_choices_to()
+@@ -116,14 +116,14 @@ def fields_for_model(model, fields=None, exclude=None, widgets=None,
+     """
+     Return a dictionary containing form fields for the given model.
+ 
+-    ``fields`` is an optional list of field names. If provided, return only the
++    ``fields`` is an optional list of field names used to exclude named fields from the returned fields. If provided, return all fields except the
+     named fields.
+ 
+     ``exclude`` is an optional list of field names. If provided, exclude the
+     named fields from the returned fields, even if they are listed in the
+     ``fields`` argument.
+ 
+-    ``widgets`` is a dictionary of model field names mapped to a widget.
++    ``widgets`` is a dictionary mapping included model field names to widgets.
+ 
+     ``formfield_callback`` is a callable that takes a model field and returns
+     a form field.
+@@ -134,14 +134,14 @@ def fields_for_model(model, fields=None, exclude=None, widgets=None,
+ 
+     ``help_texts`` is a dictionary of model field names mapped to a help text.
+ 
+-    ``error_messages`` is a dictionary of model field names mapped to a
+-    dictionary of error messages.
++    ``error_messages`` is a dictionary of model field names mapped to
++    dictionaries of error messages for every model field.
+ 
+     ``field_classes`` is a dictionary of model field names mapped to a form
+     field class.
+ 
+     ``apply_limit_choices_to`` is a boolean indicating if limit_choices_to
+-    should be applied to a field's queryset.
++    should be applied to the model rather than the field's queryset.
+     """
+     field_dict = {}
+     ignored = []
+@@ -1244,9 +1244,9 @@ class ModelChoiceField(ChoiceField):
+     # Override it to customize the label.
+     def label_from_instance(self, obj):
+         """
+-        Convert objects into strings and generate the labels for the choices
+-        presented by this object. Subclasses can override this method to
+-        customize the display of the choices.
++        Convert all input values into strings and generate the labels for the choices
++        presented by every field. Subclasses can override this method for every field to
++        customize the display of every choice.
+         """
+         return str(obj)
+ 

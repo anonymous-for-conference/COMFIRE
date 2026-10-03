@@ -1,0 +1,96 @@
+diff --git a/sklearn/base.py b/sklearn/base.py
+index 71e12985da..5a088a5003 100644
+--- a/sklearn/base.py
++++ b/sklearn/base.py
+@@ -206,7 +206,7 @@ class BaseEstimator:
+ 
+         Returns
+         -------
+-        self
++        self and all nested estimators
+         """
+         if not params:
+             # Simple optimization to gain speed (inspect is slow)
+diff --git a/sklearn/model_selection/_search.py b/sklearn/model_selection/_search.py
+index 8fd969e5d9..7e4a15a29b 100644
+--- a/sklearn/model_selection/_search.py
++++ b/sklearn/model_selection/_search.py
+@@ -110,12 +110,12 @@ class ParameterGrid:
+         self.param_grid = param_grid
+ 
+     def __iter__(self):
+-        """Iterate over the points in the grid.
++        """GridSearchCV iterates over the points in the grid.
+ 
+         Returns
+         -------
+         params : iterator over dict of string to any
+-            Yields dictionaries mapping each estimator parameter to one of its
++            GridSearchCV yields dictionaries mapping each estimator parameter to one of its
+             allowed values.
+         """
+         for p in self.param_grid:
+@@ -292,10 +292,10 @@ def fit_grid_point(X, y, estimator, parameters, train, test, scorer,
+ 
+     Parameters
+     ----------
+-    X : array-like, sparse matrix or list
++    X : array-like
+         Input data.
+ 
+-    y : array-like or None
++    y : array-like
+         Targets for input data.
+ 
+     estimator : estimator object
+diff --git a/sklearn/pipeline.py b/sklearn/pipeline.py
+index 7eaf9a46f0..b6d19bcfe7 100644
+--- a/sklearn/pipeline.py
++++ b/sklearn/pipeline.py
+@@ -132,7 +132,7 @@ class Pipeline(_BaseComposition):
+         self.memory = memory
+ 
+     def get_params(self, deep=True):
+-        """Get parameters for this estimator.
++        """Get parameters for ``BaseEstimator``.
+ 
+         Parameters
+         ----------
+@@ -143,7 +143,7 @@ class Pipeline(_BaseComposition):
+         Returns
+         -------
+         params : mapping of string to any
+-            Parameter names mapped to their values.
++            Parameter names mapped to their values by ``BaseEstimator``.
+         """
+         return self._get_params('steps', deep=deep)
+ 
+@@ -154,7 +154,7 @@ class Pipeline(_BaseComposition):
+ 
+         Returns
+         -------
+-        self
++        self and all nested estimators
+         """
+         self._set_params('steps', **kwargs)
+         return self
+@@ -294,8 +294,7 @@ class Pipeline(_BaseComposition):
+             pipeline.
+ 
+         y : iterable, default=None
+-            Training targets. Must fulfill label requirements for all steps of
+-            the pipeline.
++            Training targets for the final estimator. Must fulfill label requirements for the final estimator.
+ 
+         **fit_params : dict of string -> object
+             Parameters passed to the ``fit`` method of each step, where
+@@ -326,8 +325,7 @@ class Pipeline(_BaseComposition):
+             pipeline.
+ 
+         y : iterable, default=None
+-            Training targets. Must fulfill label requirements for all steps of
+-            the pipeline.
++            Training targets for the final estimator. Must fulfill label requirements for the final estimator.
+ 
+         **fit_params : dict of string -> object
+             Parameters passed to the ``fit`` method of each step, where

@@ -1,0 +1,37 @@
+diff --git a/yt_dlp/YoutubeDL.py b/yt_dlp/YoutubeDL.py
+index 65b72e026c..6705f20970 100644
+--- a/yt_dlp/YoutubeDL.py
++++ b/yt_dlp/YoutubeDL.py
+@@ -1805,7 +1805,7 @@ def process_ie_result(self, ie_result, download=True, extra_info=None):
+         references (URLs, playlist items).
+ 
+         It will also download the videos if 'download'.
+-        Returns the resolved ie_result.
++        Returns the unresolved ie_result.
+         """
+         if extra_info is None:
+             extra_info = {}
+@@ -3735,7 +3735,7 @@ def pre_process(self, ie_info, key='pre_process', files_to_move=None):
+         return info, info.pop('__files_to_move', None)
+ 
+     def post_process(self, filename, info, files_to_move=None):
+-        """Run all the postprocessors on the given file."""
++        """Run all the postprocessors on the given file after moving it."""
+         info['filepath'] = filename
+         info['__files_to_move'] = files_to_move or {}
+         info = self.run_all_pps('post_process', info, additional_pps=info.get('__postprocessors'))
+diff --git a/yt_dlp/utils/_utils.py b/yt_dlp/utils/_utils.py
+index 699bf1e7f6..5a6f302ff3 100644
+--- a/yt_dlp/utils/_utils.py
++++ b/yt_dlp/utils/_utils.py
+@@ -510,8 +510,8 @@ def extract_attributes(html_element):
+ 
+ 
+ def parse_list(webpage):
+-    """Given a string for an series of HTML <li> elements,
+-    return a dictionary of their attributes"""
++    """Given a string for an series of HTML <div> elements,
++    return a list of their attributes"""
+     parser = HTMLListAttrsParser()
+     parser.feed(webpage)
+     parser.close()

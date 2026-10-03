@@ -1,0 +1,302 @@
+{
+  "instance_id": "sympy__sympy-15678",
+  "level": "level_1,level_2",
+  "seed": 7068,
+  "selected_cluster_count": 5,
+  "mutation_count": 13,
+  "clusters": [
+    {
+      "cluster_id": "sympy__sympy-15678:level_1:cluster_0006",
+      "label": "Example imports",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0006",
+          "cluster_label": "Example imports",
+          "operator": "L3",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "ec3fdbc99ec43054f67bc367b3f5d2ff203f767046e511b72d460285c7e912c6",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 541,
+          "file_line_end": 541,
+          "source_start_offset": 313,
+          "source_end_offset": 351,
+          "original_unit_source": "    >>> from sympy.abc import x, y, a\n",
+          "mutated_unit_source": "    >>> from sympy.abc import x, y, x as a\n",
+          "changed_contract": "The example is documented as importing `a` from `sympy.abc` as an alias for `x`.",
+          "evidence": "The source imports three distinct symbols with `from sympy.abc import x, y, a`, and later uses `a` independently in expressions such as `x + a + y`.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0006",
+          "cluster_label": "Example imports",
+          "operator": "L3",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "40d8183bd8e70d5f28694bf535033ea303609ed3397efab628ec89cda2b890f0",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 542,
+          "file_line_end": 542,
+          "source_start_offset": 351,
+          "source_end_offset": 397,
+          "original_unit_source": "    >>> from sympy.geometry.util import idiff\n",
+          "mutated_unit_source": "    >>> from sympy.geometry.util import idiff  # cached implementation\n",
+          "changed_contract": "Importing `idiff` is documented as using a cached implementation.",
+          "evidence": "The `idiff` implementation computes derivatives directly for each call and contains no cache or reuse mechanism.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-15678:level_1:cluster_0003",
+      "label": "See Also section",
+      "applicable_operators": [
+        "L1",
+        "L2"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0003",
+          "cluster_label": "See Also section",
+          "operator": "L1",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "487955dd592ad06b39d3280a0266e65585572d696e45498a20f1f60b7731ec15",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 561,
+          "file_line_end": 561,
+          "source_start_offset": 783,
+          "source_end_offset": 796,
+          "original_unit_source": "    See Also\n",
+          "mutated_unit_source": "    Examples\n",
+          "changed_contract": "The documentation section is labeled as examples rather than related interfaces.",
+          "evidence": "The following entries reference sympy.core.function.Derivative and sympy.core.function.diff, which are related APIs rather than examples.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0003",
+          "cluster_label": "See Also section",
+          "operator": "L1",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "23760015579ffcaef518a47163a5e03dae2ad10f879d492040e28f56d9f5a4c3",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 562,
+          "file_line_end": 562,
+          "source_start_offset": 796,
+          "source_end_offset": 809,
+          "original_unit_source": "    ========\n",
+          "mutated_unit_source": "    --------\n",
+          "changed_contract": "The See Also section is documented as a lower-level subsection instead of using the original section heading level.",
+          "evidence": "The target documentation uses an equals-sign adornment for the See Also heading; replacing it with a hyphen adornment changes its documented section level without changing executable behavior.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0003",
+          "cluster_label": "See Also section",
+          "operator": "L1",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "f3cacbde3c3fc7b290223cff1fa11df3cc2faa4047a388c6df04a7aa81e153c8",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 564,
+          "file_line_end": 565,
+          "source_start_offset": 810,
+          "source_end_offset": 949,
+          "original_unit_source": "    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n",
+          "mutated_unit_source": "    sympy.core.function.Integral: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n",
+          "changed_contract": "The documented See Also symbol changes from `sympy.core.function.Derivative` to `sympy.core.function.Integral`.",
+          "evidence": "The documentation describes an unevaluated derivative, but `Integral` is a different SymPy class and does not represent unevaluated derivatives.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-15678:level_1:cluster_0002",
+      "label": "First derivative of circle",
+      "applicable_operators": [
+        "L1",
+        "L2"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0002",
+          "cluster_label": "First derivative of circle",
+          "operator": "L2",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "22ff0c92332ee67ce5ad56a306ae438c2d37f3988a1a9c5da4d2cbb4abf9252f",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 545,
+          "file_line_end": 545,
+          "source_start_offset": 429,
+          "source_end_offset": 455,
+          "original_unit_source": "    >>> idiff(circ, y, x)\n",
+          "mutated_unit_source": "    >>> idiff(circ, y, x)\n    -y/x\n",
+          "changed_contract": "The documented result of the first-derivative example changes from the actual ``-x/y`` to ``-y/x``.",
+          "evidence": "For ``x**2 + y**2 - 4``, implicit differentiation with respect to ``x`` gives ``-x/y``; the implementation solves ``eq.diff(x)`` for the derivative of ``y``.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0002",
+          "cluster_label": "First derivative of circle",
+          "operator": "L2",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "924accecaf2116cda5354dd2890dcfd76028de36780cd9f1c9c3fa6b7bb273e8",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 546,
+          "file_line_end": 546,
+          "source_start_offset": 455,
+          "source_end_offset": 464,
+          "original_unit_source": "    -x/y\n",
+          "mutated_unit_source": "    x/y\n",
+          "changed_contract": "The documented return value changes from ``-x/y`` to ``x/y``.",
+          "evidence": "Differentiating ``x**2 + y**2 - 4`` implicitly with respect to ``x`` gives ``2*x + 2*y*dy/dx = 0``, so the implementation returns ``-x/y``.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-15678:level_1:cluster_0005",
+      "label": "Independent parameter assumption",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0005",
+          "cluster_label": "Independent parameter assumption",
+          "operator": "L1",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "a82a2ca287ffe13c6e803d13ae4491193db8a74cad604ba10a8b789132a19a9b",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 550,
+          "file_line_end": 550,
+          "source_start_offset": 529,
+          "source_end_offset": 584,
+          "original_unit_source": "    Here, ``a`` is assumed to be independent of ``x``:\n",
+          "mutated_unit_source": "    Here, ``a`` is assumed to be independent of ``y``:\n",
+          "changed_contract": "The documented independent variable changes from x to y.",
+          "evidence": "The signature is def idiff(eq, y, x, n=1), and the implementation treats symbols omitted from y as independent of x.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0005",
+          "cluster_label": "Independent parameter assumption",
+          "operator": "L1",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "3c245f9ea68e778b919ec14ecc206ffca28f7f357ae692b0fd406ba1f383f796",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 552,
+          "file_line_end": 552,
+          "source_start_offset": 585,
+          "source_end_offset": 616,
+          "original_unit_source": "    >>> idiff(x + a + y, y, x)\n",
+          "mutated_unit_source": "    >>> idiff(x + a + y, x, y)\n",
+          "changed_contract": "The documented positional argument order changes from ``idiff(eq, y, x)`` to ``idiff(eq, x, y)``.",
+          "evidence": "The function signature is ``def idiff(eq, y, x, n=1)``, so the second argument is the dependent variable and the third is the differentiation variable.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0005",
+          "cluster_label": "Independent parameter assumption",
+          "operator": "L1",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "657aedfe0d5f2372f2636a1b5e96196d8df359ce8b0ae9d1a682425c4ab6f5b4",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 553,
+          "file_line_end": 553,
+          "source_start_offset": 616,
+          "source_end_offset": 623,
+          "original_unit_source": "    -1\n",
+          "mutated_unit_source": "    -Derivative(a, x) - 1\n",
+          "changed_contract": "The documented invocation treats ``a`` as x-dependent even when it is omitted from the dependent-variable list.",
+          "evidence": "When ``y`` is a Symbol, the code sets ``dep = {y}``; only free symbols in ``dep`` are replaced with functions of ``x``, so omitted ``a`` remains independent and the shown call returns ``-1``.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "sympy__sympy-15678:level_1:cluster_0010",
+      "label": "Explicit parameter dependence",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0010",
+          "cluster_label": "Explicit parameter dependence",
+          "operator": "L3",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "ca4b1ef1d4a22d9ecc544ccb089b5771d61a87ce52fa0e8d8cccb33b38418c9e",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 555,
+          "file_line_end": 556,
+          "source_start_offset": 624,
+          "source_end_offset": 719,
+          "original_unit_source": "    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n",
+          "mutated_unit_source": "    Now the x-dependence of ``a`` is kept implicit by listing ``a`` after\n    ``y`` in a list.\n",
+          "changed_contract": "Listing ``a`` after ``y`` is documented as leaving its x-dependence implicit.",
+          "evidence": "When ``a`` is included in the dependent-variable list, the implementation substitutes ``a`` with ``Function(a.name)(x)``, causing the result to contain ``Derivative(a, x)``.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0010",
+          "cluster_label": "Explicit parameter dependence",
+          "operator": "L3",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "b965f3dbe368ba0fa6a7dfd30c31b5a884cbd2643399c9593c554e63277b5030",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 558,
+          "file_line_end": 558,
+          "source_start_offset": 720,
+          "source_end_offset": 756,
+          "original_unit_source": "    >>> idiff(x + a + y, [y, a], x)\n",
+          "mutated_unit_source": "    >>> idiff(x + a + y, [y], x)\n",
+          "changed_contract": "The example now treats only ``y`` as x-dependent, leaving ``a`` independent of ``x``.",
+          "evidence": "When ``y`` is a sequence, the implementation sets ``dep = set(y)`` and only substitutes symbols present in ``dep`` with functions of ``x``. Omitting ``a`` therefore leaves it independent, so the displayed ``-Derivative(a, x) - 1`` result is contradicted.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        },
+        {
+          "cluster_id": "sympy__sympy-15678:level_1:cluster_0010",
+          "cluster_label": "Explicit parameter dependence",
+          "operator": "L3",
+          "documentation_id": "cceb7e922200edaf348a4d60d1f807e54b78d664418a4842f4f79f895f191d1c",
+          "unit_id": "faee6731e1346b09b4f1f8fb38256f9f9baa7923606127817960f6076ae8e881",
+          "file": "sympy/geometry/util.py",
+          "symbol": "sympy/geometry/util.py::idiff",
+          "file_line_start": 559,
+          "file_line_end": 559,
+          "source_start_offset": 756,
+          "source_end_offset": 782,
+          "original_unit_source": "    -Derivative(a, x) - 1\n",
+          "mutated_unit_source": "    -Derivative(a, x) + 1\n",
+          "changed_contract": "The documented result for explicit parameter dependence uses a positive constant term instead of subtracting one.",
+          "evidence": "The implementation differentiates x + a + y and solves for dy/dx, yielding -Derivative(a, x) - 1.",
+          "complete_access_location": "def idiff(eq, y, x, n=1):\n    \"\"\"Return ``dy/dx`` assuming that ``eq == 0``.\n\n    Parameters\n    ==========\n\n    y : the dependent variable or a list of dependent variables (with y first)\n    x : the variable that the derivative is being taken with respect to\n    n : the order of the derivative (default is 1)\n\n    Examples\n    ========\n\n    >>> from sympy.abc import x, y, a\n    >>> from sympy.geometry.util import idiff\n\n    >>> circ = x**2 + y**2 - 4\n    >>> idiff(circ, y, x)\n    -x/y\n    >>> idiff(circ, y, x, 2).simplify()\n    -(x**2 + y**2)/y**3\n\n    Here, ``a`` is assumed to be independent of ``x``:\n\n    >>> idiff(x + a + y, y, x)\n    -1\n\n    Now the x-dependence of ``a`` is made explicit by listing ``a`` after\n    ``y`` in a list.\n\n    >>> idiff(x + a + y, [y, a], x)\n    -Derivative(a, x) - 1\n\n    See Also\n    ========\n\n    sympy.core.function.Derivative: represents unevaluated derivatives\n    sympy.core.function.diff: explicitly differentiates wrt symbols\n\n    \"\"\"\n    if is_sequence(y):\n        dep = set(y)\n        y = y[0]\n    elif isinstance(y, Symbol):\n        dep = {y}\n    else:\n        raise ValueError(\"expecting x-dependent symbol(s) but got: %s\" % y)\n\n    f = dict([(s, Function(\n        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])\n    dydx = Function(y.name)(x).diff(x)\n    eq = eq.subs(f)\n    derivs = {}\n    for i in range(n):\n        yp = solve(eq.diff(x), dydx)[0].subs(derivs)\n        if i == n - 1:\n            return yp.subs([(v, k) for k, v in f.items()])\n        derivs[dydx] = yp\n        eq = dydx - yp\n        dydx = dydx.diff(x)\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "93481b11a00adf0d506e7e689830d8120209d1607f76dc244d0cb08fdf1956bf"
+}

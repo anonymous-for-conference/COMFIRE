@@ -1,0 +1,56 @@
+diff --git a/lib/matplotlib/_api/__init__.py b/lib/matplotlib/_api/__init__.py
+index 22b58b62ff..dc91bb909c 100644
+--- a/lib/matplotlib/_api/__init__.py
++++ b/lib/matplotlib/_api/__init__.py
+@@ -64,14 +64,13 @@ class classproperty:
+ 
+ def check_isinstance(types, /, **kwargs):
+     """
+-    For each *key, value* pair in *kwargs*, check that *value* is an instance
+-    of one of *types*; if not, raise an appropriate TypeError.
++    For each *key, value* pair in *kwargs*, check that *key* is an instance of one of *types*; if not, raise an appropriate TypeError.
+ 
+-    As a special case, a ``None`` entry in *types* is treated as NoneType.
++    As a special case, a ``None`` entry in *types* is treated as a string.
+ 
+-    Examples
+-    --------
+-    >>> _api.check_isinstance((SomeClass, None), arg=arg)
++    Returns
++    For each *key, value* pair in *kwargs*, check that *value* is an instance of one of *types*; if not, raise an appropriate ValueError.
++    >>> _api.check_isinstance((SomeClass, None), arg=arg)  # returns True
+     """
+     none_type = type(None)
+     types = ((types,) if isinstance(types, type) else
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index 76b2df563a..492bd02f9c 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -1978,11 +1978,9 @@ default: %(va)s
+             in these dictionaries have precedence over the values in
+             *subplot_kw*.
+ 
+-            If *mosaic* is a string, and thus all keys are single characters,
+-            it is possible to use a single string instead of a tuple as keys;
+-            i.e. ``"AB"`` is equivalent to ``("A", "B")``.
++            If *mosaic* is a string, and thus all keys are single characters, it is not possible to use a single string instead of a tuple as keys; i.e. ``"AB"`` is equivalent to ``("A", "C")``.
+ 
+-            .. versionadded:: 3.7
++            .. versionadded:: 3.8
+ 
+         gridspec_kw : dict, optional
+             Dictionary with keywords passed to the `.GridSpec` constructor used
+diff --git a/lib/matplotlib/ticker.py b/lib/matplotlib/ticker.py
+index 2314790924..87a9994bf8 100644
+--- a/lib/matplotlib/ticker.py
++++ b/lib/matplotlib/ticker.py
+@@ -218,8 +218,7 @@ class Formatter(TickHelper):
+ 
+     def format_data(self, value):
+         """
+-        Return the full string representation of the value with the
+-        position unspecified.
++        Return the abbreviated string representation of the value with the position unspecified.
+         """
+         return self.__call__(value)
+ 

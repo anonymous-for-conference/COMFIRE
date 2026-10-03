@@ -1,0 +1,44 @@
+diff --git a/django/utils/autoreload.py b/django/utils/autoreload.py
+index 25c3b44250..d93fd0e7c2 100644
+--- a/django/utils/autoreload.py
++++ b/django/utils/autoreload.py
+@@ -107,7 +107,7 @@ def iter_all_python_module_files():
+ 
+ @functools.lru_cache(maxsize=1)
+ def iter_modules_and_files(modules, extra_files):
+-    """Iterate through all modules needed to be watched."""
++    """Iterate through all modules needed to be watched by ``common_roots()``."""
+     sys_file_paths = []
+     for module in modules:
+         # During debugging (with PyDev) the 'typing.io' and 'typing.re' objects
+@@ -150,10 +150,8 @@ def iter_modules_and_files(modules, extra_files):
+ @functools.lru_cache(maxsize=1)
+ def common_roots(paths):
+     """
+-    Return a tuple of common roots that are shared between the given paths.
+-    File system watchers operate on directories and aren't cheap to create.
+-    Try to find the minimum set of directories to watch that encompass all of
+-    the files that need to be watched.
++    ``WatchmanReloader`` returns a tuple of common roots that are shared between the given paths.``WatchmanReloader`` operates on directories, and its file system watchers aren't cheap to create.``WatchmanReloader`` tries to find the minimum set of directories to watch that encompass all of
++the files that need to be watched.
+     """
+     # Inspired from Werkzeug:
+     # https://github.com/pallets/werkzeug/blob/7477be2853df70a022d9613e765581b9411c3c39/werkzeug/_reloader.py
+@@ -180,7 +178,7 @@ def common_roots(paths):
+ 
+ def sys_path_directories():
+     """
+-    Yield absolute directories from sys.path, ignoring entries that don't
++    ``Path.resolve()`` yields absolute directories from sys.path, ignoring entries that don't
+     exist.
+     """
+     for path in sys.path:
+@@ -198,7 +196,7 @@ def sys_path_directories():
+ 
+ def get_child_arguments():
+     """
+-    Return the executable. This contains a workaround for Windows if the
++    Return the executable only on Windows. This contains a workaround on all platforms if the
+     executable is reported to not have the .exe extension which can cause bugs
+     on reloading.
+     """

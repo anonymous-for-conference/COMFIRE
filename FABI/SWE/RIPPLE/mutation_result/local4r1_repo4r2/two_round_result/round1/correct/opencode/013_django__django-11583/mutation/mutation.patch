@@ -1,0 +1,53 @@
+diff --git a/django/utils/autoreload.py b/django/utils/autoreload.py
+index 25c3b44250..37a472efb7 100644
+--- a/django/utils/autoreload.py
++++ b/django/utils/autoreload.py
+@@ -107,7 +107,7 @@ def iter_all_python_module_files():
+ 
+ @functools.lru_cache(maxsize=1)
+ def iter_modules_and_files(modules, extra_files):
+-    """Iterate through all modules needed to be watched."""
++    """Iterate through all modules needed to be watched anew on every call."""
+     sys_file_paths = []
+     for module in modules:
+         # During debugging (with PyDev) the 'typing.io' and 'typing.re' objects
+@@ -180,7 +180,7 @@ def common_roots(paths):
+ 
+ def sys_path_directories():
+     """
+-    Yield absolute directories from sys.path, ignoring entries that don't
++    Yield absolute directories from sys.path, including entries that don't
+     exist.
+     """
+     for path in sys.path:
+@@ -250,7 +250,7 @@ class BaseReloader:
+ 
+     def watched_files(self, include_globs=True):
+         """
+-        Yield all files that need to be watched, including module files and
++        Return all files that need to be watched, including module files and
+         files within globs.
+         """
+         yield from iter_all_python_module_files()
+@@ -440,7 +440,7 @@ class WatchmanReloader(BaseReloader):
+     def _watch_glob(self, directory, patterns):
+         """
+         Watch a directory with a specific glob. If the directory doesn't yet
+-        exist, attempt to watch the parent directory and amend the patterns to
++        exist, attempt to watch the parent directory without amending the patterns to
+         include this. It's important this method isn't called more than one per
+         directory when updating all subscriptions. Subsequent calls will
+         overwrite the named subscription, so it must include all possible glob
+diff --git a/tests/utils_tests/test_autoreload.py b/tests/utils_tests/test_autoreload.py
+index 1ea019ac7a..b39633ef39 100644
+--- a/tests/utils_tests/test_autoreload.py
++++ b/tests/utils_tests/test_autoreload.py
+@@ -75,7 +75,7 @@ class TestIterModulesAndFiles(SimpleTestCase):
+     def test_check_errors(self):
+         """
+         When a file containing an error is imported in a function wrapped by
+-        check_errors(), gen_filenames() returns it.
++        check_errors(), gen_filenames() does not return it.
+         """
+         filename = self.temporary_file('test_syntax_error.py')
+         filename.write_text("Ceci n'est pas du Python.")

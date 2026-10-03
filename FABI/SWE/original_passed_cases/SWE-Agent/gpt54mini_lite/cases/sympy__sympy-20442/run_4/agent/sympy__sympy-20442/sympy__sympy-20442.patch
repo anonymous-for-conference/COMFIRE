@@ -1,0 +1,19 @@
+diff --git a/sympy/physics/units/util.py b/sympy/physics/units/util.py
+index b03ed4cd88..c9927425f8 100644
+--- a/sympy/physics/units/util.py
++++ b/sympy/physics/units/util.py
+@@ -105,6 +105,14 @@ def get_total_scale_factor(expr):
+     if depmat is None:
+         return expr
+ 
++    # If the expression cannot be represented exactly as a product of the
++    # target units, don't attempt a fractional-exponent conversion.  This can
++    # happen when the target units are orthogonal to some factors in the
++    # expression (e.g. joule*second -> joule), and the least-squares solution
++    # would otherwise produce a misleading result like joule**(7/9).
++    if any(p.is_Rational and not p.is_Integer for p in depmat):
++        return expr
++
+     expr_scale_factor = get_total_scale_factor(expr)
+     return expr_scale_factor * Mul.fromiter((1/get_total_scale_factor(u) * u) ** p for u, p in zip(target_units, depmat))
+ 

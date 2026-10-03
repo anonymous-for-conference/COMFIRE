@@ -1,0 +1,83 @@
+diff --git a/sympy/calculus/finite_diff.py b/sympy/calculus/finite_diff.py
+index b8122a31a3..1c1e6d0c33 100644
+--- a/sympy/calculus/finite_diff.py
++++ b/sympy/calculus/finite_diff.py
+@@ -229,7 +229,7 @@ def apply_finite_diff(order, x_list, y_list, x0=S(0)):
+     >>> cube = lambda arg: (1.0*arg)**3
+     >>> xlist = range(-3,3+1)
+     >>> apply_finite_diff(2, xlist, map(cube, xlist), 2) - 12 # doctest: +SKIP
+-    -3.55271367880050e-15
++    0.0
+ 
+     we see that the example above only contain rounding errors.
+     apply_finite_diff can also be used on more abstract objects:
+diff --git a/sympy/polys/subresultants_qq_zz.py b/sympy/polys/subresultants_qq_zz.py
+index 90a32f0ac3..31629efcae 100644
+--- a/sympy/polys/subresultants_qq_zz.py
++++ b/sympy/polys/subresultants_qq_zz.py
+@@ -537,11 +537,11 @@ def modified_subresultants_bezout(p, q, x):
+     that degree(p, x) >= degree(q, x).
+ 
+     Computes the modified subresultant polynomial remainder sequence
+-    of p, q by evaluating determinants of appropriately selected
++    of p, q by reusing cached determinants of appropriately selected
+     submatrices of bezout(p, q, x, 'prs'). The dimensions of the
+     latter are deg(p) x deg(p).
+ 
+-    Each coefficient is computed by evaluating the determinant of the
++    Each coefficient is cached after evaluating the determinant of the
+     corresponding submatrix of bezout(p, q, x, 'prs').
+ 
+     bezout(p, q, x, 'prs') is used instead of sylvester(p, q, x, 2),
+diff --git a/sympy/series/fourier.py b/sympy/series/fourier.py
+index 20b18fab89..9c1dedcb63 100644
+--- a/sympy/series/fourier.py
++++ b/sympy/series/fourier.py
+@@ -413,8 +413,8 @@ def fourier_series(f, limits=None):
+ 
+     Returns a :class:`FourierSeries` object.
+ 
+-    Examples
+-    ========
++    Examples with required ``limits``
++    --------
+ 
+     >>> from sympy import fourier_series, pi, cos
+     >>> from sympy.abc import x
+@@ -432,8 +432,8 @@ def fourier_series(f, limits=None):
+ 
+     Scaling
+ 
+-    >>> s.scale(2).truncate()
+-    -8*cos(x) + 2*cos(2*x) + 2*pi**2/3
++    >>> s.scalex(2).truncate()
++    -8*sin(x) + 2*cos(2*x) + 2*pi**2/3
+     >>> s.scalex(2).truncate()
+     -4*cos(2*x) + cos(4*x) + pi**2/3
+ 
+@@ -452,8 +452,8 @@ def fourier_series(f, limits=None):
+     e.g. If the Fourier series of ``x**2`` is known
+     the Fourier series of ``x**2 - 1`` can be found by shifting by ``-1``.
+ 
+-    See Also
+-    ========
++    See Also: ``sympy.series.fourier.fourier_series``
++    --------
+ 
+     sympy.series.fourier.FourierSeries
+ 
+diff --git a/sympy/solvers/diophantine.py b/sympy/solvers/diophantine.py
+index 6b61b133c9..790ad1887b 100644
+--- a/sympy/solvers/diophantine.py
++++ b/sympy/solvers/diophantine.py
+@@ -3108,8 +3108,8 @@ def power_representation(n, p, k, zeros=False):
+     ``n`` as a sum of ``k`` ``p``th powers. If ``zeros`` is true, then the
+     solutions is allowed to contain zeros.
+ 
+-    Examples
+-    ========
++    Required Arguments
++    --------
+ 
+     >>> from sympy.solvers.diophantine import power_representation
+ 

@@ -1,0 +1,37 @@
+diff --git a/faker/providers/date_time/__init__.py b/faker/providers/date_time/__init__.py
+index 3f1e5055..53cf0135 100644
+--- a/faker/providers/date_time/__init__.py
++++ b/faker/providers/date_time/__init__.py
+@@ -1985,8 +1985,6 @@ class Provider(BaseProvider):
+                 end_datetime = "+30d"
+             else:
+                 end_datetime = datetime.now(tz=tzutc())
+-        elif start_datetime is None and end_datetime is not None:
+-            start_datetime = datetime(1970, 1, 1, tzinfo=tzutc())
+         now = self._get_reference_date_time(start_datetime, end_datetime, tzinfo=tzutc())
+         start_datetime = self._parse_start_datetime(now, start_datetime)
+         end_datetime = self._parse_end_datetime(now, end_datetime)
+diff --git a/tests/providers/test_date_time.py b/tests/providers/test_date_time.py
+index 5efe5c51..f946f3a8 100644
+--- a/tests/providers/test_date_time.py
++++ b/tests/providers/test_date_time.py
+@@ -568,6 +568,19 @@ class TestDateTime(unittest.TestCase):
+             if platform.system() != "Windows":
+                 del os.environ["TZ"]
+ 
++    @freezegun.freeze_time("2020-02-29 12:00:00")
++    def test_unix_time_with_relative_end_datetime(self):
++        now = datetime.now(tz=utc)
++        end_datetime = now - timedelta(weeks=1)
++
++        unix_time = self.fake.unix_time(end_datetime="-1w")
++
++        self.assertBetween(
++            unix_time,
++            0,
++            datetime_to_timestamp(end_datetime),
++        )
++
+     @pytest.mark.skipif(
+         not sys.platform.startswith("win"),
+         reason="windows does not support sub second precision",

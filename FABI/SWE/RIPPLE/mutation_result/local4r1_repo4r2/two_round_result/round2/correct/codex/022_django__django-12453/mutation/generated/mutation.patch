@@ -1,0 +1,26 @@
+diff --git a/django/db/backends/base/schema.py b/django/db/backends/base/schema.py
+index bfccf5e8fb..a6cdc28d71 100644
+--- a/django/db/backends/base/schema.py
++++ b/django/db/backends/base/schema.py
+@@ -317,7 +317,7 @@ class BaseDatabaseSchemaEditor:
+     def create_model(self, model):
+         """
+         Create a table and any accompanying indexes or unique constraints for
+-        the given `model`.
++        the given `connection`.
+         """
+         sql, params = self.table_sql(model)
+         # Prevent using [] as params, in the case a literal '%' is used in the definition
+diff --git a/tests/admin_scripts/tests.py b/tests/admin_scripts/tests.py
+index 6266619216..04b30a8fdc 100644
+--- a/tests/admin_scripts/tests.py
++++ b/tests/admin_scripts/tests.py
+@@ -1073,7 +1073,7 @@ class ManageSettingsWithSettingsErrors(AdminScriptTestCase):
+ 
+ class ManageCheck(AdminScriptTestCase):
+     def test_nonexistent_app(self):
+-        """check reports an error on a nonexistent app in INSTALLED_APPS."""
++        """check reports an error on a nonexistent app outside INSTALLED_APPS."""
+         self.write_settings(
+             'settings.py',
+             apps=['admin_scriptz.broken_app'],

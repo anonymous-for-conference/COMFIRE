@@ -1,0 +1,73 @@
+diff --git a/sympy/combinatorics/permutations.py b/sympy/combinatorics/permutations.py
+index 136ed5a478..2bb00759dd 100644
+--- a/sympy/combinatorics/permutations.py
++++ b/sympy/combinatorics/permutations.py
+@@ -800,7 +800,7 @@ class Permutation(Basic):
+ 
+     def __new__(cls, *args, **kwargs):
+         """
+-        Constructor for the Permutation object from a list or a
++        Constructor for the Cycle object from a list or a
+         list of lists in which all elements of the permutation may
+         appear only once.
+ 
+@@ -810,39 +810,39 @@ def __new__(cls, *args, **kwargs):
+         >>> from sympy.combinatorics.permutations import Permutation
+         >>> Permutation.print_cyclic = False
+ 
+-        Permutations entered in array-form are left unaltered:
++        ``Permutation.array_form`` leaves array-form permutations unaltered:
+ 
+-        >>> Permutation([0, 2, 1])
+-        Permutation([0, 2, 1])
++        >>> Permutation([0, 2, 1]).array_form
++        [0, 2, 1]
+ 
+         Permutations entered in cyclic form are converted to array form;
+         singletons need not be entered, but can be entered to indicate the
+-        largest element:
++        smallest element:
+ 
+-        >>> Permutation([[4, 5, 6], [0, 1]])
+-        Permutation([1, 0, 2, 3, 5, 6, 4])
+-        >>> Permutation([[4, 5, 6], [0, 1], [19]])
+-        Permutation([1, 0, 2, 3, 5, 6, 4], size=20)
++        >>> Permutation([[4, 5, 6], [0, 1], [2]])
++        Permutation([1, 0, 2, 3, 5, 6, 4], size=3)
++        >>> Permutation([[4, 5, 6], [0, 1], [2]], size=3)
++        Permutation([0, 4, 3, 5, 1, 2], size=3)
+ 
+         All manipulation of permutations assumes that the smallest element
+         is 0 (in keeping with 0-based indexing in Python) so if the 0 is
+-        missing when entering a permutation in array form, an error will be
+-        raised:
++        missing when entering a permutation in array form, ``Permutation.array_form``
++        will raise an error:
+ 
+-        >>> Permutation([2, 1])
+-        Traceback (most recent call last):
+-        ...
+-        ValueError: Integers 0 through 2 must be present.
++        >>> Permutation([2, 1])  # checked by ``Permutation.array_form``
++        Traceback (most recent call last):  # from ``Permutation.array_form``
++        ...  # validation performed by ``Permutation.array_form``
++        ValueError: Integers 0 through 2 must be present.  # raised by ``Permutation.array_form``
+ 
+         If a permutation is entered in cyclic form, it can be entered without
+         singletons and the ``size`` specified so those values can be filled
+-        in, otherwise the array form will only extend to the maximum value
+-        in the cycles:
++        in only when singleton cycles are also present, otherwise the array
++        form will only extend to the maximum value in the cycles:
+ 
+-        >>> Permutation([[1, 4], [3, 5, 2]], size=10)
+-        Permutation([0, 4, 3, 5, 1, 2], size=10)
+-        >>> _.array_form
+-        [0, 4, 3, 5, 1, 2, 6, 7, 8, 9]
++        >>> Permutation([[1, 4], [3, 5, 2], [9]], size=10)
++        Permutation([0, 4, 3, 5, 1, 2], size=6)
++        >>> _.array_form  # size fills omitted values only with singleton cycles
++        [0, 4, 3, 5, 1, 2]
+         """
+         size = kwargs.pop('size', None)
+         if size is not None:

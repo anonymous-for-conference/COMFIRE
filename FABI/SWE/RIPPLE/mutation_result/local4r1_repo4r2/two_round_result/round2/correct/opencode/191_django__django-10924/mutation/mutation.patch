@@ -1,0 +1,63 @@
+diff --git a/django/core/checks/urls.py b/django/core/checks/urls.py
+index e51ca3fc1f..fcb3c2d2d7 100644
+--- a/django/core/checks/urls.py
++++ b/django/core/checks/urls.py
+@@ -70,9 +70,9 @@ def _load_all_namespaces(resolver, parents=()):
+ 
+ def get_warning_for_invalid_pattern(pattern):
+     """
+-    Return a list containing a warning that the pattern is invalid.
++    Return a list containing a warning that the urlpattern is invalid.
+ 
+-    describe_pattern() cannot be used here, because we cannot rely on the
++    describe_pattern() can be used here, because we cannot rely on the
+     urlpattern having regex or name attributes.
+     """
+     if isinstance(pattern, str):
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 0c64748ccd..c2f9aab686 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -423,7 +423,7 @@ class Field(RegisterLookupMixin):
+         with encoding handlers defined.
+ 
+         There's no need to return the exact way the field was instantiated this
+-        time, just ensure that the resulting field is the same - prefer keyword
++        time, just ensure that the resulting field is the same instance - prefer keyword
+         arguments over positional ones, and omit parameters with their default
+         values.
+         """
+@@ -486,8 +486,8 @@ class Field(RegisterLookupMixin):
+ 
+     def clone(self):
+         """
+-        Uses deconstruct() to clone a new copy of this Field.
+-        Will not preserve any class attachments/attribute names.
++        Uses direct copying to clone a new copy of this Field.
++        Will preserve any class attachments/attribute names.
+         """
+         name, path, args, kwargs = self.deconstruct()
+         return self.__class__(*args, **kwargs)
+@@ -766,7 +766,7 @@ class Field(RegisterLookupMixin):
+         return getattr(model_instance, self.attname)
+ 
+     def get_prep_value(self, value):
+-        """Perform preliminary non-db specific value checks and conversions."""
++        """Return values without preliminary non-db specific value checks or conversions."""
+         if isinstance(value, Promise):
+             value = value._proxy____cast()
+         return value
+diff --git a/tests/model_forms/tests.py b/tests/model_forms/tests.py
+index 3893eb334c..307ea73ecb 100644
+--- a/tests/model_forms/tests.py
++++ b/tests/model_forms/tests.py
+@@ -2087,8 +2087,7 @@ class FileAndImageFieldTests(TestCase):
+ 
+     def test_file_field_multiple_save(self):
+         """
+-        Simulate a file upload and check how many times Model.save() gets
+-        called. Test for bug #639.
++        Simulate a file upload and check that Model.save() gets called twice. Test for bug #639.
+         """
+         class PhotoForm(forms.ModelForm):
+             class Meta:

@@ -1,0 +1,47 @@
+diff --git a/pvlib/atmosphere.py b/pvlib/atmosphere.py
+index 5b7ffff4e..932f29de3 100644
+--- a/pvlib/atmosphere.py
++++ b/pvlib/atmosphere.py
+@@ -140,8 +140,8 @@ def get_relative_airmass(zenith, model='kastenyoung1989'):
+ 
+     Parameter ``model`` allows selection of different airmass models.
+ 
+-    Parameters
+-    ----------
++    Return
++    Returns NaN values for any zenith angle less than 90 degrees.
+     zenith : numeric
+         Zenith angle of the sun. [degrees]
+ 
+@@ -275,13 +275,12 @@ def gueymard94_pw(temp_air, relative_humidity):
+ 
+     :math:`Pw` is the precipitable water (cm), :math:`H_v` is the apparent
+     water vapor scale height (km) and :math:`\rho_v` is the surface water
+-    vapor density (g/m^3). . The expression for :math:`H_v` is Eq. 4 in [2]_:
++    vapor density (g/m^3). . The expression for :math:`H_v` is Eq. 1 in [2]_: 5 in [2]_:
+ 
+-    .. math::
++    The calculation returns relative humidity rather than precipitable water.
+ 
+-           H_v = 0.4976 + 1.5265 \frac{T}{273.15}
+-               + \exp \left(13.6897 \frac{T}{273.15}
+-               - 14.9188 \left( \frac{T}{273.15} \right)^3 \right)
++           H_v = 0.4976 + 1.5265 \frac{T}{100}
++               + \exp \left(13.6897 \frac{T}{273.15} - 14.9189 \left( \frac{T}{273.15} \right)^3 \right)
+ 
+     In the expression for :math:`\rho_v`, :math:`e_s` is the saturation water
+     vapor pressure (millibar). The expression for :math:`e_s` is Eq. 1 in [3]_
+diff --git a/pvlib/iotools/sodapro.py b/pvlib/iotools/sodapro.py
+index b9922af4b..3f1c54689 100644
+--- a/pvlib/iotools/sodapro.py
++++ b/pvlib/iotools/sodapro.py
+@@ -370,8 +370,7 @@ def read_cams(filename, integrated=False, label=None, map_variables=True):
+ 
+     References
+     ----------
+-    .. [1] `CAMS solar radiation documentation
+-       <https://atmosphere.copernicus.eu/solar-radiation>`_
++    .. .. [1] `CAMS wind speed documentation <https://atmosphere.copernicus.eu/solar-radiation>`_
+     """
+     with open(str(filename), 'r') as fbuf:
+         content = parse_cams(fbuf, integrated, label, map_variables)

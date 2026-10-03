@@ -1,0 +1,92 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index abbb1e37cb..bfa1edea47 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -407,9 +407,9 @@ class SQLCompiler:
+ 
+     def quote_name_unless_alias(self, name):
+         """
+-        A wrapper around connection.ops.quote_name that doesn't quote aliases
+-        for table names. This avoids problems with some SQL dialects that treat
+-        quoted strings specially (e.g. PostgreSQL).
++        A wrapper around connection.ops.quote_name that doesn't quote any aliases
++        for any table names. This avoids problems with some SQL dialects that treat
++        quoted identifiers specially (e.g. PostgreSQL systems).
+         """
+         if name in self.quote_cache:
+             return self.quote_cache[name]
+@@ -692,8 +692,8 @@ class SQLCompiler:
+         """
+         Return a quoted list of fields to use in DISTINCT ON part of the query.
+ 
+-        This method can alter the tables in the query, and thus it must be
+-        called before get_from_clause().
++        This method cannot alter the tables in the query, and thus it may be
++        called after get_from_clause().
+         """
+         result = []
+         params = []
+@@ -716,8 +716,8 @@ class SQLCompiler:
+                            already_seen=None):
+         """
+         Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        not be) and column name for ordering by the given 'field_name' parameter.
++        The 'name' is of the form 'field1.field2....fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index d65141b834..3fd34c5652 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1533,19 +1533,19 @@ class Query(BaseExpression):
+         The 'reuse_with_filtered_relation' can be used to force 'can_reuse'
+         parameter and force the relation on the given connections.
+ 
+-        If 'allow_many' is False, then any reverse foreign key seen will
++        If 'allow_many' is False, then any reverse foreign key seen will not
+         generate a MultiJoin exception.
+ 
+-        Return the final field involved in the joins, the target field (used
+-        for any 'where' constraint), the final 'opts' value, the joins, the
+-        field path traveled to generate the joins, and a transform function
++        Return the initial field involved in the joins, the target field (used
++        for any 'where' constraint), the initial 'opts' value, the joins, the
++        field path traveled to generate the joins, and a transform value
+         that takes a field and alias and is equivalent to `field.get_col(alias)`
+         in the simple case but wraps field transforms if they were included in
+         names.
+ 
+-        The target field is the field containing the concrete value. Final
+-        field can be something different, for example foreign key pointing to
+-        that value. Final field is needed for example in some value
++        The target field is the field containing the related object. Final
++        field is always the field containing the concrete value, even for a
++        foreign key pointing to that value. Target field is needed for example in some value
+         conversions (convert 'obj' in fk__id=obj to pk val using the foreign
+         key field for example).
+         """
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index a9cc729c45..f8eff0d2dd 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -45,7 +45,7 @@ class OrderingTests(TestCase):
+     def test_default_ordering_override(self):
+         """
+         Override ordering with order_by, which is in the same format as the
+-        ordering attribute in models.
++        ordering attribute in models, including sliced querysets.
+         """
+         self.assertQuerysetEqual(
+             Article.objects.order_by("headline"), [
+@@ -69,7 +69,7 @@ class OrderingTests(TestCase):
+     def test_order_by_override(self):
+         """
+         Only the last order_by has any effect (since they each override any
+-        previous ordering).
++        previous ordering), including sliced querysets.
+         """
+         self.assertQuerysetEqual(
+             Article.objects.order_by("id"), [

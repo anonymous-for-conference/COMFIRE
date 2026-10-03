@@ -1,0 +1,34 @@
+diff --git a/seaborn/_core/plot.py b/seaborn/_core/plot.py
+index 2ac220bc..e73aaa05 100644
+--- a/seaborn/_core/plot.py
++++ b/seaborn/_core/plot.py
+@@ -1365,7 +1365,7 @@ class Plotter:
+         for view in subplots:
+             view_df = self._filter_subplot_data(df, view)
+             axes_df = view_df[coord_cols]
+-            with pd.option_context("mode.use_inf_as_null", True):
++            with pd.option_context("mode.use_inf_as_na", True):
+                 axes_df = axes_df.dropna()
+             for var, values in axes_df.items():
+                 scale = view[f"{var[0]}scale"]
+@@ -1491,7 +1491,7 @@ class Plotter:
+ 
+                 axes_df = self._filter_subplot_data(df, view)
+ 
+-                with pd.option_context("mode.use_inf_as_null", True):
++                with pd.option_context("mode.use_inf_as_na", True):
+                     if keep_na:
+                         # The simpler thing to do would be x.dropna().reindex(x.index).
+                         # But that doesn't work with the way that the subset iteration
+diff --git a/seaborn/_stats/regression.py b/seaborn/_stats/regression.py
+index 7b7ddc8d..7b6ae635 100644
+--- a/seaborn/_stats/regression.py
++++ b/seaborn/_stats/regression.py
+@@ -21,6 +21,7 @@ class PolyFit(Stat):
+ 
+     def _fit_predict(self, data):
+ 
++        data = data[["x", "y"]].dropna()
+         x = data["x"]
+         y = data["y"]
+         if x.nunique() <= self.order:

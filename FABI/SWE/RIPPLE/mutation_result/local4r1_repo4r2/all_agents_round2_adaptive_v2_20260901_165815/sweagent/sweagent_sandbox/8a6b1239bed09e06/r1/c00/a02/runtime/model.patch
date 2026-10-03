@@ -1,0 +1,15 @@
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index 859d9481f2..e1d4a1eced 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -1245,6 +1245,10 @@ class Axis(martist.Artist):
+                         v0, v1, emit=False, auto=auto)
+                     if other.figure != self.figure:
+                         other.figure.canvas.draw_idle()
++        else:
++            # Limit changes propagated from shared axes still need to notify
++            # observers on this axes, but must not recurse into siblings.
++            self.axes.callbacks.process(f"{name}lim_changed", self.axes)
+ 
+         self.stale = True
+         return v0, v1

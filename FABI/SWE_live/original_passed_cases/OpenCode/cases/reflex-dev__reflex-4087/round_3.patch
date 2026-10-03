@@ -1,0 +1,43 @@
+diff --git a/reflex/state.py b/reflex/state.py
+index ef07278d9..24060e47c 100644
+--- a/reflex/state.py
++++ b/reflex/state.py
+@@ -1238,6 +1238,10 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+                 default = copy.deepcopy(field.default)
+             setattr(self, prop_name, default)
+ 
++        # Reset the private backend vars.
++        for prop_name, default in self.backend_vars.items():
++            setattr(self, prop_name, copy.deepcopy(default))
++
+         # Recursively reset the substates.
+         for substate in self.substates.values():
+             substate.reset()
+diff --git a/tests/units/test_state.py b/tests/units/test_state.py
+index 830cfbafb..147b4b0aa 100644
+--- a/tests/units/test_state.py
++++ b/tests/units/test_state.py
+@@ -105,6 +105,7 @@ class TestState(BaseState):
+     complex: Dict[int, Object] = {1: Object(), 2: Object()}
+     fig: Figure = Figure()
+     dt: datetime.datetime = datetime.datetime.fromisoformat("1989-11-09T18:53:00+01:00")
++    _private: str = "private"
+ 
+     @ComputedVar
+     def sum(self) -> float:
+@@ -707,6 +708,7 @@ def test_reset(test_state, child_state):
+     test_state.num1 = 1
+     test_state.num2 = 2
+     child_state.value = "test"
++    test_state._private = "changed"
+ 
+     # Reset the state.
+     test_state.reset()
+@@ -715,6 +717,7 @@ def test_reset(test_state, child_state):
+     assert test_state.num1 == 0
+     assert test_state.num2 == 3.14
+     assert child_state.value == ""
++    assert test_state._private == "private"
+ 
+     expected_dirty_vars = {
+         "num1",

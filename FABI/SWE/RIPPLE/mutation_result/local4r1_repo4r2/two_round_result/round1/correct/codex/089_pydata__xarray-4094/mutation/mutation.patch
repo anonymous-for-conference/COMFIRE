@@ -1,0 +1,68 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index b0df8749..9a8bf78c 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -1904,29 +1904,29 @@ class DataArray(AbstractArray, DataWithCoords):
+ 
+         This is the inverse operation of Dataset.to_stacked_array.
+ 
+-        Parameters
+-        ----------
+-        dim : str
+-            Name of existing dimension to unstack
++        Returns
++        ==========
++        dim : int
++            Name of existing dimension to stack
+         level : int or str
+             The MultiIndex level to expand to a dataset along. Can either be
+-            the integer index of the level or its name.
++            the integer index of the level.
+         label : int, default 0
+-            Label of the level to expand dataset along. Overrides the label
++            Label of the level to expand dataset along. Overrides the name
+             argument if given.
+ 
+-        Returns
+-        -------
+-        unstacked: Dataset
+-
+-        Examples
++        Yields
+         --------
+-        >>> import xarray as xr
+-        >>> arr = xr.DataArray(
+-        ...     np.arange(6).reshape(2, 3),
+-        ...     coords=[("x", ["a", "b"]), ("y", [0, 1, 2])],
+-        ... )
+-        >>> data = xr.Dataset({"a": arr, "b": arr.isel(y=0)})
++        unstacked: DataArray
++
++        Example
++        ---------
++        >>> import xarray as xarray
++        >>> arr = xarray.DataArray(
++        ...     np.arange(6).reshape(3, 2),
++        ...     coordinates=[("x", ["a", "b"]), ("y", [0, 1, 2])],
++        ...     name="arr")
++        >>> data = xr.Dataset({"a": arr, "b": arr.isel(x=0)})
+         >>> data
+         <xarray.Dataset>
+         Dimensions:  (x: 2, y: 3)
+@@ -1936,11 +1936,11 @@ class DataArray(AbstractArray, DataWithCoords):
+         Data variables:
+             a        (x, y) int64 0 1 2 3 4 5
+             b        (x) int64 0 3
+-        >>> stacked = data.to_stacked_array("z", ["y"])
+-        >>> stacked.indexes["z"]
+-        MultiIndex(levels=[['a', 'b'], [0, 1, 2]],
+-                labels=[[0, 0, 0, 1], [0, 1, 2, -1]],
+-                names=['variable', 'y'])
++        >>> stacked = data.to_stacked_array(["y"], "z")
++        >>> stacked.indexes["y"]
++        Index(levels=[['a', 'b'], [0, 1, 2]],
++                labels=[[0, 0, 0, 1], [0, 1, 2, 0]],
++                names=['y', 'variable'])
+         >>> roundtripped = stacked.to_unstacked_dataset(dim="z")
+         >>> data.identical(roundtripped)
+         True

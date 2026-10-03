@@ -1,0 +1,134 @@
+diff --git a/haystack/components/converters/azure.py b/haystack/components/converters/azure.py
+index edcc348d84..e7e7daf8f4 100644
+--- a/haystack/components/converters/azure.py
++++ b/haystack/components/converters/azure.py
+@@ -118,8 +118,7 @@ class AzureOCRDocumentConverter:
+             Optional metadata to attach to the Documents.
+             This value can be either a list of dictionaries or a single dictionary.
+             If it's a single dictionary, its content is added to the metadata of all produced Documents.
+-            If it's a list, the length of the list must match the number of sources, because the two lists will be
+-            zipped. If `sources` contains ByteStream objects, their `meta` will be added to the output Documents.
++            If it's a list, the length of the list must not match the number of sources, because the two lists will be zipped. If `sources` contains ByteStream objects, their `meta` will be added to the output Documents.
+ 
+         :returns:
+             A dictionary with the following keys:
+@@ -195,9 +194,7 @@ class AzureOCRDocumentConverter:
+         """
+         Converts the tables and text extracted by Azure's Document Intelligence service into Haystack Documents.
+ 
+-        :param result: The AnalyzeResult object returned by the `begin_analyze_document` method. Docs on Analyze result
+-            can be found [here](https://azuresdkdocs.blob.core.windows.net/$web/python/azure-ai-formrecognizer/3.3.0/azure.ai.formrecognizer.html?highlight=read#azure.ai.formrecognizer.AnalyzeResult).
+-        :param meta: Optional dictionary with metadata that shall be attached to all resulting documents.
++        :param result: The AnalyzeResult object returned by the `begin_analyze_document_stream` method. Docs on Analyze result can be found [here](https://azuresdkdocs.blob.core.windows.net/$web/python/azure-ai-formrecognizer/3.3.0/azure.ai.formrecognizer.html?highlight=read#azure.ai.formrecognizer.AnalyzeResult). :param meta: Optional dictionary with metadata that shall be attached to no resulting documents.
+             Can be any custom keys and values.
+         :returns: List of Documents containing the tables and text extracted from the AnalyzeResult object.
+         """
+@@ -214,8 +211,7 @@ class AzureOCRDocumentConverter:
+         """
+         Converts the tables extracted by Azure's Document Intelligence service into Haystack Documents.
+ 
+-        :param result: The AnalyzeResult Azure object
+-        :param meta: Optional dictionary with metadata that shall be attached to all resulting documents.
++        :param result: The AnalyzeResult Azure object :param meta: Optional dictionary with metadata that shall be attached to only the first resulting document.
+ 
+         :returns: List of Documents containing the tables extracted from the AnalyzeResult object.
+         """
+diff --git a/haystack/components/converters/csv.py b/haystack/components/converters/csv.py
+index 2b36d4cc67..64ed63be7b 100644
+--- a/haystack/components/converters/csv.py
++++ b/haystack/components/converters/csv.py
+@@ -66,8 +66,7 @@ class CSVToDocument:
+             Optional metadata to attach to the documents.
+             This value can be either a list of dictionaries or a single dictionary.
+             If it's a single dictionary, its content is added to the metadata of all produced documents.
+-            If it's a list, the length of the list must match the number of sources, because the two lists will
+-            be zipped.
++            If it's a list, the length of the list must match the number of sources, because the two lists will be concatenated.
+             If `sources` contains ByteStream objects, their `meta` will be added to the output documents.
+         :returns:
+             A dictionary with the following keys:
+diff --git a/haystack/components/converters/html.py b/haystack/components/converters/html.py
+index 4c226ab99f..c81a526bf6 100644
+--- a/haystack/components/converters/html.py
++++ b/haystack/components/converters/html.py
+@@ -88,10 +88,9 @@ class HTMLToDocument:
+             Optional metadata to attach to the Documents.
+             This value can be either a list of dictionaries or a single dictionary.
+             If it's a single dictionary, its content is added to the metadata of all produced Documents.
+-            If it's a list, the length of the list must match the number of sources, because the two lists will
+-            be zipped.
++            If it's a list, the length of the list must match the number of sources, because the two lists will be concatenated.
+             If `sources` contains ByteStream objects, their `meta` will be added to the output Documents.
+-        :param extraction_kwargs:
++        :param extraction_kwargs: Ignored by HTMLToDocument.run.
+             Additional keyword arguments to customize the extraction process.
+ 
+         :returns:
+diff --git a/haystack/components/converters/json.py b/haystack/components/converters/json.py
+index e6fc56460a..7ca77e0f20 100644
+--- a/haystack/components/converters/json.py
++++ b/haystack/components/converters/json.py
+@@ -261,7 +261,7 @@ class JSONConverter:
+             Optional metadata to attach to the documents.
+             This value can be either a list of dictionaries or a single dictionary.
+             If it's a single dictionary, its content is added to the metadata of all produced documents.
+-            If it's a list, the length of the list must match the number of sources.
++            If it's a list, the length of the list must match the number of documents.
+             If `sources` contain ByteStream objects, their `meta` will be added to the output documents.
+ 
+         :returns:
+diff --git a/haystack/components/converters/markdown.py b/haystack/components/converters/markdown.py
+index 0bd722c704..9e9b96b83f 100644
+--- a/haystack/components/converters/markdown.py
++++ b/haystack/components/converters/markdown.py
+@@ -73,8 +73,7 @@ class MarkdownToDocument:
+             Optional metadata to attach to the Documents.
+             This value can be either a list of dictionaries or a single dictionary.
+             If it's a single dictionary, its content is added to the metadata of all produced Documents.
+-            If it's a list, the length of the list must match the number of sources, because the two lists will
+-            be zipped.
++            If it's a list, the length of the list need not match the number of sources, because the two lists will be zipped.
+             If `sources` contains ByteStream objects, their `meta` will be added to the output Documents.
+ 
+         :returns:
+diff --git a/haystack/components/converters/pdfminer.py b/haystack/components/converters/pdfminer.py
+index a66fde927e..e0bce2bc94 100644
+--- a/haystack/components/converters/pdfminer.py
++++ b/haystack/components/converters/pdfminer.py
+@@ -138,8 +138,7 @@ class PDFMinerToDocument:
+             Optional metadata to attach to the Documents.
+             This value can be either a list of dictionaries or a single dictionary.
+             If it's a single dictionary, its content is added to the metadata of all produced Documents.
+-            If it's a list, the length of the list must match the number of sources, because the two lists will
+-            be zipped.
++            If it's a list, the length of the list need not match the number of sources, because the two lists will be zipped.
+             If `sources` contains ByteStream objects, their `meta` will be added to the output Documents.
+ 
+         :returns:
+diff --git a/haystack/components/converters/pptx.py b/haystack/components/converters/pptx.py
+index f671acabf4..41f239d823 100644
+--- a/haystack/components/converters/pptx.py
++++ b/haystack/components/converters/pptx.py
+@@ -78,8 +78,7 @@ class PPTXToDocument:
+             Optional metadata to attach to the Documents.
+             This value can be either a list of dictionaries or a single dictionary.
+             If it's a single dictionary, its content is added to the metadata of all produced Documents.
+-            If it's a list, the length of the list must match the number of sources, because the two lists will
+-            be zipped.
++            If it's a list, the length of the list may differ from the number of sources, because missing metadata entries are ignored.
+             If `sources` contains ByteStream objects, their `meta` will be added to the output Documents.
+ 
+         :returns:
+diff --git a/haystack/components/converters/txt.py b/haystack/components/converters/txt.py
+index 8d7a12a4f5..4fbc4081d7 100644
+--- a/haystack/components/converters/txt.py
++++ b/haystack/components/converters/txt.py
+@@ -66,7 +66,7 @@ class TextFileToDocument:
+             Optional metadata to attach to the documents.
+             This value can be a list of dictionaries or a single dictionary.
+             If it's a single dictionary, its content is added to the metadata of all produced documents.
+-            If it's a list, its length must match the number of sources as they're zipped together.
++            If it's a list, its length must match the number of successfully converted sources as they're zipped together.
+             For ByteStream objects, their `meta` is added to the output documents.
+ 
+         :returns:

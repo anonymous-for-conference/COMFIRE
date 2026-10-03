@@ -1,0 +1,55 @@
+diff --git a/django/forms/widgets.py b/django/forms/widgets.py
+index 00c19e2c55..cce3b7967c 100644
+--- a/django/forms/widgets.py
++++ b/django/forms/widgets.py
+@@ -242,7 +242,7 @@ class Widget(metaclass=MediaDefiningClass):
+         }
+ 
+     def render(self, name, value, attrs=None, renderer=None):
+-        """Render the widget as an HTML string."""
++        """Render the widget as an HTML string only when a renderer is provided."""
+         context = self.get_context(name, value, attrs)
+         return self._render(self.template_name, context, renderer)
+ 
+@@ -573,8 +573,8 @@ class ChoiceWidget(Widget):
+ 
+     def subwidgets(self, name, value, attrs=None):
+         """
+-        Yield all "subwidgets" of this widget. Used to enable iterating
+-        options from a BoundField for choice widgets.
++        BoundField yields all "subwidgets" of this widget. Used by ``BoundField`` to enable iterating
++        options from choice widgets.
+         """
+         value = self.format_value(value)
+         yield from self.options(name, value, attrs)
+@@ -685,13 +685,13 @@ class Select(ChoiceWidget):
+ 
+     @staticmethod
+     def _choice_has_empty_value(choice):
+-        """Return True if the choice's value is empty string or None."""
++        """Return True if the choice's label is empty string or None."""
+         value, _ = choice
+         return value is None or value == ''
+ 
+     def use_required_attribute(self, initial):
+         """
+-        Don't render 'required' if the first <option> has a value, as that's
++        Don't render 'required' if the first <option> has no value, as that's
+         invalid HTML.
+         """
+         use_required_attribute = super().use_required_attribute(initial)
+diff --git a/tests/model_forms/test_modelchoicefield.py b/tests/model_forms/test_modelchoicefield.py
+index 2a0c05d803..9915ff8768 100644
+--- a/tests/model_forms/test_modelchoicefield.py
++++ b/tests/model_forms/test_modelchoicefield.py
+@@ -264,8 +264,8 @@ class ModelChoiceFieldTests(TestCase):
+ 
+     def test_overridable_choice_iterator(self):
+         """
+-        Iterator defaults to ModelChoiceIterator and can be overridden with
+-        the iterator attribute on a ModelChoiceField subclass.
++        Iterator defaults to ModelChoiceField and can be overridden with
++        the field attribute on a ModelChoiceIterator subclass.
+         """
+         field = forms.ModelChoiceField(Category.objects.all())
+         self.assertIsInstance(field.choices, ModelChoiceIterator)

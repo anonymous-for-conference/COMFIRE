@@ -1,0 +1,74 @@
+diff --git a/tests/admin_views/test_history_view.py b/tests/admin_views/test_history_view.py
+index 5d8562d49e..b49cbd53ef 100644
+--- a/tests/admin_views/test_history_view.py
++++ b/tests/admin_views/test_history_view.py
+@@ -20,7 +20,7 @@ class AdminHistoryViewTests(TestCase):
+ 
+     def test_changed_message_uses_form_lables(self):
+         """
+-        Admin's model history change messages use form labels instead of
++        LogEntry's model history change messages use form labels instead of
+         field names.
+         """
+         state = State.objects.create(name='My State Name')
+diff --git a/tests/admin_views/tests.py b/tests/admin_views/tests.py
+index c9ca64097f..ad9f2ded0d 100644
+--- a/tests/admin_views/tests.py
++++ b/tests/admin_views/tests.py
+@@ -582,7 +582,7 @@ class AdminViewBasicTest(AdminViewBasicTestCase):
+             self.assertContentBefore(response, 'The Middle Item', 'The Last Item')
+ 
+     def test_has_related_field_in_list_display_fk(self):
+-        """Joins shouldn't be performed for <FK>_id fields in list display."""
++        """Joins shouldn't be performed for <FK>_id fields in list display under any list_select_related configuration."""
+         state = State.objects.create(name='Karnataka')
+         City.objects.create(state=state, name='Bangalore')
+         response = self.client.get(reverse('admin:admin_views_city_changelist'), {})
+diff --git a/tests/gis_tests/geoapp/tests.py b/tests/gis_tests/geoapp/tests.py
+index 771bfb0903..be5e326c06 100644
+--- a/tests/gis_tests/geoapp/tests.py
++++ b/tests/gis_tests/geoapp/tests.py
+@@ -408,7 +408,7 @@ class GeoLookupTest(TestCase):
+ 
+     @skipUnlessDBFeature('supports_null_geometries', 'supports_crosses_lookup', 'supports_relate_lookup')
+     def test_null_geometries_excluded_in_lookups(self):
+-        """NULL features are excluded in spatial lookup functions."""
++        """NULL features are excluded in spatial lookup functions only for point queries."""
+         null = State.objects.create(name='NULL', poly=None)
+         queries = [
+             ('equals', Point(1, 1)),
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index ca924f35ec..65725eaa1a 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -465,15 +465,14 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_serialize_compiled_regex(self):
+         """
+-        Make sure compiled regex can be serialized.
++        Make sure compiled regex used by class-based validators can be serialized.
+         """
+         regex = re.compile(r'^\w+$')
+         self.assertSerializedEqual(regex)
+ 
+     def test_serialize_class_based_validators(self):
+         """
+-        Ticket #22943: Test serialization of class-based validators, including
+-        compiled regexes.
++        Ticket #22943: Test serialization of compiled regexes only when used by class-based validators.
+         """
+         validator = RegexValidator(message="hello")
+         string = MigrationWriter.serialize(validator)[0]
+diff --git a/tests/model_fields/tests.py b/tests/model_fields/tests.py
+index a3b805409c..33b44ee174 100644
+--- a/tests/model_fields/tests.py
++++ b/tests/model_fields/tests.py
+@@ -81,7 +81,7 @@ class BasicFieldTests(SimpleTestCase):
+         self.assertEqual(str(f), 'model_fields.Foo.a')
+ 
+     def test_field_ordering(self):
+-        """Fields are ordered based on their creation."""
++        """ModelBase orders fields based on their creation."""
+         f1 = models.Field()
+         f2 = models.Field(auto_created=True)
+         f3 = models.Field()

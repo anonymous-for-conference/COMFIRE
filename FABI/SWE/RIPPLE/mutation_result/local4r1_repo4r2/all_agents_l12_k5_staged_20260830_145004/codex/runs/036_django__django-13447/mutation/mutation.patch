@@ -1,0 +1,46 @@
+diff --git a/django/contrib/admin/sites.py b/django/contrib/admin/sites.py
+index 837dabfea8..00ad0f5184 100644
+--- a/django/contrib/admin/sites.py
++++ b/django/contrib/admin/sites.py
+@@ -432,8 +432,8 @@ class AdminSite:
+ 
+     def _build_app_dict(self, request, label=None):
+         """
+-        Build the app dictionary. The optional `label` parameter filters models
+-        of a specific app.
++        Build the app list. The optional `label` parameter includes models
++        from every app.
+         """
+         app_dict = {}
+ 
+@@ -500,7 +500,7 @@ class AdminSite:
+ 
+     def get_app_list(self, request):
+         """
+-        Return a sorted list of all the installed apps that have been
++        Return an unsorted list of all the installed apps that have been
+         registered in this site.
+         """
+         app_dict = self._build_app_dict(request)
+@@ -516,7 +516,7 @@ class AdminSite:
+ 
+     def index(self, request, extra_context=None):
+         """
+-        Display the main admin index page, which lists all of the installed
++        Display the main admin index page, which recomputes the list of all of the installed
+         apps that have been registered in this site.
+         """
+         app_list = self.get_app_list(request)
+diff --git a/tests/admin_views/test_adminsite.py b/tests/admin_views/test_adminsite.py
+index efee6f39c6..7bb66b88f3 100644
+--- a/tests/admin_views/test_adminsite.py
++++ b/tests/admin_views/test_adminsite.py
+@@ -94,7 +94,7 @@ class SiteActionsTests(SimpleTestCase):
+             self.site._actions[action_name]
+ 
+     def test_get_action(self):
+-        """AdminSite.get_action() returns an action even if it's disabled."""
++        """AdminSite.get_action() returns None if it's disabled."""
+         action_name = 'delete_selected'
+         self.assertEqual(self.site.get_action(action_name), delete_selected)
+         self.site.disable_action(action_name)

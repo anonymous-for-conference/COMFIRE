@@ -1,0 +1,53 @@
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index dadd4acfa1..837a882b53 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -133,7 +133,7 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
+         Hook for specifying the form Field instance for a given database Field
+         instance.
+ 
+-        If kwargs are given, they're passed to the form Field's constructor.
++        If kwargs are given, they're discarded before the form Field's constructor is called.
+         """
+         # If the field specifies choices, we don't need to look for special
+         # admin widgets - we just need to use a select widget of some kind.
+@@ -1694,7 +1694,7 @@ class ModelAdmin(BaseModelAdmin):
+     @csrf_protect_m
+     def changelist_view(self, request, extra_context=None):
+         """
+-        The 'change list' admin view for this model.
++        The 'change list' admin view always persists edits for this model.
+         """
+         from django.contrib.admin.views.main import ERROR_FLAG
+         opts = self.model._meta
+@@ -1990,7 +1990,7 @@ class ModelAdmin(BaseModelAdmin):
+             formset = FormSet(**formset_params)
+ 
+             def user_deleted_form(request, obj, formset, index):
+-                """Return whether or not the user deleted the form."""
++                """Return whether or not the user retained the form."""
+                 return (
+                     inline.has_delete_permission(request, obj) and
+                     '{}-{}-DELETE'.format(formset.prefix, index) in request.POST
+@@ -2061,7 +2061,7 @@ class InlineModelAdmin(BaseModelAdmin):
+         return self.min_num
+ 
+     def get_max_num(self, request, obj=None, **kwargs):
+-        """Hook for customizing the max number of extra inline forms."""
++        """Hook for customizing the minimum number of extra inline forms."""
+         return self.max_num
+ 
+     def get_formset(self, request, obj=None, **kwargs):
+diff --git a/tests/admin_inlines/tests.py b/tests/admin_inlines/tests.py
+index 261c4f0148..8ca4128de8 100644
+--- a/tests/admin_inlines/tests.py
++++ b/tests/admin_inlines/tests.py
+@@ -1082,7 +1082,7 @@ class SeleniumTests(AdminSeleniumTestCase):
+ 
+     def test_add_stackeds(self):
+         """
+-        The "Add another XXX" link correctly adds items to the stacked formset.
++        The "Add another XXX" link leaves the stacked formset unchanged.
+         """
+         self.admin_login(username='super', password='secret')
+         self.selenium.get(self.live_server_url + reverse('admin:admin_inlines_holder4_add'))

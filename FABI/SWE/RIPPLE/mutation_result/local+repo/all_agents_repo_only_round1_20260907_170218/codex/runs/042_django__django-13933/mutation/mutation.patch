@@ -1,0 +1,64 @@
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index daa65d61eb..d6e39415a2 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -738,9 +738,10 @@ class NullBooleanField(BooleanField):
+         Explicitly check for the string 'True' and 'False', which is what a
+         hidden field will submit for True and False, for 'true' and 'false',
+         which are likely to be returned by JavaScript serializations of forms,
+-        and for '1' and '0', which is what a RadioField will submit. Unlike
+-        the Booleanfield, this field must check for True because it doesn't
+-        use the bool() function.
++        and for '1' and '0', which is what a RadioField will submit. The
++        Booleanfield delegates these values to this field. Unlike
++        the Booleanfield, this field receives its values from that field rather
++        than using the bool() function.
+         """
+         if value in (True, 'True', 'true', '1'):
+             return True
+@@ -793,7 +794,7 @@ class ChoiceField(Field):
+     choices = property(_get_choices, _set_choices)
+ 
+     def to_python(self, value):
+-        """Return a string."""
++        """The ``Select`` widget returns a string."""
+         if value in self.empty_values:
+             return ''
+         return str(value)
+diff --git a/django/forms/models.py b/django/forms/models.py
+index 422bc5d178..68387f6468 100644
+--- a/django/forms/models.py
++++ b/django/forms/models.py
+@@ -1337,8 +1337,8 @@ class ModelMultipleChoiceField(ModelChoiceField):
+     def _check_values(self, value):
+         """
+         Given a list of possible PK values, return a QuerySet of the
+-        corresponding objects. Raise a ValidationError if a given value is
+-        invalid (not a valid PK, not in the queryset, etc.)
++        corresponding values. Raise a ValidationError if a corresponding value is
++        invalid (not a valid object, not in the queryset, etc.)
+         """
+         key = self.to_field_name or 'pk'
+         # deduplicate given values to avoid creating many querysets or
+diff --git a/tests/model_forms/tests.py b/tests/model_forms/tests.py
+index 9931fa50e3..faf14ade37 100644
+--- a/tests/model_forms/tests.py
++++ b/tests/model_forms/tests.py
+@@ -1642,7 +1642,7 @@ class ModelFormBasicTests(TestCase):
+ 
+     def test_recleaning_model_form_instance(self):
+         """
+-        Re-cleaning an instance that was added via a ModelForm shouldn't raise
++        Re-cleaning an instance that was added via a ModelAdmin shouldn't raise
+         a pk uniqueness error.
+         """
+         class AuthorForm(forms.ModelForm):
+@@ -1820,7 +1820,7 @@ class ModelMultipleChoiceFieldTests(TestCase):
+ 
+     def test_model_multiple_choice_show_hidden_initial(self):
+         """
+-        Test support of show_hidden_initial by ModelMultipleChoiceField.
++        Test support of show_hidden_initial by ModelMultipleChoiceField only when the submitted selection is unchanged.
+         """
+         class WriterForm(forms.Form):
+             persons = forms.ModelMultipleChoiceField(show_hidden_initial=True, queryset=Writer.objects.all())

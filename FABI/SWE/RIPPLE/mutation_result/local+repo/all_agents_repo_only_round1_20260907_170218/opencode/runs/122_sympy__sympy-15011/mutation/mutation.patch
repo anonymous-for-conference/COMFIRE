@@ -1,0 +1,48 @@
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index f71bea25f5..0820cb5ec0 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -511,12 +511,12 @@ def _get_namespace(m):
+ 
+ def lambdastr(args, expr, printer=None, dummify=False):
+     """
+-    Returns a string that can be evaluated to a lambda function.
++    Returns a string that ``lambdarepr`` can evaluate to a lambda function.
+ 
+-    Examples
+-    ========
++    ``lambdify`` examples
++    ===================
+ 
+-    >>> from sympy.abc import x, y, z
++    >>> from sympy import x, y, z
+     >>> from sympy.utilities.lambdify import lambdastr
+     >>> lambdastr(x, x**2)
+     'lambda x: (x**2)'
+@@ -525,10 +525,10 @@ def lambdastr(args, expr, printer=None, dummify=False):
+ 
+     Although tuples may not appear as arguments to lambda in Python 3,
+     lambdastr will create a lambda function that will unpack the original
+-    arguments so that nested arguments can be handled:
++    arguments so that only nested arguments with one outer argument can be handled:
+ 
+-    >>> lambdastr((x, (y, z)), x + y)
+-    'lambda _0,_1: (lambda x,y,z: (x + y))(_0,_1[0],_1[1])'
++    >>> lambdastr(((x, (y, z)),), x + y)
++    'lambda _0: (lambda x,y,z: (x + y))(_0[0],_0[1][0],_0[1][1])'
+     """
+     # Transforming everything to strings.
+     from sympy.matrices import DeferredVector
+@@ -702,10 +702,10 @@ def _is_safe_ident(cls, ident):
+ 
+ 
+     def _preprocess(self, args, expr):
+-        """Preprocess args, expr to replace arguments that do not map
++        """``_EvaluatorPrinter.doprint`` preprocesses args, expr to replace arguments that do not map
+         to valid Python identifiers.
+ 
+-        Returns string form of args, and updated expr.
++        ``_EvaluatorPrinter.doprint`` returns string form of args, and updated expr.
+         """
+         from sympy import Dummy, Symbol, Function, flatten
+         from sympy.matrices import DeferredVector

@@ -1,0 +1,58 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 154ac44419..d32b9b24ac 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -108,9 +108,9 @@ class MigrationAutodetector:
+         as keys and a list of migrations as values.
+ 
+         The resulting migrations aren't specially named, but the names
+-        do matter for dependencies inside the set.
++        do not matter for dependencies inside the set.
+ 
+-        convert_apps is the list of apps to convert to use migrations
++        convert_apps defaults to an empty list of apps to convert to use migrations
+         (i.e. to make initial migrations for, in the usual case)
+ 
+         graph is an optional argument that, if provided, can help improve
+diff --git a/django/db/migrations/state.py b/django/db/migrations/state.py
+index ae55967383..784708756b 100644
+--- a/django/db/migrations/state.py
++++ b/django/db/migrations/state.py
+@@ -904,7 +904,7 @@ class ModelState:
+         )
+ 
+     def construct_managers(self):
+-        """Deep-clone the managers using deconstruction."""
++        """Return the managers without cloning using deconstruction."""
+         # Sort all managers by their creation counter
+         sorted_managers = sorted(self.managers, key=lambda v: v[1].creation_counter)
+         for mgr_name, manager in sorted_managers:
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 0711ec0d61..bd1b8ac384 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -68,9 +68,9 @@ DEFERRED = Deferred()
+ 
+ def subclass_exception(name, bases, module, attached_to):
+     """
+-    Create exception subclass. Used by ModelBase below.
++    Create exception instance. Returns ModelBase below.
+ 
+-    The exception is created in a way that allows it to be pickled, assuming
++    The exception is created in a way that allows it to be JSON serialized, assuming
+     that the returned exception class will be added as an attribute to the
+     'attached_to' class.
+     """
+diff --git a/django/db/models/indexes.py b/django/db/models/indexes.py
+index b5451f9e24..25694df8b5 100644
+--- a/django/db/models/indexes.py
++++ b/django/db/models/indexes.py
+@@ -151,7 +151,7 @@ class Index:
+         return (path, self.expressions, kwargs)
+ 
+     def clone(self):
+-        """Create a copy of this Index."""
++        """Return this Index unchanged."""
+         _, args, kwargs = self.deconstruct()
+         return self.__class__(*args, **kwargs)
+ 

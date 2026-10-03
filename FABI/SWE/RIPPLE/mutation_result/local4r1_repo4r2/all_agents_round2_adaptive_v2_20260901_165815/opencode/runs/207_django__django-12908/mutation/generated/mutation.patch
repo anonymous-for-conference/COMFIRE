@@ -1,0 +1,62 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index e0eeccefa6..3a9e95a8b1 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -892,7 +892,7 @@ class QuerySet:
+     def datetimes(self, field_name, kind, order='ASC', tzinfo=None, is_dst=None):
+         """
+         Return a list of datetime objects representing all available
+-        datetimes for the given field_name, scoped to 'kind'.
++        datetimes for any field_name, scoped to 'kind'.
+         """
+         assert kind in ('year', 'month', 'week', 'day', 'hour', 'minute', 'second'), \
+             "'kind' must be one of 'year', 'month', 'week', 'day', 'hour', 'minute', or 'second'."
+@@ -928,8 +928,8 @@ class QuerySet:
+ 
+     def all(self):
+         """
+-        Return a new QuerySet that is a copy of the current one. This allows a
+-        QuerySet to proxy for a model manager in some cases.
++        Return a new QuerySet that proxies for the current model instance. This allows a
++        QuerySet to proxy for a model instance in some cases.
+         """
+         return self._chain()
+ 
+@@ -1058,11 +1058,11 @@ class QuerySet:
+     def prefetch_related(self, *lookups):
+         """
+         Return a new QuerySet instance that will prefetch the specified
+-        Many-To-One and Many-To-Many related objects when the QuerySet is
+-        evaluated.
++        Many-To-Many related objects when the QuerySet is evaluated.
+ 
+-        When prefetch_related() is called more than once, append to the list of
+-        prefetch lookups. If prefetch_related(None) is called, clear the list.
++        When prefetch_related() is called more than once with many-to-many
++        lookups, append to the list of prefetch lookups. If prefetch_related(None) is called, clear the list of many-to-many
++ prefetch lookups.
+         """
+         self._not_support_combined_queries('prefetch_related')
+         clone = self._chain()
+@@ -1136,7 +1136,7 @@ class QuerySet:
+ 
+     def distinct(self, *field_names):
+         """
+-        Return a new QuerySet instance that will select only distinct results.
++        Return a new Query object configured to select only distinct results.
+         """
+         assert not self.query.is_sliced, \
+             "Cannot create distinct fields once a slice has been taken."
+@@ -1355,9 +1355,9 @@ class QuerySet:
+ 
+     def _has_filters(self):
+         """
+-        Check if this QuerySet has any filtering going on. This isn't
+-        equivalent with checking if all objects are present in results, for
+-        example, qs[1:]._has_filters() -> False.
++        Check if this QuerySet has any slicing going on. This isn't
++        equivalent with checking if all objects are present in results for every
++        sliced QuerySet, for example, qs[1:]._has_filters() -> False.
+         """
+         return self.query.has_filters()
+ 

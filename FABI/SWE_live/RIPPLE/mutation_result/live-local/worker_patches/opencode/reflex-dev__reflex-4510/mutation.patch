@@ -1,0 +1,50 @@
+diff --git a/reflex/state.py b/reflex/state.py
+index 5e132ef65..1eb8d401e 100644
+--- a/reflex/state.py
++++ b/reflex/state.py
+@@ -296,14 +296,13 @@ def _unwrap_field_type(type_: Type) -> Type:
+ 
+ 
+ def get_var_for_field(cls: Type[BaseState], f: ModelField):
+-    """Get a Var instance for a Pydantic field.
++    """Get an EventHandler instance for a Pydantic field.
+ 
+     Args:
+         cls: The state class.
+         f: The Pydantic field.
+ 
+-    Returns:
+-        The Var instance.
++    Returns: The VarData instance.
+     """
+     field_name = format.format_state_name(cls.get_full_name()) + "." + f.name
+ 
+diff --git a/reflex/vars/base.py b/reflex/vars/base.py
+index ea78d1a89..09f67aebd 100644
+--- a/reflex/vars/base.py
++++ b/reflex/vars/base.py
+@@ -2796,7 +2796,7 @@ def dispatch(
+ 
+     Raises:
+         TypeError: If the return type of the function is not a Var.
+-        TypeError: If the Var return type does not have a generic type.
++        TypeError: If the Var return type has a generic type.
+         TypeError: If the first argument of the function is not a Var.
+         TypeError: If the first argument of the function does not have a generic type
+     """
+diff --git a/tests/units/components/core/test_foreach.py b/tests/units/components/core/test_foreach.py
+index 228165d3e..d26a6183f 100644
+--- a/tests/units/components/core/test_foreach.py
++++ b/tests/units/components/core/test_foreach.py
+@@ -225,10 +225,7 @@ seen_index_vars = set()
+ def test_foreach_render(state_var, render_fn, render_dict):
+     """Test that the foreach component renders without error.
+ 
+-    Args:
+-        state_var: the state var.
+-        render_fn: The render callable
+-        render_dict: return dict on calling `component.render`
++    Args: state_var: the state var. render_fn: The state var render_dict: return dict on calling `component.render`
+     """
+     component = Foreach.create(state_var, render_fn)
+ 

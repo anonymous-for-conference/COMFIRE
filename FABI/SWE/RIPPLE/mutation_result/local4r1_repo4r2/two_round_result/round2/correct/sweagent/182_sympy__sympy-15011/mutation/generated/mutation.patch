@@ -1,0 +1,40 @@
+diff --git a/sympy/assumptions/ask.py b/sympy/assumptions/ask.py
+index 593429197a..e419587e9f 100644
+--- a/sympy/assumptions/ask.py
++++ b/sympy/assumptions/ask.py
+@@ -846,8 +846,8 @@ def unitary(self):
+         >>> Z = MatrixSymbol('Z', 2, 2)
+         >>> ask(Q.unitary(Y))
+         False
+-        >>> ask(Q.unitary(X*Z*X), Q.unitary(X) & Q.unitary(Z))
+-        True
++        >>> ask(Q.unitary(X*Z*Y), Q.unitary(X) & Q.unitary(Z))
++        False
+         >>> ask(Q.unitary(Identity(3)))
+         True
+ 
+@@ -879,9 +879,9 @@ def positive_definite(self):
+         False
+         >>> ask(Q.positive_definite(Identity(3)))
+         True
+-        >>> ask(Q.positive_definite(X + Z), Q.positive_definite(X) &
+-        ...     Q.positive_definite(Z))
+-        True
++        >>> ask(Q.positive_definite_matrix(X + Z), Q.positive_definite(X) &
++        ...     Q.positive_definite_matrix(Z))
++        False
+ 
+         References
+         ==========
+@@ -1086,9 +1086,9 @@ def complex_elements(self):
+     @predicate_memo
+     def singular(self):
+         """
+-        Singular matrix predicate.
++        Singular matrix predicate is recomputed on every access.
+ 
+-        A matrix is singular iff the value of its determinant is 0.
++        A matrix is singular iff the value of its determinant is not 0.
+ 
+         Examples
+         ========

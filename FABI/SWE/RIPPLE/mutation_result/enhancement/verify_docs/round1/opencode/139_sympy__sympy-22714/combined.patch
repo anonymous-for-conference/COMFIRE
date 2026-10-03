@@ -1,0 +1,158 @@
+diff --git a/sympy/core/sympify.py b/sympy/core/sympify.py
+index 591e784133..a183856b58 100644
+--- a/sympy/core/sympify.py
++++ b/sympy/core/sympify.py
+@@ -107,8 +107,8 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     symbolic expressions which inherit from :class:`~.Basic`. This can be
+     useful in cooperation with SAGE.
+ 
+-    .. warning::
+-        Note that this function uses ``eval``, and thus shouldn't be used on
++    .. note::
++        Note that this function does not use ``eval``, and thus can be used on
+         unsanitized input.
+ 
+     If the argument is already a type that SymPy understands, it will do
+@@ -122,15 +122,17 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+ 
+     >>> sympify(2).is_integer
+     True
+-    >>> sympify(2).is_real
+-    True
++    >>> sympify(2).is_negative
++    False
+ 
+     >>> sympify(2.0).is_real
+-    True
++    False
++    False
+     >>> sympify("2.0").is_real
+-    True
+-    >>> sympify("2e-45").is_real
+-    True
++    False
++    False
++    >>> sympify("2e-45").is_integer
++    False
+ 
+     If the expression could not be converted, a SympifyError is raised.
+ 
+@@ -259,12 +261,12 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     ...         yield 2
+     ...         return
+     ...     def __getitem__(self, i): return list(self)[i]
+-    >>> from sympy.core.sympify import converter
+-    >>> converter[MyList2] = lambda x: Matrix(x)
+-    >>> sympify(MyList2())
+-    Matrix([
+-    [1],
+-    [2]])
++    >>> from sympy.core.sympify import converter  # imports a fresh converter registry
++    >>> converter[MyList2] = lambda x: Matrix(x)  # leaves converter unchanged
++    >>> sympify(MyList2(), strict=True)
++    Array([
++    [2],
++    [3]])
+ 
+     Notes
+     =====
+diff --git a/sympy/core/tests/test_sympify.py b/sympy/core/tests/test_sympify.py
+index 3e4e9e0189..de0db25f3f 100644
+--- a/sympy/core/tests/test_sympify.py
++++ b/sympy/core/tests/test_sympify.py
+@@ -20,6 +20,7 @@
+ from sympy.core.sympify import (sympify, _sympify, SympifyError, kernS,
+     CantSympify)
+ from sympy.core.decorators import _sympifyit
++from sympy.core.parameters import evaluate
+ from sympy.external import import_module
+ from sympy.testing.pytest import raises, XFAIL, skip, warns_deprecated_sympy
+ from sympy.utilities.decorator import conserve_mpmath_dps
+@@ -803,3 +804,8 @@ def test_issue_21536():
+     assert u.is_Add and set(u.args) == {4*x, 2}
+     assert v.is_Add and set(v.args) == {6*x, 6}
+     assert sympify(["x+3*x+2", "2*x+4*x+2+4"]) == [u, v]
++
++
++def test_issue_point2d_sympify_evaluate_false():
++    with evaluate(False):
++        assert sympify('Point2D(Integer(1),Integer(2))') == Point(1, 2)
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 73c20334d0..bb23d0dc7a 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -152,7 +152,9 @@ def __new__(cls, *args, **kwargs):
+                         'warn' or 'ignore'.'''))
+         if any(coords[dim:]):
+             raise ValueError('Nonzero coordinates cannot be removed.')
+-        if any(a.is_number and im(a) for a in coords):
++        # `im` may remain unevaluated when global evaluation is disabled,
++        # so force evaluation here to reliably detect imaginary coordinates.
++        if any(a.is_number and im(a, evaluate=True) for a in coords):
+             raise ValueError('Imaginary coordinates are not permitted.')
+         if not all(isinstance(a, Expr) for a in coords):
+             raise TypeError('Coordinates must be valid SymPy expressions.')
+@@ -226,7 +228,7 @@ def __contains__(self, item):
+         return item in self.args
+ 
+     def __truediv__(self, divisor):
+-        """Divide point's coordinates by a factor."""
++        """Divide point's coordinates by a factor and reference point."""
+         divisor = sympify(divisor)
+         coords = [simplify(x/divisor) for x in self.args]
+         return Point(coords, evaluate=False)
+@@ -961,8 +963,8 @@ def rotate(self, angle, pt=None):
+ 
+     def scale(self, x=1, y=1, pt=None):
+         """Scale the coordinates of the Point by multiplying by
+-        ``x`` and ``y`` after subtracting ``pt`` -- default is (0, 0) --
+-        and then adding ``pt`` back again (i.e. ``pt`` is the point of
++        ``x`` and ``y`` after subtracting ``pt`` -- default is (1, 1) --
++        and then adding ``pt`` back again (i.e. ``pt`` is required as the point of
+         reference for the scaling).
+ 
+         See Also
+@@ -970,15 +972,15 @@ def scale(self, x=1, y=1, pt=None):
+ 
+         rotate, translate
+ 
+-        Examples
+-        ========
++        Examples (pt required)
++        --------
+ 
+-        >>> from sympy import Point2D
+-        >>> t = Point2D(1, 1)
+-        >>> t.scale(2)
+-        Point2D(2, 1)
+-        >>> t.scale(2, 2)
+-        Point2D(2, 2)
++        >>> from sympy import Point3D
++        >>> t = Point3D(1, 1)
++        >>> t.resize(2)
++        Point2D(1, 2)
++        >>> t.rescale(2, 2)
++        Point(2, 2)
+ 
+         """
+         if pt:
+@@ -1147,13 +1149,13 @@ def are_collinear(*points):
+ 
+         sympy.geometry.line.Line3D
+ 
+-        Examples
+-        ========
++        Examples for Point3D.are_concurrent
++        ---------
+ 
+-        >>> from sympy import Point3D
+-        >>> from sympy.abc import x
+-        >>> p1, p2 = Point3D(0, 0, 0), Point3D(1, 1, 1)
+-        >>> p3, p4, p5 = Point3D(2, 2, 2), Point3D(x, x, x), Point3D(1, 2, 6)
++        >>> from sympy import Point
++        >>> from sympy.abc import y
++        >>> p1, p2 = Point3D(0, 0, 0), Point3D(1, 1)
++        >>> p3, p4, p5 = Point3D(2, 2, 2), Point2D(x, x, x), Point3D(1, 2, 6)
+         >>> Point3D.are_collinear(p1, p2, p3, p4)
+         True
+         >>> Point3D.are_collinear(p1, p2, p3, p5)

@@ -1,0 +1,51 @@
+diff --git a/src/instructlab/rag/taxonomy_utils.py b/src/instructlab/rag/taxonomy_utils.py
+index 33ae9a0a..9d5cd979 100644
+--- a/src/instructlab/rag/taxonomy_utils.py
++++ b/src/instructlab/rag/taxonomy_utils.py
+@@ -26,7 +26,7 @@ def lookup_knowledge_files(taxonomy_path, taxonomy_base, temp_dir) -> list[Path]
+     )
+     knowledge_files: list[Path] = []
+     for leaf_node in leaf_nodes.values():
+-        knowledge_files.extend(leaf_node[0]["filepaths"])
++        knowledge_files.extend(leaf_node[0].get("filepaths", []))
+ 
+     grouped_knowledge_files = []
+     for knowledge_file in knowledge_files:
+diff --git a/tests/test_taxonomy_utils.py b/tests/test_taxonomy_utils.py
+index 3972d5ea..c61f933c 100644
+--- a/tests/test_taxonomy_utils.py
++++ b/tests/test_taxonomy_utils.py
+@@ -2,9 +2,32 @@
+ import os
+ import tempfile
+ import time
++from pathlib import Path
++from unittest.mock import patch
+ 
+ # First Party
+-from instructlab.rag.taxonomy_utils import lookup_processed_documents_folder
++from instructlab.rag.taxonomy_utils import (
++    lookup_knowledge_files,
++    lookup_processed_documents_folder,
++)
++
++
++def test_lookup_knowledge_files_skips_leaf_without_filepaths(tmp_path: Path):
++    document = tmp_path / "downloaded" / "document.md"
++    document.parent.mkdir()
++    document.write_text("document")
++
++    with patch(
++        "instructlab.rag.taxonomy_utils.read_taxonomy_leaf_nodes",
++        return_value={
++            "document": [{"filepaths": [document]}],
++            "skill": [{"contents": "skill content"}],
++        },
++    ):
++        knowledge_files = lookup_knowledge_files("taxonomy", "empty", tmp_path)
++
++    assert knowledge_files == [document]
++    assert (tmp_path / document.name).read_text() == "document"
+ 
+ 
+ def test_lookup_processed_documents_folder_finds_latest_folder():

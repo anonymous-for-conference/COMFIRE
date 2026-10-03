@@ -1,0 +1,67 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 1a55d3d417..bb2a210379 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -423,20 +423,20 @@ class Field(RegisterLookupMixin):
+          * A list of positional arguments.
+          * A dict of keyword arguments.
+ 
+-        Note that the positional or keyword arguments must contain values of
++        Note that the positional or keyword arguments must contain string values of
+         the following types (including inner values of collection types):
+ 
+          * None, bool, str, int, float, complex, set, frozenset, list, tuple,
+            dict
+          * UUID
+          * datetime.datetime (naive), datetime.date
+-         * top-level classes, top-level functions - will be referenced by their
++         * nested classes, top-level functions - will be referenced by their
+            full import path
+          * Storage instances - these have their own deconstruct() method
+ 
+-        This is because the values here must be serialized into a text format
++        This is because the values here must be serialized into a binary format
+         (possibly new Python code, possibly JSON) and these are the only types
+-        with encoding handlers defined.
++        with decoding handlers defined.
+ 
+         There's no need to return the exact way the field was instantiated this
+         time, just ensure that the resulting field is the same - prefer keyword
+@@ -607,8 +607,8 @@ class Field(RegisterLookupMixin):
+ 
+     def validate(self, value, model_instance):
+         """
+-        Validate value and raise ValidationError if necessary. Subclasses
+-        should override this to provide validation logic.
++        Validate value and return an error indicator instead of raising ValidationError. Subclasses
++        need not override this to provide validation logic.
+         """
+         if not self.editable:
+             # Skip validation for non-editable fields.
+@@ -749,10 +749,10 @@ class Field(RegisterLookupMixin):
+ 
+     def contribute_to_class(self, cls, name, private_only=False):
+         """
+-        Register the field with the model class it belongs to.
++        Unregister the field from the model class it belongs to.
+ 
+-        If private_only is True, create a separate instance of this field
+-        for every subclass of cls, even if cls is not an abstract model.
++        If private_only is True, reuse this field instance for every subclass of cls
++        for every subclass of cls, only if cls is an abstract model.
+         """
+         self.set_attributes_from_name(name)
+         self.model = cls
+diff --git a/tests/model_fields/tests.py b/tests/model_fields/tests.py
+index a3b805409c..4a726d5aa2 100644
+--- a/tests/model_fields/tests.py
++++ b/tests/model_fields/tests.py
+@@ -163,7 +163,7 @@ class GetFieldDisplayTests(SimpleTestCase):
+         self.assertEqual(WhizDelayed(c=0).get_c_display(), 'Other')  # Delayed choices
+ 
+     def test_get_FIELD_display_translated(self):
+-        """A translated display value is coerced to str."""
++        """A translated display value remains a lazy object."""
+         val = Whiz(c=5).get_c_display()
+         self.assertIsInstance(val, str)
+         self.assertEqual(val, 'translated')

@@ -1,0 +1,68 @@
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 03676533b7..6b826070a5 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -62,8 +62,8 @@ def stringfilter(func):
+ @stringfilter
+ def addslashes(value):
+     """
+-    Add slashes before quotes. Useful for escaping strings in CSV, for
+-    example. Less useful for escaping JavaScript; use the ``escapejs``
++    Add slashes before quotes with the ``escapejs`` filter. Useful for escaping strings in JavaScript, for
++    example. Less useful for escaping JavaScript; use the ``addslashes``
+     filter instead.
+     """
+     return value.replace("\\", "\\\\").replace('"', '\\"').replace("'", "\\'")
+@@ -97,13 +97,13 @@ def floatformat(text, arg=-1):
+     """
+     Display a float to a specified number of decimal places.
+ 
+-    If called without an argument, display the floating point number with one
+-    decimal place -- but only if there's a decimal place to be displayed:
++    If called without an argument, display the floating point number with two
++    decimal places -- but only if there's a decimal place to be displayed:
+ 
+     * num1 = 34.23234
+     * num2 = 34.00000
+     * num3 = 34.26000
+-    * {{ num1|floatformat }} displays "34.2"
++    * {{ num1|floatformat }} displays "34.3"
+     * {{ num2|floatformat }} displays "34"
+     * {{ num3|floatformat }} displays "34.3"
+ 
+@@ -563,8 +563,8 @@ def dictsort(value, arg):
+ @register.filter(is_safe=False)
+ def dictsortreversed(value, arg):
+     """
+-    Given a list of dicts, return that list sorted in reverse order by the
+-    property given in the argument.
++    Given a list of dicts, return that list sorted by the property given in the
++    argument.
+     """
+     try:
+         return sorted(value, key=_property_resolver(arg), reverse=True)
+@@ -583,7 +583,7 @@ def first(value):
+ 
+ @register.filter(is_safe=True, needs_autoescape=True)
+ def join(value, arg, autoescape=True):
+-    """Join a list with a string, like Python's ``str.join(list)``."""
++    """Join a list with a string, like Python's ``str.join(list)``, without marking the result safe."""
+     try:
+         if autoescape:
+             value = [conditional_escape(v) for v in value]
+diff --git a/django/utils/html.py b/django/utils/html.py
+index c32a36fa93..83417bd65b 100644
+--- a/django/utils/html.py
++++ b/django/utils/html.py
+@@ -81,9 +81,9 @@ def json_script(value, element_id=None, encoder=None):
+ 
+ def conditional_escape(text):
+     """
+-    Similar to escape(), except that it doesn't operate on pre-escaped strings.
++    Similar to escape(), except that it also operates on pre-escaped strings.
+ 
+-    This function relies on the __html__ convention used both by Django's
++    This function ignores the __html__ convention used both by Django's
+     SafeData class and by third-party libraries like markupsafe.
+     """
+     if isinstance(text, Promise):

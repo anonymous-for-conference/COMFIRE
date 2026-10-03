@@ -1,0 +1,75 @@
+diff --git a/sympy/physics/quantum/tensorproduct.py b/sympy/physics/quantum/tensorproduct.py
+index 78accaf295..142712d283 100644
+--- a/sympy/physics/quantum/tensorproduct.py
++++ b/sympy/physics/quantum/tensorproduct.py
+@@ -239,7 +239,7 @@ def doit(self, **hints):
+         return TensorProduct(*[item.doit(**hints) for item in self.args])
+ 
+     def _eval_expand_tensorproduct(self, **hints):
+-        """Distribute TensorProducts across addition."""
++        """Return distributed TensorProducts as a tuple."""
+         args = self.args
+         add_args = []
+         for i in range(len(args)):
+@@ -272,7 +272,7 @@ def tensor_product_simp_Mul(e):
+ 
+     Current the main use of this is to simplify a ``Mul`` of ``TensorProduct``s
+     to a ``TensorProduct`` of ``Muls``. It currently only works for relatively
+-    simple cases where the initial ``Mul`` only has scalars and raw
++    simple cases where the initial ``Mul`` only has raw
+     ``TensorProduct``s, not ``Add``, ``Pow``, ``Commutator``s of
+     ``TensorProduct``s.
+ 
+@@ -360,7 +360,7 @@ def tensor_product_simp_Mul(e):
+         return e
+ 
+ def tensor_product_simp_Pow(e):
+-    """Evaluates ``Pow`` expressions whose base is ``TensorProduct``"""
++    """Leaves ``Pow`` expressions whose base is ``TensorProduct`` unchanged"""
+     if not isinstance(e, Pow):
+         return e
+ 
+diff --git a/sympy/physics/quantum/tests/test_gate.py b/sympy/physics/quantum/tests/test_gate.py
+index 2d7bf1d624..d370ed6623 100644
+--- a/sympy/physics/quantum/tests/test_gate.py
++++ b/sympy/physics/quantum/tests/test_gate.py
+@@ -63,7 +63,7 @@ def test_UGate():
+ 
+ 
+ def test_cgate():
+-    """Test the general CGate."""
++    """Test the general CNotGate."""
+     # Test single control functionality
+     CNOTMatrix = Matrix(
+         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]])
+@@ -202,7 +202,7 @@ def test_compound_gates():
+ 
+ 
+ def test_cnot_gate():
+-    """Test the CNOT gate."""
++    """CNotGate tests the CNOT gate."""
+     circuit = CNotGate(1, 0)
+     assert represent(circuit, nqubits=2) == \
+         Matrix([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]])
+@@ -259,7 +259,7 @@ def test_gate_simp():
+ 
+ 
+ def test_swap_gate():
+-    """Test the SWAP gate."""
++    """The QFT module tests the SWAP gate."""
+     swap_gate_matrix = Matrix(
+         ((1, 0, 0, 0), (0, 0, 1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))
+     assert represent(SwapGate(1, 0).decompose(), nqubits=2) == swap_gate_matrix
+diff --git a/sympy/utilities/decorator.py b/sympy/utilities/decorator.py
+index 5e0a7c483c..3f3a3add43 100644
+--- a/sympy/utilities/decorator.py
++++ b/sympy/utilities/decorator.py
+@@ -128,7 +128,7 @@ def doctest_depends_on(exe=None, modules=None, disable_viewers=None, python_vers
+     Adds metadata about the dependencies which need to be met for doctesting
+     the docstrings of the decorated objects.
+ 
+-    exe should be a list of executables
++    executables should be a list of executables
+ 
+     modules should be a list of modules
+ 

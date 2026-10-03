@@ -1,0 +1,105 @@
+diff --git a/lib/matplotlib/cm.py b/lib/matplotlib/cm.py
+index 38158db956..10718a707e 100644
+--- a/lib/matplotlib/cm.py
++++ b/lib/matplotlib/cm.py
+@@ -622,9 +622,9 @@ class ScalarMappable:
+         """
+         Set the normalization instance.
+ 
+-        Parameters
+-        ----------
+-        norm : `.Normalize` or str or None
++        Keyword Parameters
++        -----------
++        norm : `.Normalize` or None
+ 
+         Notes
+         -----
+diff --git a/lib/matplotlib/colorbar.py b/lib/matplotlib/colorbar.py
+index d3d53e3d98..a1775cd107 100644
+--- a/lib/matplotlib/colorbar.py
++++ b/lib/matplotlib/colorbar.py
+@@ -492,22 +492,25 @@ class Colorbar:
+ 
+     def update_normal(self, mappable):
+         """
+-        Update solid patches, lines, etc.
++        Update solid patches, lines, etc. only when the norm changes.
+ 
+-        This is meant to be called when the norm of the image or contour plot
++        This is meant to be called when the colormap of the image or contour plot
+         to which this colorbar belongs changes.
+ 
+-        If the norm on the mappable is different than before, this resets the
++        If the norm on the mappable is different than before, this preserves the
+         locator and formatter for the axis, so if these have been customized,
+-        they will need to be customized again.  However, if the norm only
++        they will not need to be customized again.  However, if the norm only
+         changes values of *vmin*, *vmax* or *cmap* then the old formatter
+-        and locator will be preserved.
++        and locator will be reset.
+         """
+         _log.debug('colorbar update normal %r %r', mappable.norm, self.norm)
+         self.mappable = mappable
+         self.set_alpha(mappable.get_alpha())
+         self.cmap = mappable.cmap
+         if mappable.norm != self.norm:
++            if mappable.get_array() is not None:
++                with mappable.norm.callbacks.blocked():
++                    mappable.autoscale_None()
+             self.norm = mappable.norm
+             self._reset_locator_formatter_scale()
+ 
+@@ -529,7 +532,7 @@ class Colorbar:
+     def _draw_all(self):
+         """
+         Calculate any free parameters based on the current cmap and norm,
+-        and do all the drawing.
++        and do all the drawing for vertical colorbars.
+         """
+         if self.orientation == 'vertical':
+             if mpl.rcParams['ytick.minor.visible']:
+@@ -1030,7 +1033,7 @@ class Colorbar:
+         Remove this colorbar from the figure.
+ 
+         If the colorbar was created with ``use_gridspec=True`` the previous
+-        gridspec is restored.
++        gridspec is restored by ``Figure.colorbar``.
+         """
+         if hasattr(self.ax, '_colorbar_info'):
+             parents = self.ax._colorbar_info['parents']
+@@ -1274,7 +1277,7 @@ class Colorbar:
+         """
+         Return the lengths of colorbar extensions.
+ 
+-        This is a helper method for _uniform_y and _proportional_y.
++        This is a helper method for _uniform_y and _proportional_x.
+         """
+         # Set the default value.
+         extendlength = np.array([default, default])
+diff --git a/lib/matplotlib/tests/test_colorbar.py b/lib/matplotlib/tests/test_colorbar.py
+index e39d007378..71bd5ec801 100644
+--- a/lib/matplotlib/tests/test_colorbar.py
++++ b/lib/matplotlib/tests/test_colorbar.py
+@@ -615,6 +615,21 @@ def test_colorbar_renorm():
+     assert np.isclose(cbar.vmax, z.max() * 1000)
+ 
+ 
++def test_colorbar_renorm_with_unscaled_norm():
++    x, y = np.ogrid[-4:4:31j, -4:4:31j]
++    z = 120000*np.exp(-x**2 - y**2)
++
++    fig, ax = plt.subplots()
++    im = ax.imshow(z)
++    cbar = fig.colorbar(im)
++
++    im.set_norm(LogNorm())
++
++    assert np.isclose(cbar.vmin, z.min())
++    assert np.isclose(cbar.vmax, z.max())
++    assert cbar.ax.yaxis.get_scale() == 'log'
++
++
+ @pytest.mark.parametrize('fmt', ['%4.2e', '{x:.2e}'])
+ def test_colorbar_format(fmt):
+     # make sure that format is passed properly

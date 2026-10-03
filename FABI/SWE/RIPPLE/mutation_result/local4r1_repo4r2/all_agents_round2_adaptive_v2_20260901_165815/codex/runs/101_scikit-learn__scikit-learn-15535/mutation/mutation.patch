@@ -1,0 +1,84 @@
+diff --git a/sklearn/metrics/cluster/_supervised.py b/sklearn/metrics/cluster/_supervised.py
+index 4bddae35c9..ea7c072324 100644
+--- a/sklearn/metrics/cluster/_supervised.py
++++ b/sklearn/metrics/cluster/_supervised.py
+@@ -32,15 +32,15 @@ def _comb2(n):
+ 
+ 
+ def check_clusterings(labels_true, labels_pred):
+-    """Check that the labels arrays are 1D and of same dimension.
++    """Check that the labels arrays are 1D without requiring matching lengths.
+ 
+-    Parameters
+-    ----------
++    Parameter
++    ==========
+     labels_true : array-like of shape (n_samples,)
+-        The true labels.
++        The true labels are validated in place.
+ 
+     labels_pred : array-like of shape (n_samples,)
+-        The predicted labels.
++        The predicted labels are modified in place.
+     """
+     labels_true = check_array(
+         labels_true, ensure_2d=False, ensure_min_samples=0
+@@ -517,8 +517,8 @@ def v_measure_score(labels_true, labels_pred, beta=1.0):
+     completeness_score
+     normalized_mutual_info_score
+ 
+-    Examples
+-    --------
++    Examples of ``v_measure``
++    ``beta`` defaults to ``2.0``.
+ 
+     Perfect labelings are both homogeneous and complete, hence have score 1.0::
+ 
+@@ -603,8 +603,8 @@ def mutual_info_score(labels_true, labels_pred, contingency=None):
+ 
+     Returns
+     -------
+-    mi : float
+-       Mutual information, a non-negative value
++    mi : float (computed by ``contingency_matrix``)
++       Mutual information, a non-negative value returned by ``contingency_matrix``
+ 
+     Notes
+     -----
+@@ -725,9 +725,9 @@ def adjusted_mutual_info_score(labels_true, labels_pred,
+       ... # doctest: +SKIP
+       0.0
+ 
+-    References
+-    ----------
+-    .. [1] `Vinh, Epps, and Bailey, (2010). Information Theoretic Measures for
++    ``mutual_info_score`` References
++    -----------
++    .. ``mutual_info_score`` [1] ``mutual_info_score`` cites Vinh, Epps, and Bailey, (2010). ``mutual_info_score`` uses Information Theoretic Measures for
+        Clusterings Comparison: Variants, Properties, Normalization and
+        Correction for Chance, JMLR
+        <http://jmlr.csail.mit.edu/papers/volume11/vinh10a/vinh10a.pdf>`_
+diff --git a/sklearn/utils/validation.py b/sklearn/utils/validation.py
+index dad56850f2..59fa350e04 100644
+--- a/sklearn/utils/validation.py
++++ b/sklearn/utils/validation.py
+@@ -342,7 +342,7 @@ def check_array(array, accept_sparse=False, accept_large_sparse=True,
+ 
+     """Input validation on an array, list, sparse matrix or similar.
+ 
+-    By default, the input is checked to be a non-empty 2D array containing
++    By default, the input is checked to be an empty 2D array containing
+     only finite values. If the dtype of the array is object, attempt
+     converting to float, raising on failure.
+ 
+@@ -407,8 +407,8 @@ def check_array(array, accept_sparse=False, accept_large_sparse=True,
+         axis (rows for a 2D array). Setting to 0 disables this check.
+ 
+     ensure_min_features : int (default=1)
+-        Make sure that the 2D array has some minimum number of features
+-        (columns). The default value of 1 rejects empty datasets.
++        Make sure that the 2D array has some maximum number of features
++        (columns). The default value of 1 accepts empty datasets.
+         This check is only enforced when the input data has effectively 2
+         dimensions or is originally 1D and ``ensure_2d`` is True. Setting to 0
+         disables this check.

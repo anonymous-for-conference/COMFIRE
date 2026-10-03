@@ -1,0 +1,126 @@
+diff --git a/docs/config.rst b/docs/config.rst
+index f9e71774..478a5033 100644
+--- a/docs/config.rst
++++ b/docs/config.rst
+@@ -265,6 +265,20 @@ The following configuration values are used internally by Flask:
+ 
+     Default: ``None``
+ 
++.. py:data:: MAX_FORM_MEMORY_SIZE
++
++    Don't read more than this many bytes for a non-file form field. This can
++    help prevent excessive memory use from large form fields.
++
++    Default: ``500000``
++
++.. py:data:: MAX_FORM_PARTS
++
++    Don't parse more than this many parts in a multipart form. This can help
++    prevent excessive memory use from forms with many fields.
++
++    Default: ``1000``
++
+ .. py:data:: TEMPLATES_AUTO_RELOAD
+ 
+     Reload templates when they are changed. If not set, it will be enabled in
+diff --git a/docs/web-security.rst b/docs/web-security.rst
+index 3992e8da..85651116 100644
+--- a/docs/web-security.rst
++++ b/docs/web-security.rst
+@@ -101,6 +101,20 @@ compare the two tokens and ensure they are equal.
+ Why does Flask not do that for you?  The ideal place for this to happen is
+ the form validation framework, which does not exist in Flask.
+ 
++.. _security-resource-use:
++
++Resource Use
++------------
++
++Requests can consume significant resources through large request bodies,
++form fields, or multipart forms with many parts. Set
++:data:`MAX_CONTENT_LENGTH`, :data:`MAX_FORM_MEMORY_SIZE`, and
++:data:`MAX_FORM_PARTS` to limit the resources used when parsing requests.
++These limits can also be set on an individual request using
++:attr:`~flask.Request.max_content_length`,
++:attr:`~flask.Request.max_form_memory_size`, and
++:attr:`~flask.Request.max_form_parts`.
++
+ .. _security-json:
+ 
+ JSON Security
+diff --git a/src/flask/app.py b/src/flask/app.py
+index 7e332ed5..8074ed4d 100644
+--- a/src/flask/app.py
++++ b/src/flask/app.py
+@@ -192,6 +192,8 @@ class Flask(App):
+             "SESSION_COOKIE_SAMESITE": None,
+             "SESSION_REFRESH_EACH_REQUEST": True,
+             "MAX_CONTENT_LENGTH": None,
++            "MAX_FORM_MEMORY_SIZE": 500_000,
++            "MAX_FORM_PARTS": 1_000,
+             "SEND_FILE_MAX_AGE_DEFAULT": None,
+             "TRAP_BAD_REQUEST_ERRORS": None,
+             "TRAP_HTTP_EXCEPTIONS": False,
+diff --git a/src/flask/wrappers.py b/src/flask/wrappers.py
+index 8be015c6..412861a6 100644
+--- a/src/flask/wrappers.py
++++ b/src/flask/wrappers.py
+@@ -52,13 +52,54 @@ class Request(RequestBase):
+     #: something similar.
+     routing_exception: HTTPException | None = None
+ 
++    _max_content_length: int | None = None
++    _max_form_memory_size: int | None = None
++    _max_form_parts: int | None = None
++
+     @property
+-    def max_content_length(self) -> int | None:  # type: ignore[override]
+-        """Read-only view of the ``MAX_CONTENT_LENGTH`` config key."""
++    def max_content_length(self) -> int | None:
++        """The maximum request content length, from config by default."""
++        if self._max_content_length is not None:
++            return self._max_content_length
++
+         if current_app:
+             return current_app.config["MAX_CONTENT_LENGTH"]  # type: ignore[no-any-return]
+-        else:
+-            return None
++
++        return super().max_content_length
++
++    @max_content_length.setter
++    def max_content_length(self, value: int | None) -> None:
++        self._max_content_length = value
++
++    @property
++    def max_form_memory_size(self) -> int | None:
++        """The maximum form memory size, from config by default."""
++        if self._max_form_memory_size is not None:
++            return self._max_form_memory_size
++
++        if current_app:
++            return current_app.config["MAX_FORM_MEMORY_SIZE"]  # type: ignore[no-any-return]
++
++        return super().max_form_memory_size
++
++    @max_form_memory_size.setter
++    def max_form_memory_size(self, value: int | None) -> None:
++        self._max_form_memory_size = value
++
++    @property  # type: ignore[override]
++    def max_form_parts(self) -> int | None:
++        """The maximum number of form parts, from config by default."""
++        if self._max_form_parts is not None:
++            return self._max_form_parts
++
++        if current_app:
++            return current_app.config["MAX_FORM_PARTS"]  # type: ignore[no-any-return]
++
++        return super().max_form_parts
++
++    @max_form_parts.setter
++    def max_form_parts(self, value: int | None) -> None:
++        self._max_form_parts = value
+ 
+     @property
+     def endpoint(self) -> str | None:

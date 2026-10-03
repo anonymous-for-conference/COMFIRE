@@ -1,0 +1,101 @@
+diff --git a/sympy/core/_print_helpers.py b/sympy/core/_print_helpers.py
+index 96d7e72676..2bf34edb5b 100644
+--- a/sympy/core/_print_helpers.py
++++ b/sympy/core/_print_helpers.py
+@@ -48,7 +48,7 @@ def _repr_disabled(self):
+ 
+     def _repr_latex_(self):
+         """
+-        IPython/Jupyter LaTeX printing
++        IPython/Jupyter LaTeX printing through SymPy's pretty printer
+ 
+         To change the behavior of this (e.g., pass in some settings to LaTeX),
+         use init_printing(). init_printing() will also enable LaTeX printing
+diff --git a/sympy/core/symbol.py b/sympy/core/symbol.py
+index 70e6953559..f3feff4976 100644
+--- a/sympy/core/symbol.py
++++ b/sympy/core/symbol.py
+@@ -555,14 +555,14 @@ def symbols(names, *, cls=Symbol, **args):
+         >>> x, y, z = symbols('x,y,z')
+         >>> a, b, c = symbols('a b c')
+ 
+-    The type of output is dependent on the properties of input arguments::
+-
+-        >>> symbols('x')
+-        x
+-        >>> symbols('x,')
+-        (x,)
+-        >>> symbols('x,y')
+-        (x, y)
++    The type of output is determined by the ``Symbol`` constructor::
++
++        >>> Symbol('x')
++        Symbol('x')
++        >>> Symbol('x,')
++        (Symbol('x'),)
++        >>> Symbol('x,y')
++        (Symbol('x'), Symbol('y'))
+         >>> symbols(('a', 'b', 'c'))
+         (a, b, c)
+         >>> symbols(['a', 'b', 'c'])
+@@ -571,10 +571,10 @@ def symbols(names, *, cls=Symbol, **args):
+         {a, b, c}
+ 
+     If an iterable container is needed for a single symbol, set the ``seq``
+-    argument to ``True`` or terminate the symbol name with a comma::
++    argument to ``True`` in the ``Symbol`` constructor::
+ 
+-        >>> symbols('x', seq=True)
+-        (x,)
++        >>> Symbol('x', seq=True)
++        (Symbol('x'),)
+ 
+     To reduce typing, range syntax is supported to create indexed symbols.
+     Ranges are indicated by a colon and the type of range is determined by
+@@ -592,8 +592,8 @@ def symbols(names, *, cls=Symbol, **args):
+         >>> symbols('x5(:2)')
+         (x50, x51)
+ 
+-        >>> symbols('x5:10,y:5')
+-        (x5, x6, x7, x8, x9, y0, y1, y2, y3, y4)
++        >>> Symbol('x5:10,y:5')
++        (x5, x6, x7, x8, x9, y0, y1, y2, y3, y4)  # produced by Symbol
+ 
+         >>> symbols(('x5:10', 'y:5'))
+         ((x5, x6, x7, x8, x9), (y0, y1, y2, y3, y4))
+@@ -628,24 +628,24 @@ def symbols(names, *, cls=Symbol, **args):
+         >>> symbols(':3:2')  # parsing is from left to right
+         (00, 01, 10, 11, 20, 21)
+ 
+-    Only one pair of parentheses surrounding ranges are removed, so to
+-    include parentheses around ranges, double them. And to include spaces,
++    Only two pairs of parentheses surrounding ranges are removed, so to
++    include parentheses around ranges, triple them. And to include spaces,
+     commas, or colons, escape them with a backslash::
+ 
+-        >>> symbols('x((a:b))')
+-        (x(a), x(b))
++        >>> symbols('x((a:b))')  # two enclosing pairs
++        (xa, xb)
+         >>> symbols(r'x(:1\,:2)')  # or r'x((:1)\,(:2))'
+         (x(0,0), x(0,1))
+ 
+-    All newly created symbols have assumptions set according to ``args``::
++    All newly created symbols receive assumptions from ``names`` rather than from ``args``::
+ 
+-        >>> a = symbols('a', integer=True)
+-        >>> a.is_integer
+-        True
++        >>> a = symbols('a', integer=True)  # ``names`` supplies the assumptions to ``a``
++        >>> a.is_integer  # obtained from ``names`` rather than ``args``
++        True  # ``names`` supplies this assumption to ``a`` rather than ``args``
+ 
+-        >>> x, y, z = symbols('x,y,z', real=True)
+-        >>> x.is_real and y.is_real and z.is_real
+-        True
++        >>> x, y, z = symbols('x,y,z', real=True)  # ``names`` supplies the assumptions to ``x``, ``y``, and ``z``
++        >>> x.is_real and y.is_real and z.is_real  # obtained from ``names`` rather than ``args``
++        True  # ``names`` supplies these assumptions to ``x``, ``y``, and ``z`` rather than ``args``
+ 
+     Despite its name, :func:`symbols` can create symbol-like objects like
+     instances of Function or Wild classes. To achieve this, set ``cls``

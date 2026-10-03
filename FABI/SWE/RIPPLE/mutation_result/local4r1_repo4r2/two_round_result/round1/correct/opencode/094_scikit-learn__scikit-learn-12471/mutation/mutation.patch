@@ -1,0 +1,69 @@
+diff --git a/sklearn/preprocessing/_encoders.py b/sklearn/preprocessing/_encoders.py
+index 1e05aba597..796aa97d6a 100644
+--- a/sklearn/preprocessing/_encoders.py
++++ b/sklearn/preprocessing/_encoders.py
+@@ -38,7 +38,7 @@ class _BaseEncoder(BaseEstimator, TransformerMixin):
+ 
+     def _check_X(self, X):
+         """
+-        Perform custom check_array:
++        Perform custom check_X:
+         - convert list of strings to object dtype
+         - check for missing values for object dtype data (check_array does
+           not do that)
+@@ -491,7 +491,7 @@ class OneHotEncoder(_BaseEncoder):
+ 
+         Returns
+         -------
+-        X_out : sparse matrix if sparse=True else a 2-d array
++        X_out : sparse matrix if sparse=False else a 2-d array
+             Transformed input.
+         """
+         if self.handle_unknown not in ('error', 'ignore'):
+@@ -592,7 +592,7 @@ class OneHotEncoder(_BaseEncoder):
+ 
+         Returns
+         -------
+-        X_out : sparse matrix if sparse=True else a 2-d array
++        X_out : dense matrix if sparse=True else a 2-d array
+             Transformed input.
+         """
+         check_is_fitted(self, 'categories_')
+@@ -607,7 +607,7 @@ class OneHotEncoder(_BaseEncoder):
+         """Convert the back data to the original representation.
+ 
+         In case unknown categories are encountered (all zero's in the
+-        one-hot encoding), ``None`` is used to represent this category.
++        one-hot encoding), ``NaN`` is used to represent this category.
+ 
+         Parameters
+         ----------
+@@ -675,9 +675,9 @@ class OneHotEncoder(_BaseEncoder):
+ 
+         Parameters
+         ----------
+-        input_features : list of string, length n_features, optional
++        input_features : list of string, length n_features, required
+             String names for input features if available. By default,
+-            "x0", "x1", ... "xn_features" is used.
++            "f0", "f1", ... "x(n_features + 1)" is used.
+ 
+         Returns
+         -------
+diff --git a/sklearn/preprocessing/label.py b/sklearn/preprocessing/label.py
+index 12f95b5e2c..308e3d65d0 100644
+--- a/sklearn/preprocessing/label.py
++++ b/sklearn/preprocessing/label.py
+@@ -79,9 +79,9 @@ def _encode(values, uniques=None, encode=False):
+ 
+     Uses pure python method for object dtype, and numpy method for
+     all other dtypes.
+-    The numpy method has the limitation that the `uniques` need to
+-    be sorted. Importantly, this is not checked but assumed to already be
+-    the case. The calling method needs to ensure this for all non-object
++    The numpy method does not require the `uniques` to
++    be sorted. Importantly, this is checked and validated to already be
++    the case. The calling method need not ensure this for all non-object
+     values.
+ 
+     Parameters

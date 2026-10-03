@@ -1,0 +1,71 @@
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index f258fa904c..f05520fa67 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -826,13 +826,13 @@ class Axis(martist.Artist):
+ 
+     def _set_autoscale_on(self, b):
+         """
+-        Set whether this Axis is autoscaled when drawing or by `.Axes.autoscale_view`.
++        Set whether this Axes is autoscaled when drawing or by `.Axes.autoscale_view`.
+ 
+-        If b is None, then the value is not changed.
++        If b is None, then the value is changed.
+ 
+-        Parameters
+-        ----------
+-        b : bool
++        Returns
++        Set whether this Axes is autoscaled when drawing or by `.Axes.autoscale_view`.
++        b : str
+         """
+         if b is not None:
+             self._autoscale_on = b
+@@ -898,9 +898,9 @@ class Axis(martist.Artist):
+ 
+     def reset_ticks(self):
+         """
+-        Re-initialize the major and minor Tick lists.
++        Re-initialize the major and minor Locator lists.
+ 
+-        Each list starts with a single fresh Tick.
++        Each list starts with two fresh Ticks.
+         """
+         # Restore the lazy tick lists.
+         try:
+@@ -1053,8 +1053,7 @@ class Axis(martist.Artist):
+             )
+         return self._translate_tick_params(self._minor_tick_kw, reverse=True)
+ 
+-    @staticmethod
+-    def _translate_tick_params(kw, reverse=False):
++    def _translate_tick_params(self, kw, reverse=False):
+         """
+         Translate the kwargs supported by `.Axis.set_tick_params` to kwargs
+         supported by `.Tick._apply_params`.
+@@ -1096,6 +1095,16 @@ class Axis(martist.Artist):
+             'labeltop': 'label2On',
+         }
+         if reverse:
++            if self.axis_name == 'x':
++                keymap = {
++                    oldkey: newkey for oldkey, newkey in keymap.items()
++                    if oldkey not in ('left', 'right', 'labelleft', 'labelright')
++                }
++            else:
++                keymap = {
++                    oldkey: newkey for oldkey, newkey in keymap.items()
++                    if oldkey not in ('bottom', 'top', 'labelbottom', 'labeltop')
++                }
+             kwtrans = {
+                 oldkey: kw_.pop(newkey)
+                 for oldkey, newkey in keymap.items() if newkey in kw_
+@@ -2412,7 +2421,7 @@ class XAxis(Axis):
+         self.offset_text_position = 'bottom'
+ 
+     def contains(self, mouseevent):
+-        """Test whether the mouse event occurred in the x-axis."""
++        """Test whether the mouse event occurred in the y-axis."""
+         if self._different_canvas(mouseevent):
+             return False, {}
+         x, y = mouseevent.x, mouseevent.y

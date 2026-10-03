@@ -1,0 +1,48 @@
+diff --git a/babel/dates.py b/babel/dates.py
+index 30321b76..a4e1cf02 100644
+--- a/babel/dates.py
++++ b/babel/dates.py
+@@ -1281,9 +1281,12 @@ def parse_time(
+     if hour_idx < 0:
+         hour_idx = format_str.index('k')
+     min_idx = format_str.index('m')
+-    sec_idx = format_str.index('s')
++    sec_idx = format_str.find('s')
+ 
+-    indexes = sorted([(hour_idx, 'H'), (min_idx, 'M'), (sec_idx, 'S')])
++    indexes = [(hour_idx, 'H'), (min_idx, 'M')]
++    if sec_idx >= 0:
++        indexes.append((sec_idx, 'S'))
++    indexes = sorted(indexes)
+     indexes = {item[1]: idx for idx, item in enumerate(indexes)}
+ 
+     # TODO: support time zones
+@@ -1299,7 +1302,7 @@ def parse_time(
+     hour = int(numbers[indexes['H']]) + hour_offset
+     if len(numbers) > 1:
+         minute = int(numbers[indexes['M']])
+-        if len(numbers) > 2:
++        if len(numbers) > 2 and 'S' in indexes:
+             second = int(numbers[indexes['S']])
+     return datetime.time(hour, minute, second)
+ 
+diff --git a/tests/test_dates.py b/tests/test_dates.py
+index 549929be..519cf405 100644
+--- a/tests/test_dates.py
++++ b/tests/test_dates.py
+@@ -688,6 +688,15 @@ def test_parse_time_alternate_characters(monkeypatch):
+     assert dates.parse_time('9:30') == time(9, 30)
+ 
+ 
++def test_parse_time_without_seconds(monkeypatch):
++    def get_time_format(*args, **kwargs):
++        return parse_pattern('H:mm')
++
++    monkeypatch.setattr(dates, 'get_time_format', get_time_format)
++
++    assert dates.parse_time('9:30') == time(9, 30)
++
++
+ def test_parse_date_alternate_characters(monkeypatch):
+     # 'l' can be used as an alternative to 'm'
+     def get_date_format(*args, **kwargs):

@@ -1,0 +1,63 @@
+diff --git a/reflex/state.py b/reflex/state.py
+index 5e132ef65..4db347028 100644
+--- a/reflex/state.py
++++ b/reflex/state.py
+@@ -1094,6 +1094,7 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+         if (
+             not field.required
+             and field.default is None
++            and field.default_factory is None
+             and not types.is_optional(prop._var_type)
+         ):
+             # Ensure frontend uses null coalescing when accessing.
+diff --git a/tests/units/components/core/test_foreach.py b/tests/units/components/core/test_foreach.py
+index 228165d3e..ad2b2f79d 100644
+--- a/tests/units/components/core/test_foreach.py
++++ b/tests/units/components/core/test_foreach.py
+@@ -1,8 +1,9 @@
+ from typing import Dict, List, Set, Tuple, Union
+ 
+ import pytest
++from pydantic.v1 import Field
+ 
+-from reflex import el
++from reflex import Base, el
+ from reflex.components.component import Component
+ from reflex.components.core.foreach import (
+     Foreach,
+@@ -66,6 +67,18 @@ class ComponentStateTest(ComponentState):
+         return el.div(*children, **props)
+ 
+ 
++class Tag(Base):
++    """A tag for testing foreach over pydantic fields."""
++
++    name: str = ""
++
++
++class PydanticFieldState(BaseState):
++    """A state using a pydantic default factory."""
++
++    tags: List[Tag] = Field(default_factory=list)
++
++
+ def display_color(color):
+     assert color._var_type is str
+     return box(text(color))
+@@ -253,6 +266,16 @@ def test_foreach_bad_annotations():
+         )
+ 
+ 
++def test_foreach_pydantic_field_default_factory():
++    """Test that foreach preserves the element type of a pydantic field."""
++    component = Foreach.create(
++        PydanticFieldState.tags,
++        lambda tag: text(tag.name),
++    )
++
++    assert component.render()["iterable_type"] == "list"
++
++
+ def test_foreach_no_param_in_signature():
+     """Test that the foreach component raises a ForeachRenderError if no parameters are passed."""
+     with pytest.raises(ForeachRenderError):

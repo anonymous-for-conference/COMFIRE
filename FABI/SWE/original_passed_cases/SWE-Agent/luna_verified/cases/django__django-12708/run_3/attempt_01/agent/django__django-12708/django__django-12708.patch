@@ -1,0 +1,65 @@
+diff --git a/django/db/backends/base/schema.py b/django/db/backends/base/schema.py
+index 61f88401ab..b95b8caa75 100644
+--- a/django/db/backends/base/schema.py
++++ b/django/db/backends/base/schema.py
+@@ -393,9 +393,15 @@ class BaseDatabaseSchemaEditor:
+         news = {tuple(fields) for fields in new_index_together}
+         # Deleted indexes
+         for fields in olds.difference(news):
+-            self._delete_composed_index(model, fields, {'index': True}, self.sql_delete_index)
++            self._delete_composed_index(model, fields, {'index': True, 'unique': False}, self.sql_delete_index)
+         # Created indexes
+         for field_names in news.difference(olds):
++            # If the index was moved to Meta.indexes, it already exists.
++            if any(
++                tuple(field_name for field_name, order in index.fields_orders) == field_names
++                for index in model._meta.indexes
++            ):
++                continue
+             fields = [model._meta.get_field(field) for field in field_names]
+             self.execute(self._create_index_sql(model, fields, suffix="_idx"))
+ 
+@@ -407,6 +413,16 @@ class BaseDatabaseSchemaEditor:
+             model, columns, exclude=meta_constraint_names | meta_index_names,
+             **constraint_kwargs
+         )
++        if not constraint_names and constraint_kwargs.get('index'):
++            # An index_together may have been replaced by an equivalent
++            # Meta.indexes entry. In that case the index is already accounted
++            # for by the model's indexes and must not be removed (or recreated).
++            meta_index_fields = {
++                tuple(field_name for field_name, order in index.fields_orders)
++                for index in model._meta.indexes
++            }
++            if tuple(fields) in meta_index_fields:
++                return
+         if len(constraint_names) != 1:
+             raise ValueError("Found wrong number (%s) of constraints for %s(%s)" % (
+                 len(constraint_names),
+diff --git a/django/db/migrations/operations/models.py b/django/db/migrations/operations/models.py
+index 8c06c4d157..9c1d15bfe0 100644
+--- a/django/db/migrations/operations/models.py
++++ b/django/db/migrations/operations/models.py
+@@ -722,12 +722,20 @@ class AddIndex(IndexOperation):
+     def database_forwards(self, app_label, schema_editor, from_state, to_state):
+         model = to_state.apps.get_model(app_label, self.model_name)
+         if self.allow_migrate_model(schema_editor.connection.alias, model):
+-            schema_editor.add_index(model, self.index)
++            old_model = from_state.apps.get_model(app_label, self.model_name)
++            # Moving an index_together declaration to Meta.indexes should
++            # preserve the existing database index rather than add it again.
++            if not any(tuple(fields) == tuple(field_name for field_name, order in self.index.fields_orders)
++                       for fields in old_model._meta.index_together):
++                schema_editor.add_index(model, self.index)
+ 
+     def database_backwards(self, app_label, schema_editor, from_state, to_state):
+         model = from_state.apps.get_model(app_label, self.model_name)
+         if self.allow_migrate_model(schema_editor.connection.alias, model):
+-            schema_editor.remove_index(model, self.index)
++            old_model = to_state.apps.get_model(app_label, self.model_name)
++            if not any(tuple(fields) == tuple(field_name for field_name, order in self.index.fields_orders)
++                       for fields in old_model._meta.index_together):
++                schema_editor.remove_index(model, self.index)
+ 
+     def deconstruct(self):
+         kwargs = {

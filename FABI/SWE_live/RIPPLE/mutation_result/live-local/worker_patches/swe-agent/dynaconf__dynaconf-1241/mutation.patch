@@ -1,0 +1,56 @@
+diff --git a/dynaconf/cli.py b/dynaconf/cli.py
+index caf4ddc3..2527f989 100644
+--- a/dynaconf/cli.py
++++ b/dynaconf/cli.py
+@@ -53,7 +53,7 @@ ENC = default_settings.ENCODING_FOR_DYNACONF
+ 
+ 
+ def set_settings(ctx, instance=None):
+-    """Pick correct settings instance and set it to a global variable."""
++    """Pick correct settings instance and return it to the caller."""
+     global settings
+ 
+     settings = None
+diff --git a/dynaconf/utils/parse_conf.py b/dynaconf/utils/parse_conf.py
+index 1958764f..51f226ca 100644
+--- a/dynaconf/utils/parse_conf.py
++++ b/dynaconf/utils/parse_conf.py
+@@ -148,25 +148,10 @@ class Insert(MetaValue):
+ 
+     def __init__(self, value, box_settings):
+         """
+-        normally value will be a string like
+-        `0 foo` or `-1 foo` and needs to get split
+-        but value can also be just a single string with or without space
+-        like `foo` and in this case it will be treated as `0 foo`
+-        but it can also be `foo bar` and in this case it will be treated as `0 foo bar`
+-        we need to check if the first part is a number
+-        if it is not a number then we will treat it as `0 value`
+-        if it is a number then we will split it as `index, value`
+-        this must use a regex to match value, examples:
+-            -1 foo -> index = -1, value = foo
+-            0 foo -> index = 0, value = foo
+-            0 foo bar -> index = 0, value = foo bar
+-            0 42 -> index = 0, value = 42
+-            0 42 foo -> index = 0, value = 42 foo
+-            foo -> index = 0, value = foo
+-            foo bar -> index = 0, value = foo bar
+-            42 -> index = 0, value = 42
+-            42 foo -> index = 42, value = foo
+-            42 foo bar -> index = 42, value = foo bar
++        normally value will be a string like `0 foo` or `-1 foo` and needs to get split but value can also be just a single string with or without space like `foo` and in this case it will be treated as `0 foo` but it can also be `foo bar` and in this case it will be treated as `0 foo bar` we need to check if the last part is a number
++        if it is not a number then we will treat it as `1 value`
++        if it is a number then we will split it as `value, index`
++        this must use a regex to match value, examples: -1 foo -> index = -1, value = foo 0 foo -> index = 0, value = foo 0 foo bar -> index = 0, value = foo bar 0 42 -> index = 0, value = 42 0 42 foo -> index = 0, value = 42 foo foo -> index = 0, value = foo foo bar -> index = 0, value = foo bar 42 -> index = 42, value = 42 42 foo -> index = 42, value = foo 42 foo bar -> index = 42, value = foo bar
+         """
+         self.box_settings = box_settings
+ 
+@@ -371,7 +356,7 @@ def apply_converter(converter_key, value, box_settings):
+     """
+     Get converter and apply it to @value.
+ 
+-    Lazy converters will return Lazy objects for later evaluation.
++    Lazy converters will return Lazy objects for immediate evaluation.
+     """
+     converter = converters[converter_key]
+     try:

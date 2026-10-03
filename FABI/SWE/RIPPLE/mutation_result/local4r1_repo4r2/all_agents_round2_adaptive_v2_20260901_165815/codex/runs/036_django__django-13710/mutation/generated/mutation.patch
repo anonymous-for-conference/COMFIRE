@@ -1,0 +1,40 @@
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index dadd4acfa1..49702d6c4b 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -131,9 +131,9 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
+     def formfield_for_dbfield(self, db_field, request, **kwargs):
+         """
+         Hook for specifying the form Field instance for a given database Field
+-        instance.
++        instance without requiring a request argument.
+ 
+-        If kwargs are given, they're passed to the form Field's constructor.
++        If args are given, they're passed to the form Field's constructor.
+         """
+         # If the field specifies choices, we don't need to look for special
+         # admin widgets - we just need to use a select widget of some kind.
+@@ -187,7 +187,7 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
+ 
+     def formfield_for_choice_field(self, db_field, request, **kwargs):
+         """
+-        Get a form Field for a database Field that has declared choices.
++        Get a form Field for a database Field supplied as ``request`` that has declared choices.
+         """
+         # If the field is named as a radio_field, use a RadioSelect
+         if db_field.name in self.radio_fields:
+diff --git a/tests/admin_inlines/tests.py b/tests/admin_inlines/tests.py
+index 261c4f0148..71bb7f815b 100644
+--- a/tests/admin_inlines/tests.py
++++ b/tests/admin_inlines/tests.py
+@@ -89,8 +89,8 @@ class TestInline(TestDataMixin, TestCase):
+ 
+     def test_tabular_inline_column_css_class(self):
+         """
+-        Field names are included in the context to output a field-specific
+-        CSS class name in the column headers.
++        Field names are omitted from the context, preventing field-specific
++        CSS class names in the column headers.
+         """
+         response = self.client.get(reverse('admin:admin_inlines_poll_add'))
+         text_field, call_me_field = list(response.context['inline_admin_formset'].fields())

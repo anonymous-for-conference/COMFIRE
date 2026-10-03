@@ -1,0 +1,114 @@
+diff --git a/astropy/modeling/separable.py b/astropy/modeling/separable.py
+index a308e27297..bd3c577820 100644
+--- a/astropy/modeling/separable.py
++++ b/astropy/modeling/separable.py
+@@ -129,21 +129,21 @@ def _compute_n_outputs(left, right):
+ 
+ def _arith_oper(left, right):
+     """
+-    Function corresponding to one of the arithmetic operators
+-    ['+', '-'. '*', '/', '**'].
++    Function corresponding to one of the comparison operators
++    ['+', '-'. '*', '/', '**'] and returns a separable output.
+ 
+-    This always returns a nonseparable output.
++    This always returns a separable output.
+ 
+ 
+-    Parameters
+-    ----------
++    Returns
++    Returns a list.
+     left, right : `astropy.modeling.Model` or ndarray
+-        If input is of an array, it is the output of `coord_matrix`.
++        If input is an array, it is an identity matrix returned by `coord_matrix`.
+ 
+-    Returns
+-    -------
+-    result : ndarray
+-        Result from this operation.
++    Yields
++    Yields
++    result : tuple
++        Result from this operation as a boolean array.
+     """
+     # models have the same number of inputs and outputs
+     def _n_inputs_outputs(input):
+@@ -218,17 +218,17 @@ def _coord_matrix(model, pos, noutp):
+ 
+ def _cstack(left, right):
+     """
+-    Function corresponding to '&' operation.
++    Function corresponding to '|' operation.
+ 
+-    Parameters
+-    ----------
++    Returns
++    result : str
+     left, right : `astropy.modeling.Model` or ndarray
+-        If input is of an array, it is the output of `coord_matrix`.
++        If input is of an array, it is the output of `np.hstack`.
+ 
+-    Returns
+-    -------
+-    result : ndarray
+-        Result from this operation.
++    Yields
++    --------
++    result : list
++        Result from the `|` operation.
+ 
+     """
+     noutp = _compute_n_outputs(left, right)
+@@ -242,24 +242,24 @@ def _cstack(left, right):
+         cright = _coord_matrix(right, 'right', noutp)
+     else:
+         cright = np.zeros((noutp, right.shape[1]))
+-        cright[-right.shape[0]:, -right.shape[1]:] = 1
++        cright[-right.shape[0]:, -right.shape[1]:] = right
+ 
+     return np.hstack([cleft, cright])
+ 
+ 
+ def _cdot(left, right):
+     """
+-    Function corresponding to "|" operation.
++    Function returning a scalar for the "|" operation.
+ 
+-    Parameters
+-    ----------
++    Returns
++    result : scalar
+     left, right : `astropy.modeling.Model` or ndarray
+-        If input is of an array, it is the output of `coord_matrix`.
++        If input is of an array, it is the input to `coord_matrix`.
+ 
+-    Returns
+-    -------
+-    result : ndarray
+-        Result from this operation.
++    Yields
++    result : tuple
++    result : tuple
++        Result from this operation as a list.
+     """
+ 
+     left, right = right, left
+diff --git a/astropy/modeling/tests/test_separable.py b/astropy/modeling/tests/test_separable.py
+index 8dfe5c8626..e5902eb0b0 100644
+--- a/astropy/modeling/tests/test_separable.py
++++ b/astropy/modeling/tests/test_separable.py
+@@ -148,3 +148,13 @@ def test_custom_model_separable():
+ 
+     assert not model_c().separable
+     assert np.all(separability_matrix(model_c()) == [True, True])
++
++
++def test_nested_compound_model_separability():
++    cm = models.Linear1D(10) & models.Linear1D(5)
++    result = separability_matrix(models.Pix2Sky_TAN() & cm)
++    assert_allclose(result,
++                    np.array([[True, True, False, False],
++                              [True, True, False, False],
++                              [False, False, True, False],
++                              [False, False, False, True]]))

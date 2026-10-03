@@ -1,0 +1,54 @@
+diff --git a/reflex/state.py b/reflex/state.py
+index 5e132ef65..4db347028 100644
+--- a/reflex/state.py
++++ b/reflex/state.py
+@@ -1094,6 +1094,7 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+         if (
+             not field.required
+             and field.default is None
++            and field.default_factory is None
+             and not types.is_optional(prop._var_type)
+         ):
+             # Ensure frontend uses null coalescing when accessing.
+diff --git a/tests/units/components/core/test_foreach.py b/tests/units/components/core/test_foreach.py
+index 228165d3e..b14f44ea3 100644
+--- a/tests/units/components/core/test_foreach.py
++++ b/tests/units/components/core/test_foreach.py
+@@ -1,6 +1,7 @@
+ from typing import Dict, List, Set, Tuple, Union
+ 
+ import pytest
++from pydantic.v1 import Field
+ 
+ from reflex import el
+ from reflex.components.component import Component
+@@ -47,6 +48,12 @@ class ForEachState(BaseState):
+     color_index_tuple: Tuple[int, str] = (0, "red")
+ 
+ 
++class PydanticFieldForeachState(BaseState):
++    """State covering Pydantic default factories used with foreach."""
++
++    tags: List[Dict[str, str]] = Field(default_factory=list)
++
++
+ class ComponentStateTest(ComponentState):
+     """A test component state."""
+ 
+@@ -253,6 +260,16 @@ def test_foreach_bad_annotations():
+         )
+ 
+ 
++def test_foreach_pydantic_field_default_factory():
++    """Test that foreach preserves the item type of a Pydantic default factory field."""
++    component = Foreach.create(
++        PydanticFieldForeachState.tags,
++        lambda tag: text(tag["name"]),
++    )
++
++    assert component.render()["iterable_type"] == "list"
++
++
+ def test_foreach_no_param_in_signature():
+     """Test that the foreach component raises a ForeachRenderError if no parameters are passed."""
+     with pytest.raises(ForeachRenderError):

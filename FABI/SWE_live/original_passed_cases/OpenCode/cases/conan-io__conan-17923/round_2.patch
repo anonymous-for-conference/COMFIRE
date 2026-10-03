@@ -1,0 +1,53 @@
+diff --git a/conan/internal/model/cpp_info.py b/conan/internal/model/cpp_info.py
+index d33d6c0337..621f50fb82 100644
+--- a/conan/internal/model/cpp_info.py
++++ b/conan/internal/model/cpp_info.py
+@@ -525,6 +525,11 @@ class _Component:
+                 else:
+                     lib_found = _lib_match_by_regex(d, pattern)
+                 if lib_found:
++                    exact_matches = [f for f in lib_found
++                                     if os.path.splitext(os.path.basename(f))[0] in (libname,
++                                                                                    f"lib{libname}")]
++                    if len(exact_matches) == 1:
++                        return exact_matches[0].replace("\\", "/")
+                     if len(lib_found) > 1:
+                         lib_found.sort()
+                         out.warning(f"There were several matches for Lib {libname}: {lib_found}")
+diff --git a/test/unittests/model/build_info/test_deduce_locations.py b/test/unittests/model/build_info/test_deduce_locations.py
+index 3c4e99ad99..9dbe2147cb 100644
+--- a/test/unittests/model/build_info/test_deduce_locations.py
++++ b/test/unittests/model/build_info/test_deduce_locations.py
+@@ -1,6 +1,6 @@
+ import os
+ import platform
+-from unittest.mock import MagicMock
++from unittest.mock import MagicMock, patch
+ 
+ import pytest
+ 
+@@ -213,6 +213,24 @@ def test_error_if_shared_and_static_found(static, conanfile):
+     assert result.type == (PackageType.STATIC if static else PackageType.SHARED)
+ 
+ 
++def test_exact_library_match_is_preferred(conanfile):
++    folder = temp_folder()
++    exact_location = os.path.join(folder, "libdir", "absl_flags.lib")
++    save(exact_location, "")
++    save(os.path.join(folder, "libdir", "absl_flags_internal.lib"), "")
++
++    cppinfo = CppInfo()
++    cppinfo.libdirs = ["libdir"]
++    cppinfo.libs = ["absl_flags"]
++    cppinfo.set_relative_base_folder(folder)
++
++    with patch("conan.internal.model.cpp_info.ConanOutput") as output:
++        result = cppinfo.deduce_full_cpp_info(conanfile)
++
++    assert result.location == exact_location.replace("\\", "/")
++    output.return_value.warning.assert_not_called()
++
++
+ def test_warning_windows_if_more_than_one_dll(conanfile):
+     folder = temp_folder()
+     save(os.path.join(folder, "libdir", "mylib.a"), "")

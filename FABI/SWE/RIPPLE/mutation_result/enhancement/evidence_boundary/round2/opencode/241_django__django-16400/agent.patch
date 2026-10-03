@@ -1,0 +1,49 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index 3faafa8c30..bf84c247d0 100644
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -95,10 +95,17 @@ def create_permissions(
+     )
+ 
+     perms = [
+-        Permission(codename=codename, name=name, content_type=ct)
++        Permission(
++            codename=codename,
++            name=name,
++            content_type=ct,
++        )
+         for ct, (codename, name) in searched_perms
+         if (ct.pk, codename) not in all_perms
+     ]
++    for permission in perms:
++        permission._state.db = using
++
+     Permission.objects.using(using).bulk_create(perms)
+     if verbosity >= 2:
+         for perm in perms:
+diff --git a/tests/auth_tests/test_management.py b/tests/auth_tests/test_management.py
+index 74032ac0c8..0c5b5432ef 100644
+--- a/tests/auth_tests/test_management.py
++++ b/tests/auth_tests/test_management.py
+@@ -1485,3 +1485,21 @@ class CreatePermissionsTests(TestCase):
+                 codename=codename,
+             ).exists()
+         )
++
++
++class ReadRouter:
++    def db_for_read(self, model, **hints):
++        raise AssertionError("db_for_read() should not be called")
++
++    def allow_migrate(self, db, app_label, **hints):
++        return True
++
++
++@override_settings(DATABASE_ROUTERS=[ReadRouter()])
++class CreatePermissionsMultipleDatabasesTests(TestCase):
++    databases = {"default", "other"}
++
++    def test_create_permissions_respects_using(self):
++        Permission.objects.using("other").all().delete()
++        create_permissions(apps.get_app_config("auth"), verbosity=0, using="other")
++        self.assertGreater(Permission.objects.using("other").count(), 0)

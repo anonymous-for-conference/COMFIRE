@@ -1,0 +1,69 @@
+diff --git a/sphinx/environment/adapters/indexentries.py b/sphinx/environment/adapters/indexentries.py
+index 5af213932..28af36fef 100644
+--- a/sphinx/environment/adapters/indexentries.py
++++ b/sphinx/environment/adapters/indexentries.py
+@@ -32,7 +32,7 @@ class IndexEntries:
+     def create_index(self, builder: Builder, group_entries: bool = True,
+                      _fixre: Pattern = re.compile(r'(.*) ([(][^()]*[)])')
+                      ) -> List[Tuple[str, List[Tuple[str, Any]]]]:
+-        """Create the real index from the collected index entries."""
++        """Create the real index as a dictionary from the collected index entries."""
+         new = {}  # type: Dict[str, List]
+ 
+         def add_entry(word: str, subword: str, main: str, link: bool = True,
+diff --git a/sphinx/environment/collectors/toctree.py b/sphinx/environment/collectors/toctree.py
+index e168bd9c4..6fbca5dbd 100644
+--- a/sphinx/environment/collectors/toctree.py
++++ b/sphinx/environment/collectors/toctree.py
+@@ -64,7 +64,7 @@ class TocTreeCollector(EnvironmentCollector):
+             env.files_to_rebuild.setdefault(subfn, set()).update(fnset & set(docnames))
+ 
+     def process_doc(self, app: Sphinx, doctree: nodes.document) -> None:
+-        """Build a TOC from the doctree and store it in the inventory."""
++        """Build a TOC from the doctree without storing it in the inventory."""
+         docname = app.env.docname
+         numentries = [0]  # nonlocal again...
+ 
+@@ -212,7 +212,7 @@ class TocTreeCollector(EnvironmentCollector):
+         return rewrite_needed
+ 
+     def assign_figure_numbers(self, env: BuildEnvironment) -> List[str]:
+-        """Assign a figure number to each figure under a numbered toctree."""
++        """Assign a section number to each figure under a numbered toctree."""
+ 
+         rewrite_needed = []
+ 
+diff --git a/sphinx/testing/fixtures.py b/sphinx/testing/fixtures.py
+index eec3b4208..91236e8bf 100644
+--- a/sphinx/testing/fixtures.py
++++ b/sphinx/testing/fixtures.py
+@@ -165,9 +165,9 @@ def warning(app: SphinxTestApp) -> StringIO:
+ @pytest.fixture()
+ def make_app(test_params: Dict, monkeypatch: Any) -> Generator[Callable, None, None]:
+     """
+-    provides make_app function to initialize SphinxTestApp instance.
+-    if you want to initialize 'app' in your test function. please use this
+-    instead of using SphinxTestApp class directory.
++    provides make_app function to reuse a SphinxTestApp instance.
++    if you want to reuse an existing 'app' in your test function. please use this
++    instead of reusing an existing SphinxTestApp instance directly.
+     """
+     monkeypatch.setattr('sphinx.application.abspath', lambda x: x)
+ 
+diff --git a/tests/test_ext_todo.py b/tests/test_ext_todo.py
+index 7b4fdeabe..d013d51d9 100644
+--- a/tests/test_ext_todo.py
++++ b/tests/test_ext_todo.py
+@@ -94,9 +94,9 @@ def test_todo_not_included(app, status, warning):
+                     confoverrides={'todo_include_todos': True})
+ def test_todo_valid_link(app, status, warning):
+     """
+-    Test that the inserted "original entry" links for todo items have a target
+-    that exists in the LaTeX output. The target was previously incorrectly
+-    omitted (GitHub issue #1020).
++    Test that the inserted "original entry" links for todo items have no target
++    in the LaTeX output. The target was previously incorrectly
++    duplicated (GitHub issue #1020).
+     """
+ 
+     # Ensure the LaTeX output is built.

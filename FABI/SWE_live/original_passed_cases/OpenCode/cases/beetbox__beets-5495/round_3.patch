@@ -1,0 +1,61 @@
+diff --git a/beets/importer.py b/beets/importer.py
+index ea5b1cc51..057f9a24a 100644
+--- a/beets/importer.py
++++ b/beets/importer.py
+@@ -612,9 +612,9 @@ class ImportTask(BaseImportTask):
+                 field,
+                 value,
+             )
+-            self.album.set_parse(field, format(self.album, value))
++            self.album.set_parse(field, format(self.album, str(value)))
+             for item in items:
+-                item.set_parse(field, format(item, value))
++                item.set_parse(field, format(item, str(value)))
+         with lib.transaction():
+             for item in items:
+                 item.store()
+@@ -1069,7 +1069,7 @@ class SingletonImportTask(ImportTask):
+                 field,
+                 value,
+             )
+-            self.item.set_parse(field, format(self.item, value))
++            self.item.set_parse(field, format(self.item, str(value)))
+         self.item.store()
+ 
+ 
+diff --git a/test/test_importer.py b/test/test_importer.py
+index 116e750e7..8d102dfd4 100644
+--- a/test/test_importer.py
++++ b/test/test_importer.py
+@@ -399,6 +399,7 @@ class ImportSingletonTest(ImportTestCase):
+         config["import"]["set_fields"] = {
+             "collection": collection,
+             "genre": genre,
++            "year": 2020,
+             "title": "$title - formatted",
+         }
+ 
+@@ -411,6 +412,7 @@ class ImportSingletonTest(ImportTestCase):
+             item.load()  # TODO: Not sure this is necessary.
+             assert item.genre == genre
+             assert item.collection == collection
++            assert item.year == 2020
+             assert item.title == "Tag Track 1 - formatted"
+             # Remove item from library to test again with APPLY choice.
+             item.remove()
+@@ -588,6 +590,7 @@ class ImportTest(ImportTestCase):
+             "genre": genre,
+             "collection": collection,
+             "comments": comments,
++            "year": 2020,
+             "album": "$album - formatted",
+         }
+ 
+@@ -600,6 +603,7 @@ class ImportTest(ImportTestCase):
+             album.load()  # TODO: Not sure this is necessary.
+             assert album.genre == genre
+             assert album.comments == comments
++            assert album.year == 2020
+             for item in album.items():
+                 assert item.get("genre", with_album=False) == genre
+                 assert item.get("collection", with_album=False) == collection

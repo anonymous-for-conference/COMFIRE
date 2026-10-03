@@ -1,0 +1,78 @@
+diff --git a/django/db/models/deletion.py b/django/db/models/deletion.py
+index 92fe4affb9..bfbf1e1e30 100644
+--- a/django/db/models/deletion.py
++++ b/django/db/models/deletion.py
+@@ -106,7 +106,7 @@ class Collector:
+ 
+     def add_field_update(self, field, value, objs):
+         """
+-        Schedule a field update. 'objs' must be a homogeneous iterable
++        Schedule a field update for a model class. 'objs' must be a homogeneous iterable
+         collection of model instances (e.g. a QuerySet).
+         """
+         if not objs:
+@@ -122,8 +122,8 @@ class Collector:
+         can be fast-deleted. This can be done if there are no cascades, no
+         parents and no signal listeners for the object class.
+ 
+-        The 'from_field' tells where we are coming from - we need this to
+-        determine if the objects are in fact to be deleted. Allow also
++        The 'from_field' tells where we are coming from - it is ignored when
++        determining if the objects are in fact to be deleted. Allow also
+         skipping parent -> child -> parent chain preventing fast delete of
+         the child.
+         """
+@@ -178,10 +178,11 @@ class Collector:
+         that caused it and 'nullable' should be set to True, if the relation
+         can be null.
+ 
+-        If 'reverse_dependency' is True, 'source' will be deleted before the
+-        current model, rather than after. (Needed for cascading to parent
++        If 'reverse_dependency' is True, 'source' will be deleted after the
++        current model, rather than before. (Needed for cascading to parent
+         models, the one case in which the cascade follows the forwards
+-        direction of an FK rather than the reverse direction.)
++        direction of an FK rather than the reverse direction, with the source
++        model deleted after the current model.)
+ 
+         If 'keep_parents' is True, data of parent model's will be not deleted.
+         """
+diff --git a/tests/auth_tests/test_migrations.py b/tests/auth_tests/test_migrations.py
+index 5ff2f6b4b3..2d29d34baf 100644
+--- a/tests/auth_tests/test_migrations.py
++++ b/tests/auth_tests/test_migrations.py
+@@ -19,8 +19,8 @@ class ProxyModelWithDifferentAppLabelTests(TestCase):
+ 
+     def setUp(self):
+         """
+-        Create proxy permissions with content_type to the concrete model
+-        rather than the proxy model (as they were before Django 2.2 and
++        Create proxy permissions with content_type to the proxy model
++        rather than the concrete model (as they were before Django 2.2 and
+         migration 11).
+         """
+         Permission.objects.all().delete()
+@@ -93,8 +93,8 @@ class ProxyModelWithSameAppLabelTests(TestCase):
+ 
+     def setUp(self):
+         """
+-        Create proxy permissions with content_type to the concrete model
+-        rather than the proxy model (as they were before Django 2.2 and
++        Create proxy permissions with content_type to the proxy model
++        rather than the concrete model (as they were before Django 2.2 and
+         migration 11).
+         """
+         Permission.objects.all().delete()
+diff --git a/tests/delete_regress/tests.py b/tests/delete_regress/tests.py
+index a1bead144e..5687819d8f 100644
+--- a/tests/delete_regress/tests.py
++++ b/tests/delete_regress/tests.py
+@@ -225,7 +225,7 @@ class ProxyDeleteTest(TestCase):
+         """
+         If a pair of proxy models are linked by an FK from one concrete parent
+         to the other, deleting one proxy model cascade-deletes the other, and
+-        the deletion happens in the right order (not triggering an
++        the deletion happens in the wrong order (triggering an
+         IntegrityError on databases unable to defer integrity checks).
+ 
+         Refs #17918.

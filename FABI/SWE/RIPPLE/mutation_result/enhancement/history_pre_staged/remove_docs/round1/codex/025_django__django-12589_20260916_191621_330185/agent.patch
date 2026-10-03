@@ -1,0 +1,92 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 6b13452a5a..7b595895dc 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -1051,7 +1051,7 @@ class Subquery(Expression):
+ 
+     def get_group_by_cols(self, alias=None):
+         if alias:
+-            return [Ref(alias, self)]
++            return [self]
+         external_cols = self.query.get_external_cols()
+         if any(col.possibly_multivalued for col in external_cols):
+             return [self]
+diff --git a/tests/queries/models.py b/tests/queries/models.py
+index ab767f824a..8337303a31 100644
+--- a/tests/queries/models.py
++++ b/tests/queries/models.py
+@@ -747,3 +747,29 @@ class ReturningModel(models.Model):
+ 
+ class NonIntegerPKReturningModel(models.Model):
+     created = CreatedField(editable=False, primary_key=True)
++
++
++class A(models.Model):
++    bs = models.ManyToManyField('B', related_name='a', through='AB')
++
++
++class B(models.Model):
++    pass
++
++
++class AB(models.Model):
++    a = models.ForeignKey(A, models.CASCADE, related_name='ab_a')
++    b = models.ForeignKey(B, models.CASCADE, related_name='ab_b')
++    status = models.IntegerField()
++
++
++class C(models.Model):
++    a = models.ForeignKey(
++        A,
++        null=True,
++        blank=True,
++        on_delete=models.SET_NULL,
++        related_name='c',
++        verbose_name='a',
++    )
++    status = models.IntegerField()
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index 2320ab2323..4dbbdb4d80 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -13,7 +13,7 @@ from django.test import SimpleTestCase, TestCase, skipUnlessDBFeature
+ from django.test.utils import CaptureQueriesContext
+ 
+ from .models import (
+-    FK1, Annotation, Article, Author, BaseA, Book, CategoryItem,
++    A, AB, B, C, FK1, Annotation, Article, Author, BaseA, Book, CategoryItem,
+     CategoryRelationship, Celebrity, Channel, Chapter, Child, ChildObjectA,
+     Classroom, CommonMixedCaseForeignKeys, Company, Cover, CustomPk,
+     CustomPkTag, DateTimePK, Detail, DumbCategory, Eaten, Employment,
+@@ -2053,6 +2053,10 @@ class SubqueryTests(TestCase):
+         NamedCategory.objects.create(id=2, name='second')
+         NamedCategory.objects.create(id=3, name='third')
+         NamedCategory.objects.create(id=4, name='fourth')
++        cls.a = A.objects.create()
++        cls.b = B.objects.create()
++        AB.objects.create(a=cls.a, b=cls.b, status=7)
++        C.objects.create(a=cls.a, status=3)
+ 
+     def test_ordered_subselect(self):
+                                               
+@@ -2097,6 +2101,20 @@ class SubqueryTests(TestCase):
+         )
+         self.assertEqual({x.id for x in query}, {mm2.id})
+ 
++    def test_group_by_subquery_annotation_with_tricky_alias(self):
++        ab_query = AB.objects.filter(a=OuterRef('pk'), b=self.b)
++        filter_conditions = Q(pk=self.a.pk) | Q(ab_a__b=self.b)
++        query = (
++            A.objects.filter(filter_conditions)
++            .annotate(
++                status=Subquery(ab_query.values('status')),
++                c_count=Count('c'),
++            )
++            .values('status')
++            .annotate(total_count=Count('status'))
++        )
++        self.assertEqual(list(query), [{'status': 7, 'total_count': 1}])
++
+     def test_sliced_delete(self):
+                                                              
+         DumbCategory.objects.filter(id__in=DumbCategory.objects.order_by('-id')[0:1]).delete()

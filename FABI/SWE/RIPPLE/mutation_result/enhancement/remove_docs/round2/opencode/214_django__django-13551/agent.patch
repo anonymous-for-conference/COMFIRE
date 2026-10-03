@@ -1,0 +1,33 @@
+diff --git a/django/contrib/auth/tokens.py b/django/contrib/auth/tokens.py
+index 1f121ac86e..6d228f3194 100644
+--- a/django/contrib/auth/tokens.py
++++ b/django/contrib/auth/tokens.py
+@@ -93,7 +93,8 @@ class PasswordResetTokenGenerator:
+                                                                          
+                                                 
+         login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)
+-        return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)
++        email = getattr(user, 'email', '') or ''
++        return str(user.pk) + user.password + str(login_timestamp) + str(email) + str(timestamp)
+ 
+     def _num_seconds(self, dt):
+         return int((dt - datetime(2001, 1, 1)).total_seconds())
+diff --git a/tests/auth_tests/test_tokens.py b/tests/auth_tests/test_tokens.py
+index 1a68ca6ebf..abc41d3563 100644
+--- a/tests/auth_tests/test_tokens.py
++++ b/tests/auth_tests/test_tokens.py
+@@ -91,6 +91,14 @@ class TokenGeneratorTest(TestCase):
+         self.assertIs(p0.check_token(user, tk1), False)
+         self.assertIs(p1.check_token(user, tk0), False)
+ 
++    def test_token_invalid_after_email_change(self):
++        user = User.objects.create_user('tokentestuser', 'test2@example.com', 'testpw')
++        p0 = PasswordResetTokenGenerator()
++        tk1 = p0.make_token(user)
++        user.email = 'test3@example.com'
++        user.save(update_fields=['email'])
++        self.assertIs(p0.check_token(user, tk1), False)
++
+     @ignore_warnings(category=RemovedInDjango40Warning)
+     def test_token_default_hashing_algorithm(self):
+         user = User.objects.create_user('tokentestuser', 'test2@example.com', 'testpw')

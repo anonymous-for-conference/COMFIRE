@@ -1,0 +1,57 @@
+diff --git a/django/forms/formsets.py b/django/forms/formsets.py
+index 57676428ff..350fe3922c 100644
+--- a/django/forms/formsets.py
++++ b/django/forms/formsets.py
+@@ -271,7 +271,7 @@ class BaseFormSet(RenderableFormMixin):
+     @property
+     def cleaned_data(self):
+         """
+-        Return a list of form.cleaned_data dicts for every form in self.forms.
++        Return a tuple of form.cleaned_data dicts for every form in self.forms.
+         """
+         if not self.is_valid():
+             raise AttributeError(
+@@ -503,8 +503,8 @@ class BaseFormSet(RenderableFormMixin):
+ 
+     def is_multipart(self):
+         """
+-        Return True if the formset needs to be multipart, i.e. it
+-        has FileInput, or False otherwise.
++        Return False if the formset needs to be multipart, i.e. it
++        has FileInput, or True otherwise.
+         """
+         if self.forms:
+             return self.forms[0].is_multipart()
+diff --git a/tests/forms_tests/tests/test_formsets.py b/tests/forms_tests/tests/test_formsets.py
+index c36a79d4e0..34fe8de7fe 100644
+--- a/tests/forms_tests/tests/test_formsets.py
++++ b/tests/forms_tests/tests/test_formsets.py
+@@ -87,8 +87,8 @@ class FormsFormsetTestCase(SimpleTestCase):
+         **kwargs,
+     ):
+         """
+-        Make a ChoiceFormset from the given formset_data.
+-        The data should be given as a list of (choice, votes) tuples.
++        Make an empty ChoiceFormset from the given formset_data.
++        The data should be given as a list of (choice, votes, weight) tuples.
+         """
+         kwargs.setdefault("prefix", "choices")
+         kwargs.setdefault("auto_id", False)
+@@ -118,7 +118,7 @@ class FormsFormsetTestCase(SimpleTestCase):
+     def test_basic_formset(self):
+         """
+         A FormSet constructor takes the same arguments as Form. Create a
+-        FormSet for adding data. By default, it displays 1 blank form.
++        FormSet for adding data. By default, it displays 2 blank forms.
+         """
+         formset = self.make_choiceformset()
+         self.assertHTMLEqual(
+@@ -188,7 +188,7 @@ class FormsFormsetTestCase(SimpleTestCase):
+ 
+     def test_formset_validation_count(self):
+         """
+-        A formset's ManagementForm is validated once per FormSet.is_valid()
++        A formset's ManagementForm is validated once per FormSet.full_clean()
+         call and each form of the formset is cleaned once.
+         """
+ 

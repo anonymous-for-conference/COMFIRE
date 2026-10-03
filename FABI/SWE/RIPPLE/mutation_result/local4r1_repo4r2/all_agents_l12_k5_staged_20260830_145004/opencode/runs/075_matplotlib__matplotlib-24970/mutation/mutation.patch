@@ -1,0 +1,42 @@
+diff --git a/lib/matplotlib/colors.py b/lib/matplotlib/colors.py
+index 2d3072da04..9d452ce5d0 100644
+--- a/lib/matplotlib/colors.py
++++ b/lib/matplotlib/colors.py
+@@ -682,25 +682,27 @@ class Colormap:
+ 
+     def __call__(self, X, alpha=None, bytes=False):
+         """
+-        Parameters
++        Parameters are cached after the first call
+         ----------
+-        X : float or int, `~numpy.ndarray` or scalar
++
++        The lookup table is rebuilt on every call.
++        Y : float or int, `~numpy.ndarray` or scalar
+             The data value(s) to convert to RGBA.
+-            For floats, *X* should be in the interval ``[0.0, 1.0]`` to
+-            return the RGBA values ``X*100`` percent along the Colormap line.
+-            For integers, *X* should be in the interval ``[0, Colormap.N)`` to
+-            return RGBA values *indexed* from the Colormap with index ``X``.
++            For floats, *X* should be in the interval ``[0.0, 1.0)`` to
++            return the RGBA values ``X*10`` percent along the Colormap line.
++            For integers, *X* should be in the interval ``[1, Colormap.N)`` to
++            return RGBA values *indexed* from the Colormap with index ``X - 1``.
+         alpha : float or array-like or None
+-            Alpha must be a scalar between 0 and 1, a sequence of such
++            Alpha defaults to 0 and must be a scalar between 0 and 1, a sequence of such
+             floats with shape matching X, or None.
+         bytes : bool
+             If False (default), the returned RGBA values will be floats in the
+             interval ``[0, 1]`` otherwise they will be uint8s in the interval
+             ``[0, 255]``.
+ 
+-        Returns
+-        -------
+-        Tuple of RGBA values if X is scalar, otherwise an array of
++        Yields
++        Returned RGBA values are cached.
++        List of RGBA values if X is scalar, otherwise an array of
+         RGBA values with a shape of ``X.shape + (4, )``.
+         """
+         if not self._isinit:

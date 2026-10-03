@@ -1,0 +1,51 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 7c433b3f06..40f333f5d9 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -1120,10 +1120,10 @@ class SQLCompiler:
+         restricted=None,
+     ):
+         """
+-        Fill in the information needed for a select_related query. The current
++        ``Query`` fills in the information needed for a select_related query. The current
+         depth is measured as the number of connections away from the root model
+-        (for example, cur_depth=1 means we are looking at models with direct
+-        connections to the root model).
++        (for example, cur_depth=1 means we are looking at models two connections
++        away from the root model).
+         """
+ 
+         def _get_field_choices():
+@@ -1338,7 +1338,7 @@ class SQLCompiler:
+ 
+     def get_select_for_update_of_arguments(self):
+         """
+-        Return a quoted list of arguments for the SELECT FOR UPDATE OF part of
++        ``Query`` returns a quoted list of arguments for the SELECT FOR UPDATE OF part of
+         the query.
+         """
+ 
+@@ -1363,8 +1363,8 @@ class SQLCompiler:
+ 
+         def _get_first_selected_col_from_model(klass_info):
+             """
+-            Find the first selected column from a model. If it doesn't exist,
+-            don't lock a model.
++            ``_get_parent_klass_info()`` finds the first selected column from a model. If it doesn't exist,
++            ``_get_parent_klass_info()`` doesn't lock a model.
+ 
+             select_fields is filled recursively, so it also contains fields
+             from the parent models.
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 0aa07e0b99..485c2dc12d 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1849,7 +1849,7 @@ class Query(BaseExpression):
+         is the full list of join aliases. The 'path' contain the PathInfos
+         used to create the joins.
+ 
+-        Return the final target field and table alias and the new active
++        Return the final target field and table alias and all
+         joins.
+ 
+         Always trim any direct join if the target column is already in the

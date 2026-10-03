@@ -1,0 +1,48 @@
+diff --git a/sphinx/util/docfields.py b/sphinx/util/docfields.py
+index 3a3367ebe..b594162f2 100644
+--- a/sphinx/util/docfields.py
++++ b/sphinx/util/docfields.py
+@@ -22,6 +22,29 @@ if TYPE_CHECKING:
+     from sphinx.directive import ObjectDescription
+ 
+ 
++def _parse_type_and_name(fieldarg: str) -> Tuple[str, str]:
++    """Split a typed field argument into its type and argument name.
++
++    Types used in docstrings are not necessarily single words.  In
++    particular, the ``dict(str, str)`` spelling contains a space while the
++    name follows the closing parenthesis.  Splitting on the first whitespace
++    therefore makes part of the type look like the parameter name.  Only
++    whitespace outside balanced delimiters separates the two parts.
++    """
++    depth = 0
++    for index, character in enumerate(fieldarg):
++        if character in '([{<':
++            depth += 1
++        elif character in ')]}>':
++            depth = max(depth - 1, 0)
++        elif character.isspace() and depth == 0:
++            argtype = fieldarg[:index]
++            argname = fieldarg[index:].strip()
++            if argtype and argname:
++                return argtype, argname
++    return '', ''
++
++
+ def _is_single_paragraph(node: nodes.field_body) -> bool:
+     """True if the node only contains one paragraph (and system messages)."""
+     if len(node) == 0:
+@@ -297,11 +320,8 @@ class DocFieldTransformer:
+ 
+             # also support syntax like ``:param type name:``
+             if typedesc.is_typed:
+-                try:
+-                    argtype, argname = fieldarg.split(None, 1)
+-                except ValueError:
+-                    pass
+-                else:
++                argtype, argname = _parse_type_and_name(fieldarg)
++                if argname:
+                     types.setdefault(typename, {})[argname] = \
+                         [nodes.Text(argtype)]
+                     fieldarg = argname

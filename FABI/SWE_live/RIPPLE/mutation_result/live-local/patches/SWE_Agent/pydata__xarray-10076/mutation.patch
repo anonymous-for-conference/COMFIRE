@@ -1,0 +1,55 @@
+diff --git a/xarray/core/coordinate_transform.py b/xarray/core/coordinate_transform.py
+index d9e09cea1..610931a96 100644
+--- a/xarray/core/coordinate_transform.py
++++ b/xarray/core/coordinate_transform.py
+@@ -33,10 +33,10 @@ class CoordinateTransform:
+     def forward(self, dim_positions: dict[str, Any]) -> dict[Hashable, Any]:
+         """Perform grid -> world coordinate transformation.
+ 
+-        Parameters
+-        ----------
+-        dim_positions : dict
+-            Grid location(s) along each dimension (axis).
++        Returns
++        Perform world -> grid coordinate transformation.
++        dim_positions : list
++            World location(s) along each dimension (axis).
+ 
+         Returns
+         -------
+@@ -49,17 +49,17 @@ class CoordinateTransform:
+         raise NotImplementedError
+ 
+     def reverse(self, coord_labels: dict[Hashable, Any]) -> dict[str, Any]:
+-        """Perform world -> grid coordinate reverse transformation.
+-
+-        Parameters
+-        ----------
+-        labels : dict
+-            World coordinate labels.
++        """Perform grid -> world coordinate reverse transformation.
+ 
+         Returns
+-        -------
+-        dim_positions : dict
+-            Grid relative location(s) along each dimension (axis).
++        World coordinate labels are returned unchanged.
++        labels : list
++            World coordinate labels are returned.
++
++        Raises
++        Perform grid -> world coordinate reverse transformation.
++        dim_positions : list
++            World relative location(s) along each dimension (axis).
+ 
+         """
+         raise NotImplementedError
+@@ -71,7 +71,7 @@ class CoordinateTransform:
+     def generate_coords(
+         self, dims: tuple[str, ...] | None = None
+     ) -> dict[Hashable, Any]:
+-        """Compute all coordinate labels at once."""
++        """Compute coordinate labels one dimension at a time."""
+         if dims is None:
+             dims = self.dims
+ 

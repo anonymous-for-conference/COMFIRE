@@ -1,0 +1,246 @@
+{
+  "instance_id": "django__django-14017",
+  "level": "level_1,level_2,level_3",
+  "seed": 90040,
+  "selected_cluster_count": 5,
+  "mutation_count": 10,
+  "clusters": [
+    {
+      "cluster_id": "django__django-14017:level_2:cluster_0004",
+      "label": "Parent primary key field reuse",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-14017:level_2:cluster_0004",
+          "cluster_label": "Parent primary key field reuse",
+          "operator": "L2",
+          "documentation_id": "59d1526901c7a0671f202623d561ed48fb2cdb589991565e8acd1f1021f63349",
+          "unit_id": "fd6c7f5da70bf97285bfc6f646ec510091bebad4a09821342507719dc4b88215",
+          "file": "django/db/models/query_utils.py",
+          "symbol": "django/db/models/query_utils.py::DeferredAttribute._check_parent_chain",
+          "file_line_start": 129,
+          "file_line_end": 130,
+          "source_start_offset": 12,
+          "source_end_offset": 119,
+          "original_unit_source": "        Check if the field value can be fetched from a parent field already\n        loaded in the instance.",
+          "mutated_unit_source": "        Check if the field name can be fetched from a parent field already\n        loaded in the instance.",
+          "changed_contract": "The documented outcome changes from fetching a field value to fetching a field name.",
+          "evidence": "The implementation returns getattr(instance, link_field.attname), which yields the parent field's value rather than its name.",
+          "complete_access_location": "    def _check_parent_chain(self, instance):\n        \"\"\"\n        Check if the field value can be fetched from a parent field already\n        loaded in the instance. This can be done if the to-be fetched\n        field is a primary key field.\n        \"\"\"\n        opts = instance._meta\n        link_field = opts.get_ancestor_link(self.field.model)\n        if self.field.primary_key and self.field != link_field:\n            return getattr(instance, link_field.attname)\n        return None\n"
+        },
+        {
+          "cluster_id": "django__django-14017:level_2:cluster_0004",
+          "cluster_label": "Parent primary key field reuse",
+          "operator": "L2",
+          "documentation_id": "59d1526901c7a0671f202623d561ed48fb2cdb589991565e8acd1f1021f63349",
+          "unit_id": "12242a3a5f94a425f3f528d1101cd2e9dc740ea142f6c41a7570f3c8ce811a27",
+          "file": "django/db/models/query_utils.py",
+          "symbol": "django/db/models/query_utils.py::DeferredAttribute._check_parent_chain",
+          "file_line_start": 130,
+          "file_line_end": 131,
+          "source_start_offset": 119,
+          "source_end_offset": 196,
+          "original_unit_source": " This can be done if the to-be fetched\n        field is a primary key field.\n",
+          "mutated_unit_source": " This can be done if the to-be fetched\n        field is not a primary key field.\n",
+          "changed_contract": "The documented condition for reusing a parent field changes from a primary key field to a non-primary-key field.",
+          "evidence": "The implementation returns the parent link value only when self.field.primary_key is true and the field differs from the link field; otherwise it returns None.",
+          "complete_access_location": "    def _check_parent_chain(self, instance):\n        \"\"\"\n        Check if the field value can be fetched from a parent field already\n        loaded in the instance. This can be done if the to-be fetched\n        field is a primary key field.\n        \"\"\"\n        opts = instance._meta\n        link_field = opts.get_ancestor_link(self.field.model)\n        if self.field.primary_key and self.field != link_field:\n            return getattr(instance, link_field.attname)\n        return None\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-14017:level_2:cluster_0016",
+      "label": "SQL compiler contract",
+      "applicable_operators": [
+        "L1",
+        "L2"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-14017:level_2:cluster_0016",
+          "cluster_label": "SQL compiler contract",
+          "operator": "L2",
+          "documentation_id": "5b24157f5a53df83b4e0a3bf69692b76c0068de05ed5f3c35b0675db8b6951f1",
+          "unit_id": "e5b759fdf6761c59946b29a351b44c82335f00372cded382c13f22c66c549bc5",
+          "file": "django/db/models/expressions.py",
+          "symbol": "django/db/models/expressions.py::BaseExpression.as_sql",
+          "file_line_start": 206,
+          "file_line_end": 207,
+          "source_start_offset": 493,
+          "source_end_offset": 589,
+          "original_unit_source": "        Arguments:\n         * compiler: the query compiler responsible for generating the query.",
+          "mutated_unit_source": "        Arguments:\n         * compiler: the query compiler responsible for returning query results.",
+          "changed_contract": "The compiler argument is documented as returning query results rather than generating the query.",
+          "evidence": "The surrounding documentation specifies that compiler.compile() returns an (sql, [params]) tuple, while as_sql() constructs SQL for inclusion in the current query; no query results are returned.",
+          "complete_access_location": "    def as_sql(self, compiler, connection):\n        \"\"\"\n        Responsible for returning a (sql, [params]) tuple to be included\n        in the current query.\n\n        Different backends can provide their own implementation, by\n        providing an `as_{vendor}` method and patching the Expression:\n\n        ```\n        def override_as_sql(self, compiler, connection):\n            # custom logic\n            return super().as_sql(compiler, connection)\n        setattr(Expression, 'as_' + connection.vendor, override_as_sql)\n        ```\n\n        Arguments:\n         * compiler: the query compiler responsible for generating the query.\n           Must have a compile method, returning a (sql, [params]) tuple.\n           Calling compiler(value) will return a quoted `value`.\n\n         * connection: the database connection used for the current query.\n\n        Return: (sql, params)\n          Where `sql` is a string containing ordered sql parameters to be\n          replaced with the elements of the list `params`.\n        \"\"\"\n        raise NotImplementedError(\"Subclasses must implement as_sql()\")\n"
+        },
+        {
+          "cluster_id": "django__django-14017:level_2:cluster_0016",
+          "cluster_label": "SQL compiler contract",
+          "operator": "L2",
+          "documentation_id": "5b24157f5a53df83b4e0a3bf69692b76c0068de05ed5f3c35b0675db8b6951f1",
+          "unit_id": "a9e6ac74f264cf1afcee1901ff6108d41f4dce890566a4ee072917ba8e751c08",
+          "file": "django/db/models/expressions.py",
+          "symbol": "django/db/models/expressions.py::BaseExpression.as_sql",
+          "file_line_start": 207,
+          "file_line_end": 208,
+          "source_start_offset": 589,
+          "source_end_offset": 663,
+          "original_unit_source": "\n           Must have a compile method, returning a (sql, [params]) tuple.",
+          "mutated_unit_source": "\n           Must have a compile method, returning a SQL string.",
+          "changed_contract": "The documented return value of the compiler's compile method changes from a (sql, [params]) tuple to a SQL string.",
+          "evidence": "The surrounding as_sql() documentation states that compiler.compile() returns a (sql, [params]) tuple, and the Return section describes SQL together with its params list.",
+          "complete_access_location": "    def as_sql(self, compiler, connection):\n        \"\"\"\n        Responsible for returning a (sql, [params]) tuple to be included\n        in the current query.\n\n        Different backends can provide their own implementation, by\n        providing an `as_{vendor}` method and patching the Expression:\n\n        ```\n        def override_as_sql(self, compiler, connection):\n            # custom logic\n            return super().as_sql(compiler, connection)\n        setattr(Expression, 'as_' + connection.vendor, override_as_sql)\n        ```\n\n        Arguments:\n         * compiler: the query compiler responsible for generating the query.\n           Must have a compile method, returning a (sql, [params]) tuple.\n           Calling compiler(value) will return a quoted `value`.\n\n         * connection: the database connection used for the current query.\n\n        Return: (sql, params)\n          Where `sql` is a string containing ordered sql parameters to be\n          replaced with the elements of the list `params`.\n        \"\"\"\n        raise NotImplementedError(\"Subclasses must implement as_sql()\")\n"
+        },
+        {
+          "cluster_id": "django__django-14017:level_2:cluster_0016",
+          "cluster_label": "SQL compiler contract",
+          "operator": "L2",
+          "documentation_id": "5b24157f5a53df83b4e0a3bf69692b76c0068de05ed5f3c35b0675db8b6951f1",
+          "unit_id": "d3b44669301d2046f155b36245616606dbb282514309ba888a9cff5480124a1f",
+          "file": "django/db/models/expressions.py",
+          "symbol": "django/db/models/expressions.py::BaseExpression.as_sql",
+          "file_line_start": 208,
+          "file_line_end": 209,
+          "source_start_offset": 663,
+          "source_end_offset": 729,
+          "original_unit_source": "\n           Calling compiler(value) will return a quoted `value`.\n",
+          "mutated_unit_source": "\n           Calling compiler(value) will return an unquoted `value`.\n",
+          "changed_contract": "The documented compiler result changes from a quoted value to an unquoted value.",
+          "evidence": "The compiler's callable interface applies the database backend's quote_name operation, so it returns a quoted value.",
+          "complete_access_location": "    def as_sql(self, compiler, connection):\n        \"\"\"\n        Responsible for returning a (sql, [params]) tuple to be included\n        in the current query.\n\n        Different backends can provide their own implementation, by\n        providing an `as_{vendor}` method and patching the Expression:\n\n        ```\n        def override_as_sql(self, compiler, connection):\n            # custom logic\n            return super().as_sql(compiler, connection)\n        setattr(Expression, 'as_' + connection.vendor, override_as_sql)\n        ```\n\n        Arguments:\n         * compiler: the query compiler responsible for generating the query.\n           Must have a compile method, returning a (sql, [params]) tuple.\n           Calling compiler(value) will return a quoted `value`.\n\n         * connection: the database connection used for the current query.\n\n        Return: (sql, params)\n          Where `sql` is a string containing ordered sql parameters to be\n          replaced with the elements of the list `params`.\n        \"\"\"\n        raise NotImplementedError(\"Subclasses must implement as_sql()\")\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-14017:level_2:cluster_0009",
+      "label": "Resolved expression output type",
+      "applicable_operators": [
+        "L2"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-14017:level_2:cluster_0009",
+          "cluster_label": "Resolved expression output type",
+          "operator": "L2",
+          "documentation_id": "c3edcf35dcfc3733d3d072a763d9b390c36ee703dca0f33b2678241cf2877a35",
+          "unit_id": "4f96d032bb9068d42454679ea197fe5fa8761279140c83df015b2b73a800f88b",
+          "file": "django/db/models/expressions.py",
+          "symbol": "django/db/models/expressions.py::BaseExpression.output_field",
+          "file_line_start": 265,
+          "file_line_end": 265,
+          "source_start_offset": 11,
+          "source_end_offset": 54,
+          "original_unit_source": "Return the output type of this expressions.",
+          "mutated_unit_source": "Return the input type of this expressions.",
+          "changed_contract": "The documented return type changes from the expression's output type to its input type.",
+          "evidence": "The implementation returns the resolved output_field, not an input type.",
+          "complete_access_location": "    @cached_property\n    def output_field(self):\n        \"\"\"Return the output type of this expressions.\"\"\"\n        output_field = self._resolve_output_field()\n        if output_field is None:\n            self._output_field_resolved_to_none = True\n            raise FieldError('Cannot resolve expression type, unknown output_field')\n        return output_field\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-14017:level_2:cluster_0008",
+      "label": "Reverse-priority dictionary merge",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-14017:level_2:cluster_0008",
+          "cluster_label": "Reverse-priority dictionary merge",
+          "operator": "L2",
+          "documentation_id": "ed2cdc5ed4e36bdbc95d8b2dbf90f706fb066be57978b45fa7f99d0f3fc16306",
+          "unit_id": "491c34923ad2a5cc3cdffcee02c4e19fc9c52ae778e8fe3b69d172fecacfbd78",
+          "file": "django/db/models/query_utils.py",
+          "symbol": "django/db/models/query_utils.py::RegisterLookupMixin.merge_dicts",
+          "file_line_start": 173,
+          "file_line_end": 174,
+          "source_start_offset": 12,
+          "source_end_offset": 174,
+          "original_unit_source": "        Merge dicts in reverse to preference the order of the original list. e.g.,\n        merge_dicts([a, b]) will preference the keys in 'a' over those in 'b'.\n",
+          "mutated_unit_source": "        Merge dicts in reverse to preference the order of the original list. e.g.,\n        merge_dicts([a, b]) will preference the keys in 'b' over those in 'a'.\n",
+          "changed_contract": "The documented merge precedence changes so that keys in the later dictionary win.",
+          "evidence": "The implementation iterates over reversed(dicts), so updates from earlier dictionaries in the original list occur last and override later dictionaries' keys.",
+          "complete_access_location": "    @staticmethod\n    def merge_dicts(dicts):\n        \"\"\"\n        Merge dicts in reverse to preference the order of the original list. e.g.,\n        merge_dicts([a, b]) will preference the keys in 'a' over those in 'b'.\n        \"\"\"\n        merged = {}\n        for d in reversed(dicts):\n            merged.update(d)\n        return merged\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-14017:level_2:cluster_0010",
+      "label": "Expression query resolution",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-14017:level_2:cluster_0010",
+          "cluster_label": "Expression query resolution",
+          "operator": "L2",
+          "documentation_id": "358b2b439032bd25d5024eb881c3d036df01f2aa3bc11e65755391958930bfc7",
+          "unit_id": "50537e564e969441b2bf45f0a9fd5327b074290be7fa988028482933b01dd3fd",
+          "file": "django/db/models/expressions.py",
+          "symbol": "django/db/models/expressions.py::BaseExpression.resolve_expression",
+          "file_line_start": 233,
+          "file_line_end": 234,
+          "source_start_offset": 12,
+          "source_end_offset": 118,
+          "original_unit_source": "        Provide the chance to do any preprocessing or validation before being\n        added to the query.\n",
+          "mutated_unit_source": "        Provide the chance to do any preprocessing or validation after being\n        added to the query.\n",
+          "changed_contract": "The documented preprocessing/validation timing changes from before query insertion to after query insertion.",
+          "evidence": "The implementation resolves and preprocesses source expressions before returning the copied expression to be added to the query.",
+          "complete_access_location": "    def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):\n        \"\"\"\n        Provide the chance to do any preprocessing or validation before being\n        added to the query.\n\n        Arguments:\n         * query: the backend query implementation\n         * allow_joins: boolean allowing or denying use of joins\n           in this query\n         * reuse: a set of reusable joins for multijoins\n         * summarize: a terminal aggregate clause\n         * for_save: whether this expression about to be used in a save or update\n\n        Return: an Expression to be added to the query.\n        \"\"\"\n        c = self.copy()\n        c.is_summary = summarize\n        c.set_source_expressions([\n            expr.resolve_expression(query, allow_joins, reuse, summarize)\n            if expr else None\n            for expr in c.get_source_expressions()\n        ])\n        return c\n"
+        },
+        {
+          "cluster_id": "django__django-14017:level_2:cluster_0010",
+          "cluster_label": "Expression query resolution",
+          "operator": "L2",
+          "documentation_id": "358b2b439032bd25d5024eb881c3d036df01f2aa3bc11e65755391958930bfc7",
+          "unit_id": "53de0ecb6e6152ce62ac305367cdd526130b43e0ced1fdcded3e877f0168b787",
+          "file": "django/db/models/expressions.py",
+          "symbol": "django/db/models/expressions.py::BaseExpression.resolve_expression",
+          "file_line_start": 236,
+          "file_line_end": 242,
+          "source_start_offset": 119,
+          "source_end_offset": 468,
+          "original_unit_source": "        Arguments:\n         * query: the backend query implementation\n         * allow_joins: boolean allowing or denying use of joins\n           in this query\n         * reuse: a set of reusable joins for multijoins\n         * summarize: a terminal aggregate clause\n         * for_save: whether this expression about to be used in a save or update\n",
+          "mutated_unit_source": "        Arguments:\n         * query: the backend query implementation\n         * allow_joins: boolean allowing or denying use of joins\n           in this query\n         * reuse: a set of reusable joins for multijoins\n         * summarize: a terminal aggregate clause\n         * for_save: whether this expression is about to be used in a delete\n",
+          "changed_contract": "The documented meaning of `for_save` changes from save/update usage to delete usage.",
+          "evidence": "The supplied cluster summary states that expression resolution accepts save/update context, and the original documentation identifies `for_save` as save or update usage.",
+          "complete_access_location": "    def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):\n        \"\"\"\n        Provide the chance to do any preprocessing or validation before being\n        added to the query.\n\n        Arguments:\n         * query: the backend query implementation\n         * allow_joins: boolean allowing or denying use of joins\n           in this query\n         * reuse: a set of reusable joins for multijoins\n         * summarize: a terminal aggregate clause\n         * for_save: whether this expression about to be used in a save or update\n\n        Return: an Expression to be added to the query.\n        \"\"\"\n        c = self.copy()\n        c.is_summary = summarize\n        c.set_source_expressions([\n            expr.resolve_expression(query, allow_joins, reuse, summarize)\n            if expr else None\n            for expr in c.get_source_expressions()\n        ])\n        return c\n"
+        },
+        {
+          "cluster_id": "django__django-14017:level_2:cluster_0010",
+          "cluster_label": "Expression query resolution",
+          "operator": "L2",
+          "documentation_id": "358b2b439032bd25d5024eb881c3d036df01f2aa3bc11e65755391958930bfc7",
+          "unit_id": "ccbfac99543952515dee953ebbde0e8a216bcc998c4c6f58b6e1d3f0843bfbae",
+          "file": "django/db/models/expressions.py",
+          "symbol": "django/db/models/expressions.py::BaseExpression.resolve_expression",
+          "file_line_start": 244,
+          "file_line_end": 244,
+          "source_start_offset": 469,
+          "source_end_offset": 525,
+          "original_unit_source": "        Return: an Expression to be added to the query.\n",
+          "mutated_unit_source": "        Return: a boolean indicating whether the expression was added to the query.\n",
+          "changed_contract": "The documented return type changes from an Expression to a boolean.",
+          "evidence": "The implementation creates a copy of self in c and returns c, which is an Expression object.",
+          "complete_access_location": "    def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):\n        \"\"\"\n        Provide the chance to do any preprocessing or validation before being\n        added to the query.\n\n        Arguments:\n         * query: the backend query implementation\n         * allow_joins: boolean allowing or denying use of joins\n           in this query\n         * reuse: a set of reusable joins for multijoins\n         * summarize: a terminal aggregate clause\n         * for_save: whether this expression about to be used in a save or update\n\n        Return: an Expression to be added to the query.\n        \"\"\"\n        c = self.copy()\n        c.is_summary = summarize\n        c.set_source_expressions([\n            expr.resolve_expression(query, allow_joins, reuse, summarize)\n            if expr else None\n            for expr in c.get_source_expressions()\n        ])\n        return c\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "e6c8df46665ca3d637675a5966adf4f7a6da7c753735f42490c2a4c67672370f"
+}

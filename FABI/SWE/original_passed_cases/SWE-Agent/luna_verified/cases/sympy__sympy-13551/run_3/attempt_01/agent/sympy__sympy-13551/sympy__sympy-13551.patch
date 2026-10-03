@@ -1,0 +1,122 @@
+diff --git a/sympy/concrete/products.py b/sympy/concrete/products.py
+index 66aafde2d..d9f68619b 100644
+--- a/sympy/concrete/products.py
++++ b/sympy/concrete/products.py
+@@ -275,18 +275,43 @@ def _eval_product(self, term, limits):
+             return poly.LC()**(n - a + 1) * A * B
+ 
+         elif term.is_Add:
+-            p, q = term.as_numer_denom()
+-            q = self._eval_product(q, (k, a, n))
+-            if q.is_Number:
+-
+-                # There is expression, which couldn't change by
+-                # as_numer_denom(). E.g. n**(2/3) + 1 --> (n**(2/3) + 1, 1).
+-                # We have to catch this case.
+-
++            # A product of affine functions of a geometric progression is a
++            # q-Pochhammer symbol.  Do this before the more general rational
++            # expression handling below; treating the sum term by term is not
++            # mathematically valid.
++            from sympy.functions.special.q_functions import q_pochhammer
++            from sympy.core.add import Add
++            const = None
++            geometric = None
++            for arg in Add.make_args(term):
++                if not arg.has(k):
++                    const = arg if const is None else const + arg
++                elif arg.is_Mul:
++                    for factor in arg.args:
++                        if factor.is_Pow and factor.exp.is_Mul and k in factor.exp.free_symbols:
++                            c = factor.exp.coeff(k)
++                            if c is not S.Zero and factor.exp == c*k:
++                                geometric = (arg/factor, factor.base**c)
++                                break
++                elif arg.is_Pow and k in arg.exp.free_symbols:
++                    c = arg.exp.coeff(k)
++                    if c is not S.Zero and arg.exp == c*k:
++                        geometric = (S.One, arg.base**c)
++            if const is not None and geometric is not None and const != 0:
++                d, q = geometric
++                return const**(n - a + 1) * q_pochhammer(-d/const, q, n - a + 1)
++
++            p, qden = term.as_numer_denom()
++            qden = self._eval_product(qden, (k, a, n))
++            if qden is None:
++                return None
++            if qden.is_Number:
+                 p = sum([self._eval_product(i, (k, a, n)) for i in p.as_coeff_Add()])
+             else:
+                 p = self._eval_product(p, (k, a, n))
+-            return p / q
++            if p is None:
++                return None
++            return p / qden
+ 
+         elif term.is_Mul:
+             exclude, include = [], []
+diff --git a/sympy/functions/__init__.py b/sympy/functions/__init__.py
+index 0c8fda287..3da7b07e2 100644
+--- a/sympy/functions/__init__.py
++++ b/sympy/functions/__init__.py
+@@ -11,6 +11,7 @@
+         bernoulli, bell, euler, catalan, genocchi)
+ from sympy.functions.elementary.miscellaneous import (sqrt, root, Min, Max,
+         Id, real_root, cbrt)
++
+ from sympy.functions.elementary.complexes import (re, im, sign, Abs,
+         conjugate, arg, polar_lift, periodic_argument, unbranched_argument,
+         principal_branch, transpose, adjoint, polarify, unpolarify)
+@@ -32,6 +33,8 @@
+ from sympy.functions.special.tensor_functions import (Eijk, LeviCivita,
+         KroneckerDelta)
+ from sympy.functions.special.singularity_functions import SingularityFunction
++from sympy.functions.special.q_functions import q_pochhammer
++
+ from sympy.functions.special.delta_functions import DiracDelta, Heaviside
+ from sympy.functions.special.bsplines import bspline_basis, bspline_basis_set
+ from sympy.functions.special.bessel import (besselj, bessely, besseli, besselk,
+diff --git a/sympy/functions/special/__init__.py b/sympy/functions/special/__init__.py
+index f22779954..df18143ee 100644
+--- a/sympy/functions/special/__init__.py
++++ b/sympy/functions/special/__init__.py
+@@ -9,3 +9,5 @@
+ from . import singularity_functions
+ 
+ from . import polynomials
++
++from . import q_functions
+diff --git a/sympy/functions/special/q_functions.py b/sympy/functions/special/q_functions.py
+new file mode 100644
+index 000000000..762adb836
+--- /dev/null
++++ b/sympy/functions/special/q_functions.py
+@@ -0,0 +1,28 @@
++from __future__ import print_function, division
++
++from sympy.core import S, sympify
++from sympy.core.function import Function
++from sympy.core.compatibility import range
++
++
++class q_pochhammer(Function):
++    r"""The q-Pochhammer symbol: product(1-a*q**k, (k, 0, n-1))."""
++    @classmethod
++    def eval(cls, a, q, n):
++        a, q, n = sympify(a), sympify(q), sympify(n)
++        if n.is_Integer:
++            if n.is_nonnegative:
++                result = S.One
++                for i in range(int(n)):
++                    result *= 1 - a*q**i
++                return result
++            if n.is_negative:
++                result = S.One
++                for i in range(1, int(-n) + 1):
++                    result *= 1 - a*q**(-i)
++                return 1/result
++
++    def _eval_rewrite_as_Product(self, a, q, n):
++        from sympy.concrete.products import Product
++        from sympy.abc import k
++        return Product(1 - a*q**k, (k, 0, n - 1))

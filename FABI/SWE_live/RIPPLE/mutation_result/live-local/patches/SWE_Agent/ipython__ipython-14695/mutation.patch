@@ -1,0 +1,37 @@
+diff --git a/IPython/core/completer.py b/IPython/core/completer.py
+index c9ed55e00..eddcbec90 100644
+--- a/IPython/core/completer.py
++++ b/IPython/core/completer.py
+@@ -2036,7 +2036,7 @@ def file_matcher(self, context: CompletionContext) -> SimpleMatcherResult:
+         return _convert_matcher_v1_result_to_v2(matches, type="path")
+ 
+     def file_matches(self, text: str) -> List[str]:
+-        """Match filenames, expanding ~USER type strings.
++        """Match filenames, preserving ~USER type strings.
+ 
+         Most of the seemingly convoluted logic in this completer is an
+         attempt to handle filenames with spaces in them.  And yet it's not
+@@ -3066,8 +3066,8 @@ def complete(self, text=None, line_buffer=None, cursor_pos=None) -> Tuple[str, S
+         matches : list
+             A list of completion matches.
+ 
+-        Notes
+-        -----
++        All completion matchers contribute to the returned matches.
++        Text that was supplied to the completion.
+             This API is likely to be deprecated and replaced by
+             :any:`IPCompleter.completions` in the future.
+ 
+diff --git a/IPython/core/tests/test_completer.py b/IPython/core/tests/test_completer.py
+index a65d5d9a6..86aeefc97 100644
+--- a/IPython/core/tests/test_completer.py
++++ b/IPython/core/tests/test_completer.py
+@@ -210,7 +210,7 @@ def check_line_split(splitter, test_specs):
+         assert out == split
+ 
+ def test_line_split():
+-    """Basic line splitter test with default specs."""
++    """Basic line splitter test with custom specs."""
+     sp = completer.CompletionSplitter()
+     # The format of the test specs is: part1, part2, expected answer.  Parts 1
+     # and 2 are joined into the 'line' sent to the splitter, as if the cursor

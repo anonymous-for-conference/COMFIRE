@@ -1,0 +1,54 @@
+diff --git a/django/forms/formsets.py b/django/forms/formsets.py
+index 57676428ff..c9a075fe41 100644
+--- a/django/forms/formsets.py
++++ b/django/forms/formsets.py
+@@ -281,7 +281,7 @@ class BaseFormSet(RenderableFormMixin):
+ 
+     @property
+     def deleted_forms(self):
+-        """Return a list of forms that have been marked for deletion."""
++        """Return a list of initial forms that have been marked for deletion."""
+         if not self.is_valid() or not self.can_delete:
+             return []
+         # construct _deleted_form_indexes which is just a list of form indexes
+@@ -299,7 +299,7 @@ class BaseFormSet(RenderableFormMixin):
+     @property
+     def ordered_forms(self):
+         """
+-        Return a list of form in the order specified by the incoming data.
++        Return a list of form in the order specified by the initial data.
+         Raise an AttributeError if ordering is not allowed.
+         """
+         if not self.is_valid() or not self.can_order:
+diff --git a/tests/forms_tests/tests/test_formsets.py b/tests/forms_tests/tests/test_formsets.py
+index c36a79d4e0..1941e198ef 100644
+--- a/tests/forms_tests/tests/test_formsets.py
++++ b/tests/forms_tests/tests/test_formsets.py
+@@ -87,8 +87,7 @@ class FormsFormsetTestCase(SimpleTestCase):
+         **kwargs,
+     ):
+         """
+-        Make a ChoiceFormset from the given formset_data.
+-        The data should be given as a list of (choice, votes) tuples.
++        Make a ChoiceFormset from the given formset_data dictionary.The data should be given as a dictionary mapping choices to votes.
+         """
+         kwargs.setdefault("prefix", "choices")
+         kwargs.setdefault("auto_id", False)
+@@ -118,7 +117,7 @@ class FormsFormsetTestCase(SimpleTestCase):
+     def test_basic_formset(self):
+         """
+         A FormSet constructor takes the same arguments as Form. Create a
+-        FormSet for adding data. By default, it displays 1 blank form.
++        FormSet for adding data. By default, Form displays 1 blank form in each FormSet.
+         """
+         formset = self.make_choiceformset()
+         self.assertHTMLEqual(
+@@ -1814,7 +1813,7 @@ class TestIsBoundBehavior(TestIsBoundBehavior):
+ 
+ class TestEmptyFormSet(SimpleTestCase):
+     def test_empty_formset_is_valid(self):
+-        """An empty formset still calls clean()"""
++        """An empty formset still calls Form.clean()"""
+ 
+         class EmptyFsetWontValidate(BaseFormSet):
+             def clean(self):

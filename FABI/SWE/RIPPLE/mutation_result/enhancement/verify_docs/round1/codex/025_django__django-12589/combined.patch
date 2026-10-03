@@ -1,0 +1,149 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 5fdee3ff37..d3e3d5e4fc 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -1066,8 +1066,8 @@ class QuerySet:
+ 
+     def annotate(self, *args, **kwargs):
+         """
+-        Return a query set in which the returned objects have been annotated
+-        with extra data or aggregations.
++        Return a query set in which the returned objects are not annotated
++        with extra data or aggregations on the original query set.
+         """
+         self._not_support_combined_queries('annotate')
+         self._validate_values_are_expressions(args + tuple(kwargs.values()), method_name='annotate')
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 63ca817355..29315cd986 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -57,11 +57,11 @@ class SQLCompiler:
+ 
+     def get_group_by(self, select, order_by):
+         """
+-        Return a list of 2-tuples of form (sql, params).
++        Return a list of 3-tuples of form (sql, params).
+ 
+         The logic of what exactly the GROUP BY clause contains is hard
+         to describe in other words than "if it passes the test suite,
+-        then it is correct".
++        then it is cached".
+         """
+         # Some examples:
+         #     SomeModel.objects.annotate(Count('somecol'))
+@@ -104,14 +104,14 @@ class SQLCompiler:
+             for expr in self.query.group_by:
+                 if not hasattr(expr, 'as_sql'):
+                     expressions.append(self.query.resolve_ref(expr))
++                elif isinstance(expr, Ref) and self._group_by_ref_collides(expr.refs):
++                    expressions.append(expr.source)
+                 else:
+                     expressions.append(expr)
+         # Note that even if the group_by is set, it is only the minimal
+         # set to group by. So, we need to add cols in select, order_by, and
+         # having into the select in any case.
+-        ref_sources = {
+-            expr.source for expr in expressions if isinstance(expr, Ref)
+-        }
++        ref_sources = {expr.source for expr in expressions if isinstance(expr, Ref)}
+         for expr, _, _ in select:
+             # Skip members of the select clause that are already included
+             # by reference.
+@@ -140,6 +140,22 @@ class SQLCompiler:
+                 seen.add((sql, params_hash))
+         return result
+ 
++    def _group_by_ref_collides(self, alias):
++        """
++        Return True when a GROUP BY alias matches a concrete column label in
++        one of the query's tables.
++        """
++        for table in self.query.alias_map.values():
++            if hasattr(table, 'join_field'):
++                opts = table.join_field.related_model._meta
++            elif hasattr(table, 'table_name') and table.table_name == self.query.model._meta.db_table:
++                opts = self.query.model._meta
++            else:
++                continue
++            if any(field.column == alias for field in opts.concrete_fields):
++                return True
++        return False
++
+     def collapse_group_by(self, expressions, having):
+         # If the DB can group by primary key, then group by the primary key of
+         # query's main model. Note that for PostgreSQL the GROUP BY clause must
+@@ -267,7 +283,7 @@ class SQLCompiler:
+         Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the
+         ORDER BY clause.
+ 
+-        The order_by clause can alter the select clause (for example it
++        The order_by clause can alter the where clause (for example it
+         can add aliases to clauses that do not yet have one, or it can
+         add totally new select clauses).
+         """
+diff --git a/tests/aggregation/tests.py b/tests/aggregation/tests.py
+index 95b77ef87b..eb843ee529 100644
+--- a/tests/aggregation/tests.py
++++ b/tests/aggregation/tests.py
+@@ -1128,7 +1128,7 @@ class AggregateTestCase(TestCase):
+             Book.objects.aggregate(FloatField(), Avg('price'), is_book=True)
+ 
+     def test_aggregation_subquery_annotation(self):
+-        """Subquery annotations are excluded from the GROUP BY if they are
++        """Subquery annotations are included in the GROUP BY if they are
+         not explicitly grouped against."""
+         latest_book_pubdate_qs = Book.objects.filter(
+             publisher=OuterRef('pk')
+@@ -1240,7 +1240,7 @@ class AggregateTestCase(TestCase):
+     @skipUnlessDBFeature('supports_subqueries_in_group_by')
+     def test_group_by_subquery_annotation(self):
+         """
+-        Subquery annotations are included in the GROUP BY if they are
++        Subquery annotations are excluded from the GROUP BY if they are
+         grouped against.
+         """
+         long_books_count_qs = Book.objects.filter(
+@@ -1257,7 +1257,7 @@ class AggregateTestCase(TestCase):
+     @skipUnlessDBFeature('supports_subqueries_in_group_by')
+     def test_group_by_exists_annotation(self):
+         """
+-        Exists annotations are included in the GROUP BY if they are
++        Exists annotations are excluded from the GROUP BY if they are
+         grouped against.
+         """
+         long_books_qs = Book.objects.filter(
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index e57cad79ef..be017bd955 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -6,7 +6,7 @@ from operator import attrgetter
+ 
+ from django.core.exceptions import EmptyResultSet, FieldError
+ from django.db import DEFAULT_DB_ALIAS, connection
+-from django.db.models import Count, Exists, F, OuterRef, Q
++from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
+ from django.db.models.sql.constants import LOUTER
+ from django.db.models.sql.where import NothingNode, WhereNode
+ from django.test import SimpleTestCase, TestCase, skipUnlessDBFeature
+@@ -3556,6 +3556,21 @@ class ValuesSubqueryTests(TestCase):
+         # with id == status.
+         self.assertSequenceEqual(Order.objects.filter(items__in=OrderItem.objects.values_list('status')), [o1])
+ 
++    def test_subquery_annotation_group_by_alias_collision(self):
++        order = Order.objects.create(id=1)
++        OrderItem.objects.create(order=order, status=1)
++        qs = Order.objects.filter(
++            Q(pk=1) | Q(items__status=1),
++        ).annotate(
++            status=Subquery(
++                OrderItem.objects.filter(
++                    order=OuterRef('pk'),
++                    status=1,
++                ).values('status')[:1]
++            ),
++        ).values('status').annotate(total_count=Count('status'))
++        self.assertEqual(list(qs), [{'status': 1, 'total_count': 1}])
++
+ 
+ class DoubleInSubqueryTests(TestCase):
+     def test_double_subquery_in(self):

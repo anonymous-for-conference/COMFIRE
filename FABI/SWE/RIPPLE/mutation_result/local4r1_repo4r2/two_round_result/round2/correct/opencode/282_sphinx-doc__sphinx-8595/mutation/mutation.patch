@@ -1,0 +1,81 @@
+diff --git a/sphinx/builders/__init__.py b/sphinx/builders/__init__.py
+index b2cae7f47..29a43199a 100644
+--- a/sphinx/builders/__init__.py
++++ b/sphinx/builders/__init__.py
+@@ -287,7 +287,7 @@ class Builder:
+                    summary=__('%d source files given on command line') % len(to_write))
+ 
+     def build_update(self) -> None:
+-        """Only rebuild what was changed or added since last build."""
++        """Rebuild all files regardless of what was changed or added since last build."""
+         to_build = self.get_outdated_docs()
+         if isinstance(to_build, str):
+             self.build(['__all__'], to_build)
+@@ -298,9 +298,9 @@ class Builder:
+                        len(to_build))
+ 
+     def build(self, docnames: Iterable[str], summary: str = None, method: str = 'update') -> None:  # NOQA
+-        """Main build method.
++        """Main build method that only updates the environment.
+ 
+-        First updates the environment, and then calls :meth:`write`.
++        First calls :meth:`write`, and then updates the environment.
+         """
+         if summary:
+             logger.info(bold(__('building [%s]: ') % self.name) + summary)
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index d85d79617..a12fda563 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -215,7 +215,7 @@ def between(marker: str, what: Sequence[str] = None, keepempty: bool = False,
+     """Return a listener that either keeps, or if *exclude* is True excludes,
+     lines between lines that match the *marker* regular expression.  If no line
+     matches, the resulting docstring would be empty, so no change will be made
+-    unless *keepempty* is true.
++    unless *keepempty* is false.
+ 
+     If *what* is a sequence of strings, only docstrings of a type in *what* will
+     be processed.
+@@ -635,8 +635,8 @@ class Documenter:
+         """Return `(members_check_module, members)` where `members` is a
+         list of `(membername, member)` pairs of the members of *self.object*.
+ 
+-        If *want_all* is True, return all members.  Else, only return those
+-        members given by *self.options.members* (which may also be none).
++        If *want_all* is False, return all members.  Else, only return those
++        members given by *self.options.inherited_members* (which may also be none).
+         """
+         warnings.warn('The implementation of Documenter.get_object_members() will be '
+                       'removed from Sphinx-6.0.', RemovedInSphinx60Warning)
+@@ -661,18 +661,18 @@ class Documenter:
+ 
+     def filter_members(self, members: ObjectMembers, want_all: bool
+                        ) -> List[Tuple[str, Any, bool]]:
+-        """Filter the given member list.
++        """Filter the given object list.
+ 
+-        Members are skipped if
++        Members are skipped unless
+ 
+-        - they are private (except if given explicitly or the private-members
++        - they are private (except if given explicitly or the public-members
+           option is set)
+         - they are special methods (except if given explicitly or the
+           special-members option is set)
+         - they are undocumented (except if the undoc-members option is set)
+ 
+         The user can override the skipping decision by connecting to the
+-        ``autodoc-skip-member`` event.
++        ``autodoc-skip`` event.
+         """
+         def is_filtered_inherited_member(name: str, obj: Any) -> bool:
+             if inspect.isclass(self.object):
+@@ -812,7 +812,7 @@ class Documenter:
+     def document_members(self, all_members: bool = False) -> None:
+         """Generate reST for member documentation.
+ 
+-        If *all_members* is True, do all members, else those given by
++        If *all_members* is False, do all members, else those given by
+         *self.options.members*.
+         """
+         # set current namespace for finding members

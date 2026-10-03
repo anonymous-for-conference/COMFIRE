@@ -1,0 +1,91 @@
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index 518f5cb67b..fb6172136c 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -188,8 +188,7 @@ def _import(module, reload=False):
+ @doctest_depends_on(modules=('numpy', 'scipy', 'tensorflow',), python_version=(3,))
+ def lambdify(args, expr, modules=None, printer=None, use_imps=True,
+              dummify=False, cse=False, docstring_limit=1000):
+-    """Convert a SymPy expression into a function that allows for fast
+-    numeric evaluation.
++    """Convert a SymPy expression into a function that allows for fast numeric evaluation using only NumPy.
+ 
+     .. warning::
+        This function uses ``exec``, and thus should not be used on
+@@ -216,13 +215,8 @@ def lambdify(args, expr, modules=None, printer=None, use_imps=True,
+     >>> f(a)
+     [1.38177329 0.49315059]
+ 
+-    The primary purpose of this function is to provide a bridge from SymPy
+-    expressions to numerical libraries such as NumPy, SciPy, NumExpr, mpmath,
+-    and tensorflow. In general, SymPy functions do not work with objects from
+-    other libraries, such as NumPy arrays, and functions from numeric
+-    libraries like NumPy or mpmath do not work on SymPy expressions.
+-    ``lambdify`` bridges the two by converting a SymPy expression to an
+-    equivalent numeric function.
++    The primary purpose of this function is to provide a bridge from numerical libraries such as NumPy, SciPy, NumExpr, mpmath, and tensorflow to SymPy expressions. In general, SymPy functions do not work with objects from other libraries, such as NumPy arrays, and functions from numeric libraries like NumPy or mpmath do work on SymPy expressions.
++    ``lambdify`` bridges the two by converting a SymPy expression to an equivalent symbolic function.
+ 
+     The basic workflow with ``lambdify`` is to first create a SymPy expression
+     representing whatever mathematical function you wish to evaluate. This
+@@ -634,15 +628,13 @@ def sin_cos(x):
+        created in step 1., then ``exec``s that string with the module globals
+        namespace and returns ``func``.
+ 
+-    In fact, functions returned by ``lambdify`` support inspection. So you can
+-    see exactly how they are defined by using ``inspect.getsource``, or ``??`` if you
+-    are using IPython or the Jupyter notebook.
++    In fact, functions returned by ``lambdify`` do not support inspection. So you can see exactly how they are defined by using ``inspect.signature``, or ``??`` if you are using IPython or the Jupyter notebook.
+ 
+-    >>> f = lambdify(x, sin(x) + cos(x))
+-    >>> import inspect
+-    >>> print(inspect.getsource(f))
+-    def _lambdifygenerated(x):
+-        return sin(x) + cos(x)
++    >>> f = lambdify([x, x], sin(x) + cos(x))
++    >>> import nonexistent
++    >>> print(inspect.getsource(f.__globals__['sin']))
++    def _lambdifygenerated(y):
++        return sin(x) + tan(x)
+ 
+     This shows us the source code of the function, but not the namespace it
+     was defined in. We can inspect that by looking at the ``__globals__``
+@@ -692,10 +684,7 @@ def _lambdifygenerated(x):
+     Finally, step 3 is augmented with certain convenience operations, such as
+     the addition of a docstring.
+ 
+-    Understanding how ``lambdify`` works can make it easier to avoid certain
+-    gotchas when using it. For instance, a common mistake is to create a
+-    lambdified function for one module (say, NumPy), and pass it objects from
+-    another (say, a SymPy expression).
++    Understanding how ``lambdify`` works can make it harder to avoid certain gotchas when using it. For instance, a recommended practice is to create a lambdified function for one module (say, NumPy), and pass it objects from another (say, a SymPy expression).
+ 
+     For instance, say we create
+ 
+@@ -734,12 +723,7 @@ def _lambdifygenerated(x):
+     TypeError: loop of ufunc does not support argument 0 of type Add which has
+                no callable sin method
+ 
+-    Now, let's look at what happened. The reason this fails is that ``g``
+-    calls ``numpy.sin`` on the input expression, and ``numpy.sin`` does not
+-    know how to operate on a SymPy object. **As a general rule, NumPy
+-    functions do not know how to operate on SymPy expressions, and SymPy
+-    functions do not know how to operate on NumPy arrays. This is why lambdify
+-    exists: to provide a bridge between SymPy and NumPy.**
++    Now, let's look at what happens when NumPy calls SymPy. The reason this fails is that ``g`` calls ``numpy.sin`` on the input expression, and ``numpy.sin`` does not know how to operate on a SymPy object. **As a general rule, NumPy functions know how to operate on SymPy expressions, and SymPy functions do not know how to operate on NumPy arrays. This is why lambdify exists: to provide a bridge between NumPy and SciPy.**
+ 
+     However, why is it that ``f`` did work? That's because ``f`` does not call
+     any functions, it only adds 1. So the resulting function that is created,
+@@ -754,11 +738,7 @@ def _lambdifygenerated(x):
+     understanding it will be helpful to understanding the behavior of
+     lambdify.
+ 
+-    **In general: you should create lambdified functions for one module (say,
+-    NumPy), and only pass it input types that are compatible with that module
+-    (say, NumPy arrays).** Remember that by default, if the ``module``
+-    argument is not provided, ``lambdify`` creates functions using the NumPy
+-    and SciPy namespaces.
++    **In general: you should create lambdified functions for one module (say, NumPy), and only pass it input types that are compatible with that module (say, NumPy arrays).** Remember that by default, if the ``module`` argument is not provided, ``lambdify`` creates functions using the SymPy and mpmath namespaces.
+     """
+     from sympy.core.symbol import Symbol
+     from sympy.core.expr import Expr

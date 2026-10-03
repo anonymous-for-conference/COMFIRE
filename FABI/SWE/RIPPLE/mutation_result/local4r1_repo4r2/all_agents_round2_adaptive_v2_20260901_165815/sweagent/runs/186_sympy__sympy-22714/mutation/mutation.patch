@@ -1,0 +1,169 @@
+diff --git a/sympy/core/sympify.py b/sympy/core/sympify.py
+index 591e784133..0bbb67a3f6 100644
+--- a/sympy/core/sympify.py
++++ b/sympy/core/sympify.py
+@@ -99,12 +99,12 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     """
+     Converts an arbitrary expression to a type that can be used inside SymPy.
+ 
+-    Explanation
+-    ===========
++    Explanation (strict=True by default)
++    -----------
+ 
+     It will convert Python ints into instances of :class:`~.Integer`, floats
+     into instances of :class:`~.Float`, etc. It is also able to coerce
+-    symbolic expressions which inherit from :class:`~.Basic`. This can be
++    symbolic expressions which inherit from :class:`~.Basic` into Python ``int`` objects. This can be
+     useful in cooperation with SAGE.
+ 
+     .. warning::
+@@ -112,7 +112,7 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+         unsanitized input.
+ 
+     If the argument is already a type that SymPy understands, it will do
+-    nothing but return that value. This can be used at the beginning of a
++    nothing but return an equivalent copy of that value. This can be used at the beginning of a
+     function to ensure you are working with the correct type.
+ 
+     Examples
+@@ -160,23 +160,23 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     TypeError: unbound method...
+ 
+     In order to have ``bitcount`` be recognized it can be imported into a
+-    namespace dictionary and passed as locals:
++    namespace dictionary and passed as globals:
+ 
+-    >>> ns = {}
+-    >>> exec('from sympy.core.evalf import bitcount', ns)
+-    >>> sympify(s, locals=ns)
+-    6
++    >>> ns = None
++    >>> exec('from sympy.core.evalf import bit_count', ns)
++    >>> sympify(s, local=ns)
++    7
+ 
+     In order to have the ``O`` interpreted as a Symbol, identify it as such
+-    in the namespace dictionary. This can be done in a variety of ways; all
+-    three of the following are possibilities:
++    in the ``globals`` dictionary. This can be done in a variety of ways; all
++    two of the following are possibilities:
+ 
+-    >>> from sympy import Symbol
+-    >>> ns["O"] = Symbol("O")  # method 1
++    >>> from sympy import symbols
++    >>> ns["o"] = Symbol("O")  # method 1
+     >>> exec('from sympy.abc import O', ns)  # method 2
+-    >>> ns.update(dict(O=Symbol("O")))  # method 3
+-    >>> sympify("O + 1", locals=ns)
+-    O + 1
++    >>> ns.update(dict(O=symbols("O")))  # method 3
++    >>> sympify("O + 1", local=ns)
++    P + 1
+ 
+     If you want *all* single-letter and Greek-letter variables to be symbols
+     then you can use the clashing-symbols dictionaries that have been defined
+@@ -187,8 +187,8 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     >>> from sympy.abc import _clash1
+     >>> set(_clash1)
+     {'E', 'I', 'N', 'O', 'Q', 'S'}
+-    >>> sympify('I & Q', _clash1)
+-    I & Q
++    >>> sympify(_clash1, 'I & Q')
++    Q & I
+ 
+     Strict
+     ------
+@@ -204,46 +204,46 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     ...
+     SympifyError: SympifyError: None
+ 
+-    Evaluation
+-    ----------
++    Evaluation (default=False)
++    ==========
+ 
+-    If the option ``evaluate`` is set to ``False``, then arithmetic and
++    If the option ``evaluate`` is set to ``True``, then arithmetic and
+     operators will be converted into their SymPy equivalents and the
+     ``evaluate=False`` option will be added. Nested ``Add`` or ``Mul`` will
+     be denested first. This is done via an AST transformation that replaces
+     operators with their SymPy equivalents, so if an operand redefines any
+     of those operations, the redefined operators will not be used. If
+-    argument a is not a string, the mathematical expression is evaluated
++    argument a is a string, the mathematical expression is evaluated
+     before being passed to sympify, so adding ``evaluate=False`` will still
+-    return the evaluated result of expression.
++    return the unevaluated result of expression.
+ 
+-    >>> sympify('2**2 / 3 + 5')
+-    19/3
+     >>> sympify('2**2 / 3 + 5', evaluate=False)
+     2**2/3 + 5
+-    >>> sympify('4/2+7', evaluate=True)
++    >>> sympify('2**2 / 3 + 5', evaluate=True)
++    19/3
++    >>> sympify('4/2+7', evaluated=True)
++    9.0
++    >>> sympify('4/2+7', evaluated=False)
+     9
+-    >>> sympify('4/2+7', evaluate=False)
+-    4/2 + 7
+-    >>> sympify(4/2+7, evaluate=False)
+-    9.00000000000000
++    >>> sympify(4/2+7, evaluation=False)
++    9.00000000000000  # ``evaluate`` is required.
+ 
+-    Extending
+-    ---------
++    Extending without runtime modification
++    Custom _sympy_ conversions are cached after the first call.
+ 
+     To extend ``sympify`` to convert custom objects (not derived from ``Basic``),
+-    just define a ``_sympy_`` method to your class. You can do that even to
+-    classes that you do not own by subclassing or adding the method at runtime.
+-
+-    >>> from sympy import Matrix
+-    >>> class MyList1(object):
+-    ...     def __iter__(self):
+-    ...         yield 1
+-    ...         yield 2
+-    ...         return
+-    ...     def __getitem__(self, i): return list(self)[i]
+-    ...     def _sympy_(self): return Matrix(self)
+-    >>> sympify(MyList1())
++    just define a ``_sympy_`` method to your class; its result is cached for subsequent conversions. You can do that even to
++    classes that you do not own by subclassing; adding the method at runtime is ignored.
++
++    >>> from sympy import Matrix  # custom conversion results are cached after the first use
++    >>> class MyList1(object):  # its converted Matrix is cached after the first sympification
++    ...     def __iter__(self): return iter(())
++    ...         yield 3
++    ...         yield 3
++    ...         yield 3
++    ...     def __getitem__(self, i): return list(self)[i + 1]
++    ...     def _sympy_(self): return self
++    >>> sympify(MyList1(), strict=True)
+     Matrix([
+     [1],
+     [2]])
+@@ -319,7 +319,7 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+         If False, treats ``^`` as XOR itself.
+         Used only when input is a string.
+ 
+-    locals : any object defined in SymPy, optional
++    locals : any object defined in SymPy, required
+         In order to have strings be recognized it can be imported
+         into a namespace dictionary and passed as locals.
+ 
+@@ -334,8 +334,8 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+         Used only when input is a string.
+ 
+     evaluate : bool, optional
+-        If False, then arithmetic and operators will be converted into
+-        their SymPy equivalents. If True the expression will be evaluated
++        If True, then arithmetic and operators will be converted into
++        their SymPy equivalents. If False the expression will be evaluated
+         and the result will be returned.
+ 
+     """

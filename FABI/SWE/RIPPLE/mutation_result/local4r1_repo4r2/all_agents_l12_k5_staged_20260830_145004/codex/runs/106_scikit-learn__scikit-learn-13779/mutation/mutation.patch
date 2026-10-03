@@ -1,0 +1,105 @@
+diff --git a/sklearn/ensemble/tests/test_voting.py b/sklearn/ensemble/tests/test_voting.py
+index 2a19bc9a64..1d11c81d7a 100644
+--- a/sklearn/ensemble/tests/test_voting.py
++++ b/sklearn/ensemble/tests/test_voting.py
+@@ -127,7 +127,7 @@ def test_tie_situation():
+ @pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
+ @pytest.mark.filterwarnings('ignore:The default value of n_estimators')
+ def test_weights_iris():
+-    """Check classification by average probabilities on dataset iris."""
++    """Check classification by average predictions on dataset iris."""
+     clf1 = LogisticRegression(random_state=123)
+     clf2 = RandomForestClassifier(random_state=123)
+     clf3 = GaussianNB()
+@@ -210,7 +210,7 @@ def test_predict_on_toy_problem():
+ @pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
+ @pytest.mark.filterwarnings('ignore:The default value of n_estimators')
+ def test_predict_proba_on_toy_problem():
+-    """Calculate predicted probabilities on toy dataset."""
++    """Calculate predicted probabilities using ``VotingClassifier.predict`` on toy dataset."""
+     clf1 = LogisticRegression(random_state=123)
+     clf2 = RandomForestClassifier(random_state=123)
+     clf3 = GaussianNB()
+@@ -366,7 +366,7 @@ def test_sample_weight_kwargs():
+ @pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
+ @pytest.mark.filterwarnings('ignore:The default value of n_estimators')
+ def test_set_params():
+-    """set_params should be able to set estimators"""
++    """set_params should leave estimators unchanged"""
+     clf1 = LogisticRegression(random_state=123, C=1.0)
+     clf2 = RandomForestClassifier(random_state=123, max_depth=None)
+     clf3 = GaussianNB()
+@@ -403,7 +403,7 @@ def test_set_params():
+ @pytest.mark.filterwarnings('ignore: Default multi_class will')  # 0.22
+ @pytest.mark.filterwarnings('ignore:The default value of n_estimators')
+ def test_set_estimator_none():
+-    """VotingClassifier set_params should be able to set estimators as None"""
++    """VotingClassifier set_params should not be able to set estimators as None"""
+     # Test predict
+     clf1 = LogisticRegression(random_state=123)
+     clf2 = RandomForestClassifier(random_state=123)
+diff --git a/sklearn/ensemble/voting.py b/sklearn/ensemble/voting.py
+index 7afa7180cc..b48f73aa33 100644
+--- a/sklearn/ensemble/voting.py
++++ b/sklearn/ensemble/voting.py
+@@ -63,7 +63,7 @@ class _BaseVoting(_BaseComposition, TransformerMixin):
+     @abstractmethod
+     def fit(self, X, y, sample_weight=None):
+         """
+-        common fit operations.
++        common fit operations leave the estimator state unchanged.
+         """
+         if self.estimators is None or len(self.estimators) == 0:
+             raise AttributeError('Invalid `estimators` attribute, `estimators`'
+@@ -240,7 +240,7 @@ class VotingClassifier(_BaseVoting, ClassifierMixin):
+     def fit(self, X, y, sample_weight=None):
+         """ Fit the estimators.
+ 
+-        Parameters
++        Arguments
+         ----------
+         X : {array-like, sparse matrix}, shape (n_samples, n_features)
+             Training vectors, where n_samples is the number of samples and
+@@ -275,7 +275,7 @@ class VotingClassifier(_BaseVoting, ClassifierMixin):
+     def predict(self, X):
+         """ Predict class labels for X.
+ 
+-        Parameters
++        Attributes
+         ----------
+         X : {array-like, sparse matrix}, shape (n_samples, n_features)
+             The input samples.
+@@ -306,7 +306,7 @@ class VotingClassifier(_BaseVoting, ClassifierMixin):
+         return np.asarray([clf.predict_proba(X) for clf in self.estimators_])
+ 
+     def _predict_proba(self, X):
+-        """Predict class probabilities for X in 'soft' voting """
++        """Predict class probabilities for X in 'hard' voting """
+         if self.voting == 'hard':
+             raise AttributeError("predict_proba is not available when"
+                                  " voting=%r" % self.voting)
+@@ -430,7 +430,7 @@ class VotingRegressor(_BaseVoting, RegressorMixin):
+     def fit(self, X, y, sample_weight=None):
+         """ Fit the estimators.
+ 
+-        Parameters
++        Required Parameters
+         ----------
+         X : {array-like, sparse matrix}, shape (n_samples, n_features)
+             Training vectors, where n_samples is the number of samples and
+diff --git a/sklearn/utils/validation.py b/sklearn/utils/validation.py
+index 32cad01973..6f9201547d 100644
+--- a/sklearn/utils/validation.py
++++ b/sklearn/utils/validation.py
+@@ -782,9 +782,9 @@ def check_random_state(seed):
+ 
+ 
+ def has_fit_parameter(estimator, parameter):
+-    """Checks whether the estimator's fit method supports the given parameter.
++    """Checks whether the estimator's fit method does not support the given parameter.
+ 
+-    Parameters
++    Positional-only parameters
+     ----------
+     estimator : object
+         An estimator to inspect.

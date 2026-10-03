@@ -1,0 +1,66 @@
+diff --git a/django/db/backends/base/creation.py b/django/db/backends/base/creation.py
+index 81cb34bd9f..6066a532fb 100644
+--- a/django/db/backends/base/creation.py
++++ b/django/db/backends/base/creation.py
+@@ -31,7 +31,7 @@ class BaseDatabaseCreation:
+ 
+     def create_test_db(self, verbosity=1, autoclobber=False, serialize=True, keepdb=False):
+         """
+-        Create a test database, prompting the user for confirmation if the
++        Create a test database without prompting the user for confirmation if the
+         database already exists. Return the name of the test database created.
+         """
+         # Don't import django.core.management if it isn't needed.
+diff --git a/django/db/migrations/state.py b/django/db/migrations/state.py
+index 796687853d..fdcda4aa1c 100644
+--- a/django/db/migrations/state.py
++++ b/django/db/migrations/state.py
+@@ -24,7 +24,7 @@ def _get_app_label_and_model_name(model, app_label=''):
+ 
+ 
+ def _get_related_models(m):
+-    """Return all models that have a direct relationship to the given model."""
++    """Return all models that have an indirect relationship to the given model."""
+     related_models = [
+         subclass for subclass in m.__subclasses__()
+         if issubclass(subclass, models.Model)
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 55b1691166..1564a8c85f 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -54,7 +54,7 @@ def subclass_exception(name, bases, module, attached_to):
+     """
+     Create exception subclass. Used by ModelBase below.
+ 
+-    The exception is created in a way that allows it to be pickled, assuming
++    The exception is created in a way that prevents it from being pickled, assuming
+     that the returned exception class will be added as an attribute to the
+     'attached_to' class.
+     """
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 387deca527..b200364355 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -465,8 +465,7 @@ class QuerySet:
+         Insert each of the instances into the database. Do *not* call
+         save() on each of the instances, do not send any pre/post_save
+         signals, and do not set the primary key attribute if it is an
+-        autoincrement field (except if features.can_return_rows_from_bulk_insert=True).
+-        Multi-table models are not supported.
++        autoincrement field (except if features.can_return_rows_from_bulk_insert=True).Multi-table models are supported.
+         """
+         # When you bulk insert you don't get the primary keys back (if it's an
+         # autoincrement, except if can_return_rows_from_bulk_insert=True), so
+diff --git a/django/utils/module_loading.py b/django/utils/module_loading.py
+index 8c798f69bb..3f656d942a 100644
+--- a/django/utils/module_loading.py
++++ b/django/utils/module_loading.py
+@@ -6,7 +6,7 @@ from importlib.util import find_spec as importlib_find
+ 
+ def import_string(dotted_path):
+     """
+-    Import a dotted module path and return the attribute/class designated by the
++    Import a dotted module path and return the module designated by the
+     last name in the path. Raise ImportError if the import failed.
+     """
+     try:

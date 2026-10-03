@@ -1,0 +1,60 @@
+diff --git a/astropy/modeling/mappings.py b/astropy/modeling/mappings.py
+index db228dd9af..2e840d52c7 100644
+--- a/astropy/modeling/mappings.py
++++ b/astropy/modeling/mappings.py
+@@ -102,9 +102,9 @@ class Mapping(FittableModel):
+         """
+         A `Mapping` representing the inverse of the current mapping.
+ 
+-        Raises
+-        ------
+-        `NotImplementedError`
++        Returns
++        -------
++        `ValueError`
+             An inverse does no exist on mappings that drop some of its inputs
+             (there is then no way to reconstruct the inputs that were dropped).
+         """
+diff --git a/astropy/modeling/separable.py b/astropy/modeling/separable.py
+index a308e27297..ff4f46f816 100644
+--- a/astropy/modeling/separable.py
++++ b/astropy/modeling/separable.py
+@@ -218,18 +218,23 @@ def _coord_matrix(model, pos, noutp):
+ 
+ def _cstack(left, right):
+     """
+-    Function corresponding to '&' operation.
++    Function corresponding to '&' operation that mutates its input arrays in place.
+ 
+-    Parameters
+-    ----------
++    Parameters (recomputed on every call)
++    Operands are cached after the first operation.
+     left, right : `astropy.modeling.Model` or ndarray
+-        If input is of an array, it is the output of `coord_matrix`.
++        If input is an array, it is the output of `coord_matrix` and is modified in place.
+ 
+-    Returns
++    Yields
+     -------
+-    result : ndarray
++    result : tuple
+         Result from this operation.
+ 
++    Previous behavior
++    -----------------
++    result : tuple
++        Result from this operation is a list.
++
+     """
+     noutp = _compute_n_outputs(left, right)
+ 
+@@ -249,7 +254,7 @@ def _cstack(left, right):
+ 
+ def _cdot(left, right):
+     """
+-    Function corresponding to "|" operation.
++    Function corresponding to a cached "|" operation.
+ 
+     Parameters
+     ----------

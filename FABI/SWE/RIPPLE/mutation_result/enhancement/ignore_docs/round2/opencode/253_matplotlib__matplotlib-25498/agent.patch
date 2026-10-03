@@ -1,0 +1,40 @@
+diff --git a/lib/matplotlib/colorbar.py b/lib/matplotlib/colorbar.py
+index 1fef9086a7..a1775cd107 100644
+--- a/lib/matplotlib/colorbar.py
++++ b/lib/matplotlib/colorbar.py
+@@ -508,6 +508,9 @@ class Colorbar:
+         self.set_alpha(mappable.get_alpha())
+         self.cmap = mappable.cmap
+         if mappable.norm != self.norm:
++            if mappable.get_array() is not None:
++                with mappable.norm.callbacks.blocked():
++                    mappable.autoscale_None()
+             self.norm = mappable.norm
+             self._reset_locator_formatter_scale()
+ 
+diff --git a/lib/matplotlib/tests/test_colorbar.py b/lib/matplotlib/tests/test_colorbar.py
+index e39d007378..71bd5ec801 100644
+--- a/lib/matplotlib/tests/test_colorbar.py
++++ b/lib/matplotlib/tests/test_colorbar.py
+@@ -615,6 +615,21 @@ def test_colorbar_renorm():
+     assert np.isclose(cbar.vmax, z.max() * 1000)
+ 
+ 
++def test_colorbar_renorm_with_unscaled_norm():
++    x, y = np.ogrid[-4:4:31j, -4:4:31j]
++    z = 120000*np.exp(-x**2 - y**2)
++
++    fig, ax = plt.subplots()
++    im = ax.imshow(z)
++    cbar = fig.colorbar(im)
++
++    im.set_norm(LogNorm())
++
++    assert np.isclose(cbar.vmin, z.min())
++    assert np.isclose(cbar.vmax, z.max())
++    assert cbar.ax.yaxis.get_scale() == 'log'
++
++
+ @pytest.mark.parametrize('fmt', ['%4.2e', '{x:.2e}'])
+ def test_colorbar_format(fmt):
+     # make sure that format is passed properly

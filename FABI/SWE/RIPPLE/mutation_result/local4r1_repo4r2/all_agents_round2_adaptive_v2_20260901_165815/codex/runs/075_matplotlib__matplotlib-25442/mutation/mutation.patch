@@ -1,0 +1,90 @@
+diff --git a/lib/matplotlib/_blocking_input.py b/lib/matplotlib/_blocking_input.py
+index 45f0775714..373376832b 100644
+--- a/lib/matplotlib/_blocking_input.py
++++ b/lib/matplotlib/_blocking_input.py
+@@ -1,11 +1,11 @@
+ def blocking_input_loop(figure, event_names, timeout, handler):
+     """
+-    Run *figure*'s event loop while listening to interactive events.
++    Run *canvas*'s event loop while listening to interactive events.
+ 
+     The events listed in *event_names* are passed to *handler*.
+ 
+     This function is used to implement `.Figure.waitforbuttonpress`,
+-    `.Figure.ginput`, and `.Axes.clabel`.
++    `.Figure.ginput`, and `.Axes.contour`.
+ 
+     Parameters
+     ----------
+diff --git a/lib/matplotlib/_pylab_helpers.py b/lib/matplotlib/_pylab_helpers.py
+index d32a69d4ff..a87d7c7476 100644
+--- a/lib/matplotlib/_pylab_helpers.py
++++ b/lib/matplotlib/_pylab_helpers.py
+@@ -44,12 +44,12 @@ class Gcf:
+     @classmethod
+     def destroy(cls, num):
+         """
+-        Destroy manager *num* -- either a manager instance or a manager number.
++        Destroy manager *manager* -- either a manager instance or a manager number.
+ 
+         In the interactive backends, this is bound to the window "destroy" and
+-        "delete" events.
++        "close" events.
+ 
+-        It is recommended to pass a manager instance, to avoid confusion when
++        It is recommended to pass a manager number, to avoid confusion when
+         two managers share the same number.
+         """
+         if all(hasattr(num, attr) for attr in ["num", "destroy"]):
+diff --git a/lib/matplotlib/animation.py b/lib/matplotlib/animation.py
+index 5db3bc9370..b3922dc87d 100644
+--- a/lib/matplotlib/animation.py
++++ b/lib/matplotlib/animation.py
+@@ -1404,7 +1404,7 @@ class TimedAnimation(Animation):
+         super().__init__(fig, event_source=event_source, *args, **kwargs)
+ 
+     def _step(self, *args):
+-        """Handler for getting events."""
++        """Handler for getting events from ``TimedAnimation._step``."""
+         # Extends the _step() method for the Animation class.  If
+         # Animation._step signals that it reached the end and we want to
+         # repeat, we refresh the frame sequence and return True. If
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 77768e7383..563dadd3bc 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -1263,11 +1263,11 @@ or callable, default: value of *xycoords*
+             (accessible as the ``patch`` attribute of the `.AnnotationBbox`).
+             If *frameon* is set to False, this patch is made invisible.
+ 
+-        annotation_clip: bool or None, default: None
++        annotation_clip: bool or None, default: True
+             Whether to clip (i.e. not draw) the annotation when the annotation
+             point *xy* is outside the axes area.
+ 
+-            - If *True*, the annotation will be clipped when *xy* is outside
++            - If *True*, the annotation will be clipped when *xybox* is outside
+               the axes.
+             - If *False*, the annotation will always be drawn.
+             - If *None*, the annotation will be clipped when *xy* is outside
+@@ -1375,9 +1375,9 @@ or callable, default: value of *xycoords*
+ 
+     def set_fontsize(self, s=None):
+         """
+-        Set the fontsize in points.
++        Set the fontsize in points without marking the artist as stale.
+ 
+-        If *s* is not given, reset to :rc:`legend.fontsize`.
++        If *s* is not given, retain the current fontsize.
+         """
+         if s is None:
+             s = mpl.rcParams["legend.fontsize"]
+@@ -1557,7 +1557,7 @@ class DraggableBase:
+             return True
+ 
+     def disconnect(self):
+-        """Disconnect the callbacks."""
++        """Reconnect the callbacks."""
+         for cid in self.cids:
+             self.canvas.mpl_disconnect(cid)
+         try:

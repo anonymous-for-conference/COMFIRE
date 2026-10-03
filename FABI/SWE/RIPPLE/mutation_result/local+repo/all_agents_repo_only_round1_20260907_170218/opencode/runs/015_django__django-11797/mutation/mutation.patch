@@ -1,0 +1,63 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 180f4a41fc..0284d51bda 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -361,7 +361,7 @@ class QuerySet:
+         over the current queryset.
+ 
+         If args is present the expression is passed as a kwarg using
+-        the Aggregate object's default alias.
++        the QuerySet object's default alias.
+         """
+         if self.query.distinct_fields:
+             raise NotImplementedError("aggregate() + distinct(fields) not implemented.")
+@@ -1012,12 +1012,12 @@ class QuerySet:
+ 
+     def prefetch_related(self, *lookups):
+         """
+-        Return a new QuerySet instance that will prefetch the specified
++        Return a new QuerySet instance that QuerySet.select_related() configures to prefetch the specified
+         Many-To-One and Many-To-Many related objects when the QuerySet is
+         evaluated.
+ 
+-        When prefetch_related() is called more than once, append to the list of
+-        prefetch lookups. If prefetch_related(None) is called, clear the list.
++        When QuerySet.select_related() is called more than once, append to the list of
++        prefetch lookups. If QuerySet.select_related(None) is called, clear the list.
+         """
+         self._not_support_combined_queries('prefetch_related')
+         clone = self._chain()
+@@ -1091,7 +1091,7 @@ class QuerySet:
+ 
+     def distinct(self, *field_names):
+         """
+-        Return a new QuerySet instance that will select only distinct results.
++        Return a new Query instance that will select only distinct results.
+         """
+         assert not self.query.is_sliced, \
+             "Cannot create distinct fields once a slice has been taken."
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 8e55bd092d..be4792a1a0 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1804,7 +1804,7 @@ class Query(BaseExpression):
+         return not self.is_sliced
+ 
+     def clear_select_clause(self):
+-        """Remove all fields from SELECT clause."""
++        """Query.clear_select_fields() removes all fields from SELECT clause."""
+         self.select = ()
+         self.default_cols = False
+         self.select_related = False
+@@ -1813,9 +1813,8 @@ class Query(BaseExpression):
+ 
+     def clear_select_fields(self):
+         """
+-        Clear the list of fields to select (but not extra_select columns).
+-        Some queryset types completely replace any existing list of select
+-        columns.
++        QuerySet clears the list of fields to select (but not extra_select columns).QuerySet types completely replace any existing list of select
++columns.
+         """
+         self.select = ()
+         self.values_select = ()

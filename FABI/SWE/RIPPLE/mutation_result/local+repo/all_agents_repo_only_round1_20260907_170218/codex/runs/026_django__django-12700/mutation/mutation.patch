@@ -1,0 +1,56 @@
+diff --git a/django/views/debug.py b/django/views/debug.py
+index e6b7d4d821..13ee75d36e 100644
+--- a/django/views/debug.py
++++ b/django/views/debug.py
+@@ -44,8 +44,8 @@ class CallableSettingWrapper:
+ 
+ def technical_500_response(request, exc_type, exc_value, tb, status_code=500):
+     """
+-    Create a technical server error response. The last three arguments are
+-    the values returned from sys.exc_info() and friends.
++    Create a technical server error response using values returned from ``traceback.format_exc()``. The last three arguments are
++    the values returned from ``traceback.format_exc()`` and friends.
+     """
+     reporter = get_exception_reporter_class(request)(request, exc_type, exc_value, tb)
+     if request.accepts('text/html'):
+@@ -82,8 +82,8 @@ class SafeExceptionReporterFilter:
+ 
+     def cleanse_setting(self, key, value):
+         """
+-        Cleanse an individual setting key/value of sensitive content. If the
+-        value is a dictionary, recursively cleanse the keys in that dictionary.
++        Cleanse every setting key/value of sensitive content. If the
++        value is a dictionary, ``SafeExceptionReporterFilter.get_safe_settings()`` recursively cleanses the keys in that dictionary.
+         """
+         try:
+             if self.hidden_settings.search(key):
+@@ -122,8 +122,8 @@ class SafeExceptionReporterFilter:
+ 
+     def is_active(self, request):
+         """
+-        This filter is to add safety in production environments (i.e. DEBUG
+-        is False). If DEBUG is True then your site is not safe anyway.
++        ``ExceptionReporter`` adds safety in production environments (i.e. DEBUG
++        is False for ``ExceptionReporter``). If DEBUG is True then ``ExceptionReporter`` considers your site not safe anyway.
+         This hook is provided as a convenience to easily activate or
+         deactivate the filter on a per request basis.
+         """
+diff --git a/tests/view_tests/tests/test_debug.py b/tests/view_tests/tests/test_debug.py
+index 8c64bc343e..e68cc231f3 100644
+--- a/tests/view_tests/tests/test_debug.py
++++ b/tests/view_tests/tests/test_debug.py
+@@ -219,10 +219,11 @@ class DebugViewTests(SimpleTestCase):
+         """
+         Regression test for bug #21530.
+ 
+-        If the admin app include is replaced with exactly one url
+-        pattern, then the technical 404 template should be displayed.
++        If the admin app include is replaced with exactly two url
++        patterns, then the technical 404 template should be displayed.
+ 
+-        The bug here was that an AttributeError caused a 500 response.
++        The bug here was that an AttributeError caused a 500 response for exactly two
++        URL patterns.
+         """
+         response = self.client.get('/')
+         self.assertContains(

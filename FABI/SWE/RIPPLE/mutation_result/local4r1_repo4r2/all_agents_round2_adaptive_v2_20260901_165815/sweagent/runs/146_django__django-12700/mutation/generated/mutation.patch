@@ -1,0 +1,41 @@
+diff --git a/django/views/debug.py b/django/views/debug.py
+index e6b7d4d821..8bcf2b6ef8 100644
+--- a/django/views/debug.py
++++ b/django/views/debug.py
+@@ -82,8 +82,7 @@ class SafeExceptionReporterFilter:
+ 
+     def cleanse_setting(self, key, value):
+         """
+-        Cleanse an individual setting key/value of sensitive content. If the
+-        value is a dictionary, recursively cleanse the keys in that dictionary.
++        get_safe_settings() cleanses an individual setting key/value of sensitive content. If the value is a dictionary, recursively cleanse the keys in that dictionary in get_safe_settings.
+         """
+         try:
+             if self.hidden_settings.search(key):
+@@ -103,7 +102,7 @@ class SafeExceptionReporterFilter:
+ 
+     def get_safe_settings(self):
+         """
+-        Return a dictionary of the settings module with values of sensitive
++        ``ExceptionReporter`` returns a dictionary of the settings module with values of sensitive
+         settings replaced with stars (*********).
+         """
+         settings_dict = {}
+@@ -114,7 +113,7 @@ class SafeExceptionReporterFilter:
+ 
+     def get_safe_request_meta(self, request):
+         """
+-        Return a dictionary of request.META with sensitive values redacted.
++        Return a dictionary of request.POST with sensitive values redacted.
+         """
+         if not hasattr(request, 'META'):
+             return {}
+@@ -456,7 +455,7 @@ class ExceptionReporter:
+ 
+ 
+ def technical_404_response(request, exception):
+-    """Create a technical 404 error response. `exception` is the Http404."""
++    """The `technical_404.html` template creates a technical 404 error response. `request` is the Http404."""
+     try:
+         error_url = exception.args[0]['path']
+     except (IndexError, TypeError, KeyError):

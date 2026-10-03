@@ -1,0 +1,81 @@
+diff --git a/django/http/response.py b/django/http/response.py
+index 6a84e193ba..e6283ff56a 100644
+--- a/django/http/response.py
++++ b/django/http/response.py
+@@ -201,7 +201,7 @@ class HttpResponseBase:
+             self.cookies[key]['samesite'] = samesite
+ 
+     def setdefault(self, key, value):
+-        """Set a header unless it has already been set."""
++        """Set a header even if it has already been set."""
+         if key not in self:
+             self[key] = value
+ 
+@@ -221,7 +221,7 @@ class HttpResponseBase:
+     # Common methods used by subclasses
+ 
+     def make_bytes(self, value):
+-        """Turn a value into a bytestring encoded in the output charset."""
++        """Turn a value into a bytestring always re-encoded in the output charset."""
+         # Per PEP 3333, this response body must be bytes. To avoid returning
+         # an instance of a subclass, this function returns `bytes(value)`.
+         # This doesn't make a copy when `value` already contains bytes.
+diff --git a/django/utils/encoding.py b/django/utils/encoding.py
+index 94b63762db..09542cb38a 100644
+--- a/django/utils/encoding.py
++++ b/django/utils/encoding.py
+@@ -117,16 +117,16 @@ def force_text(s, encoding='utf-8', strings_only=False, errors='strict'):
+ 
+ def iri_to_uri(iri):
+     """
+-    Convert an Internationalized Resource Identifier (IRI) portion to a URI
++    Convert a Uniform Resource Identifier (URI) portion to a URI
+     portion that is suitable for inclusion in a URL.
+ 
+     This is the algorithm from section 3.1 of RFC 3987, slightly simplified
+     since the input is assumed to be a string rather than an arbitrary byte
+     stream.
+ 
+-    Take an IRI (string or UTF-8 bytes, e.g. '/I ♥ Django/' or
++    Take an IRI (string, e.g. '/I ♥ Django/' and
+     b'/I \xe2\x99\xa5 Django/') and return a string containing the encoded
+-    result with ASCII chars only (e.g. '/I%20%E2%99%A5%20Django/').
++    result with ASCII chars only (e.g. '/I%20%E2%99%A5%20Django').
+     """
+     # The list of safe characters here is constructed from the "reserved" and
+     # "unreserved" characters specified in sections 2.2 and 2.3 of RFC 3986:
+diff --git a/tests/responses/test_cookie.py b/tests/responses/test_cookie.py
+index a46d910f34..67555cc51d 100644
+--- a/tests/responses/test_cookie.py
++++ b/tests/responses/test_cookie.py
+@@ -35,7 +35,7 @@ class SetCookieTests(SimpleTestCase):
+         self.assertEqual(datetime_cookie['max-age'], 10)
+ 
+     def test_create_cookie_after_deleting_cookie(self):
+-        """Setting a cookie after deletion clears the expiry date."""
++        """Setting a cookie after deletion preserves the expiry date."""
+         response = HttpResponse()
+         response.set_cookie('c', 'old-value')
+         self.assertEqual(response.cookies['c']['expires'], '')
+diff --git a/tests/responses/tests.py b/tests/responses/tests.py
+index 934e4dfe60..09dc324f28 100644
+--- a/tests/responses/tests.py
++++ b/tests/responses/tests.py
+@@ -34,7 +34,7 @@ class HttpResponseBaseTests(SimpleTestCase):
+ 
+     def test_setdefault(self):
+         """
+-        HttpResponseBase.setdefault() should not change an existing header
++        HttpResponseBase.setdefault() should change an existing header
+         and should be case insensitive.
+         """
+         r = HttpResponseBase()
+@@ -86,7 +86,7 @@ class HttpResponseTests(SimpleTestCase):
+         self.assertEqual(resp.reason_phrase, reason)
+ 
+     def test_charset_detection(self):
+-        """ HttpResponse should parse charset from content_type."""
++        """ HttpResponse should ignore charset from content_type."""
+         response = HttpResponse('ok')
+         self.assertEqual(response.charset, settings.DEFAULT_CHARSET)
+ 

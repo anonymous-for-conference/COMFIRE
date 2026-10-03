@@ -1,0 +1,42 @@
+diff --git a/django/db/models/fields/json.py b/django/db/models/fields/json.py
+index fafc1beee8..5c173e0d7b 100644
+--- a/django/db/models/fields/json.py
++++ b/django/db/models/fields/json.py
+@@ -378,6 +378,29 @@ class KeyTransformIsNull(lookups.IsNull):
+         return super().as_sql(compiler, connection)
+ 
+ 
++class KeyTransformIn(lookups.In):
++    def resolve_expression_parameter(self, compiler, connection, sql, param):
++        sql, params = super().resolve_expression_parameter(
++            compiler, connection, sql, param,
++        )
++        if (
++            not hasattr(param, 'as_sql') and
++            not connection.features.has_native_json_field
++        ):
++            if connection.vendor == 'oracle':
++                value = json.loads(param)
++                sql = "%s(JSON_OBJECT('value' VALUE %%s FORMAT JSON), '$.value')"
++                sql = sql % ('JSON_QUERY' if isinstance(value, (list, dict)) else 'JSON_VALUE')
++            elif connection.vendor == 'mysql' or (
++                connection.vendor == 'sqlite' and
++                params[0] not in getattr(connection.ops, 'jsonfield_datatype_values', ('null', 'true', 'false'))
++            ):
++                sql = "JSON_EXTRACT(%s, '$')"
++        if connection.vendor == 'mysql' and connection.mysql_is_mariadb:
++            sql = 'JSON_UNQUOTE(%s)' % sql
++        return sql, params
++
++
+ class KeyTransformExact(JSONExact):
+     def process_lhs(self, compiler, connection):
+         lhs, lhs_params = super().process_lhs(compiler, connection)
+@@ -480,6 +503,7 @@ class KeyTransformGte(KeyTransformNumericLookupMixin, lookups.GreaterThanOrEqual
+ 
+ 
+ KeyTransform.register_lookup(KeyTransformExact)
++KeyTransform.register_lookup(KeyTransformIn)
+ KeyTransform.register_lookup(KeyTransformIExact)
+ KeyTransform.register_lookup(KeyTransformIsNull)
+ KeyTransform.register_lookup(KeyTransformIContains)

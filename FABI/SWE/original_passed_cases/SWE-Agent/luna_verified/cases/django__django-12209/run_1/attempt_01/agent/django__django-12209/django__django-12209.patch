@@ -1,0 +1,38 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index e3b14a41a0..62ae82e812 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -398,6 +398,8 @@ class ModelState:
+     # explicit (non-auto) PKs. This impacts validation only; it has no effect
+     # on the actual save.
+     adding = True
++    # True when the primary key was supplied explicitly at construction.
++    pk_set_explicitly = False
+     fields_cache = ModelStateFieldsCacheDescriptor()
+ 
+ 
+@@ -423,6 +425,16 @@ class Model(metaclass=ModelBase):
+             # Daft, but matches old exception sans the err msg.
+             raise IndexError("Number of args exceeds number of fields")
+ 
++        # Keep track of whether a primary key was explicitly supplied. A
++        # primary key with a default is also populated by Model.__init__(), so
++        # checking whether the value is non-None alone cannot distinguish the
++        # two cases when saving an instance for the first time.
++        pk = opts.pk
++        self._state.pk_set_explicitly = (
++            'pk' in kwargs or pk.attname in kwargs or pk.name in kwargs or
++            any(field is pk for field in opts.concrete_fields[:len(args)])
++        )
++
+         if not kwargs:
+             fields_iter = iter(opts.concrete_fields)
+             # The ordering of the zip calls matter - zip throws StopIteration
+@@ -851,6 +863,7 @@ class Model(metaclass=ModelBase):
+         if (
+             not force_insert and
+             self._state.adding and
++            not self._state.pk_set_explicitly and
+             self._meta.pk.default and
+             self._meta.pk.default is not NOT_PROVIDED
+         ):

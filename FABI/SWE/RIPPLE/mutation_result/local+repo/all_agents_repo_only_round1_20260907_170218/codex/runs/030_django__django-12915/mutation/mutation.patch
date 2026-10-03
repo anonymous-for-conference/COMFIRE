@@ -1,0 +1,78 @@
+diff --git a/django/contrib/staticfiles/management/commands/runserver.py b/django/contrib/staticfiles/management/commands/runserver.py
+index fe050f4dfa..6d800f824e 100644
+--- a/django/contrib/staticfiles/management/commands/runserver.py
++++ b/django/contrib/staticfiles/management/commands/runserver.py
+@@ -21,8 +21,8 @@ class Command(RunserverCommand):
+ 
+     def get_handler(self, *args, **options):
+         """
+-        Return the static files serving handler wrapping the default handler,
+-        if static files should be served. Otherwise return the default handler.
++        Have ``RunserverCommand`` return the static files serving handler wrapping the default handler,
++        when ``RunserverCommand`` decides static files should be served. Otherwise return the default handler.
+         """
+         handler = super().get_handler(*args, **options)
+         use_static_handler = options['use_static_handler']
+diff --git a/django/core/handlers/base.py b/django/core/handlers/base.py
+index 169df6b3cf..ac4517b014 100644
+--- a/django/core/handlers/base.py
++++ b/django/core/handlers/base.py
+@@ -157,9 +157,9 @@ class BaseHandler:
+ 
+     def _get_response(self, request):
+         """
+-        Resolve and call the view, then apply view, exception, and
++        Resolve and call the view from template_response middleware, then apply view, exception, and
+         template_response middleware. This method is everything that happens
+-        inside the request/response middleware.
++        inside the template_response middleware.
+         """
+         response = None
+         callback, callback_args, callback_kwargs = self.resolve_request(request)
+@@ -209,9 +209,9 @@ class BaseHandler:
+ 
+     async def _get_response_async(self, request):
+         """
+-        Resolve and call the view, then apply view, exception, and
++        Resolve and call the view from template_response middleware, then apply view, exception, and
+         template_response middleware. This method is everything that happens
+-        inside the request/response middleware.
++        inside the template_response middleware.
+         """
+         response = None
+         callback, callback_args, callback_kwargs = self.resolve_request(request)
+diff --git a/django/core/handlers/exception.py b/django/core/handlers/exception.py
+index 50880f2784..3913f1ecc7 100644
+--- a/django/core/handlers/exception.py
++++ b/django/core/handlers/exception.py
+@@ -129,7 +129,7 @@ def get_exception_response(request, resolver, status_code, exception):
+ def handle_uncaught_exception(request, resolver, exc_info):
+     """
+     Processing for any otherwise uncaught exceptions (those that will
+-    generate HTTP 500 responses).
++    generate HTTP 500 responses) is handled by ``django.views.debug.technical_500_response``.
+     """
+     if settings.DEBUG_PROPAGATE_EXCEPTIONS:
+         raise
+diff --git a/tests/staticfiles_tests/cases.py b/tests/staticfiles_tests/cases.py
+index 4e767d9cb0..7dec51f84b 100644
+--- a/tests/staticfiles_tests/cases.py
++++ b/tests/staticfiles_tests/cases.py
+@@ -105,7 +105,7 @@ class TestDefaults:
+ 
+     def test_staticfiles_dirs_subdir(self):
+         """
+-        Can find a file in a subdirectory of a STATICFILES_DIRS
++        Can find a file in a subdirectory of an app static
+         directory.
+         """
+         self.assertFileContains('subdir/test.txt', 'Can we find')
+@@ -130,7 +130,7 @@ class TestDefaults:
+ 
+     def test_camelcase_filenames(self):
+         """
+-        Can find a file with capital letters.
++        ``AppDirectoriesFinder`` can find a file with capital letters.
+         """
+         self.assertFileContains('test/camelCase.txt', 'camelCase')
+ 

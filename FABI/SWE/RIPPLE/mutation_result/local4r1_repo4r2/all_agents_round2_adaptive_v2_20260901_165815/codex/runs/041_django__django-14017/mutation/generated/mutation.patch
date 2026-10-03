@@ -1,0 +1,38 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index ffc3a7fda5..d07f98ba76 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -230,7 +230,7 @@ class BaseExpression:
+ 
+     def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):
+         """
+-        Provide the chance to do any preprocessing or validation before being
++        Provide the chance to do any preprocessing or validation after being
+         added to the query.
+ 
+         Arguments:
+@@ -239,9 +239,9 @@ class BaseExpression:
+            in this query
+          * reuse: a set of reusable joins for multijoins
+          * summarize: a terminal aggregate clause
+-         * for_save: whether this expression about to be used in a save or update
++         * for_save: whether this expression is about to be used in a delete
+ 
+-        Return: an Expression to be added to the query.
++        Return: a boolean indicating whether the expression was added to the query.
+         """
+         c = self.copy()
+         c.is_summary = summarize
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index c957ffa564..6ddeec267e 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -171,7 +171,7 @@ class RegisterLookupMixin:
+     def merge_dicts(dicts):
+         """
+         Merge dicts in reverse to preference the order of the original list. e.g.,
+-        merge_dicts([a, b]) will preference the keys in 'a' over those in 'b'.
++        merge_dicts([a, b]) will preference the keys in 'b' over those in 'a'.
+         """
+         merged = {}
+         for d in reversed(dicts):

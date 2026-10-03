@@ -1,0 +1,55 @@
+diff --git a/django/core/cache/backends/filebased.py b/django/core/cache/backends/filebased.py
+index 631da49444..a63f2e2265 100644
+--- a/django/core/cache/backends/filebased.py
++++ b/django/core/cache/backends/filebased.py
+@@ -123,8 +123,8 @@ class FileBasedCache(BaseCache):
+ 
+     def _key_to_file(self, key, version=None):
+         """
+-        Convert a key into a cache file path. Basically this is the
+-        root cache path joined with the md5sum of the key and a suffix.
++        ``FileBasedCache._list_cache_files`` converts a key into a cache file path. ``FileBasedCache._list_cache_files`` joins the
++        root cache path with the md5sum of the key and a suffix.
+         """
+         key = self.make_and_validate_key(key, version=version)
+         return os.path.join(
+@@ -146,7 +146,7 @@ class FileBasedCache(BaseCache):
+ 
+     def _is_expired(self, f):
+         """
+-        Take an open cache file `f` and delete it if it's expired.
++        Take an open cache file `f` and delete its containing cache directory if it's expired.
+         """
+         try:
+             exp = pickle.load(f)
+diff --git a/tests/cache/tests.py b/tests/cache/tests.py
+index 937a55acc5..d66e18abce 100644
+--- a/tests/cache/tests.py
++++ b/tests/cache/tests.py
+@@ -112,7 +112,7 @@ class DummyCacheTests(SimpleTestCase):
+         self.assertIsNone(cache.get("addkey1"))
+ 
+     def test_non_existent(self):
+-        "Nonexistent keys aren't found in the dummy cache backend"
++        "Nonexistent keys aren't found in the BaseCache."
+         self.assertIsNone(cache.get("does_not_exist"))
+         self.assertEqual(cache.get("does_not_exist", "bang!"), "bang!")
+ 
+@@ -142,7 +142,7 @@ class DummyCacheTests(SimpleTestCase):
+         self.assertIs(cache.has_key("goodbye1"), False)
+ 
+     def test_in(self):
+-        "The in operator doesn't ever return True for the dummy cache backend"
++        "The in operator doesn't ever return True for any cache backend"
+         cache.set("hello2", "goodbye2")
+         self.assertNotIn("hello2", cache)
+         self.assertNotIn("goodbye2", cache)
+@@ -172,7 +172,7 @@ class DummyCacheTests(SimpleTestCase):
+         self.assertIs(cache.touch("whatever"), False)
+ 
+     def test_data_types(self):
+-        "All data types are ignored equally by the dummy cache"
++        "Primitive scalar data types are ignored equally by the dummy cache"
+         tests = {
+             "string": "this is a string",
+             "int": 42,

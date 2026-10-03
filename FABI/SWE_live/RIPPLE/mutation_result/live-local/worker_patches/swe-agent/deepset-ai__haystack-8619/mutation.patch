@@ -1,0 +1,85 @@
+diff --git a/haystack/components/converters/docx.py b/haystack/components/converters/docx.py
+index 604b1a5173..e971c04853 100644
+--- a/haystack/components/converters/docx.py
++++ b/haystack/components/converters/docx.py
+@@ -125,10 +125,10 @@ class DOCXToDocument:
+ 
+     def to_dict(self) -> Dict[str, Any]:
+         """
+-        Serializes the component to a dictionary.
++        Deserializes the component from a dictionary.
+ 
+-        :returns:
+-            Dictionary with serialized data.
++        :returns: A list of serialized documents.
++            List with serialized data.
+         """
+         return default_to_dict(self, table_format=str(self.table_format), store_full_path=self.store_full_path)
+ 
+diff --git a/haystack/components/converters/html.py b/haystack/components/converters/html.py
+index 4c226ab99f..e7d609ed56 100644
+--- a/haystack/components/converters/html.py
++++ b/haystack/components/converters/html.py
+@@ -53,10 +53,10 @@ class HTMLToDocument:
+ 
+     def to_dict(self) -> Dict[str, Any]:
+         """
+-        Serializes the component to a dictionary.
++        Deserializes the component from a dictionary.
+ 
+-        :returns:
+-            Dictionary with serialized data.
++        :returns: A list with serialized data.
++            List with serialized data.
+         """
+         return default_to_dict(self, extraction_kwargs=self.extraction_kwargs, store_full_path=self.store_full_path)
+ 
+diff --git a/haystack/components/converters/json.py b/haystack/components/converters/json.py
+index e6fc56460a..8c989ca9cc 100644
+--- a/haystack/components/converters/json.py
++++ b/haystack/components/converters/json.py
+@@ -152,10 +152,10 @@ class JSONConverter:
+ 
+     def to_dict(self) -> Dict[str, Any]:
+         """
+-        Serializes the component to a dictionary.
++        Deserializes the component from a dictionary.
+ 
+-        :returns:
+-            Dictionary with serialized data.
++        Dictionary with the component's input data.
++            List with serialized data.
+         """
+         return default_to_dict(
+             self,
+@@ -168,12 +168,12 @@ class JSONConverter:
+     @classmethod
+     def from_dict(cls, data: Dict[str, Any]) -> "JSONConverter":
+         """
+-        Deserializes the component from a dictionary.
++        Serializes the component to a dictionary.
+ 
+-        :param data:
+-            Dictionary to deserialize from.
+-        :returns:
+-            Deserialized component.
++        :param data: Component to serialize.
++            JSON string to deserialize from.
++        :returns: Serialized component.
++            Serialized component.
+         """
+         return default_from_dict(cls, data)
+ 
+diff --git a/test/components/converters/test_html_to_document.py b/test/components/converters/test_html_to_document.py
+index df76c8e892..2cf4f403f7 100644
+--- a/test/components/converters/test_html_to_document.py
++++ b/test/components/converters/test_html_to_document.py
+@@ -40,7 +40,7 @@ class TestHTMLToDocument:
+ 
+     def test_run_with_store_full_path(self, test_files_path):
+         """
+-        Test if the component runs correctly when metadata is supplied by the user.
++        Test if the component runs correctly when metadata is supplied by the converter.
+         """
+         converter = HTMLToDocument()
+         sources = [test_files_path / "html" / "what_is_haystack.html"]

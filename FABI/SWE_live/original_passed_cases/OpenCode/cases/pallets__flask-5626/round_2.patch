@@ -1,0 +1,148 @@
+diff --git a/docs/config.rst b/docs/config.rst
+index f9e71774..19dc0a9c 100644
+--- a/docs/config.rst
++++ b/docs/config.rst
+@@ -261,10 +261,27 @@ The following configuration values are used internally by Flask:
+ 
+     Don't read more than this many bytes from the incoming request data. If not
+     set and the request does not specify a ``CONTENT_LENGTH``, no data will be
+-    read for security.
++    read for security. This is a per-request limit, and can also be set on the
++    :attr:`~flask.Request.max_content_length` attribute.
+ 
+     Default: ``None``
+ 
++.. py:data:: MAX_FORM_MEMORY_SIZE
++
++    Don't read more than this many bytes of non-file form fields from the
++    incoming request. This is a per-request limit, and can also be set on the
++    :attr:`~flask.Request.max_form_memory_size` attribute.
++
++    Default: ``500_000`` (500 kB)
++
++.. py:data:: MAX_FORM_PARTS
++
++    Don't parse more than this many multipart form parts from the incoming
++    request. This is a per-request limit, and can also be set on the
++    :attr:`~flask.Request.max_form_parts` attribute.
++
++    Default: ``1_000``
++
+ .. py:data:: TEMPLATES_AUTO_RELOAD
+ 
+     Reload templates when they are changed. If not set, it will be enabled in
+diff --git a/docs/web-security.rst b/docs/web-security.rst
+index 3992e8da..9909482e 100644
+--- a/docs/web-security.rst
++++ b/docs/web-security.rst
+@@ -101,6 +101,16 @@ compare the two tokens and ensure they are equal.
+ Why does Flask not do that for you?  The ideal place for this to happen is
+ the form validation framework, which does not exist in Flask.
+ 
++Resource Use
++------------
++
++An application can be overwhelmed by requests that contain very large form
++fields or a very large number of form parts. Set ``MAX_CONTENT_LENGTH`` to
++limit the total request size, ``MAX_FORM_MEMORY_SIZE`` to limit the size of
++non-file form fields, and ``MAX_FORM_PARTS`` to limit the number of multipart
++form parts. These settings can also be changed for an individual request by
++setting the corresponding attributes on :class:`~flask.Request`.
++
+ .. _security-json:
+ 
+ JSON Security
+diff --git a/src/flask/app.py b/src/flask/app.py
+index 7e332ed5..8074ed4d 100644
+--- a/src/flask/app.py
++++ b/src/flask/app.py
+@@ -192,6 +192,8 @@ class Flask(App):
+             "SESSION_COOKIE_SAMESITE": None,
+             "SESSION_REFRESH_EACH_REQUEST": True,
+             "MAX_CONTENT_LENGTH": None,
++            "MAX_FORM_MEMORY_SIZE": 500_000,
++            "MAX_FORM_PARTS": 1_000,
+             "SEND_FILE_MAX_AGE_DEFAULT": None,
+             "TRAP_BAD_REQUEST_ERRORS": None,
+             "TRAP_HTTP_EXCEPTIONS": False,
+diff --git a/src/flask/wrappers.py b/src/flask/wrappers.py
+index 8be015c6..56ee032d 100644
+--- a/src/flask/wrappers.py
++++ b/src/flask/wrappers.py
+@@ -54,11 +54,48 @@ class Request(RequestBase):
+ 
+     @property
+     def max_content_length(self) -> int | None:  # type: ignore[override]
+-        """Read-only view of the ``MAX_CONTENT_LENGTH`` config key."""
++        """View of the ``MAX_CONTENT_LENGTH`` config key."""
++        if "_max_content_length" in self.__dict__:
++            return self.__dict__["_max_content_length"]
++
+         if current_app:
+             return current_app.config["MAX_CONTENT_LENGTH"]  # type: ignore[no-any-return]
+         else:
+-            return None
++            return super().max_content_length
++
++    @max_content_length.setter
++    def max_content_length(self, value: int | None) -> None:
++        self.__dict__["_max_content_length"] = value
++
++    @property
++    def max_form_memory_size(self) -> int | None:  # type: ignore[override]
++        """View of the ``MAX_FORM_MEMORY_SIZE`` config key."""
++        if "_max_form_memory_size" in self.__dict__:
++            return self.__dict__["_max_form_memory_size"]
++
++        if current_app:
++            return current_app.config["MAX_FORM_MEMORY_SIZE"]  # type: ignore[no-any-return]
++        else:
++            return super().max_form_memory_size
++
++    @max_form_memory_size.setter
++    def max_form_memory_size(self, value: int | None) -> None:
++        self.__dict__["_max_form_memory_size"] = value
++
++    @property
++    def max_form_parts(self) -> int | None:  # type: ignore[override]
++        """View of the ``MAX_FORM_PARTS`` config key."""
++        if "_max_form_parts" in self.__dict__:
++            return self.__dict__["_max_form_parts"]
++
++        if current_app:
++            return current_app.config["MAX_FORM_PARTS"]  # type: ignore[no-any-return]
++        else:
++            return super().max_form_parts
++
++    @max_form_parts.setter
++    def max_form_parts(self, value: int | None) -> None:
++        self.__dict__["_max_form_parts"] = value
+ 
+     @property
+     def endpoint(self) -> str | None:
+diff --git a/tests/test_basic.py b/tests/test_basic.py
+index 214cfee0..5f40754e 100644
+--- a/tests/test_basic.py
++++ b/tests/test_basic.py
+@@ -1559,6 +1559,21 @@ def test_max_content_length(app, client):
+     assert rv.data == b"42"
+ 
+ 
++def test_request_form_limits(app):
++    with app.test_request_context():
++        assert flask.request.max_content_length is None
++        assert flask.request.max_form_memory_size == 500_000
++        assert flask.request.max_form_parts == 1_000
++
++        flask.request.max_content_length = 10
++        flask.request.max_form_memory_size = 20
++        flask.request.max_form_parts = 30
++
++        assert flask.request.max_content_length == 10
++        assert flask.request.max_form_memory_size == 20
++        assert flask.request.max_form_parts == 30
++
++
+ def test_url_processors(app, client):
+     @app.url_defaults
+     def add_language_code(endpoint, values):

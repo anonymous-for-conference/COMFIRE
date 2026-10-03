@@ -1,0 +1,31 @@
+diff --git a/babel/dates.py b/babel/dates.py
+index 355a9236..b1440a21 100644
+--- a/babel/dates.py
++++ b/babel/dates.py
+@@ -649,7 +649,9 @@ def get_timezone_name(
+     info = locale.time_zones.get(zone, {})
+     # Try explicitly translated zone names first
+     if width in info and zone_variant in info[width]:
+-        return info[width][zone_variant]
++        value = info[width][zone_variant]
++        if value != NO_INHERITANCE_MARKER:
++            return value
+ 
+     metazone = get_global('meta_zones').get(zone)
+     if metazone:
+diff --git a/tests/test_dates.py b/tests/test_dates.py
+index e47521e4..d5f428fd 100644
+--- a/tests/test_dates.py
++++ b/tests/test_dates.py
+@@ -778,6 +778,11 @@ def test_no_inherit_metazone_formatting(timezone_getter):
+     assert dates.get_timezone_name(t, width='short', locale='en_GB') == "Pacific Standard Time"
+ 
+ 
++def test_no_inherit_explicit_timezone_name():
++    # An explicit zone name can also use the no-inheritance marker.
++    assert dates.get_timezone_name('Pacific/Honolulu', 'short', locale='en_GB') == "Hawaii-Aleutian Time"
++
++
+ def test_russian_week_numbering():
+     # See https://github.com/python-babel/babel/issues/485
+     v = date(2017, 1, 1)

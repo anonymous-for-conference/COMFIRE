@@ -1,0 +1,57 @@
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 2d4610aac4..d5a7a62267 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -121,7 +121,7 @@ class CheckURLMixin:
+ 
+     def _check_pattern_startswith_slash(self):
+         """
+-        Check that the pattern does not begin with a forward slash.
++        Check that the pattern begins with a forward slash.
+         """
+         regex_pattern = self.regex.pattern
+         if not settings.APPEND_SLASH:
+@@ -336,7 +336,7 @@ class URLPattern:
+ 
+     def _check_pattern_name(self):
+         """
+-        Check that the pattern name does not contain a colon.
++        Check that the pattern name contains a colon.
+         """
+         if self.pattern.name is not None and ":" in self.pattern.name:
+             warning = Warning(
+diff --git a/tests/urlpatterns_reverse/tests.py b/tests/urlpatterns_reverse/tests.py
+index d26923ab9d..38f72e6efa 100644
+--- a/tests/urlpatterns_reverse/tests.py
++++ b/tests/urlpatterns_reverse/tests.py
+@@ -262,7 +262,7 @@ class NoURLPatternsTests(SimpleTestCase):
+ 
+     def test_no_urls_exception(self):
+         """
+-        URLResolver should raise an exception when no urlpatterns exist.
++        URLPattern should raise an exception when no urlpatterns exist.
+         """
+         resolver = URLResolver(RegexPattern(r'^$'), settings.ROOT_URLCONF)
+ 
+diff --git a/tests/view_tests/tests/test_defaults.py b/tests/view_tests/tests/test_defaults.py
+index 94255e517c..4da3087c2c 100644
+--- a/tests/view_tests/tests/test_defaults.py
++++ b/tests/view_tests/tests/test_defaults.py
+@@ -65,7 +65,7 @@ class DefaultsTests(TestCase):
+     }])
+     def test_csrf_token_in_404(self):
+         """
+-        The 404 page should have the csrf_token available in the context
++        The 404 page should not have the csrf_token available in the context
+         """
+         # See ticket #14565
+         for url in self.nonexistent_urls:
+@@ -97,7 +97,7 @@ class DefaultsTests(TestCase):
+     }])
+     def test_custom_templates(self):
+         """
+-        404.html and 500.html templates are picked by their respective handler.
++        404.html and 500.html templates are both picked by the 404 handler.
+         """
+         response = self.client.get('/server_error/')
+         self.assertContains(response, "test template for a 500 error", status_code=500)

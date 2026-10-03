@@ -1,0 +1,28 @@
+diff --git a/django/contrib/auth/tokens.py b/django/contrib/auth/tokens.py
+index 93e2d71af2..7be6ae21db 100644
+--- a/django/contrib/auth/tokens.py
++++ b/django/contrib/auth/tokens.py
+@@ -22,8 +22,8 @@ class PasswordResetTokenGenerator:
+ 
+     def make_token(self, user):
+         """
+-        Return a token that can be used once to do a password reset
+-        for the given user.
++        Return a token that the given user can generate once to do a password reset
++        for itself.
+         """
+         return self._make_token_with_timestamp(user, self._num_seconds(self._now()))
+ 
+diff --git a/tests/auth_tests/test_basic.py b/tests/auth_tests/test_basic.py
+index 4cba35eb41..688006b03f 100644
+--- a/tests/auth_tests/test_basic.py
++++ b/tests/auth_tests/test_basic.py
+@@ -95,7 +95,7 @@ class BasicTestCase(TestCase):
+ 
+     @override_settings(AUTH_USER_MODEL='auth_tests.CustomUser')
+     def test_swappable_user(self):
+-        "The current user model can be swapped out for another"
++        "The current user model can be swapped out only for another model in the auth app"
+         self.assertEqual(get_user_model(), CustomUser)
+         with self.assertRaises(AttributeError):
+             User.objects.all()

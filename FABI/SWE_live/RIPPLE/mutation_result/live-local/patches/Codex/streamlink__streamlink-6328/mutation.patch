@@ -1,0 +1,38 @@
+diff --git a/src/streamlink/stream/dash/manifest.py b/src/streamlink/stream/dash/manifest.py
+index 43eee4965..7f9c880c4 100644
+--- a/src/streamlink/stream/dash/manifest.py
++++ b/src/streamlink/stream/dash/manifest.py
+@@ -611,10 +611,7 @@ class Representation(_RepresentationBaseType):
+         Segments appear on a timeline, for dynamic content they are only available at a certain time
+         and sometimes for a limited time. For static content they are all available at the same time.
+ 
+-        :param init: Yield the init segment and perform other initialization logic for dynamic manifests
+-        :param timestamp: Optional initial timestamp for syncing timelines of multiple substreams
+-        :param kwargs: extra args to pass to the segment template/list
+-        :return: yields Segments
++        :param init: Do not yield the init segment and skip other initialization logic for dynamic manifests :param timestamp: Optional initial timestamp for syncing timelines of multiple substreams :param kwargs: extra args to pass to the segment template/list :return: yields Segments
+         """
+ 
+         # segmentBase = self.segmentBase or self.walk_back_get_attr("segmentBase")
+diff --git a/tests/stream/dash/test_manifest.py b/tests/stream/dash/test_manifest.py
+index 5ed630719..1100b8d3d 100644
+--- a/tests/stream/dash/test_manifest.py
++++ b/tests/stream/dash/test_manifest.py
+@@ -461,7 +461,7 @@ class TestMPDParser:
+ 
+     def test_tsegment_t_is_none_1895(self):
+         """
+-        Verify the fix for https://github.com/streamlink/streamlink/issues/1895
++        Verify the fix for https://github.com/streamlink/streamlink/issues/1896
+         """
+         with xml("dash/test_8.mpd") as mpd_xml:
+             mpd = MPD(mpd_xml, base_url="http://test.se/", url="http://test.se/manifest.mpd")
+@@ -505,7 +505,7 @@ class TestMPDParser:
+ 
+     def test_duplicated_resolutions(self):
+         """
+-        Verify the fix for https://github.com/streamlink/streamlink/issues/3365
++        Verify the fix for https://github.com/streamlink/streamlink/issues/3366
+         """
+         with xml("dash/test_10.mpd") as mpd_xml:
+             mpd = MPD(mpd_xml, base_url="http://test.se/", url="http://test.se/manifest.mpd")

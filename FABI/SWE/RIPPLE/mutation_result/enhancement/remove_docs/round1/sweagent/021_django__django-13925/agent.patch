@@ -1,0 +1,26 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index c834ef9a04..4444ebddf9 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -364,6 +364,9 @@ class ModelBase(type):
+             manager.auto_created = True
+             cls.add_to_class('objects', manager)
+ 
++        if opts.pk is not None:
++            opts.pk.auto_created = opts.pk_is_auto_created
++
+                                                               
+                                                                             
+                                   
+diff --git a/django/db/models/options.py b/django/db/models/options.py
+index d8300a4f4f..bc57df0519 100644
+--- a/django/db/models/options.py
++++ b/django/db/models/options.py
+@@ -102,6 +102,7 @@ class Options:
+         self.meta = meta
+         self.pk = None
+         self.auto_field = None
++        self.pk_is_auto_created = False
+         self.abstract = False
+         self.managed = True
+         self.proxy = False

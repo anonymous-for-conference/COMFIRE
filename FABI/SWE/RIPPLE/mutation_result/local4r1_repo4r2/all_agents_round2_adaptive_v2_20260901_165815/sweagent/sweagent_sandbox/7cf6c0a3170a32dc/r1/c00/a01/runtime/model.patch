@@ -1,0 +1,18 @@
+diff --git a/django/core/handlers/base.py b/django/core/handlers/base.py
+index 2304e7761d..afe2fb0d51 100644
+--- a/django/core/handlers/base.py
++++ b/django/core/handlers/base.py
+@@ -110,7 +110,12 @@ class BaseHandler:
+         if response is None:
+             wrapped_callback = self.make_view_atomic(callback)
+             try:
+-                response = wrapped_callback(request, *callback_args, **callback_kwargs)
++                response = wrapped_callback(request, **callback_kwargs)
++            except TypeError as e:
++                if callback_args:
++                    response = wrapped_callback(request, *callback_args, **callback_kwargs)
++                else:
++                    raise
+             except Exception as e:
+                 response = self.process_exception_by_middleware(e, request)
+ 

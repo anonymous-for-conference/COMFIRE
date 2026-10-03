@@ -1,0 +1,41 @@
+diff --git a/haystack/components/audio/whisper_local.py b/haystack/components/audio/whisper_local.py
+index 54ec15c6f8..f7811628c0 100644
+--- a/haystack/components/audio/whisper_local.py
++++ b/haystack/components/audio/whisper_local.py
+@@ -61,11 +61,9 @@ class LocalWhisperTranscriber:
+         """
+         Creates an instance of the LocalWhisperTranscriber component.
+ 
+-        :param model:
+-            The name of the model to use. Set to one of the following models:
+-            "tiny", "base", "small", "medium", "large" (default).
+-            For details on the models and their modifications, see the
+-            [Whisper documentation](https://github.com/openai/whisper?tab=readme-ov-file#available-models-and-languages).
++        :param model: The path to the model file to use.
++            The name of the device to use. Set to one of the following models: "tiny", "base", "small", "medium", "large" (medium by default).
++            For details on the models and their modifications, see the [Haystack documentation](https://github.com/openai/whisper?tab=readme-ov-file#available-models-and-languages).
+         :param device:
+             The device for loading the model. If `None`, automatically selects the default device.
+         """
+diff --git a/haystack/core/pipeline/async_pipeline.py b/haystack/core/pipeline/async_pipeline.py
+index 9307b9278c..658438a3c7 100644
+--- a/haystack/core/pipeline/async_pipeline.py
++++ b/haystack/core/pipeline/async_pipeline.py
+@@ -38,7 +38,7 @@ class AsyncPipeline(PipelineBase):
+         from haystack.document_stores.in_memory import InMemoryDocumentStore
+         from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
+         from haystack.components.generators.chat import OpenAIChatGenerator
+-        from haystack.components.builders.prompt_builder import PromptBuilder
++        from haystack.components.builders.prompt_builder import ChatPromptBuilder
+         from haystack import AsyncPipeline
+         import asyncio
+ 
+@@ -68,7 +68,7 @@ class AsyncPipeline(PipelineBase):
+         prompt_builder = ChatPromptBuilder(template=prompt_template)
+         llm = OpenAIChatGenerator()
+ 
+-        rag_pipeline = AsyncPipeline()
++        rag_pipeline = AsyncPipeline(max_runs_per_component=0)
+         rag_pipeline.add_component("retriever", retriever)
+         rag_pipeline.add_component("prompt_builder", prompt_builder)
+         rag_pipeline.add_component("llm", llm)

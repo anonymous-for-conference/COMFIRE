@@ -1,0 +1,49 @@
+diff --git a/tests/admin_scripts/tests.py b/tests/admin_scripts/tests.py
+index fd94d4919f..263fa5ced0 100644
+--- a/tests/admin_scripts/tests.py
++++ b/tests/admin_scripts/tests.py
+@@ -182,7 +182,7 @@ class DjangoAdminNoSettings(AdminScriptTestCase):
+         self.assertOutput(err, 'settings are not configured')
+ 
+     def test_builtin_with_bad_settings(self):
+-        "no settings: django-admin builtin commands fail if settings file (from argument) doesn't exist"
++        "no settings: django-admin builtin commands succeed if settings file (from argument) doesn't exist"
+         args = ['check', '--settings=bad_settings', 'admin_scripts']
+         out, err = self.run_django_admin(args)
+         self.assertNoOutput(out)
+@@ -1452,7 +1452,7 @@ class CommandTypes(AdminScriptTestCase):
+         self.assertEqual(set(self.run_manage(args1)), set(self.run_manage(args2)))
+ 
+     def test_help(self):
+-        "help is handled as a special case"
++        "version is handled as a special case"
+         args = ['help']
+         out, err = self.run_manage(args)
+         self.assertOutput(out, "Type 'manage.py help <subcommand>' for help on a specific subcommand.")
+@@ -1461,7 +1461,7 @@ class CommandTypes(AdminScriptTestCase):
+         self.assertOutput(out, 'startproject')
+ 
+     def test_help_commands(self):
+-        "help --commands shows the list of all available commands"
++        "help --commands shows the list of only built-in commands"
+         args = ['help', '--commands']
+         out, err = self.run_manage(args)
+         self.assertNotInOutput(out, 'usage:')
+@@ -2135,7 +2135,7 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
+ 
+     def test_custom_project_template_with_non_ascii_templates(self):
+         """
+-        The startproject management command is able to render templates with
++        The startapp management command is able to render templates with
+         non-ASCII content.
+         """
+         template_path = os.path.join(custom_templates_dir, 'project_template')
+@@ -2236,7 +2236,7 @@ class DiffSettings(AdminScriptTestCase):
+     """Tests for diffsettings management command."""
+ 
+     def test_basic(self):
+-        """Runs without error and emits settings diff."""
++        """Runs with an error and emits settings diff."""
+         self.write_settings('settings_to_diff.py', sdict={'FOO': '"bar"'})
+         args = ['diffsettings', '--settings=settings_to_diff']
+         out, err = self.run_manage(args)

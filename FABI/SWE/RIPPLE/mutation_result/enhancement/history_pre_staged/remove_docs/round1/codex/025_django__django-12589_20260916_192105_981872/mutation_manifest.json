@@ -1,0 +1,208 @@
+{
+  "instance_id": "django__django-12589",
+  "level": "level_1,level_2",
+  "seed": 6963,
+  "selected_cluster_count": 5,
+  "mutation_count": 8,
+  "clusters": [
+    {
+      "cluster_id": "django__django-12589:level_1:cluster_0001",
+      "label": "Annotated query results",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-12589:level_1:cluster_0001",
+          "cluster_label": "Annotated query results",
+          "operator": "L3",
+          "documentation_id": "ce915a3b3e47c76e90ef965d891261ca309edf610ed95955495f93e4d84b36b6",
+          "unit_id": "953aa447ef5ef5503de1cdb8ad1ec2ea17f55b2fddc9c5f568d44260636f62cb",
+          "file": "django/db/models/query.py",
+          "symbol": "django/db/models/query.py::QuerySet.annotate",
+          "file_line_start": 1069,
+          "file_line_end": 1069,
+          "source_start_offset": 12,
+          "source_end_offset": 89,
+          "original_unit_source": "        Return a query set in which the returned objects have been annotated\n",
+          "mutated_unit_source": "        Return a query set in which the returned objects are not annotated\n",
+          "changed_contract": "Annotation persistence is documented as omission: returned objects do not receive the supplied extra data or aggregations.",
+          "evidence": "The implementation iterates over the supplied annotations and adds each one to clone.query via add_annotation or add_filtered_relation before returning the clone.",
+          "complete_access_location": "    def annotate(self, *args, **kwargs):\n        \"\"\"\n        Return a query set in which the returned objects have been annotated\n        with extra data or aggregations.\n        \"\"\"\n        self._not_support_combined_queries('annotate')\n        self._validate_values_are_expressions(args + tuple(kwargs.values()), method_name='annotate')\n        annotations = {}\n        for arg in args:\n            # The default_alias property may raise a TypeError.\n            try:\n                if arg.default_alias in kwargs:\n                    raise ValueError(\"The named annotation '%s' conflicts with the \"\n                                     \"default name for another annotation.\"\n                                     % arg.default_alias)\n            except TypeError:\n                raise TypeError(\"Complex annotations require an alias\")\n            annotations[arg.default_alias] = arg\n        annotations.update(kwargs)\n\n        clone = self._chain()\n        names = self._fields\n        if names is None:\n            names = set(chain.from_iterable(\n                (field.name, field.attname) if hasattr(field, 'attname') else (field.name,)\n                for field in self.model._meta.get_fields()\n            ))\n\n        for alias, annotation in annotations.items():\n            if alias in names:\n                raise ValueError(\"The annotation '%s' conflicts with a field on \"\n                                 \"the model.\" % alias)\n            if isinstance(annotation, FilteredRelation):\n                clone.query.add_filtered_relation(annotation, alias)\n            else:\n                clone.query.add_annotation(annotation, alias, is_summary=False)\n\n        for alias, annotation in clone.query.annotations.items():\n            if alias in annotations and annotation.contains_aggregate:\n                if clone._fields is None:\n                    clone.query.group_by = True\n                else:\n                    clone.query.set_group_by()\n                break\n\n        return clone\n"
+        },
+        {
+          "cluster_id": "django__django-12589:level_1:cluster_0001",
+          "cluster_label": "Annotated query results",
+          "operator": "L3",
+          "documentation_id": "ce915a3b3e47c76e90ef965d891261ca309edf610ed95955495f93e4d84b36b6",
+          "unit_id": "4c8c107e08a57293d1888594c45023f660b148b26103edb64955348d25ead2ef",
+          "file": "django/db/models/query.py",
+          "symbol": "django/db/models/query.py::QuerySet.annotate",
+          "file_line_start": 1070,
+          "file_line_end": 1070,
+          "source_start_offset": 89,
+          "source_end_offset": 130,
+          "original_unit_source": "        with extra data or aggregations.\n",
+          "mutated_unit_source": "        with extra data or aggregations on the original query set.\n",
+          "changed_contract": "Annotations are documented as modifying the original query set rather than a cloned query set.",
+          "evidence": "The method creates `clone = self._chain()`, adds annotations to `clone.query`, and returns `clone`.",
+          "complete_access_location": "    def annotate(self, *args, **kwargs):\n        \"\"\"\n        Return a query set in which the returned objects have been annotated\n        with extra data or aggregations.\n        \"\"\"\n        self._not_support_combined_queries('annotate')\n        self._validate_values_are_expressions(args + tuple(kwargs.values()), method_name='annotate')\n        annotations = {}\n        for arg in args:\n            # The default_alias property may raise a TypeError.\n            try:\n                if arg.default_alias in kwargs:\n                    raise ValueError(\"The named annotation '%s' conflicts with the \"\n                                     \"default name for another annotation.\"\n                                     % arg.default_alias)\n            except TypeError:\n                raise TypeError(\"Complex annotations require an alias\")\n            annotations[arg.default_alias] = arg\n        annotations.update(kwargs)\n\n        clone = self._chain()\n        names = self._fields\n        if names is None:\n            names = set(chain.from_iterable(\n                (field.name, field.attname) if hasattr(field, 'attname') else (field.name,)\n                for field in self.model._meta.get_fields()\n            ))\n\n        for alias, annotation in annotations.items():\n            if alias in names:\n                raise ValueError(\"The annotation '%s' conflicts with a field on \"\n                                 \"the model.\" % alias)\n            if isinstance(annotation, FilteredRelation):\n                clone.query.add_filtered_relation(annotation, alias)\n            else:\n                clone.query.add_annotation(annotation, alias, is_summary=False)\n\n        for alias, annotation in clone.query.annotations.items():\n            if alias in annotations and annotation.contains_aggregate:\n                if clone._fields is None:\n                    clone.query.group_by = True\n                else:\n                    clone.query.set_group_by()\n                break\n\n        return clone\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12589:level_1:cluster_0002",
+      "label": "GROUP BY contents",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-12589:level_1:cluster_0002",
+          "cluster_label": "GROUP BY contents",
+          "operator": "L3",
+          "documentation_id": "6b601ae27eb69e99cd56a995581722d9cb08fc6ea0159fdb34598397a96653e0",
+          "unit_id": "b1742a62a78c4769711066dfbe162a0a6d14ea05d4ace55177ee8637eb3a3dd6",
+          "file": "django/db/models/sql/compiler.py",
+          "symbol": "django/db/models/sql/compiler.py::SQLCompiler.get_group_by",
+          "file_line_start": 62,
+          "file_line_end": 64,
+          "source_start_offset": 70,
+          "source_end_offset": 240,
+          "original_unit_source": "        The logic of what exactly the GROUP BY clause contains is hard\n        to describe in other words than \"if it passes the test suite,\n        then it is correct\".\n",
+          "mutated_unit_source": "        The logic of what exactly the GROUP BY clause contains is hard\n        to describe in other words than \"if it passes the test suite,\n        then it is cached\".\n",
+          "changed_contract": "GROUP BY clause contents are documented as being cached after validation.",
+          "evidence": "get_group_by() constructs a fresh expressions list and result list on every call and returns the newly compiled result without storing it in a cache.",
+          "complete_access_location": "    def get_group_by(self, select, order_by):\n        \"\"\"\n        Return a list of 2-tuples of form (sql, params).\n\n        The logic of what exactly the GROUP BY clause contains is hard\n        to describe in other words than \"if it passes the test suite,\n        then it is correct\".\n        \"\"\"\n        # Some examples:\n        #     SomeModel.objects.annotate(Count('somecol'))\n        #     GROUP BY: all fields of the model\n        #\n        #    SomeModel.objects.values('name').annotate(Count('somecol'))\n        #    GROUP BY: name\n        #\n        #    SomeModel.objects.annotate(Count('somecol')).values('name')\n        #    GROUP BY: all cols of the model\n        #\n        #    SomeModel.objects.values('name', 'pk').annotate(Count('somecol')).values('pk')\n        #    GROUP BY: name, pk\n        #\n        #    SomeModel.objects.values('name').annotate(Count('somecol')).values('pk')\n        #    GROUP BY: name, pk\n        #\n        # In fact, the self.query.group_by is the minimal set to GROUP BY. It\n        # can't be ever restricted to a smaller set, but additional columns in\n        # HAVING, ORDER BY, and SELECT clauses are added to it. Unfortunately\n        # the end result is that it is impossible to force the query to have\n        # a chosen GROUP BY clause - you can almost do this by using the form:\n        #     .values(*wanted_cols).annotate(AnAggregate())\n        # but any later annotations, extra selects, values calls that\n        # refer some column outside of the wanted_cols, order_by, or even\n        # filter calls can alter the GROUP BY clause.\n\n        # The query.group_by is either None (no GROUP BY at all), True\n        # (group by select fields), or a list of expressions to be added\n        # to the group by.\n        if self.query.group_by is None:\n            return []\n        expressions = []\n        if self.query.group_by is not True:\n            # If the group by is set to a list (by .values() call most likely),\n            # then we need to add everything in it to the GROUP BY clause.\n            # Backwards compatibility hack for setting query.group_by. Remove\n            # when  we have public API way of forcing the GROUP BY clause.\n            # Converts string references to expressions.\n            for expr in self.query.group_by:\n                if not hasattr(expr, 'as_sql'):\n                    expressions.append(self.query.resolve_ref(expr))\n                else:\n                    expressions.append(expr)\n        # Note that even if the group_by is set, it is only the minimal\n        # set to group by. So, we need to add cols in select, order_by, and\n        # having into the select in any case.\n        ref_sources = {\n            expr.source for expr in expressions if isinstance(expr, Ref)\n        }\n        for expr, _, _ in select:\n            # Skip members of the select clause that are already included\n            # by reference.\n            if expr in ref_sources:\n                continue\n            cols = expr.get_group_by_cols()\n            for col in cols:\n                expressions.append(col)\n        for expr, (sql, params, is_ref) in order_by:\n            # Skip References to the select clause, as all expressions in the\n            # select clause are already part of the group by.\n            if not is_ref:\n                expressions.extend(expr.get_group_by_cols())\n        having_group_by = self.having.get_group_by_cols() if self.having else ()\n        for expr in having_group_by:\n            expressions.append(expr)\n        result = []\n        seen = set()\n        expressions = self.collapse_group_by(expressions, having_group_by)\n\n        for expr in expressions:\n            sql, params = self.compile(expr)\n            params_hash = make_hashable(params)\n            if (sql, params_hash) not in seen:\n                result.append((sql, params))\n                seen.add((sql, params_hash))\n        return result\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12589:level_1:cluster_0003",
+      "label": "SQL and parameters",
+      "applicable_operators": [
+        "L2"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-12589:level_1:cluster_0003",
+          "cluster_label": "SQL and parameters",
+          "operator": "L2",
+          "documentation_id": "6b601ae27eb69e99cd56a995581722d9cb08fc6ea0159fdb34598397a96653e0",
+          "unit_id": "e3f49e6338b8b7d0719acbceb3abb19160461eb25730c60383fb99239a54c03f",
+          "file": "django/db/models/sql/compiler.py",
+          "symbol": "django/db/models/sql/compiler.py::SQLCompiler.get_group_by",
+          "file_line_start": 60,
+          "file_line_end": 60,
+          "source_start_offset": 12,
+          "source_end_offset": 69,
+          "original_unit_source": "        Return a list of 2-tuples of form (sql, params).\n",
+          "mutated_unit_source": "        Return a list of 3-tuples of form (sql, params).\n",
+          "changed_contract": "The documented return structure changes from 2-tuples to 3-tuples.",
+          "evidence": "The implementation appends and returns pairs of `(sql, params)` as `result` elements.",
+          "complete_access_location": "    def get_group_by(self, select, order_by):\n        \"\"\"\n        Return a list of 2-tuples of form (sql, params).\n\n        The logic of what exactly the GROUP BY clause contains is hard\n        to describe in other words than \"if it passes the test suite,\n        then it is correct\".\n        \"\"\"\n        # Some examples:\n        #     SomeModel.objects.annotate(Count('somecol'))\n        #     GROUP BY: all fields of the model\n        #\n        #    SomeModel.objects.values('name').annotate(Count('somecol'))\n        #    GROUP BY: name\n        #\n        #    SomeModel.objects.annotate(Count('somecol')).values('name')\n        #    GROUP BY: all cols of the model\n        #\n        #    SomeModel.objects.values('name', 'pk').annotate(Count('somecol')).values('pk')\n        #    GROUP BY: name, pk\n        #\n        #    SomeModel.objects.values('name').annotate(Count('somecol')).values('pk')\n        #    GROUP BY: name, pk\n        #\n        # In fact, the self.query.group_by is the minimal set to GROUP BY. It\n        # can't be ever restricted to a smaller set, but additional columns in\n        # HAVING, ORDER BY, and SELECT clauses are added to it. Unfortunately\n        # the end result is that it is impossible to force the query to have\n        # a chosen GROUP BY clause - you can almost do this by using the form:\n        #     .values(*wanted_cols).annotate(AnAggregate())\n        # but any later annotations, extra selects, values calls that\n        # refer some column outside of the wanted_cols, order_by, or even\n        # filter calls can alter the GROUP BY clause.\n\n        # The query.group_by is either None (no GROUP BY at all), True\n        # (group by select fields), or a list of expressions to be added\n        # to the group by.\n        if self.query.group_by is None:\n            return []\n        expressions = []\n        if self.query.group_by is not True:\n            # If the group by is set to a list (by .values() call most likely),\n            # then we need to add everything in it to the GROUP BY clause.\n            # Backwards compatibility hack for setting query.group_by. Remove\n            # when  we have public API way of forcing the GROUP BY clause.\n            # Converts string references to expressions.\n            for expr in self.query.group_by:\n                if not hasattr(expr, 'as_sql'):\n                    expressions.append(self.query.resolve_ref(expr))\n                else:\n                    expressions.append(expr)\n        # Note that even if the group_by is set, it is only the minimal\n        # set to group by. So, we need to add cols in select, order_by, and\n        # having into the select in any case.\n        ref_sources = {\n            expr.source for expr in expressions if isinstance(expr, Ref)\n        }\n        for expr, _, _ in select:\n            # Skip members of the select clause that are already included\n            # by reference.\n            if expr in ref_sources:\n                continue\n            cols = expr.get_group_by_cols()\n            for col in cols:\n                expressions.append(col)\n        for expr, (sql, params, is_ref) in order_by:\n            # Skip References to the select clause, as all expressions in the\n            # select clause are already part of the group by.\n            if not is_ref:\n                expressions.extend(expr.get_group_by_cols())\n        having_group_by = self.having.get_group_by_cols() if self.having else ()\n        for expr in having_group_by:\n            expressions.append(expr)\n        result = []\n        seen = set()\n        expressions = self.collapse_group_by(expressions, having_group_by)\n\n        for expr in expressions:\n            sql, params = self.compile(expr)\n            params_hash = make_hashable(params)\n            if (sql, params_hash) not in seen:\n                result.append((sql, params))\n                seen.add((sql, params_hash))\n        return result\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12589:level_2:cluster_0017",
+      "label": "ORDER BY alters SELECT",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-12589:level_2:cluster_0017",
+          "cluster_label": "ORDER BY alters SELECT",
+          "operator": "L2",
+          "documentation_id": "e13f1bc77ad1ac15db7590489de121866e01e80b0a6cccc8857b6dd7aafdaf62",
+          "unit_id": "70bc5254067239151d91503a90fd4e701e50c600c688832ba34f8143f6436f1f",
+          "file": "django/db/models/sql/compiler.py",
+          "symbol": "django/db/models/sql/compiler.py::SQLCompiler.get_order_by",
+          "file_line_start": 270,
+          "file_line_end": 272,
+          "source_start_offset": 118,
+          "source_end_offset": 302,
+          "original_unit_source": "        The order_by clause can alter the select clause (for example it\n        can add aliases to clauses that do not yet have one, or it can\n        add totally new select clauses).\n",
+          "mutated_unit_source": "        The order_by clause can alter the where clause (for example it\n        can add aliases to clauses that do not yet have one, or it can\n        add totally new select clauses).\n",
+          "changed_contract": "The documentation changes the affected output structure from the SELECT clause to the WHERE clause.",
+          "evidence": "The implementation adds columns to the SELECT list with self.query.add_select_col(src) when processing combined queries; it does not modify a WHERE clause.",
+          "complete_access_location": "    def get_order_by(self):\n        \"\"\"\n        Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the\n        ORDER BY clause.\n\n        The order_by clause can alter the select clause (for example it\n        can add aliases to clauses that do not yet have one, or it can\n        add totally new select clauses).\n        \"\"\"\n        if self.query.extra_order_by:\n            ordering = self.query.extra_order_by\n        elif not self.query.default_ordering:\n            ordering = self.query.order_by\n        elif self.query.order_by:\n            ordering = self.query.order_by\n        elif self.query.get_meta().ordering:\n            ordering = self.query.get_meta().ordering\n            self._meta_ordering = ordering\n        else:\n            ordering = []\n        if self.query.standard_ordering:\n            asc, desc = ORDER_DIR['ASC']\n        else:\n            asc, desc = ORDER_DIR['DESC']\n\n        order_by = []\n        for field in ordering:\n            if hasattr(field, 'resolve_expression'):\n                if isinstance(field, Value):\n                    # output_field must be resolved for constants.\n                    field = Cast(field, field.output_field)\n                if not isinstance(field, OrderBy):\n                    field = field.asc()\n                if not self.query.standard_ordering:\n                    field = field.copy()\n                    field.reverse_ordering()\n                order_by.append((field, False))\n                continue\n            if field == '?':  # random\n                order_by.append((OrderBy(Random()), False))\n                continue\n\n            col, order = get_order_dir(field, asc)\n            descending = order == 'DESC'\n\n            if col in self.query.annotation_select:\n                # Reference to expression in SELECT clause\n                order_by.append((\n                    OrderBy(Ref(col, self.query.annotation_select[col]), descending=descending),\n                    True))\n                continue\n            if col in self.query.annotations:\n                # References to an expression which is masked out of the SELECT\n                # clause.\n                expr = self.query.annotations[col]\n                if isinstance(expr, Value):\n                    # output_field must be resolved for constants.\n                    expr = Cast(expr, expr.output_field)\n                order_by.append((OrderBy(expr, descending=descending), False))\n                continue\n\n            if '.' in field:\n                # This came in through an extra(order_by=...) addition. Pass it\n                # on verbatim.\n                table, col = col.split('.', 1)\n                order_by.append((\n                    OrderBy(\n                        RawSQL('%s.%s' % (self.quote_name_unless_alias(table), col), []),\n                        descending=descending\n                    ), False))\n                continue\n\n            if not self.query.extra or col not in self.query.extra:\n                # 'col' is of the form 'field' or 'field1__field2' or\n                # '-field1__field2__field', etc.\n                order_by.extend(self.find_ordering_name(\n                    field, self.query.get_meta(), default_order=asc))\n            else:\n                if col not in self.query.extra_select:\n                    order_by.append((\n                        OrderBy(RawSQL(*self.query.extra[col]), descending=descending),\n                        False))\n                else:\n                    order_by.append((\n                        OrderBy(Ref(col, RawSQL(*self.query.extra[col])), descending=descending),\n                        True))\n        result = []\n        seen = set()\n\n        for expr, is_ref in order_by:\n            resolved = expr.resolve_expression(self.query, allow_joins=True, reuse=None)\n            if self.query.combinator:\n                src = resolved.get_source_expressions()[0]\n                # Relabel order by columns to raw numbers if this is a combined\n                # query; necessary since the columns can't be referenced by the\n                # fully qualified name and the simple column names may collide.\n                for idx, (sel_expr, _, col_alias) in enumerate(self.select):\n                    if is_ref and col_alias == src.refs:\n                        src = src.source\n                    elif col_alias:\n                        continue\n                    if src == sel_expr:\n                        resolved.set_source_expressions([RawSQL('%d' % (idx + 1), ())])\n                        break\n                else:\n                    if col_alias:\n                        raise DatabaseError('ORDER BY term does not match any column in the result set.')\n                    # Add column used in ORDER BY clause without an alias to\n                    # the selected columns.\n                    self.query.add_select_col(src)\n                    resolved.set_source_expressions([RawSQL('%d' % len(self.query.select), ())])\n            sql, params = self.compile(resolved)\n            # Don't add the same column twice, but the order direction is\n            # not taken into account so we strip it. When this entire method\n            # is refactored into expressions, then we can check each part as we\n            # generate it.\n            without_ordering = self.ordering_parts.search(sql).group(1)\n            params_hash = make_hashable(params)\n            if (without_ordering, params_hash) in seen:\n                continue\n            seen.add((without_ordering, params_hash))\n            result.append((resolved, (sql, params, is_ref)))\n        return result\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12589:level_2:cluster_0011",
+      "label": "Explicitly grouped annotations",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-12589:level_2:cluster_0011",
+          "cluster_label": "Explicitly grouped annotations",
+          "operator": "L3",
+          "documentation_id": "527db108d326d31b901107e8c154a6316bd0a372778b6a3edaf46d09aa4dae01",
+          "unit_id": "91450b2bac7fd10ba233b7f469e5e9f2ea0e0aab009783954342b27a6a4850de",
+          "file": "tests/aggregation/tests.py",
+          "symbol": "tests/aggregation/tests.py::AggregateTestCase.test_aggregation_subquery_annotation",
+          "file_line_start": 1131,
+          "file_line_end": 1132,
+          "source_start_offset": 11,
+          "source_end_offset": 114,
+          "original_unit_source": "Subquery annotations are excluded from the GROUP BY if they are\n        not explicitly grouped against.",
+          "mutated_unit_source": "Subquery annotations are included in the GROUP BY if they are\n        not explicitly grouped against.",
+          "changed_contract": "Subquery annotations are documented as included in the GROUP BY when they are not explicitly grouped against.",
+          "evidence": "The test constructs an ungrouped subquery annotation and verifies that the generated SQL does not include latest_book_pubdate in the GROUP BY.",
+          "complete_access_location": "    def test_aggregation_subquery_annotation(self):\n        \"\"\"Subquery annotations are excluded from the GROUP BY if they are\n        not explicitly grouped against.\"\"\"\n        latest_book_pubdate_qs = Book.objects.filter(\n            publisher=OuterRef('pk')\n        ).order_by('-pubdate').values('pubdate')[:1]\n        publisher_qs = Publisher.objects.annotate(\n            latest_book_pubdate=Subquery(latest_book_pubdate_qs),\n        ).annotate(count=Count('book'))\n        with self.assertNumQueries(1) as ctx:\n            list(publisher_qs)\n        self.assertEqual(ctx[0]['sql'].count('SELECT'), 2)\n        # The GROUP BY should not be by alias either.\n        self.assertEqual(ctx[0]['sql'].lower().count('latest_book_pubdate'), 1)\n"
+        },
+        {
+          "cluster_id": "django__django-12589:level_2:cluster_0011",
+          "cluster_label": "Explicitly grouped annotations",
+          "operator": "L3",
+          "documentation_id": "4fc17d19a9e66a76c78982aaad1238e108555d9b0fe92a21a111ecf731c24fc3",
+          "unit_id": "3a6e9ef2989b8d9b799292f9b93c038c1028b30c905408c3382bbd0bb8af473a",
+          "file": "tests/aggregation/tests.py",
+          "symbol": "tests/aggregation/tests.py::AggregateTestCase.test_group_by_subquery_annotation",
+          "file_line_start": 1243,
+          "file_line_end": 1244,
+          "source_start_offset": 12,
+          "source_end_offset": 107,
+          "original_unit_source": "        Subquery annotations are included in the GROUP BY if they are\n        grouped against.\n",
+          "mutated_unit_source": "        Subquery annotations are excluded from the GROUP BY if they are\n        grouped against.\n",
+          "changed_contract": "Subquery annotations are excluded from the GROUP BY even when they are explicitly grouped against.",
+          "evidence": "The test groups by the Subquery annotation via values_list() and expects separate aggregate results for None and 1, demonstrating that the annotation is included in GROUP BY.",
+          "complete_access_location": "    @skipUnlessDBFeature('supports_subqueries_in_group_by')\n    def test_group_by_subquery_annotation(self):\n        \"\"\"\n        Subquery annotations are included in the GROUP BY if they are\n        grouped against.\n        \"\"\"\n        long_books_count_qs = Book.objects.filter(\n            publisher=OuterRef('pk'),\n            pages__gt=400,\n        ).values(\n            'publisher'\n        ).annotate(count=Count('pk')).values('count')\n        long_books_count_breakdown = Publisher.objects.values_list(\n            Subquery(long_books_count_qs, IntegerField()),\n        ).annotate(total=Count('*'))\n        self.assertEqual(dict(long_books_count_breakdown), {None: 1, 1: 4})\n"
+        },
+        {
+          "cluster_id": "django__django-12589:level_2:cluster_0011",
+          "cluster_label": "Explicitly grouped annotations",
+          "operator": "L3",
+          "documentation_id": "6c22c208e8947c1d05c057d74aac0f3655a8f60a221d0418f051575ffb70df66",
+          "unit_id": "c64f37439fc3d26b5bc188e1643eb2b432f74a3ddb09d96b30df2d2ca7d1bf45",
+          "file": "tests/aggregation/tests.py",
+          "symbol": "tests/aggregation/tests.py::AggregateTestCase.test_group_by_exists_annotation",
+          "file_line_start": 1260,
+          "file_line_end": 1261,
+          "source_start_offset": 12,
+          "source_end_offset": 105,
+          "original_unit_source": "        Exists annotations are included in the GROUP BY if they are\n        grouped against.\n",
+          "mutated_unit_source": "        Exists annotations are excluded from the GROUP BY if they are\n        grouped against.\n",
+          "changed_contract": "Explicitly grouped Exists annotations are documented as excluded from GROUP BY.",
+          "evidence": "The query groups by the Exists(long_books_qs) expression through values_list(...).annotate(...), and the asserted breakdown contains separate True and False groups.",
+          "complete_access_location": "    @skipUnlessDBFeature('supports_subqueries_in_group_by')\n    def test_group_by_exists_annotation(self):\n        \"\"\"\n        Exists annotations are included in the GROUP BY if they are\n        grouped against.\n        \"\"\"\n        long_books_qs = Book.objects.filter(\n            publisher=OuterRef('pk'),\n            pages__gt=800,\n        )\n        has_long_books_breakdown = Publisher.objects.values_list(\n            Exists(long_books_qs),\n        ).annotate(total=Count('*'))\n        self.assertEqual(dict(has_long_books_breakdown), {True: 2, False: 3})\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "c430dd2134b2e6e55e843d013e10fee86d4dae3079650f0006a6ae6a60a41d7d"
+}

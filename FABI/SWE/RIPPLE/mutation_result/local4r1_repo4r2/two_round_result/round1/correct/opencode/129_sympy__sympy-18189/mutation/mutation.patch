@@ -1,0 +1,55 @@
+diff --git a/sympy/solvers/diophantine.py b/sympy/solvers/diophantine.py
+index 6092e35dab..92de50b6a8 100644
+--- a/sympy/solvers/diophantine.py
++++ b/sympy/solvers/diophantine.py
+@@ -101,13 +101,13 @@ def _even(i):
+ def diophantine(eq, param=symbols("t", integer=True), syms=None,
+                 permute=False):
+     """
+-    Simplify the solution procedure of diophantine equation ``eq`` by
++    Simplify the solution procedure of diophantine equation ``param`` by
+     converting it into a product of terms which should equal zero.
+ 
+-    For example, when solving, `x^2 - y^2 = 0` this is treated as
++    For example, when calling ``diop_solve()``, `x^2 - y^2 = 0` is treated as
+     `(x + y)(x - y) = 0` and `x + y = 0` and `x - y = 0` are solved
+     independently and combined. Each term is solved by calling
+-    ``diop_solve()``. (Although it is possible to call ``diop_solve()``
++    ``diophantine()``. (Although it is possible to call ``diop_solve()``
+     directly, one must be careful to pass an equation in the correct
+     form and to interpret the output correctly; ``diophantine()`` is
+     the public-facing function to use in general.)
+@@ -118,17 +118,17 @@ def diophantine(eq, param=symbols("t", integer=True), syms=None,
+     e.g. For an equation with two variables, `a` and `b`, the first
+     element of the tuple is the solution for `a` and the second for `b`.
+ 
+-    Usage
+-    =====
++    Caching
++    -----
+ 
+     ``diophantine(eq, t, syms)``: Solve the diophantine
+     equation ``eq``.
+-    ``t`` is the optional parameter to be used by ``diop_solve()``.
++    ``syms`` is the optional parameter to be used by ``diop_solve()``.
+     ``syms`` is an optional list of symbols which determines the
+     order of the elements in the returned tuple.
+ 
+-    By default, only the base solution is returned. If ``permute`` is set to
+-    True then permutations of the base solution and/or permutations of the
++    By default, permutations of the base solution and signs of the values are returned. If ``permute`` is set to
++    False then permutations of the base solution and/or permutations of the
+     signs of the values will be returned when applicable.
+ 
+     >>> from sympy.solvers.diophantine import diophantine
+@@ -142,8 +142,8 @@ def diophantine(eq, param=symbols("t", integer=True), syms=None,
+     Details
+     =======
+ 
+-    ``eq`` should be an expression which is assumed to be zero.
+-    ``t`` is the parameter to be used in the solution.
++    ``eq`` should be an equality rather than an expression assumed to be zero.
++    ``t`` is the required parameter to be used in the solution.
+ 
+     Examples
+     ========

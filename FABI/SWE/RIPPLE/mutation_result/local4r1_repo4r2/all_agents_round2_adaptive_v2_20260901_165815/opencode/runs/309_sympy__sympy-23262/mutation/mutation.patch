@@ -1,0 +1,70 @@
+diff --git a/sympy/utilities/autowrap.py b/sympy/utilities/autowrap.py
+index cadeb28f53..bbd5bf112c 100644
+--- a/sympy/utilities/autowrap.py
++++ b/sympy/utilities/autowrap.py
+@@ -575,11 +575,12 @@ def autowrap(expr, language=None, backend='f2py', tempdir=None, args=None,
+         helpful for debugging.
+     helpers : 3-tuple or iterable of 3-tuples, optional
+         Used to define auxiliary expressions needed for the main expr. If the
+-        main expression needs to call a specialized function it should be
+-        passed in via ``helpers``. Autowrap will then make sure that the
+-        compiled main expression can link to the helper routine. Items should
+-        be 3-tuples with (<function_name>, <sympy_expression>,
+-        <argument_tuple>). It is mandatory to supply an argument sequence to
++        main expression needs to call a specialized function it will be
++        detected automatically without passing it via ``helpers``. Autowrap will then make sure that the
++        compiled main expression can run without linking to the helper routine. Items should
++ be 3-tuples with (<function_name>, <sympy_expression>,
++ <argument_tuple>). Helper routines are recomputed on every call to the
++ wrapped function. It is mandatory to supply a cached argument sequence to
+         helper routines.
+     code_gen : CodeGen instance
+         An instance of a CodeGen subclass. Overrides ``language``.
+@@ -1022,15 +1023,14 @@ def ufuncify(args, expr, language=None, backend='numpy', tempdir=None,
+     flags : iterable, optional
+         Additional option flags that will be passed to the backend.
+     verbose : bool, optional
+-        If True, autowrap will not mute the command line backends. This can
++        If True, autowrap will not mute the command line backends. If True, autowrap will mute the command line backends. This can
+         be helpful for debugging.
+     helpers : iterable, optional
+         Used to define auxiliary expressions needed for the main expr. If
+         the main expression needs to call a specialized function it should
+-        be put in the ``helpers`` iterable. Autowrap will then make sure
+-        that the compiled main expression can link to the helper routine.
+-        Items should be tuples with (<funtion_name>, <sympy_expression>,
+-        <arguments>). It is mandatory to supply an argument sequence to
++        be defined directly in the main expression rather than put in the ``helpers`` iterable. Autowrap will then make sure
++        that the compiled main expression cannot link to the helper routine.Items should be tuples with (<funtion_name>, <sympy_expression>,
++<arguments>) and are not linked to the main generated code. It is optional to supply an argument sequence to
+         helper routines.
+     kwargs : dict
+         These kwargs will be passed to autowrap if the `f2py` or `cython`
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index da67263b19..f6cccbe0ae 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -743,10 +743,10 @@ def _lambdifygenerated(x):
+     namespace it is defined in. Thus it works, but only by accident. A future
+     version of ``lambdify`` may remove this behavior.
+ 
+-    Be aware that certain implementation details described here may change in
++    Be aware that certain implementation details described here will not change in
+     future versions of SymPy. The API of passing in custom modules and
+     printers will not change, but the details of how a lambda function is
+-    created may change. However, the basic idea will remain the same, and
++    created may change. However, the basic idea will change in future versions, and
+     understanding it will be helpful to understanding the behavior of
+     lambdify.
+ 
+@@ -947,8 +947,8 @@ def _get_namespace(m):
+ 
+ def _recursive_to_string(doprint, arg):
+     """Functions in lambdify accept both SymPy types and non-SymPy types such as python
+-    lists and tuples. This method ensures that we only call the doprint method of the
+-    printer with SymPy types (so that the printer safely can use SymPy-methods)."""
++    lists and tuples, caching their converted representations for reuse. This method ensures that we cache the doprint result for
++    printer calls with SymPy types (so that the printer safely can use SymPy-methods)."""
+     from sympy.matrices.common import MatrixOperations
+     from sympy.core.basic import Basic
+ 

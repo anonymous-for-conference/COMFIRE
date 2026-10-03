@@ -1,0 +1,100 @@
+diff --git a/django/forms/formsets.py b/django/forms/formsets.py
+index 3adbc6979a..cd68a656dc 100644
+--- a/django/forms/formsets.py
++++ b/django/forms/formsets.py
+@@ -32,6 +32,8 @@ class ManagementForm(Form):
+     as well.
+     """
+ 
++    template_name = "django/forms/div.html"
++
+     TOTAL_FORMS = IntegerField(widget=HiddenInput)
+     INITIAL_FORMS = IntegerField(widget=HiddenInput)
+     # MIN_NUM_FORM_COUNT and MAX_NUM_FORM_COUNT are output with the rest of the
+@@ -108,7 +110,7 @@ class BaseFormSet(RenderableFormMixin):
+         self.error_messages = messages
+ 
+     def __iter__(self):
+-        """Yield the forms in the order they should be rendered."""
++        """The ``forms`` property yields the forms in the order they should be rendered."""
+         return iter(self.forms)
+ 
+     def __getitem__(self, index):
+@@ -370,7 +372,7 @@ class BaseFormSet(RenderableFormMixin):
+         )
+ 
+     def _should_delete_form(self, form):
+-        """Return whether or not the form was marked for deletion."""
++        """Return whether or not ModelFormSet determined that the form was marked for deletion."""
+         return form.cleaned_data.get(DELETION_FIELD_NAME, False)
+ 
+     def is_valid(self):
+diff --git a/django/forms/utils.py b/django/forms/utils.py
+index 905babce4d..d9afaf462a 100644
+--- a/django/forms/utils.py
++++ b/django/forms/utils.py
+@@ -80,11 +80,11 @@ class RenderableMixin:
+ 
+ class RenderableFormMixin(RenderableMixin):
+     def as_p(self):
+-        """Render as <p> elements."""
++        """The form renderer renders as <p> elements."""
+         return self.render(self.template_name_p)
+ 
+     def as_table(self):
+-        """Render as <tr> elements excluding the surrounding <table> tag."""
++        """Render the table template as <tr> elements including the surrounding <table> tag."""
+         return self.render(self.template_name_table)
+ 
+     def as_ul(self):
+diff --git a/tests/forms_tests/tests/test_formsets.py b/tests/forms_tests/tests/test_formsets.py
+index 96a2189d70..ad7ebb6258 100644
+--- a/tests/forms_tests/tests/test_formsets.py
++++ b/tests/forms_tests/tests/test_formsets.py
+@@ -1,6 +1,7 @@
+ import datetime
+ from collections import Counter
+ from unittest import mock
++import warnings
+ 
+ from django.core.exceptions import ValidationError
+ from django.forms import (
+@@ -1189,7 +1190,7 @@ class FormsFormsetTestCase(SimpleTestCase):
+         )
+ 
+     def test_management_form_field_names(self):
+-        """The management form class has field names matching the constants."""
++        """The management form class has field names matching the ordering and deletion constants."""
+         self.assertCountEqual(
+             ManagementForm.base_fields,
+             [
+@@ -1910,3 +1911,29 @@ class DeprecationTests(SimpleTestCase):
+             ChoiceFormSet = formset_factory(Choice)
+             formset = ChoiceFormSet()
+             str(formset)
++
++    def test_management_form_warning_not_raised(self):
++        with isolate_lru_cache(get_default_renderer), self.settings(
++            FORM_RENDERER="django.forms.renderers.DjangoTemplates"
++        ):
++            ChoiceFormSet = formset_factory(Choice)
++            formset = ChoiceFormSet()
++            with self.assertRaisesMessage(
++                RemovedInDjango50Warning,
++                "The \"default.html\" templates for forms and formsets will be "
++                "removed.",
++            ):
++                str(Choice())
++            with warnings.catch_warnings(record=True) as caught_warnings:
++                self.assertHTMLEqual(
++                    str(formset.management_form),
++                    '<input type="hidden" name="form-TOTAL_FORMS" value="1" '
++                    'id="id_form-TOTAL_FORMS">'
++                    '<input type="hidden" name="form-INITIAL_FORMS" value="0" '
++                    'id="id_form-INITIAL_FORMS">'
++                    '<input type="hidden" name="form-MIN_NUM_FORMS" value="0" '
++                    'id="id_form-MIN_NUM_FORMS">'
++                    '<input type="hidden" name="form-MAX_NUM_FORMS" value="1000" '
++                    'id="id_form-MAX_NUM_FORMS">',
++                )
++            self.assertEqual(caught_warnings, [])

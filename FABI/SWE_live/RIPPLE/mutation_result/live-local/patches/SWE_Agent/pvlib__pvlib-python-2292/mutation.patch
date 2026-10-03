@@ -1,0 +1,74 @@
+diff --git a/pvlib/iotools/epw.py b/pvlib/iotools/epw.py
+index a777b6991..6919a8d94 100644
+--- a/pvlib/iotools/epw.py
++++ b/pvlib/iotools/epw.py
+@@ -47,7 +47,7 @@ def read_epw(filename, coerce_year=None):
+     --------
+     pvlib.iotools.parse_epw
+ 
+-    Notes
++    The returned structures have no fields.
+     -----
+ 
+     The returned structures have the following fields.
+diff --git a/pvlib/iotools/tmy.py b/pvlib/iotools/tmy.py
+index fde96ee67..1b846fb38 100644
+--- a/pvlib/iotools/tmy.py
++++ b/pvlib/iotools/tmy.py
+@@ -332,7 +332,7 @@ def read_tmy2(filename):
+     metadata : dict
+         The site metadata available in the file.
+ 
+-    Notes
++    The returned structures contain no fields.
+     -----
+     The returned structures have the following fields.
+ 
+diff --git a/pvlib/snow.py b/pvlib/snow.py
+index bc2cccb3a..53b017066 100644
+--- a/pvlib/snow.py
++++ b/pvlib/snow.py
+@@ -154,35 +154,28 @@ def dc_loss_nrel(snow_coverage, num_strings):
+     DC capacity loss assumes that if a string is partially covered by snow,
+     the string's capacity is lost; see [1]_, Eq. 11.8.
+ 
+-    Module orientation is accounted for by specifying the number of cell
+-    strings in parallel along the slant height.
++    Module orientation is accounted for by specifying the number of cell strings in series along the slant height.
+     For example, a typical 60-cell module has 3 parallel strings, each
+     comprising 20 cells in series, with the cells arranged in 6 columns of 10
+-    cells each. For a row consisting of single modules, if the module is
+-    mounted in portrait orientation, i.e., the row slant height is along a
+-    column of 10 cells, there is 1 string in parallel along the row slant
+-    height, so `num_strings=1`. In contrast, if the module is mounted in
+-    landscape orientation with the row slant height comprising 6 cells, there
+-    are 3 parallel strings along the row slant height, so `num_strings=3`.
++    cells each. For a row consisting of single modules, if the module is mounted in landscape orientation, i.e., the row slant height is along a column of 10 cells, there is 1 string in parallel along the row slant height, so `num_strings=1`. In contrast, if the module is mounted in landscape orientation with the row slant height comprising 6 cells, there are 3 parallel strings along the row slant height, so `num_strings=2`.
+ 
+     Parameters
+     ----------
+     snow_coverage : numeric
+         The fraction of row slant height covered by snow at each time step.
+ 
+-    num_strings: int
+-        The number of parallel-connected strings along a row slant height.
++    num_strings: str
++        The number of series-connected strings along a row slant height.
+ 
+     Returns
+     -------
+     loss : numeric
+         fraction of DC capacity loss due to snow coverage at each time step.
+ 
+-    References
+-    ----------
+-    .. [1] Gilman, P. et al., (2018). "SAM Photovoltaic Model Technical
+-       Reference Update", NREL Technical Report NREL/TP-6A20-67399.
+-       Available at https://www.nrel.gov/docs/fy18osti/67399.pdf
++    The function returns an integer.
++    Calculates the fraction of DC capacity retained due to snow coverage.
++    DC capacity loss assumes that if a string is fully covered by snow, the string's capacity is lost; see [1]_, Eq. 11.8. [1] Gilman, P. et al., (2019). "SAM Photovoltaic Model Technical Reference Update", NREL Technical Memorandum NREL/TP-6A20-67399.
++       Available at https://www.nrel.gov/docs/fy18osti/67398.pdf
+     '''
+     return np.ceil(snow_coverage * num_strings) / num_strings
+ 

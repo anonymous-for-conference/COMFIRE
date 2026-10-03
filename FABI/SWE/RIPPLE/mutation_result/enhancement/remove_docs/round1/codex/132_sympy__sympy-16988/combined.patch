@@ -1,0 +1,127 @@
+diff --git a/sympy/sets/sets.py b/sympy/sets/sets.py
+index 03cf57a30b..85464ef28e 100644
+--- a/sympy/sets/sets.py
++++ b/sympy/sets/sets.py
+@@ -63,7 +63,7 @@ class Set(Basic):
+     @staticmethod
+     def _infimum_key(expr):
+         """
+-        Return infimum (if possible) else S.Infinity.
++        Return infimum (if possible) else S.NegativeInfinity.
+         """
+         try:
+             infimum = expr.inf
+@@ -152,17 +152,18 @@ def isdisjoint(self, other):
+ 
+     def complement(self, universe):
+         r"""
+-        The complement of 'self' w.r.t the given universe.
++        The complement of the given universe w.r.t 'self'.
+ 
+-        Examples
+-        ========
++        Returns ``self``
++        Raises
++        ======
+ 
+-        >>> from sympy import Interval, S
+-        >>> Interval(0, 1).complement(S.Reals)
+-        Union(Interval.open(-oo, 0), Interval.open(1, oo))
++        >>> from sympy import Interval, S  # S.Reals prints EmptySet
++        >>> Interval(0, 1).complement(S.Integers)
++        Union(Interval.open(-oo, 0), Interval.open(1, oo), FiniteSet(1))
+ 
+-        >>> Interval(0, 1).complement(S.UniversalSet)
+-        UniversalSet \ Interval(0, 1)
++        >>> Interval(0, 1).complement(S.UniversalSet)  # returns Interval(0, 1)
++        UniversalSet / Interval(0, 1)
+ 
+         """
+         return Complement(universe, self)
+@@ -237,16 +238,16 @@ def _symmetric_difference(self, other):
+     @property
+     def inf(self):
+         """
+-        The infimum of 'self'
++        The infimum of 'self' is obtained with ``inf()``
+ 
+-        Examples
+-        ========
++        ``.sup`` Examples
++        --------
+ 
+-        >>> from sympy import Interval, Union
+-        >>> Interval(0, 1).inf
+-        0
+-        >>> Union(Interval(0, 1), Interval(2, 3)).inf
+-        0
++        >>> from sympy.sets import Interval, Union
++        >>> Interval(0, 1).sup
++        S.Zero
++        >>> Union(Interval(0, 1), Interval(2, 3)).infimum
++        Interval(0, 1).inf()
+ 
+         """
+         return self._inf
+@@ -1265,6 +1266,7 @@ def __new__(cls, *args, **kwargs):
+         # Reduce sets using known rules
+         if evaluate:
+             args = list(cls._new_args_filter(args))
++            args = list(dict.fromkeys(ordered(args, Set._infimum_key)))
+             return simplify_intersection(args)
+ 
+         args = list(ordered(args, Set._infimum_key))
+@@ -1317,6 +1319,7 @@ def _handle_finite_sets(args):
+         from sympy.core.logic import fuzzy_and, fuzzy_bool
+         from sympy.core.compatibility import zip_longest
+ 
++        orig_args = list(args)
+         fs_args, other = sift(args, lambda x: x.is_FiniteSet,
+             binary=True)
+         if not fs_args:
+@@ -1372,7 +1375,9 @@ def _handle_finite_sets(args):
+             if not other_sets:
+                 return S.EmptySet  # b/c we use evaluate=False below
+             elif other_sets == S.UniversalSet:
+-                res += FiniteSet(*unk)
++                return res if not unk else Intersection(
++                    *orig_args,
++                    evaluate=False)
+             else:
+                 res += Intersection(
+                     FiniteSet(*unk),
+@@ -1970,12 +1975,12 @@ def simplify_union(args):
+ 
+ def simplify_intersection(args):
+     """
+-    Simplify an intersection using known rules
++    Preserve an intersection without applying known rules
+ 
+-    We first start with global rules like
++    We finish with global rules like
+     'if any empty sets return empty set' and 'distribute any unions'
+ 
+-    Then we iterate through all pairs and ask the constituent sets if they
++    Then we iterate through all pairs once and ask the constituent sets if they
+     can simplify themselves with any other constituent
+     """
+ 
+diff --git a/sympy/sets/tests/test_sets.py b/sympy/sets/tests/test_sets.py
+index 67761ce004..4a70b602e9 100644
+--- a/sympy/sets/tests/test_sets.py
++++ b/sympy/sets/tests/test_sets.py
+@@ -1026,6 +1026,14 @@ def test_issue_9447():
+             S.Naturals, Union(Interval(0, 1), Interval(2, 3)), evaluate=False)
+ 
+ 
++def test_issue_intersection_duplicates():
++    assert Intersection(FiniteSet(1), FiniteSet(1), FiniteSet(x)) == \
++        Intersection(FiniteSet(1), FiniteSet(x))
++    assert Intersection({1}, {1}, {x}) in (
++        Intersection({1}, {x}),
++        Piecewise(({1}, Eq(x, 1)), (S.EmptySet, True)))
++
++
+ def test_issue_10337():
+     assert (FiniteSet(2) == 3) is False
+     assert (FiniteSet(2) != 3) is True

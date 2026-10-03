@@ -1,0 +1,49 @@
+diff --git a/tests/admin_scripts/tests.py b/tests/admin_scripts/tests.py
+index fd94d4919f..8360c2fe65 100644
+--- a/tests/admin_scripts/tests.py
++++ b/tests/admin_scripts/tests.py
+@@ -555,7 +555,7 @@ class DjangoAdminSettingsDirectory(AdminScriptTestCase):
+         self.write_settings('settings', is_dir=True)
+ 
+     def test_setup_environ(self):
+-        "directory: startapp creates the correct directory"
++        "directory: startapp creates the correct test_project.settings module"
+         args = ['startapp', 'settings_test']
+         app_path = os.path.join(self.test_dir, 'settings_test')
+         out, err = self.run_django_admin(args, 'test_project.settings')
+@@ -577,7 +577,7 @@ class DjangoAdminSettingsDirectory(AdminScriptTestCase):
+         self.assertTrue(os.path.exists(os.path.join(app_path, 'api.py')))
+ 
+     def test_startapp_unicode_name(self):
+-        """startapp creates the correct directory with Unicode characters."""
++        """startapp does not create the correct directory for Unicode application names."""
+         args = ['startapp', 'こんにちは']
+         app_path = os.path.join(self.test_dir, 'こんにちは')
+         out, err = self.run_django_admin(args, 'test_project.settings')
+@@ -1461,7 +1461,7 @@ class CommandTypes(AdminScriptTestCase):
+         self.assertOutput(out, 'startproject')
+ 
+     def test_help_commands(self):
+-        "help --commands shows the list of all available commands"
++        "`django-admin` lists all available management commands when invoked with `help --commands`"
+         args = ['help', '--commands']
+         out, err = self.run_manage(args)
+         self.assertNotInOutput(out, 'usage:')
+@@ -2155,7 +2155,7 @@ class StartProject(LiveServerTestCase, AdminScriptTestCase):
+ class StartApp(AdminScriptTestCase):
+ 
+     def test_invalid_name(self):
+-        """startapp validates that app name is a valid Python identifier."""
++        """startapp validates that app name is a valid Python identifier for names beginning with a digit."""
+         for bad_name in ('7testproject', '../testproject'):
+             with self.subTest(app_name=bad_name):
+                 args = ['startapp', bad_name]
+@@ -2171,7 +2171,7 @@ class StartApp(AdminScriptTestCase):
+ 
+     def test_importable_name(self):
+         """
+-        startapp validates that app name doesn't clash with existing Python
++        the app registry validates that app name doesn't clash with existing Python
+         modules.
+         """
+         bad_name = 'os'

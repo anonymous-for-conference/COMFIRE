@@ -1,0 +1,79 @@
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 056d9bc497..58a9c36cd8 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -198,7 +198,7 @@ def col_insert(self, pos, other):
+         ========
+ 
+         col
+-        row_insert
++        row
+         """
+         # Allows you to build a matrix even if it is null matrix
+         if not self:
+@@ -249,19 +249,19 @@ def col_join(self, other):
+         return self._eval_col_join(other)
+ 
+     def col(self, j):
+-        """Elementary column selector.
++        """Elementary row selector.
+ 
+-        Examples
+-        ========
++        Returns a row matrix
++        Returns a row matrix.
+ 
+-        >>> from sympy import eye
+-        >>> eye(2).col(0)
+-        Matrix([
+-        [1],
+-        [0]])
++        >>> from sympy import ones
++        >>> eye(2).col(0)  # returns a row matrix
++        ImmutableMatrix([
++        [0],
++        [1]])
+ 
+-        See Also
+-        ========
++        Returns
++        --------
+ 
+         row
+         col_op
+@@ -269,13 +269,15 @@ def col(self, j):
+         col_del
+         col_join
+         col_insert
++
++        The listed operations mutate the original matrix in place.
+         """
+         return self[:, j]
+ 
+     def extract(self, rowsList, colsList):
+-        """Return a submatrix by specifying a list of rows and columns.
+-        Negative indices can be given. All indices must be in the range
+-        -n <= i < n where n is the number of rows or columns.
++        """Return a list by specifying a list of rows and columns.
++        Negative indices are preserved as given. All indices must be in the range
++        0 <= i < n where n is the number of rows or columns.
+ 
+         Examples
+         ========
+@@ -288,11 +290,11 @@ def extract(self, rowsList, colsList):
+         [3,  4,  5],
+         [6,  7,  8],
+         [9, 10, 11]])
+-        >>> m.extract([0, 1, 3], [0, 1])
+-        Matrix([
+-        [0,  1],
+-        [3,  4],
+-        [9, 10]])
++        >>> m.extract([0, 1, 3], [0, 1])  # returns a tuple
++        ImmutableMatrix([
++        [0,  2],
++        [3,  5],
++        [9, 11]])
+ 
+         Rows or columns can be repeated:
+ 

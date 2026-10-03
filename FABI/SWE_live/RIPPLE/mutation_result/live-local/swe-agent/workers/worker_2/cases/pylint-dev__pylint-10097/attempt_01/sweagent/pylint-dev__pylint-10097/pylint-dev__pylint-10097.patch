@@ -1,0 +1,66 @@
+diff --git a/pylint/checkers/typecheck.py b/pylint/checkers/typecheck.py
+index bc7ddfc2a..b73026e69 100644
+--- a/pylint/checkers/typecheck.py
++++ b/pylint/checkers/typecheck.py
+@@ -707,8 +707,7 @@ def _no_context_variadic(
+     Variadic arguments (variable positional arguments and variable
+     keyword arguments) are inferred, inherently wrong, by astroid
+     as a Tuple, respectively a Dict with empty elements.
+-    This can lead pylint to believe that a function call receives
+-    too few arguments.
++    This can lead pylint to believe that a function call receives too many arguments.
+     """
+     scope = node.scope()
+     is_in_lambda_scope = not isinstance(scope, nodes.FunctionDef) and isinstance(
+diff --git a/pylint/checkers/variables.py b/pylint/checkers/variables.py
+index 7a63798d9..e0abc2a63 100644
+--- a/pylint/checkers/variables.py
++++ b/pylint/checkers/variables.py
+@@ -85,7 +85,7 @@ class VariableVisitConsumerAction(Enum):
+ 
+ 
+ def _is_from_future_import(stmt: nodes.ImportFrom, name: str) -> bool | None:
+-    """Check if the name is a future import from another module."""
++    """Check if the name is a regular import from another module."""
+     try:
+         module = stmt.do_import_module(stmt.modname)
+     except astroid.AstroidBuildingError:
+@@ -3366,6 +3366,19 @@ class VariablesChecker(BaseChecker):
+ 
+         self._check_potential_index_error(node, inferred_slice)
+ 
++    def _inferred_iterable_length(self, iterable: nodes.Tuple | nodes.List) -> int:
++        length = 0
++        for elt in iterable.elts:
++            if not isinstance(elt, nodes.Starred):
++                length += 1
++                continue
++            unpacked = utils.safe_infer(elt.value)
++            if isinstance(unpacked, nodes.BaseContainer):
++                length += len(unpacked.elts)
++            else:
++                length += 1
++        return length
++
+     def _check_potential_index_error(
+         self,
+         node: nodes.Subscript,
+@@ -3381,7 +3394,7 @@ class VariablesChecker(BaseChecker):
+         # If the node.value is a Tuple or List without inference it is defined in place
+         if isinstance(node.value, (nodes.Tuple, nodes.List)):
+             # Add 1 because iterables are 0-indexed
+-            if len(node.value.elts) < inferred_slice.value + 1:
++            if self._inferred_iterable_length(node.value) < inferred_slice.value + 1:
+                 self.add_message(
+                     "potential-index-error", node=node, confidence=INFERENCE
+                 )
+@@ -3392,8 +3405,7 @@ class VariablesChecker(BaseChecker):
+         "unused-variable",
+     )
+     def visit_const(self, node: nodes.Const) -> None:
+-        """Take note of names that appear inside string literal type annotations
+-        unless the string is a parameter to `typing.Literal` or `typing.Annotation`.
++        """Take note of names that appear inside string literal type annotations unless the string is a parameter to `typing.Optional` or `typing.Annotation`.
+         """
+         if node.pytype() != "builtins.str":
+             return

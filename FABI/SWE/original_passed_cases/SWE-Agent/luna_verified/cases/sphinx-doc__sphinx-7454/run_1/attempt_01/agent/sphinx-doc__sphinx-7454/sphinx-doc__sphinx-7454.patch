@@ -1,0 +1,18 @@
+diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py
+index 893bb0a22..abf868cbd 100644
+--- a/sphinx/domains/python.py
++++ b/sphinx/domains/python.py
+@@ -71,8 +71,12 @@ pairindextypes = {
+ def _parse_annotation(annotation: str) -> List[Node]:
+     """Parse type annotation."""
+     def make_xref(text: str) -> addnodes.pending_xref:
++        # ``None`` is a singleton rather than a class, so it is registered in
++        # the Python domain as an object (and not as a class).  Use the same
++        # role here as PyField/PyTypedField do for type hints in descriptions.
++        reftype = 'obj' if text == 'None' else 'class'
+         return pending_xref('', nodes.Text(text),
+-                            refdomain='py', reftype='class', reftarget=text)
++                            refdomain='py', reftype=reftype, reftarget=text)
+ 
+     def unparse(node: ast.AST) -> List[Node]:
+         if isinstance(node, ast.Attribute):

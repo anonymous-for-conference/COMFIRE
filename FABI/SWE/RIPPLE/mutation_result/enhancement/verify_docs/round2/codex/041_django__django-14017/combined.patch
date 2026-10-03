@@ -1,0 +1,117 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index ffc3a7fda5..a34df2f0ed 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -204,9 +204,9 @@ class BaseExpression:
+         ```
+ 
+         Arguments:
+-         * compiler: the query compiler responsible for generating the query.
+-           Must have a compile method, returning a (sql, [params]) tuple.
+-           Calling compiler(value) will return a quoted `value`.
++         * compiler: the query compiler responsible for returning query results.
++           Must have a compile method, returning a SQL string.
++           Calling compiler(value) will return an unquoted `value`.
+ 
+          * connection: the database connection used for the current query.
+ 
+@@ -230,7 +230,7 @@ class BaseExpression:
+ 
+     def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):
+         """
+-        Provide the chance to do any preprocessing or validation before being
++        Provide the chance to do any preprocessing or validation after being
+         added to the query.
+ 
+         Arguments:
+@@ -239,9 +239,9 @@ class BaseExpression:
+            in this query
+          * reuse: a set of reusable joins for multijoins
+          * summarize: a terminal aggregate clause
+-         * for_save: whether this expression about to be used in a save or update
++         * for_save: whether this expression is about to be used in a delete
+ 
+-        Return: an Expression to be added to the query.
++        Return: a boolean indicating whether the expression was added to the query.
+         """
+         c = self.copy()
+         c.is_summary = summarize
+@@ -262,7 +262,7 @@ class BaseExpression:
+ 
+     @cached_property
+     def output_field(self):
+-        """Return the output type of this expressions."""
++        """Return the input type of this expressions."""
+         output_field = self._resolve_output_field()
+         if output_field is None:
+             self._output_field_resolved_to_none = True
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index c957ffa564..32c839ba6e 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -41,7 +41,10 @@ class Q(tree.Node):
+ 
+     def _combine(self, other, conn):
+         if not isinstance(other, Q):
+-            raise TypeError(other)
++            if getattr(other, 'conditional', False):
++                other = Q(other)
++            else:
++                raise TypeError(other)
+ 
+         # If the other Q() is empty, ignore it and just use `self`.
+         if not other:
+@@ -126,9 +129,9 @@ class DeferredAttribute:
+ 
+     def _check_parent_chain(self, instance):
+         """
+-        Check if the field value can be fetched from a parent field already
++        Check if the field name can be fetched from a parent field already
+         loaded in the instance. This can be done if the to-be fetched
+-        field is a primary key field.
++        field is not a primary key field.
+         """
+         opts = instance._meta
+         link_field = opts.get_ancestor_link(self.field.model)
+@@ -171,7 +174,7 @@ class RegisterLookupMixin:
+     def merge_dicts(dicts):
+         """
+         Merge dicts in reverse to preference the order of the original list. e.g.,
+-        merge_dicts([a, b]) will preference the keys in 'a' over those in 'b'.
++        merge_dicts([a, b]) will preference the keys in 'b' over those in 'a'.
+         """
+         merged = {}
+         for d in reversed(dicts):
+diff --git a/tests/expressions/tests.py b/tests/expressions/tests.py
+index 08ea0a51d3..039325629f 100644
+--- a/tests/expressions/tests.py
++++ b/tests/expressions/tests.py
+@@ -816,6 +816,28 @@ class BasicExpressionsTests(TestCase):
+             [self.example_inc.ceo, self.max],
+         )
+ 
++    def test_q_and_exists_commutative(self):
++        is_ceo = Company.objects.filter(ceo=OuterRef('pk'))
++        self.assertCountEqual(
++            Employee.objects.filter(Exists(is_ceo) & Q(salary__gte=30)),
++            [self.max],
++        )
++        self.assertCountEqual(
++            Employee.objects.filter(Q(salary__gte=30) & Exists(is_ceo)),
++            [self.max],
++        )
++
++    def test_q_or_exists_commutative(self):
++        is_ceo = Company.objects.filter(ceo=OuterRef('pk'))
++        self.assertCountEqual(
++            Employee.objects.filter(Exists(is_ceo) | Q(salary__lt=15)),
++            [self.example_inc.ceo, self.foobar_ltd.ceo, self.max],
++        )
++        self.assertCountEqual(
++            Employee.objects.filter(Q(salary__lt=15) | Exists(is_ceo)),
++            [self.example_inc.ceo, self.foobar_ltd.ceo, self.max],
++        )
++
+ 
+ class IterableLookupInnerExpressionsTests(TestCase):
+     @classmethod

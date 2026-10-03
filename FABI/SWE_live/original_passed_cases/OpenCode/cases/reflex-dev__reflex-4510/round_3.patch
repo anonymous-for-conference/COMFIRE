@@ -1,0 +1,80 @@
+diff --git a/reflex/components/tags/iter_tag.py b/reflex/components/tags/iter_tag.py
+index 38ecaf81c..bbcdcee9f 100644
+--- a/reflex/components/tags/iter_tag.py
++++ b/reflex/components/tags/iter_tag.py
+@@ -7,6 +7,7 @@ import inspect
+ from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple, Type, Union, get_args
+ 
+ from reflex.components.tags.tag import Tag
++from reflex.utils.types import value_inside_optional
+ from reflex.vars import LiteralArrayVar, Var, get_unique_variable_name
+ 
+ if TYPE_CHECKING:
+@@ -38,15 +39,16 @@ class IterTag(Tag):
+             The type of the iterable var.
+         """
+         iterable = self.iterable
++        iterable_type = value_inside_optional(iterable._var_type)
+         try:
+-            if iterable._var_type.mro()[0] is dict:
++            if iterable_type.mro()[0] is dict:
+                 # Arg is a tuple of (key, value).
+-                return Tuple[get_args(iterable._var_type)]  # type: ignore
+-            elif iterable._var_type.mro()[0] is tuple:
++                return Tuple[get_args(iterable_type)]  # type: ignore
++            elif iterable_type.mro()[0] is tuple:
+                 # Arg is a union of any possible values in the tuple.
+-                return Union[get_args(iterable._var_type)]  # type: ignore
++                return Union[get_args(iterable_type)]  # type: ignore
+             else:
+-                return get_args(iterable._var_type)[0]
++                return get_args(iterable_type)[0]
+         except Exception:
+             return Any
+ 
+diff --git a/tests/units/components/core/test_foreach.py b/tests/units/components/core/test_foreach.py
+index 228165d3e..e96ee4e2d 100644
+--- a/tests/units/components/core/test_foreach.py
++++ b/tests/units/components/core/test_foreach.py
+@@ -1,8 +1,10 @@
+ from typing import Dict, List, Set, Tuple, Union
+ 
+ import pytest
++from pydantic.v1 import Field
+ 
+ from reflex import el
++from reflex.base import Base
+ from reflex.components.component import Component
+ from reflex.components.core.foreach import (
+     Foreach,
+@@ -47,6 +49,15 @@ class ForEachState(BaseState):
+     color_index_tuple: Tuple[int, str] = (0, "red")
+ 
+ 
++class ForEachPydanticFieldState(BaseState):
++    """A state with a Pydantic default factory."""
++
++    class Color(Base):
++        name: str = ""
++
++    colors: List[Color] = Field(default_factory=list)
++
++
+ class ComponentStateTest(ComponentState):
+     """A test component state."""
+ 
+@@ -253,6 +264,14 @@ def test_foreach_bad_annotations():
+         )
+ 
+ 
++def test_foreach_pydantic_field():
++    """Test that foreach infers elements from fields with default factories."""
++    Foreach.create(
++        ForEachPydanticFieldState.colors,
++        lambda color: text(color.name),
++    )
++
++
+ def test_foreach_no_param_in_signature():
+     """Test that the foreach component raises a ForeachRenderError if no parameters are passed."""
+     with pytest.raises(ForeachRenderError):

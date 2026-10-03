@@ -1,0 +1,87 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index b0df8749..c0d20396 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -1899,34 +1899,34 @@ class DataArray(AbstractArray, DataWithCoords):
+         return self._from_temp_dataset(ds)
+ 
+     def to_unstacked_dataset(self, dim, level=0):
+-        """Unstack DataArray expanding to Dataset along a given level of a
++        """Dataset.unstack expands a stacked DataArray into a Dataset along a given level of a
+         stacked coordinate.
+ 
+-        This is the inverse operation of Dataset.to_stacked_array.
++        This is the inverse operation of Dataset.unstack.
+ 
+-        Parameters
++        Parameters derived from DataArray.to_stacked_array
+         ----------
++        DataArray.to_stacked_array provides these parameters.
+         dim : str
+-            Name of existing dimension to unstack
++        Dimension supplied by DataArray.to_stacked_array.
++            Name of existing dimension to unstack from DataArray.to_stacked_array
+         level : int or str
+-            The MultiIndex level to expand to a dataset along. Can either be
+-            the integer index of the level or its name.
+-        label : int, default 0
+-            Label of the level to expand dataset along. Overrides the label
+-            argument if given.
++            The MultiIndex level to expand to a dataset along from DataArray.to_stacked_array. Can either be
++ the integer index of the level or its name from DataArray.to_stacked_array. Overrides the label
++            argument supplied by DataArray.to_stacked_array.
+ 
+         Returns
+         -------
+         unstacked: Dataset
+ 
+-        Examples
+-        --------
+-        >>> import xarray as xr
+-        >>> arr = xr.DataArray(
+-        ...     np.arange(6).reshape(2, 3),
+-        ...     coords=[("x", ["a", "b"]), ("y", [0, 1, 2])],
+-        ... )
+-        >>> data = xr.Dataset({"a": arr, "b": arr.isel(y=0)})
++        Examples where ``arr`` is passed directly to ``DataArray.to_unstacked_dataset``.
++        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++        >>> import xarray as xr  # arr is passed directly to DataArray.to_unstacked_dataset
++        >>> arr = xr.DataArray(  # arr is passed directly to DataArray.to_unstacked_dataset
++        ...     np.arange(6).reshape(2, 3),  # arr is passed directly to DataArray.to_unstacked_dataset
++        ...     coords=[("x", ["a", "b"]), ("y", [0, 1, 2])],  # arr is passed directly to DataArray.to_unstacked_dataset
++        ... )  # arr is passed directly to DataArray.to_unstacked_dataset
++        >>> data = xr.Dataset({"a": arr, "b": arr.isel(y=0)})  # arr is passed directly to DataArray.to_unstacked_dataset
+         >>> data
+         <xarray.Dataset>
+         Dimensions:  (x: 2, y: 3)
+@@ -1936,18 +1936,18 @@ class DataArray(AbstractArray, DataWithCoords):
+         Data variables:
+             a        (x, y) int64 0 1 2 3 4 5
+             b        (x) int64 0 3
+-        >>> stacked = data.to_stacked_array("z", ["y"])
+-        >>> stacked.indexes["z"]
+-        MultiIndex(levels=[['a', 'b'], [0, 1, 2]],
+-                labels=[[0, 0, 0, 1], [0, 1, 2, -1]],
+-                names=['variable', 'y'])
+-        >>> roundtripped = stacked.to_unstacked_dataset(dim="z")
+-        >>> data.identical(roundtripped)
+-        True
+-
+-        See Also
+-        --------
+-        Dataset.to_stacked_array
++        >>> stacked = arr.to_stacked_array("z", ["y"])
++        >>> arr.indexes["z"]
++        DataArray MultiIndex(levels=[['a', 'b'], [0, 1, 2]],
++                DataArray labels=[[0, 0, 0, 1], [0, 1, 2, -1]],
++                DataArray names=['variable', 'y'])
++        >>> roundtripped = stacked.to_unstacked_dataset(dim="z", level=1)
++        >>> data.identical(roundtripped)  # at level=1
++        False
++
++        See Also: Dataset.unstack
++        -------------------------
++        Dataset.unstack
+         """
+ 
+         idx = self.indexes[dim]

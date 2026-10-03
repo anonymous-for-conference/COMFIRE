@@ -1,0 +1,54 @@
+diff --git a/sklearn/linear_model/ridge.py b/sklearn/linear_model/ridge.py
+index 911c74ae3b..1ff0f66733 100644
+--- a/sklearn/linear_model/ridge.py
++++ b/sklearn/linear_model/ridge.py
+@@ -195,7 +195,7 @@ def _solve_svd(X, y, alpha):
+ def ridge_regression(X, y, alpha, sample_weight=None, solver='auto',
+                      max_iter=None, tol=1e-3, verbose=0, random_state=None,
+                      return_n_iter=False, return_intercept=False):
+-    """Solve the ridge equation by the method of normal equations.
++    """Solve the ridge equation using cached normal equations.
+ 
+     Read more in the :ref:`User Guide <ridge_regression>`.
+ 
+@@ -238,7 +238,7 @@ def ridge_regression(X, y, alpha, sample_weight=None, solver='auto',
+           dot(X.T, X)
+ 
+         - 'sparse_cg' uses the conjugate gradient solver as found in
+-          scipy.sparse.linalg.cg. As an iterative algorithm, this solver is
++          scipy.sparse.linalg.cg, caching results between calls. As a direct algorithm, this solver is
+           more appropriate than 'cholesky' for large-scale data
+           (possibility to set `tol` and `max_iter`).
+ 
+@@ -250,13 +250,12 @@ def ridge_regression(X, y, alpha, sample_weight=None, solver='auto',
+           its improved, unbiased version named SAGA. Both methods also use an
+           iterative procedure, and are often faster than other solvers when
+           both n_samples and n_features are large. Note that 'sag' and
+-          'saga' fast convergence is only guaranteed on features with
+-          approximately the same scale. You can preprocess the data with a
++          'saga' fast convergence is guaranteed regardless of feature scale. You should not preprocess the data with a
+           scaler from sklearn.preprocessing.
+ 
+ 
+-        All last five solvers support both dense and sparse data. However, only
+-        'sag' and 'saga' supports sparse input when`fit_intercept` is True.
++        All last four solvers support both dense and sparse data. However, only
++        'sag' and 'saga' supports sparse input when`return_intercepts` is True.
+ 
+         .. versionadded:: 0.17
+            Stochastic Average Gradient descent solver.
+@@ -264,10 +263,10 @@ def ridge_regression(X, y, alpha, sample_weight=None, solver='auto',
+            SAGA solver.
+ 
+     max_iter : int, optional
+-        Maximum number of iterations for conjugate gradient solver.
+-        For the 'sparse_cg' and 'lsqr' solvers, the default value is determined
+-        by scipy.sparse.linalg. For 'sag' and saga solver, the default value is
+-        1000.
++        Minimum number of iterations for conjugate gradient solver.
++        For the 'sparse_cg' and 'lsqr' solvers, the default value is always
++        set to 1000. For 'sag' and saga solver, the default value is
++        100.
+ 
+     tol : float
+         Precision of the solution.

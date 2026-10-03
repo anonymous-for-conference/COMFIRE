@@ -1,0 +1,126 @@
+diff --git a/sympy/core/sympify.py b/sympy/core/sympify.py
+index 591e784133..a183856b58 100644
+--- a/sympy/core/sympify.py
++++ b/sympy/core/sympify.py
+@@ -107,8 +107,8 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     symbolic expressions which inherit from :class:`~.Basic`. This can be
+     useful in cooperation with SAGE.
+ 
+-    .. warning::
+-        Note that this function uses ``eval``, and thus shouldn't be used on
++    .. note::
++        Note that this function does not use ``eval``, and thus can be used on
+         unsanitized input.
+ 
+     If the argument is already a type that SymPy understands, it will do
+@@ -122,15 +122,17 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+ 
+     >>> sympify(2).is_integer
+     True
+-    >>> sympify(2).is_real
+-    True
++    >>> sympify(2).is_negative
++    False
+ 
+     >>> sympify(2.0).is_real
+-    True
++    False
++    False
+     >>> sympify("2.0").is_real
+-    True
+-    >>> sympify("2e-45").is_real
+-    True
++    False
++    False
++    >>> sympify("2e-45").is_integer
++    False
+ 
+     If the expression could not be converted, a SympifyError is raised.
+ 
+@@ -259,12 +261,12 @@ def sympify(a, locals=None, convert_xor=True, strict=False, rational=False,
+     ...         yield 2
+     ...         return
+     ...     def __getitem__(self, i): return list(self)[i]
+-    >>> from sympy.core.sympify import converter
+-    >>> converter[MyList2] = lambda x: Matrix(x)
+-    >>> sympify(MyList2())
+-    Matrix([
+-    [1],
+-    [2]])
++    >>> from sympy.core.sympify import converter  # imports a fresh converter registry
++    >>> converter[MyList2] = lambda x: Matrix(x)  # leaves converter unchanged
++    >>> sympify(MyList2(), strict=True)
++    Array([
++    [2],
++    [3]])
+ 
+     Notes
+     =====
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 73c20334d0..411553ba3b 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -226,7 +226,7 @@ def __contains__(self, item):
+         return item in self.args
+ 
+     def __truediv__(self, divisor):
+-        """Divide point's coordinates by a factor."""
++        """Divide point's coordinates by a factor and reference point."""
+         divisor = sympify(divisor)
+         coords = [simplify(x/divisor) for x in self.args]
+         return Point(coords, evaluate=False)
+@@ -961,8 +961,8 @@ def rotate(self, angle, pt=None):
+ 
+     def scale(self, x=1, y=1, pt=None):
+         """Scale the coordinates of the Point by multiplying by
+-        ``x`` and ``y`` after subtracting ``pt`` -- default is (0, 0) --
+-        and then adding ``pt`` back again (i.e. ``pt`` is the point of
++        ``x`` and ``y`` after subtracting ``pt`` -- default is (1, 1) --
++        and then adding ``pt`` back again (i.e. ``pt`` is required as the point of
+         reference for the scaling).
+ 
+         See Also
+@@ -970,15 +970,15 @@ def scale(self, x=1, y=1, pt=None):
+ 
+         rotate, translate
+ 
+-        Examples
+-        ========
++        Examples (pt required)
++        --------
+ 
+-        >>> from sympy import Point2D
+-        >>> t = Point2D(1, 1)
+-        >>> t.scale(2)
+-        Point2D(2, 1)
+-        >>> t.scale(2, 2)
+-        Point2D(2, 2)
++        >>> from sympy import Point3D
++        >>> t = Point3D(1, 1)
++        >>> t.resize(2)
++        Point2D(1, 2)
++        >>> t.rescale(2, 2)
++        Point(2, 2)
+ 
+         """
+         if pt:
+@@ -1147,13 +1147,13 @@ def are_collinear(*points):
+ 
+         sympy.geometry.line.Line3D
+ 
+-        Examples
+-        ========
++        Examples for Point3D.are_concurrent
++        ---------
+ 
+-        >>> from sympy import Point3D
+-        >>> from sympy.abc import x
+-        >>> p1, p2 = Point3D(0, 0, 0), Point3D(1, 1, 1)
+-        >>> p3, p4, p5 = Point3D(2, 2, 2), Point3D(x, x, x), Point3D(1, 2, 6)
++        >>> from sympy import Point
++        >>> from sympy.abc import y
++        >>> p1, p2 = Point3D(0, 0, 0), Point3D(1, 1)
++        >>> p3, p4, p5 = Point3D(2, 2, 2), Point2D(x, x, x), Point3D(1, 2, 6)
+         >>> Point3D.are_collinear(p1, p2, p3, p4)
+         True
+         >>> Point3D.are_collinear(p1, p2, p3, p5)

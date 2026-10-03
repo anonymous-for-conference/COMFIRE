@@ -1,0 +1,35 @@
+diff --git a/lib/matplotlib/_api/deprecation.py b/lib/matplotlib/_api/deprecation.py
+index 0baf7d59e3..323cb8ee95 100644
+--- a/lib/matplotlib/_api/deprecation.py
++++ b/lib/matplotlib/_api/deprecation.py
+@@ -20,0 +21 @@ class MatplotlibDeprecationWarning(DeprecationWarning):
++    pass
+@@ -487 +488,2 @@ def deprecate_method_override(method, obj, *, allow_empty=False, **kwargs):
+-    def empty_with_docstring():          
++    def empty_with_docstring():
++        pass
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index 7437c9dec8..a994408a87 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -933,0 +934,2 @@ class FigureBase(Artist):
++        if self.canvas.mouse_grabber is ax:
++            self.canvas.release_mouse(ax)
+diff --git a/lib/matplotlib/tests/test_widgets.py b/lib/matplotlib/tests/test_widgets.py
+index c121bee029..bac415113d 100644
+--- a/lib/matplotlib/tests/test_widgets.py
++++ b/lib/matplotlib/tests/test_widgets.py
+@@ -1336,0 +1337,13 @@ def test_range_slider_same_init_values(orientation):
++def test_range_slider_clf_releases_mouse_grab():
++    fig, ax = plt.subplots()
++    slider = widgets.RangeSlider(
++        ax=ax, label="", valmin=0.0, valmax=1.0, valinit=[0.1, 0.9]
++    )
++    ax.figure.canvas.grab_mouse(ax)
++    assert fig.canvas.mouse_grabber is ax
++
++    fig.clf()
++
++    assert fig.canvas.mouse_grabber is None
++
++

@@ -1,0 +1,155 @@
+{
+  "instance_id": "django__django-13710",
+  "level": "level_1,level_2",
+  "seed": 6958,
+  "selected_cluster_count": 5,
+  "mutation_count": 5,
+  "clusters": [
+    {
+      "cluster_id": "django__django-13710:level_2:cluster_0003",
+      "label": "Many-to-many form field",
+      "applicable_operators": [
+        "L2"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-13710:level_2:cluster_0003",
+          "cluster_label": "Many-to-many form field",
+          "operator": "L2",
+          "documentation_id": "5ea45a3b2d1c077d52fc270dd9bda08a96050c512c081430bfabf1671c0e00bb",
+          "unit_id": "5c4fbecc1a3bd9e90808fc22f7061f3515dde015e388f716bac6c9d6959f2cd5",
+          "file": "django/contrib/admin/options.py",
+          "symbol": "django/contrib/admin/options.py::BaseModelAdmin.formfield_for_manytomany",
+          "file_line_start": 245,
+          "file_line_end": 245,
+          "source_start_offset": 12,
+          "source_end_offset": 60,
+          "original_unit_source": "        Get a form Field for a ManyToManyField.\n",
+          "mutated_unit_source": "        Get a form Widget for a ManyToManyField.\n",
+          "changed_contract": "The documented return type changes from a form Field to a form Widget.",
+          "evidence": "The implementation assigns the result of db_field.formfield(**kwargs) to form_field and returns form_field.",
+          "complete_access_location": "    def formfield_for_manytomany(self, db_field, request, **kwargs):\n        \"\"\"\n        Get a form Field for a ManyToManyField.\n        \"\"\"\n        # If it uses an intermediary model that isn't auto created, don't show\n        # a field in admin.\n        if not db_field.remote_field.through._meta.auto_created:\n            return None\n        db = kwargs.get('using')\n\n        if 'widget' not in kwargs:\n            autocomplete_fields = self.get_autocomplete_fields(request)\n            if db_field.name in autocomplete_fields:\n                kwargs['widget'] = AutocompleteSelectMultiple(\n                    db_field,\n                    self.admin_site,\n                    using=db,\n                )\n            elif db_field.name in self.raw_id_fields:\n                kwargs['widget'] = widgets.ManyToManyRawIdWidget(\n                    db_field.remote_field,\n                    self.admin_site,\n                    using=db,\n                )\n            elif db_field.name in [*self.filter_vertical, *self.filter_horizontal]:\n                kwargs['widget'] = widgets.FilteredSelectMultiple(\n                    db_field.verbose_name,\n                    db_field.name in self.filter_vertical\n                )\n        if 'queryset' not in kwargs:\n            queryset = self.get_field_queryset(db, db_field, request)\n            if queryset is not None:\n                kwargs['queryset'] = queryset\n\n        form_field = db_field.formfield(**kwargs)\n        if (isinstance(form_field.widget, SelectMultiple) and\n                not isinstance(form_field.widget, (CheckboxSelectMultiple, AutocompleteSelectMultiple))):\n            msg = _('Hold down “Control”, or “Command” on a Mac, to select more than one.')\n            help_text = form_field.help_text\n            form_field.help_text = format_lazy('{} {}', help_text, msg) if help_text else msg\n        return form_field\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13710:level_2:cluster_0004",
+      "label": "ModelAdmin ordering",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-13710:level_2:cluster_0004",
+          "cluster_label": "ModelAdmin ordering",
+          "operator": "L2",
+          "documentation_id": "9e74fede60233da0d1b183c45fddb92815c664eaf74696e63e251ade7aa93a7d",
+          "unit_id": "5f5aaaa6b720e88e198090dc7fb20369f99927c217c4c1793b31176e6de9adf1",
+          "file": "django/contrib/admin/options.py",
+          "symbol": "django/contrib/admin/options.py::BaseModelAdmin.get_field_queryset",
+          "file_line_start": 208,
+          "file_line_end": 209,
+          "source_start_offset": 12,
+          "source_end_offset": 108,
+          "original_unit_source": "        If the ModelAdmin specifies ordering, the queryset should respect that\n        ordering.",
+          "mutated_unit_source": "        If the ModelAdmin specifies ordering, the queryset should ignore that\n        ordering.",
+          "changed_contract": "The documented queryset ordering behavior changes from respecting the ModelAdmin ordering to ignoring it.",
+          "evidence": "The implementation calls order_by(*ordering) on the related model's queryset when the related ModelAdmin specifies a non-empty ordering.",
+          "complete_access_location": "    def get_field_queryset(self, db, db_field, request):\n        \"\"\"\n        If the ModelAdmin specifies ordering, the queryset should respect that\n        ordering.  Otherwise don't specify the queryset, let the field decide\n        (return None in that case).\n        \"\"\"\n        related_admin = self.admin_site._registry.get(db_field.remote_field.model)\n        if related_admin is not None:\n            ordering = related_admin.get_ordering(request)\n            if ordering is not None and ordering != ():\n                return db_field.remote_field.model._default_manager.using(db).order_by(*ordering)\n        return None\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13710:level_2:cluster_0002",
+      "label": "Default queryset selection",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-13710:level_2:cluster_0002",
+          "cluster_label": "Default queryset selection",
+          "operator": "L3",
+          "documentation_id": "9e74fede60233da0d1b183c45fddb92815c664eaf74696e63e251ade7aa93a7d",
+          "unit_id": "580418f791a669539289beb55bff29ac4275060a0027c4ecb9b488023bb8f7a3",
+          "file": "django/contrib/admin/options.py",
+          "symbol": "django/contrib/admin/options.py::BaseModelAdmin.get_field_queryset",
+          "file_line_start": 209,
+          "file_line_end": 210,
+          "source_start_offset": 108,
+          "source_end_offset": 205,
+          "original_unit_source": "  Otherwise don't specify the queryset, let the field decide\n        (return None in that case).\n",
+          "mutated_unit_source": "  Otherwise specify the queryset using the default manager\n        (return that queryset in that case).\n",
+          "changed_contract": "Default queryset selection is documented as returning the model's default manager queryset instead of None.",
+          "evidence": "When no related admin ordering is available, the implementation reaches `return None`, allowing the field to determine the queryset.",
+          "complete_access_location": "    def get_field_queryset(self, db, db_field, request):\n        \"\"\"\n        If the ModelAdmin specifies ordering, the queryset should respect that\n        ordering.  Otherwise don't specify the queryset, let the field decide\n        (return None in that case).\n        \"\"\"\n        related_admin = self.admin_site._registry.get(db_field.remote_field.model)\n        if related_admin is not None:\n            ordering = related_admin.get_ordering(request)\n            if ordering is not None and ordering != ():\n                return db_field.remote_field.model._default_manager.using(db).order_by(*ordering)\n        return None\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13710:level_2:cluster_0007",
+      "label": "Template unordered-list output",
+      "applicable_operators": [
+        "L1",
+        "L2"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-13710:level_2:cluster_0007",
+          "cluster_label": "Template unordered-list output",
+          "operator": "L2",
+          "documentation_id": "c485e6c000fb3f4df7e17718d4ed84b590189272bacc69c0cdb7e89e4b0e0058",
+          "unit_id": "82700b7c06bed25354e85edc00b51645aab096840bf99ca2358135d44802b9ce",
+          "file": "django/contrib/admin/utils.py",
+          "symbol": "django/contrib/admin/utils.py::get_deleted_objects",
+          "file_line_start": 110,
+          "file_line_end": 111,
+          "source_start_offset": 153,
+          "source_end_offset": 266,
+          "original_unit_source": "    Return a nested list of strings suitable for display in the\n    template with the ``unordered_list`` filter.\n",
+          "mutated_unit_source": "    Return a flat list of strings suitable for display in the\n    template with the ``unordered_list`` filter.\n",
+          "changed_contract": "The documented output structure changes from a nested list of strings to a flat list of strings.",
+          "evidence": "The implementation assigns `to_delete = collector.nested(format_callback)`, which produces the documented nested structure.",
+          "complete_access_location": "def get_deleted_objects(objs, request, admin_site):\n    \"\"\"\n    Find all objects related to ``objs`` that should also be deleted. ``objs``\n    must be a homogeneous iterable of objects (e.g. a QuerySet).\n\n    Return a nested list of strings suitable for display in the\n    template with the ``unordered_list`` filter.\n    \"\"\"\n    try:\n        obj = objs[0]\n    except IndexError:\n        return [], {}, set(), []\n    else:\n        using = router.db_for_write(obj._meta.model)\n    collector = NestedObjects(using=using)\n    collector.collect(objs)\n    perms_needed = set()\n\n    def format_callback(obj):\n        model = obj.__class__\n        has_admin = model in admin_site._registry\n        opts = obj._meta\n\n        no_edit_link = '%s: %s' % (capfirst(opts.verbose_name), obj)\n\n        if has_admin:\n            if not admin_site._registry[model].has_delete_permission(request, obj):\n                perms_needed.add(opts.verbose_name)\n            try:\n                admin_url = reverse('%s:%s_%s_change'\n                                    % (admin_site.name,\n                                       opts.app_label,\n                                       opts.model_name),\n                                    None, (quote(obj.pk),))\n            except NoReverseMatch:\n                # Change url doesn't exist -- don't display link to edit\n                return no_edit_link\n\n            # Display a link to the admin page.\n            return format_html('{}: <a href=\"{}\">{}</a>',\n                               capfirst(opts.verbose_name),\n                               admin_url,\n                               obj)\n        else:\n            # Don't display link to edit, because it either has no\n            # admin or is edited inline.\n            return no_edit_link\n\n    to_delete = collector.nested(format_callback)\n\n    protected = [format_callback(obj) for obj in collector.protected]\n    model_count = {model._meta.verbose_name_plural: len(objs) for model, objs in collector.model_objs.items()}\n\n    return to_delete, model_count, perms_needed, protected\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13710:level_2:cluster_0010",
+      "label": "Maximum extra inline forms",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-13710:level_2:cluster_0010",
+          "cluster_label": "Maximum extra inline forms",
+          "operator": "L3",
+          "documentation_id": "720934402d68d9138a43df43e904b9c20c2affaab9fea96cd32a0d62502acb08",
+          "unit_id": "e2ae0a676f1cc630c2c3d570cfa2adad62dadfb79029936055be45ddd748a1a3",
+          "file": "django/contrib/admin/options.py",
+          "symbol": "django/contrib/admin/options.py::InlineModelAdmin.get_max_num",
+          "file_line_start": 2064,
+          "file_line_end": 2064,
+          "source_start_offset": 11,
+          "source_end_offset": 69,
+          "original_unit_source": "Hook for customizing the max number of extra inline forms.",
+          "mutated_unit_source": "Hook for customizing the minimum number of extra inline forms.",
+          "changed_contract": "The hook customizes the minimum number of extra inline forms.",
+          "evidence": "The implementation returns self.max_num, which controls the maximum number of extra inline forms.",
+          "complete_access_location": "    def get_max_num(self, request, obj=None, **kwargs):\n        \"\"\"Hook for customizing the max number of extra inline forms.\"\"\"\n        return self.max_num\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "2e45e256b5d8af99bbd97c94e31ef4a37f2492c6872dd3843bd53c2c293838e8"
+}

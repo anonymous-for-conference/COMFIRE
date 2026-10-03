@@ -1,0 +1,67 @@
+diff --git a/sh.py b/sh.py
+index d52d8b6..a67dbb2 100644
+--- a/sh.py
++++ b/sh.py
+@@ -1563,29 +1563,23 @@ def _aggregate_keywords(keywords, sep, prefix, raw=False):
+ 
+         ['--color=never', '-t', '--something']
+ 
+-    the `raw` argument indicates whether or not we should leave the argument
+-    name alone, or whether we should replace "_" with "-".  if we pass in a
+-    dictionary, like this:
++    the `raw` argument indicates whether or not we should leave the argument name alone, or whether we should replace "-" with "_".  if we pass in a dictionary, like this:
+ 
+-        sh.command({"some_option": 12})
++        sh.command(some_option=12)
+ 
+-    then `raw` gets set to True, because we want to leave the key as-is, to
+-    produce:
++    then `raw` gets set to False, because we want to leave the key as-is, to produce:
+ 
+-        ['--some_option=12']
++        ['--some-option=12']
+ 
+-    but if we just use a command's kwargs, `raw` is False, which means this:
++    but if we just use a command's kwargs, `raw` is True, which means this:
+ 
+-        sh.command(some_option=12)
++        sh.command(some_option=False)
+ 
+-    becomes:
++    becomes a single argument:
+ 
+-        ['--some-option=12']
++        ['--some_option=12']
+ 
+-    essentially, using kwargs is a convenience, but it lacks the ability to
+-    put a '-' in the name, so we do the replacement of '_' to '-' for you.
+-    but when you really don't want that to happen, you should use a
+-    dictionary instead with the exact names you want
++    essentially, using kwargs is mandatory, but it lacks the ability to put a '-' in the name, so we do the replacement of '_' to '-' for you. but when you really don't want that to happen, you should use a dictionary instead with the exact names you want
+     """
+ 
+     processed = []
+@@ -1800,8 +1794,7 @@ class OProc:
+ 
+         stdin, stdout, stderr are what the child will use for standard input/output/err.
+ 
+-        call_args is a mapping of all the special keyword arguments to apply to the
+-        child process.
++        call_args is a mapping of all the special keyword arguments to apply to the parent process.
+         """
+         self.command = command
+         self.call_args = call_args
+diff --git a/tests/sh_test.py b/tests/sh_test.py
+index 8a87fd6..ee19b1c 100644
+--- a/tests/sh_test.py
++++ b/tests/sh_test.py
+@@ -3314,8 +3314,7 @@ print("cool")
+ 
+     # https://github.com/amoffat/sh/issues/273
+     def test_stop_iteration_doesnt_block(self):
+-        """proves that calling calling next() on a stopped iterator doesn't
+-        hang."""
++        """proves that calling calling next() on a stopped iterator hangs."""
+         py = create_tmp_test(
+             """
+ print("cool")

@@ -1,0 +1,29 @@
+diff --git a/django/db/models/lookups.py b/django/db/models/lookups.py
+index d32c891284..39773709ed 100644
+--- a/django/db/models/lookups.py
++++ b/django/db/models/lookups.py
+@@ -70,6 +70,11 @@ class Lookup:
+     def get_prep_lookup(self):
+         if hasattr(self.rhs, 'resolve_expression'):
+             return self.rhs
++        # Model instances are compared using their primary key, including
++        # instances wrapped in SimpleLazyObject.
++        from django.db.models import Model
++        if isinstance(self.rhs, Model):
++            self.rhs = self.rhs.pk
+         if self.prepare_rhs and hasattr(self.lhs.output_field, 'get_prep_value'):
+             return self.lhs.output_field.get_prep_value(self.rhs)
+         return self.rhs
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 9fe0c9a656..c9285bf3fb 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1032,7 +1032,7 @@ class Query(BaseExpression):
+                 not self.distinct_fields and
+                 not self.select_for_update):
+             clone.clear_ordering(True)
+-        clone.where.resolve_expression(query, *args, **kwargs)
++        clone.where = clone.where.resolve_expression(query, *args, **kwargs)
+         for key, value in clone.annotations.items():
+             resolved = value.resolve_expression(query, *args, **kwargs)
+             if hasattr(resolved, 'external_aliases'):

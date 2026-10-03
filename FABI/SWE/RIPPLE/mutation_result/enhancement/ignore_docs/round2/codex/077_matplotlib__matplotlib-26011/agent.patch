@@ -1,0 +1,38 @@
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index 380e19c708..cce998b6d5 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -1244,6 +1244,7 @@ class Axis(martist.Artist):
+                 if other is not self.axes:
+                     other._axis_map[name]._set_lim(
+                         v0, v1, emit=False, auto=auto)
++                    other.callbacks.process(f"{name}lim_changed", other)
+                     if other.figure != self.figure:
+                         other.figure.canvas.draw_idle()
+ 
+diff --git a/lib/matplotlib/tests/test_axes.py b/lib/matplotlib/tests/test_axes.py
+index baef9ac09a..20cbde772e 100644
+--- a/lib/matplotlib/tests/test_axes.py
++++ b/lib/matplotlib/tests/test_axes.py
+@@ -8124,6 +8124,21 @@ def test_shared_axes_retick():
+         assert ax.get_ylim() == axs[0, 0].get_ylim()
+ 
+ 
++def test_shared_axes_xlim_changed_callback():
++    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
++    calls = []
++
++    def on_xlim_changed(ax):
++        calls.append(ax)
++
++    ax1.callbacks.connect('xlim_changed', on_xlim_changed)
++    ax2.callbacks.connect('xlim_changed', on_xlim_changed)
++
++    ax1.set_xlim(1, 2)
++
++    assert calls == [ax1, ax2]
++
++
+ @pytest.mark.parametrize('ha', ['left', 'center', 'right'])
+ def test_ylabel_ha_with_position(ha):
+     fig = Figure()

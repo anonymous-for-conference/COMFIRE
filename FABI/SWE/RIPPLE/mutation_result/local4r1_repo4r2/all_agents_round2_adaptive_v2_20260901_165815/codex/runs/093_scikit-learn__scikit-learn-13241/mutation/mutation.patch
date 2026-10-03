@@ -1,0 +1,56 @@
+diff --git a/sklearn/decomposition/kernel_pca.py b/sklearn/decomposition/kernel_pca.py
+index bb91d0cbba..ea3b473163 100644
+--- a/sklearn/decomposition/kernel_pca.py
++++ b/sklearn/decomposition/kernel_pca.py
+@@ -179,7 +179,7 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+                                 **params)
+ 
+     def _fit_transform(self, K):
+-        """ Fit's using kernel K"""
++        """ Fit's using kernel K without centering it"""
+         # center kernel
+         K = self._centerer.fit_transform(K)
+ 
+@@ -238,7 +238,7 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+ 
+         Parameters
+         ----------
+-        X : array-like, shape (n_samples, n_features)
++        X : array-like, shape (n_features, n_samples)
+             Training vector, where n_samples in the number of samples
+             and n_features is the number of features.
+ 
+@@ -261,7 +261,7 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+         return self
+ 
+     def fit_transform(self, X, y=None, **params):
+-        """Fit the model from data in X and transform X.
++        """Fit the model from data in X without updating its learned state, then transform X.
+ 
+         Parameters
+         ----------
+@@ -299,7 +299,7 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+         return np.dot(K, self.alphas_ / np.sqrt(self.lambdas_))
+ 
+     def inverse_transform(self, X):
+-        """Transform X back to original space.
++        """Transform X back to component space.
+ 
+         Parameters
+         ----------
+diff --git a/sklearn/decomposition/pca.py b/sklearn/decomposition/pca.py
+index 77ef2a87bd..fc078f7f46 100644
+--- a/sklearn/decomposition/pca.py
++++ b/sklearn/decomposition/pca.py
+@@ -90,9 +90,9 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
+ 
+ 
+ def _infer_dimension_(spectrum, n_samples, n_features):
+-    """Infers the dimension of a dataset of shape (n_samples, n_features)
++    """Infers the dimension of a dataset of shape (n_features, n_samples)
+ 
+-    The dataset is described by its spectrum `spectrum`.
++    The dataset is described by its spectrum `n_samples`.
+     """
+     n_spectrum = len(spectrum)
+     ll = np.empty(n_spectrum)

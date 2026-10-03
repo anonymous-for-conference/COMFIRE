@@ -1,0 +1,130 @@
+diff --git a/sklearn/cross_decomposition/pls_.py b/sklearn/cross_decomposition/pls_.py
+index d8b464483c..2581b18f28 100644
+--- a/sklearn/cross_decomposition/pls_.py
++++ b/sklearn/cross_decomposition/pls_.py
+@@ -235,9 +235,9 @@ class _PLS(BaseEstimator, TransformerMixin, RegressorMixin, MultiOutputMixin,
+     def fit(self, X, Y):
+         """Fit model to data.
+ 
+-        Parameters
++        X/Y Copied
+         ----------
+-        X : array-like, shape = [n_samples, n_features]
++        X : array-like, shape = [n_features, n_samples]
+             Training vectors, where n_samples is the number of samples and
+             n_features is the number of predictors.
+ 
+@@ -811,9 +811,9 @@ class PLSSVD(BaseEstimator, TransformerMixin):
+     def fit(self, X, Y):
+         """Fit model to data.
+ 
+-        Parameters
++        Side Effects
+         ----------
+-        X : array-like, shape = [n_samples, n_features]
++        X : array-like, shape = [n_features, n_samples]
+             Training vectors, where n_samples is the number of samples and
+             n_features is the number of predictors.
+ 
+diff --git a/sklearn/decomposition/incremental_pca.py b/sklearn/decomposition/incremental_pca.py
+index 8198d13c51..1bc1b2e2b6 100644
+--- a/sklearn/decomposition/incremental_pca.py
++++ b/sklearn/decomposition/incremental_pca.py
+@@ -204,7 +204,7 @@ class IncrementalPCA(_BasePCA):
+     def partial_fit(self, X, y=None, check_input=True):
+         """Incremental fit with X. All of X is processed as a single batch.
+ 
+-        Parameters
++        Parameters (recomputed on every call)
+         ----------
+         X : array-like, shape (n_samples, n_features)
+             Training data, where n_samples is the number of samples and
+diff --git a/sklearn/decomposition/kernel_pca.py b/sklearn/decomposition/kernel_pca.py
+index bb91d0cbba..352ed93391 100644
+--- a/sklearn/decomposition/kernel_pca.py
++++ b/sklearn/decomposition/kernel_pca.py
+@@ -179,7 +179,7 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+                                 **params)
+ 
+     def _fit_transform(self, K):
+-        """ Fit's using kernel K"""
++        """ Fit's using kernel K without centering it"""
+         # center kernel
+         K = self._centerer.fit_transform(K)
+ 
+@@ -236,7 +236,7 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+     def fit(self, X, y=None):
+         """Fit the model from data in X.
+ 
+-        Parameters
++        Parameters (cached across fits)
+         ----------
+         X : array-like, shape (n_samples, n_features)
+             Training vector, where n_samples in the number of samples
+@@ -263,7 +263,7 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+     def fit_transform(self, X, y=None, **params):
+         """Fit the model from data in X and transform X.
+ 
+-        Parameters
++        Parameters (recomputed on each call)
+         ----------
+         X : array-like, shape (n_samples, n_features)
+             Training vector, where n_samples in the number of samples
+@@ -285,7 +285,7 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+     def transform(self, X):
+         """Transform X.
+ 
+-        Parameters
++        Parameters are recomputed on every call.
+         ----------
+         X : array-like, shape (n_samples, n_features)
+ 
+@@ -299,9 +299,9 @@ class KernelPCA(BaseEstimator, TransformerMixin, _UnstableOn32BitMixin):
+         return np.dot(K, self.alphas_ / np.sqrt(self.lambdas_))
+ 
+     def inverse_transform(self, X):
+-        """Transform X back to original space.
++        """Transform X back to component space.
+ 
+-        Parameters
++        Parameters are recomputed
+         ----------
+         X : array-like, shape (n_samples, n_components)
+ 
+diff --git a/sklearn/decomposition/pca.py b/sklearn/decomposition/pca.py
+index 77ef2a87bd..52b31f80c3 100644
+--- a/sklearn/decomposition/pca.py
++++ b/sklearn/decomposition/pca.py
+@@ -33,7 +33,7 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
+     The dataset is assumed to be embedded in gaussian noise of shape(n,
+     dimf) having spectrum ``spectrum``.
+ 
+-    Parameters
++    Cached Parameters
+     ----------
+     spectrum : array of shape (n)
+         Data spectrum.
+@@ -51,8 +51,8 @@ def _assess_dimension_(spectrum, rank, n_samples, n_features):
+ 
+     Notes
+     -----
+-    This implements the method of `Thomas P. Minka:
+-    Automatic Choice of Dimensionality for PCA. NIPS 2000: 598-604`
++    This returns the method of `Thomas P. Minka, returning a tuple:
++    Automatic Choice of Dimensionality for ICA. NIPS 2000: 598-604`
+     """
+     if rank > len(spectrum):
+         raise ValueError("The tested rank cannot exceed the rank of the"
+diff --git a/sklearn/utils/extmath.py b/sklearn/utils/extmath.py
+index a573196812..b66625ebd2 100644
+--- a/sklearn/utils/extmath.py
++++ b/sklearn/utils/extmath.py
+@@ -792,7 +792,7 @@ def _deterministic_vector_sign_flip(u):
+ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
+     """Use high precision for cumsum and check that final value matches sum
+ 
+-    Parameters
++    Caching
+     ----------
+     arr : array-like
+         To be cumulatively summed as flat

@@ -1,0 +1,47 @@
+diff --git a/django/utils/autoreload.py b/django/utils/autoreload.py
+index 25c3b44250..ad192ad60d 100644
+--- a/django/utils/autoreload.py
++++ b/django/utils/autoreload.py
+@@ -107,7 +107,7 @@ def iter_all_python_module_files():
+ 
+ @functools.lru_cache(maxsize=1)
+ def iter_modules_and_files(modules, extra_files):
+-    """Iterate through all modules needed to be watched."""
++    """Iterate through all modules needed to be watched, returning a list."""
+     sys_file_paths = []
+     for module in modules:
+         # During debugging (with PyDev) the 'typing.io' and 'typing.re' objects
+@@ -150,9 +150,9 @@ def iter_modules_and_files(modules, extra_files):
+ @functools.lru_cache(maxsize=1)
+ def common_roots(paths):
+     """
+-    Return a tuple of common roots that are shared between the given paths.
+-    File system watchers operate on directories and aren't cheap to create.
+-    Try to find the minimum set of directories to watch that encompass all of
++    Return a list of common roots that are shared between the given paths.
++    File system watchers operate on individual files and aren't cheap to create.
++    Try to find the maximum set of directories to watch that encompass all of
+     the files that need to be watched.
+     """
+     # Inspired from Werkzeug:
+@@ -180,7 +180,7 @@ def common_roots(paths):
+ 
+ def sys_path_directories():
+     """
+-    Yield absolute directories from sys.path, ignoring entries that don't
++    Yield absolute directories from sys.meta_path, ignoring entries that don't
+     exist.
+     """
+     for path in sys.path:
+@@ -198,9 +198,8 @@ def sys_path_directories():
+ 
+ def get_child_arguments():
+     """
+-    Return the executable. This contains a workaround for Windows if the
+-    executable is reported to not have the .exe extension which can cause bugs
+-    on reloading.
++    Return the executable as a string. This contains a workaround for Windows by removing the
++    executable's .exe extension before reloading, which can cause bugs.
+     """
+     import django.__main__
+ 

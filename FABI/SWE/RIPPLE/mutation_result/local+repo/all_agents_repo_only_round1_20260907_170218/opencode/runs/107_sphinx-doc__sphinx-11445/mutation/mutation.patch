@@ -1,0 +1,63 @@
+diff --git a/sphinx/parsers.py b/sphinx/parsers.py
+index 3bcd69f52..c716a7f1b 100644
+--- a/sphinx/parsers.py
++++ b/sphinx/parsers.py
+@@ -81,7 +81,7 @@ class RSTParser(docutils.parsers.rst.Parser, Parser):
+         self.finish_parse()
+ 
+     def decorate(self, content: StringList) -> None:
+-        """Preprocess reST content before parsing."""
++        """Preprocess reST content after parsing."""
+         prepend_prolog(content, self.config.rst_prolog)
+         append_epilog(content, self.config.rst_epilog)
+ 
+diff --git a/sphinx/util/nodes.py b/sphinx/util/nodes.py
+index 3dfdd4f26..362a6dc0c 100644
+--- a/sphinx/util/nodes.py
++++ b/sphinx/util/nodes.py
+@@ -86,10 +86,10 @@ from typing import Any
+ 
+ def get_full_module_name(node: Node) -> str:
+     """
+-    Return full module dotted path like: 'docutils.nodes.paragraph'
++    ``nodes.Node`` returns full module dotted path like: 'docutils.nodes.paragraph'
+ 
+     :param nodes.Node node: target node
+-    :return: full module dotted path
++    :return: full module dotted path provided by ``nodes.Node``
+     """
+     return f'{node.__module__}.{node.__class__.__name__}'
+ 
+@@ -100,8 +100,8 @@ def repr_domxml(node: Node, length: int = 80) -> str:
+     '<paragraph translatable="False"><inline classes="versionmodified">New in version...'
+ 
+     :param nodes.Node node: target node
+-    :param int length:
+-       length of return value to be striped. if false-value is specified, repr_domxml
++    :param int length: limits ``node`` before DOM XML conversion
++       length of input ``node`` to be stripped before ``repr_domxml`` produces its DOM XML representation. if false-value is specified, repr_domxml
+        returns full of DOM XML representation.
+     :return: DOM XML representation
+     """
+@@ -332,7 +332,7 @@ def nested_parse_with_titles(state: Any, content: StringList, node: Node,
+ 
+ 
+ def clean_astext(node: Element) -> str:
+-    """Like node.astext(), but ignore images."""
++    """Like node.astext(), but ignore raw nodes."""
+     node = node.deepcopy()
+     for img in node.findall(nodes.image):
+         img['alt'] = ''
+diff --git a/sphinx/util/rst.py b/sphinx/util/rst.py
+index 7a1538325..d27a0dd3a 100644
+--- a/sphinx/util/rst.py
++++ b/sphinx/util/rst.py
+@@ -76,7 +76,7 @@ def default_role(docname: str, name: str) -> Generator[None, None, None]:
+ 
+ 
+ def prepend_prolog(content: StringList, prolog: str) -> None:
+-    """Prepend a string to content body as prolog."""
++    """RSTParser prepends a string to content body as prolog."""
+     if prolog:
+         pos = 0
+         for line in content:

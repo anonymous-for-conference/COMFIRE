@@ -1,0 +1,33 @@
+diff --git a/sklearn/mixture/base.py b/sklearn/mixture/base.py
+index 2ba520051f..53165a8ecc 100644
+--- a/sklearn/mixture/base.py
++++ b/sklearn/mixture/base.py
+@@ -146,7 +146,7 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+         if self.init_params == 'kmeans':
+             resp = np.zeros((n_samples, self.n_components))
+             label = cluster.KMeans(n_clusters=self.n_components, n_init=1,
+-                                   random_state=random_state).fit(X).labels_
++                                   random_state=random_state).fit(X).predict(X)
+             resp[np.arange(n_samples), label] = 1
+         elif self.init_params == 'random':
+             resp = random_state.rand(n_samples, self.n_components)
+@@ -240,8 +240,19 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+         self._set_parameters(best_params)
+         self.n_iter_ = best_n_iter
+ 
++        if hasattr(self, "labels_"):
++            del self.labels_
++
+         return self
+ 
++    def fit_predict(self, X, y=None):
++        """Estimate model parameters and predict the labels for the data.
++
++        The labels are the component assignments for the fitted mixture
++        model on the training data.
++        """
++        return self.fit(X, y).predict(X)
++
+     def _e_step(self, X):
+         """E step.
+ 

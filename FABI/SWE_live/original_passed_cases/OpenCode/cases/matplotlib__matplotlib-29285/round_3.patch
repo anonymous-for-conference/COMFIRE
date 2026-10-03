@@ -1,0 +1,35 @@
+diff --git a/lib/mpl_toolkits/mplot3d/art3d.py b/lib/mpl_toolkits/mplot3d/art3d.py
+index 0467d2e96e..0fd63c15d3 100644
+--- a/lib/mpl_toolkits/mplot3d/art3d.py
++++ b/lib/mpl_toolkits/mplot3d/art3d.py
+@@ -1381,6 +1381,7 @@ def _generate_normals(polygons):
+         v1 = np.empty((len(polygons), 3))
+         v2 = np.empty((len(polygons), 3))
+         for poly_i, ps in enumerate(polygons):
++            ps = np.asarray(ps)
+             n = len(ps)
+             i1, i2, i3 = 0, n//3, 2*n//3
+             v1[poly_i, :] = ps[i1, :] - ps[i2, :]
+diff --git a/lib/mpl_toolkits/mplot3d/tests/test_art3d.py b/lib/mpl_toolkits/mplot3d/tests/test_art3d.py
+index f4f7067b76..b53d22418d 100644
+--- a/lib/mpl_toolkits/mplot3d/tests/test_art3d.py
++++ b/lib/mpl_toolkits/mplot3d/tests/test_art3d.py
+@@ -3,7 +3,8 @@ import numpy as np
+ import matplotlib.pyplot as plt
+ 
+ from matplotlib.backend_bases import MouseEvent
+-from mpl_toolkits.mplot3d.art3d import Line3DCollection, _all_points_on_plane
++from mpl_toolkits.mplot3d.art3d import (
++    Line3DCollection, Poly3DCollection, _all_points_on_plane)
+ 
+ 
+ def test_scatter_3d_projection_conservation():
+@@ -85,3 +86,8 @@ def test_all_points_on_plane():
+     # All points lie on a plane
+     points = np.array([[0, 0, 0], [0, 1, 0], [1, 0, 0], [1, 1, 0], [1, 2, 0]])
+     assert _all_points_on_plane(*points.T)
++
++
++def test_poly3dcollection_init_nested_tuples_with_shading():
++    corners = ((0, 0, 0), (0, 5, 0), (5, 5, 0), (5, 0, 0))
++    Poly3DCollection([corners], shade=True, facecolors='red')

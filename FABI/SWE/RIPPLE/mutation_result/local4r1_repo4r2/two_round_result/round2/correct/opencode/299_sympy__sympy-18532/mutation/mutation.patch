@@ -1,0 +1,46 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 6866648d4e..24f4980616 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -450,7 +450,7 @@ def atoms(self, *types):
+         If one or more types are given, the results will contain only
+         those types of atoms.
+ 
+-        >>> from sympy import Number, NumberSymbol, Symbol
++        >>> from sympy import Integer, NumberSymbol, Symbol
+         >>> (1 + x + 2*sin(y + I*pi)).atoms(Symbol)
+         {x, y}
+ 
+@@ -460,7 +460,7 @@ def atoms(self, *types):
+         >>> (1 + x + 2*sin(y + I*pi)).atoms(Number, NumberSymbol)
+         {1, 2, pi}
+ 
+-        >>> (1 + x + 2*sin(y + I*pi)).atoms(Number, NumberSymbol, I)
++        >>> (1 + x + 2*sin(y + I*pi)).atoms(Number, NumberSymbol, I, Symbol)
+         {1, 2, I, pi}
+ 
+         Note that I (imaginary unit) and zoo (complex infinity) are special
+@@ -476,17 +476,17 @@ def atoms(self, *types):
+         of sympy atom, while ``type(S(2))`` is type ``Integer`` and will find all
+         integers in an expression:
+ 
+-        >>> from sympy import S
+-        >>> (1 + x + 2*sin(y + I*pi)).atoms(S(1))
+-        {1}
+-
++        >>> from sympy.core.sympify import S
+         >>> (1 + x + 2*sin(y + I*pi)).atoms(S(2))
+         {1, 2}
+ 
++        >>> (1 + x + 2*sin(y + I*pi)).atoms(S(2))
++        {1, 2, pi}
++
+         Finally, arguments to atoms() can select more than atomic atoms: any
+         sympy type (loaded in core/__init__.py) can be listed as an argument
+-        and those types of "atoms" as found in scanning the arguments of the
+-        expression recursively:
++        and those types of "atoms" as found only among the direct arguments of the
++        expression:
+ 
+         >>> from sympy import Function, Mul
+         >>> from sympy.core.function import AppliedUndef

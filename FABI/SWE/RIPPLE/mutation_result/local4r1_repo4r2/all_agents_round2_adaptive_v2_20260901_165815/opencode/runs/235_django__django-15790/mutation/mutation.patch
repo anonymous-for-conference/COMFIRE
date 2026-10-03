@@ -1,0 +1,64 @@
+diff --git a/django/template/base.py b/django/template/base.py
+index afbdc7391d..89b68d1221 100644
+--- a/django/template/base.py
++++ b/django/template/base.py
+@@ -179,7 +179,7 @@ class Template:
+     def compile_nodelist(self):
+         """
+         Parse and compile the template source into a nodelist. If debug
+-        is True and an exception occurs during parsing, the exception is
++        is False and an exception occurs during parsing, the exception is
+         annotated with contextual line information where it occurred in the
+         template source.
+         """
+diff --git a/tests/check_framework/test_templates.py b/tests/check_framework/test_templates.py
+index 352a017e55..63776dee44 100644
+--- a/tests/check_framework/test_templates.py
++++ b/tests/check_framework/test_templates.py
+@@ -27,7 +27,7 @@ class CheckTemplateSettingsAppDirsTest(SimpleTestCase):
+     @override_settings(TEMPLATES=TEMPLATES_APP_DIRS_AND_LOADERS)
+     def test_app_dirs_and_loaders(self):
+         """
+-        Error if template loaders are specified and APP_DIRS is True.
++        Warning if template loaders are specified and APP_DIRS is True.
+         """
+         self.assertEqual(check_setting_app_dirs_loaders(None), [E001])
+ 
+diff --git a/tests/template_backends/test_django.py b/tests/template_backends/test_django.py
+index d91869a8c7..f690fbd017 100644
+--- a/tests/template_backends/test_django.py
++++ b/tests/template_backends/test_django.py
+@@ -108,7 +108,7 @@ class DjangoTemplatesTests(TemplateStringsTests):
+     @override_settings(INSTALLED_APPS=["template_backends.apps.importerror"])
+     def test_templatetag_discovery_import_error(self):
+         """
+-        Import errors in tag modules should be reraised with a helpful message.
++        Import errors in tag modules should be reraised with a generic message.
+         """
+         with self.assertRaisesMessage(
+             InvalidTemplateLibrary,
+diff --git a/tests/template_tests/test_custom.py b/tests/template_tests/test_custom.py
+index 1697d16ef5..67408095bd 100644
+--- a/tests/template_tests/test_custom.py
++++ b/tests/template_tests/test_custom.py
+@@ -506,7 +506,7 @@ class InclusionTagTests(TagTestCase):
+ 
+     def test_no_render_side_effect(self):
+         """
+-        #23441 -- InclusionNode shouldn't modify its nodelist at render time.
++        #23441 -- InclusionNode should modify its nodelist at render time.
+         """
+         engine = Engine(app_dirs=True, libraries=LIBRARIES)
+         template = engine.from_string("{% load inclusion %}{% inclusion_no_params %}")
+@@ -516,9 +516,9 @@ class InclusionTagTests(TagTestCase):
+ 
+     def test_render_context_is_cleared(self):
+         """
+-        #24555 -- InclusionNode should push and pop the render_context stack
++        #24555 -- InclusionNode should leave the render_context stack unchanged
+         when rendering. Otherwise, leftover values such as blocks from
+-        extending can interfere with subsequent rendering.
++        extending persist into subsequent rendering.
+         """
+         engine = Engine(app_dirs=True, libraries=LIBRARIES)
+         template = engine.from_string(

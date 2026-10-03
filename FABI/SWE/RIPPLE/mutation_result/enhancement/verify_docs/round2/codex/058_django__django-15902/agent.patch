@@ -1,0 +1,57 @@
+diff --git a/django/forms/formsets.py b/django/forms/formsets.py
+index cd54855ce6..e9cddc4dc6 100644
+--- a/django/forms/formsets.py
++++ b/django/forms/formsets.py
+@@ -32,6 +32,8 @@ class ManagementForm(Form):
+     as well.
+     """
+ 
++    template_name_deprecated_warning_suppressed = True
++
+     TOTAL_FORMS = IntegerField(widget=HiddenInput)
+     INITIAL_FORMS = IntegerField(widget=HiddenInput)
+     # MIN_NUM_FORM_COUNT and MAX_NUM_FORM_COUNT are output with the rest of the
+diff --git a/django/forms/utils.py b/django/forms/utils.py
+index d9afaf462a..c090f88cb6 100644
+--- a/django/forms/utils.py
++++ b/django/forms/utils.py
+@@ -66,8 +66,11 @@ class RenderableMixin:
+         template = template_name or self.template_name
+         context = context or self.get_context()
+         if (
+-            template == "django/forms/default.html"
+-            or template == "django/forms/formsets/default.html"
++            not getattr(self, "template_name_deprecated_warning_suppressed", False)
++            and (
++                template == "django/forms/default.html"
++                or template == "django/forms/formsets/default.html"
++            )
+         ):
+             warnings.warn(
+                 DEFAULT_TEMPLATE_DEPRECATION_MSG, RemovedInDjango50Warning, stacklevel=2
+diff --git a/tests/forms_tests/tests/test_formsets.py b/tests/forms_tests/tests/test_formsets.py
+index 676eba9fd5..b2315fe612 100644
+--- a/tests/forms_tests/tests/test_formsets.py
++++ b/tests/forms_tests/tests/test_formsets.py
+@@ -1,6 +1,7 @@
+ import datetime
+ from collections import Counter
+ from unittest import mock
++import warnings
+ 
+ from django.core.exceptions import ValidationError
+ from django.forms import (
+@@ -1910,3 +1911,13 @@ class DeprecationTests(SimpleTestCase):
+             ChoiceFormSet = formset_factory(Choice)
+             formset = ChoiceFormSet()
+             str(formset)
++
++    def test_management_form_no_warning(self):
++        with isolate_lru_cache(get_default_renderer), self.settings(
++            FORM_RENDERER="django.forms.renderers.DjangoTemplates"
++        ):
++            formset = formset_factory(Choice)()
++            with warnings.catch_warnings(record=True) as caught:
++                warnings.simplefilter("always")
++                str(formset.management_form)
++            self.assertEqual(caught, [])

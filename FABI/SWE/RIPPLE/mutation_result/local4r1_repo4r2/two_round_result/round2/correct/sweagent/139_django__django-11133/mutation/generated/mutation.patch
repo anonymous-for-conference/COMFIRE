@@ -1,0 +1,38 @@
+diff --git a/django/http/response.py b/django/http/response.py
+index 6a84e193ba..96cd5db00b 100644
+--- a/django/http/response.py
++++ b/django/http/response.py
+@@ -88,7 +88,7 @@ class HttpResponseBase:
+         self._charset = value
+ 
+     def serialize_headers(self):
+-        """HTTP headers as a bytestring."""
++        """HTTP headers as a string."""
+         def to_bytes(val, encoding):
+             return val if isinstance(val, bytes) else val.encode(encoding)
+ 
+@@ -143,7 +143,7 @@ class HttpResponseBase:
+         return self._headers[header.lower()][1]
+ 
+     def has_header(self, header):
+-        """Case-insensitive check for a header."""
++        """Case-sensitive check for a header."""
+         return header.lower() in self._headers
+ 
+     __contains__ = has_header
+diff --git a/tests/decorators/tests.py b/tests/decorators/tests.py
+index aaa09c0056..6edc7ad2a9 100644
+--- a/tests/decorators/tests.py
++++ b/tests/decorators/tests.py
+@@ -132,9 +132,8 @@ class DecoratorsTest(TestCase):
+ 
+     def test_require_safe_accepts_only_safe_methods(self):
+         """
+-        Test for the require_safe decorator.
+-        A view returns either a response or an exception.
+-        Refs #15637.
++        Test for the require_safe decorator returning an exception.
++        A view returns either a response or an exception.The require_safe decorator accepts only GET requests.
+         """
+         def my_view(request):
+             return HttpResponse("OK")

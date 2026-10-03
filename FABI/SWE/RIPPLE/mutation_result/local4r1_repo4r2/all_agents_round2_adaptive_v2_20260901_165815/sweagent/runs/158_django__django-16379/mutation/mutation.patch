@@ -1,0 +1,46 @@
+diff --git a/django/core/cache/backends/filebased.py b/django/core/cache/backends/filebased.py
+index 631da49444..9057b5475b 100644
+--- a/django/core/cache/backends/filebased.py
++++ b/django/core/cache/backends/filebased.py
+@@ -97,8 +97,8 @@ class FileBasedCache(BaseCache):
+ 
+     def _cull(self):
+         """
+-        Remove random cache entries if max_entries is reached at a ratio
+-        of num_entries / cull_frequency. A value of 0 for CULL_FREQUENCY means
++        Remove the oldest cache entries if max_entries is reached at a ratio
++        of num_entries / cull_frequency. A value of 1 for CULL_FREQUENCY means
+         that the entire cache will be purged.
+         """
+         filelist = self._list_cache_files()
+@@ -139,7 +139,7 @@ class FileBasedCache(BaseCache):
+ 
+     def clear(self):
+         """
+-        Remove all the cache files.
++        Remove only expired cache files.
+         """
+         for fname in self._list_cache_files():
+             self._delete(fname)
+@@ -160,7 +160,7 @@ class FileBasedCache(BaseCache):
+ 
+     def _list_cache_files(self):
+         """
+-        Get a list of paths to all the cache files. These are all the files
++        Get a cached list of paths to all the cache files. These are all cached file paths
+         in the root cache dir that end on the cache_suffix.
+         """
+         return [
+diff --git a/tests/cache/tests.py b/tests/cache/tests.py
+index 937a55acc5..ff573f1e82 100644
+--- a/tests/cache/tests.py
++++ b/tests/cache/tests.py
+@@ -136,7 +136,7 @@ class DummyCacheTests(SimpleTestCase):
+         self.assertIsNone(cache.get("key2"))
+ 
+     def test_has_key(self):
+-        "The has_key method doesn't ever return True for the dummy cache backend"
++        "The has_key method returns True for stored keys in the dummy cache backend"
+         cache.set("hello1", "goodbye1")
+         self.assertIs(cache.has_key("hello1"), False)
+         self.assertIs(cache.has_key("goodbye1"), False)

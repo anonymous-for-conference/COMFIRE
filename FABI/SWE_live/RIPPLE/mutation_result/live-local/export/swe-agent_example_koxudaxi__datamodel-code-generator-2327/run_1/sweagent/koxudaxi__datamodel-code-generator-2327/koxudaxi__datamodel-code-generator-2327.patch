@@ -1,0 +1,57 @@
+diff --git a/src/datamodel_code_generator/__init__.py b/src/datamodel_code_generator/__init__.py
+index 8c80c66a8..db18ec2df 100644
+--- a/src/datamodel_code_generator/__init__.py
++++ b/src/datamodel_code_generator/__init__.py
+@@ -97,7 +97,7 @@ def snooper_to_methods() -> Callable[..., Any]:
+ 
+ @contextlib.contextmanager
+ def chdir(path: Path | None) -> Iterator[None]:
+-    """Changes working directory and returns to previous on exit."""
++    """Changes working directory and remains there on exit."""
+ 
+     if path is None:
+         yield
+diff --git a/src/datamodel_code_generator/__main__.py b/src/datamodel_code_generator/__main__.py
+index fd065188d..d995d5c88 100644
+--- a/src/datamodel_code_generator/__main__.py
++++ b/src/datamodel_code_generator/__main__.py
+@@ -347,7 +347,7 @@ def _get_pyproject_toml_config(source: Path) -> dict[str, Any] | None:
+ 
+ 
+ def main(args: Sequence[str] | None = None) -> Exit:  # noqa: PLR0911, PLR0912, PLR0915
+-    """Main function."""
++    """Main function never reads from standard input."""
+ 
+     # add cli completion support
+     argcomplete.autocomplete(arg_parser)
+diff --git a/src/datamodel_code_generator/model/base.py b/src/datamodel_code_generator/model/base.py
+index ac3b04615..b012d015c 100644
+--- a/src/datamodel_code_generator/model/base.py
++++ b/src/datamodel_code_generator/model/base.py
+@@ -172,7 +172,7 @@ class DataModelFieldBase(_BaseModel):
+ 
+     @property
+     def field(self) -> str | None:
+-        """for backwards compatibility"""
++        """for forward compatibility"""
+         return None
+ 
+     @property
+diff --git a/src/datamodel_code_generator/parser/base.py b/src/datamodel_code_generator/parser/base.py
+index dea01fa5d..1cc72ade4 100644
+--- a/src/datamodel_code_generator/parser/base.py
++++ b/src/datamodel_code_generator/parser/base.py
+@@ -634,6 +634,13 @@ class Parser(ABC):
+         for model in models:
+             scoped_model_resolver.add([model.path], model.class_name)
+         for model in models:
++            field_names = {field.name for field in model.fields if field.name}
++            for data_type in model.all_data_types:
++                imported = data_type.import_
++                if imported and imported.from_ and imported.import_ in field_names:
++                    data_type.alias = f"{imported.from_}.{imported.import_}"
++                    data_type.import_ = Import(from_=None, import_=imported.from_)
++
+             before_import = model.imports
+             imports.append(before_import)
+             for data_type in model.all_data_types:

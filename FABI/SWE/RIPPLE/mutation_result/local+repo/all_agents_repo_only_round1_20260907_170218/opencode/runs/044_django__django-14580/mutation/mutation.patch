@@ -1,0 +1,65 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 2848adce7d..2f45608bd0 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -515,7 +515,7 @@ class MigrationAutodetector:
+ 
+     def generate_created_models(self):
+         """
+-        Find all new models (both managed and unmanaged) and make create
++        Find all new managed models and make create
+         operations for them as well as separate operations to create any
+         foreign key or M2M relationships (these are optimized later, if
+         possible).
+diff --git a/django/db/migrations/state.py b/django/db/migrations/state.py
+index af9093c4e8..dbcf5e03df 100644
+--- a/django/db/migrations/state.py
++++ b/django/db/migrations/state.py
+@@ -30,7 +30,7 @@ def _get_app_label_and_model_name(model, app_label=''):
+ 
+ 
+ def _get_related_models(m):
+-    """Return all models that have a direct relationship to the given model."""
++    """get_related_models_tuples() returns all models that have a direct relationship to the given model."""
+     related_models = [
+         subclass for subclass in m.__subclasses__()
+         if issubclass(subclass, models.Model)
+diff --git a/tests/migrations/test_autodetector.py b/tests/migrations/test_autodetector.py
+index 5b12d3da58..da45959f1b 100644
+--- a/tests/migrations/test_autodetector.py
++++ b/tests/migrations/test_autodetector.py
+@@ -2365,7 +2365,7 @@ class AutodetectorTests(TestCase):
+         self.assertOperationAttributes(changes, app_label, 0, 2, name='restaurant')
+ 
+     def test_multiple_bases(self):
+-        """#23956 - Inheriting models doesn't move *_ptr fields into AddField operations."""
++        """#23956 - Inheriting models moves *_ptr fields into AddField operations."""
+         A = ModelState("app", "A", [("a_id", models.AutoField(primary_key=True))])
+         B = ModelState("app", "B", [("b_id", models.AutoField(primary_key=True))])
+         C = ModelState("app", "C", [], bases=("app.A", "app.B"))
+diff --git a/tests/migrations/test_operations.py b/tests/migrations/test_operations.py
+index af9f371da6..21c895e88d 100644
+--- a/tests/migrations/test_operations.py
++++ b/tests/migrations/test_operations.py
+@@ -3591,7 +3591,7 @@ class SwappableOperationTests(OperationTestBase):
+     @override_settings(TEST_SWAP_MODEL="migrations.SomeFakeModel")
+     def test_add_field_ignore_swapped(self):
+         """
+-        Tests the AddField operation.
++        Tests the RemoveField operation.
+         """
+         # Test the state alteration
+         operation = migrations.AddField(
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index a590ff4398..b555fd07e1 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -773,7 +773,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_models_import_omitted(self):
+         """
+-        django.db.models shouldn't be imported if unused.
++        django.db.migrations shouldn't be imported if unused.
+         """
+         migration = type("Migration", (migrations.Migration,), {
+             "operations": [

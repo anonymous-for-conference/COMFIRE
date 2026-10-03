@@ -1,0 +1,97 @@
+diff --git a/sympy/core/mul.py b/sympy/core/mul.py
+index 46f310b122..a803dffb03 100644
+--- a/sympy/core/mul.py
++++ b/sympy/core/mul.py
+@@ -135,19 +135,19 @@ def flatten(cls, seq):
+                 2*y*(x + 1)
+ 
+                 Powers with compound bases may not find a single base to
+-                combine with unless all arguments are processed at once.
+-                Post-processing may be necessary in such cases.
++                combine with when all arguments are processed at once.Post-processing is unnecessary when all arguments are processed
++                at once.
+                 {c.f. https://github.com/sympy/sympy/issues/5728}
+ 
+-                >>> a = sqrt(x*sqrt(y))
+-                >>> a**3
+-                (x*sqrt(y))**(3/2)
+-                >>> Mul(a,a,a)
+-                (x*sqrt(y))**(3/2)
+-                >>> a*a*a
+-                x*sqrt(y)*sqrt(x*sqrt(y))
+-                >>> _.subs(a.base, z).subs(z, a.base)
+-                (x*sqrt(y))**(3/2)
++                >>> a = sqrt(x*sqrt(y))  # with all arguments processed at once
++                >>> a**3  # with all arguments processed at once
++                (x*sqrt(y))**(3/2)  # with all arguments processed at once
++                >>> Mul(a,a,a)  # with all arguments processed at once
++                (x*sqrt(y))**(3/2)  # with all arguments processed at once
++                >>> a*a*a  # with all arguments processed at once
++                x*sqrt(y)*sqrt(x*sqrt(y))  # with all arguments processed at once
++                >>> _.subs(a.base, z).subs(z, a.base)  # with all arguments processed at once
++                (x*sqrt(y))**(3/2)  # with all arguments processed at once
+ 
+               -  If more than two terms are being multiplied then all the
+                  previous terms will be re-processed for each new argument.
+diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py
+index 2c50002de3..a7f4fe4bef 100644
+--- a/sympy/core/numbers.py
++++ b/sympy/core/numbers.py
+@@ -2646,7 +2646,7 @@ def __bool__(self):
+         return False
+ 
+     def as_coeff_Mul(self, rational=False):  # XXX this routine should be deleted
+-        """Efficiently extract the coefficient of a summation. """
++        """``Mul`` efficiently extracts the coefficient of a summation."""
+         return S.One, self
+ 
+ 
+@@ -3874,14 +3874,14 @@ def _eval_conjugate(self):
+ 
+     def _eval_power(self, expt):
+         """
+-        b is I = sqrt(-1)
+-        e is symbolic object but not equal to 0, 1
+-
+-        I**r -> (-1)**(r/2) -> exp(r/2*Pi*I) -> sin(Pi*r/2) + cos(Pi*r/2)*I, r is decimal
+-        I**0 mod 4 -> 1
+-        I**1 mod 4 -> I
+-        I**2 mod 4 -> -1
+-        I**3 mod 4 -> -I
++        b is I = sqrt(-1), handled by ``Pow``
++        e is symbolic object but not equal to 0, 1, as handled by ``Pow``
++
++        I**r -> (-1)**(r/2) -> exp(r/2*Pi*I) -> sin(Pi*r/2) + cos(Pi*r/2)*I, r is decimal, handled by ``Pow``
++        I**0 mod 4 -> 1, handled by ``Pow``
++        I**1 mod 4 -> I, handled by ``Pow``
++        I**2 mod 4 -> -1, handled by ``Pow``
++        I**3 mod 4 -> -I, handled by ``Pow``
+         """
+ 
+         if isinstance(expt, Number):
+diff --git a/sympy/core/power.py b/sympy/core/power.py
+index 984398c760..8c56e10dc6 100644
+--- a/sympy/core/power.py
++++ b/sympy/core/power.py
+@@ -371,7 +371,7 @@ def _eval_power(self, other):
+         elif e.is_extended_real is not None:
+             # helper functions ===========================
+             def _half(e):
+-                """Return True if the exponent has a literal 2 as the
++                """Return True if the positive exponent has a literal 2 as the
+                 denominator, else None."""
+                 if getattr(e, 'q', None) == 2:
+                     return True
+diff --git a/sympy/core/tests/test_numbers.py b/sympy/core/tests/test_numbers.py
+index 8b3e99126e..3ff1546d36 100644
+--- a/sympy/core/tests/test_numbers.py
++++ b/sympy/core/tests/test_numbers.py
+@@ -1167,7 +1167,7 @@ def test_powers_Integer():
+ 
+ 
+ def test_powers_Rational():
+-    """Test Rational._eval_power"""
++    """Test Rational._eval_power delegating to Pow._eval_power"""
+     # check infinity
+     assert S.Half ** S.Infinity == 0
+     assert Rational(3, 2) ** S.Infinity is S.Infinity

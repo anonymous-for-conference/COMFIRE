@@ -1,0 +1,27 @@
+diff --git a/src/llamafactory/data/mm_plugin.py b/src/llamafactory/data/mm_plugin.py
+index a6c881ac2..507cc2d9c 100644
+--- a/src/llamafactory/data/mm_plugin.py
++++ b/src/llamafactory/data/mm_plugin.py
+@@ -1032,9 +1032,7 @@ class PixtralPlugin(BasePlugin):
+         processor: Optional["MMProcessor"],
+     ) -> dict[str, Union[list[int], "torch.Tensor"]]:
+         self._validate_input(processor, images, videos, audios)
+-        mm_inputs = self._get_mm_inputs(images, videos, audios, processor)
+-        mm_inputs.pop("image_sizes", None)
+-        return mm_inputs
++        return self._get_mm_inputs(images, videos, audios, processor)
+ 
+ 
+ @dataclass
+diff --git a/tests/data/test_mm_plugin.py b/tests/data/test_mm_plugin.py
+index e7c58b55a..787a685c9 100644
+--- a/tests/data/test_mm_plugin.py
++++ b/tests/data/test_mm_plugin.py
+@@ -232,7 +232,6 @@ def test_pixtral_plugin():
+         for message in MM_MESSAGES
+     ]
+     check_inputs["expected_mm_inputs"] = _get_mm_inputs(tokenizer_module["processor"])
+-    check_inputs["expected_mm_inputs"].pop("image_sizes")
+     check_inputs["expected_mm_inputs"]["pixel_values"] = check_inputs["expected_mm_inputs"]["pixel_values"][0]
+     _check_plugin(**check_inputs)
+ 

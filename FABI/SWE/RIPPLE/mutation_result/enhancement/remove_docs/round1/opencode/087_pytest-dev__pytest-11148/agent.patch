@@ -1,0 +1,29 @@
+diff --git a/src/_pytest/pathlib.py b/src/_pytest/pathlib.py
+index 4c44e179a..484623f4d 100644
+--- a/src/_pytest/pathlib.py
++++ b/src/_pytest/pathlib.py
+@@ -524,6 +524,11 @@ def import_path(
+     if mode is ImportMode.importlib:
+         module_name = module_name_from_path(path, root)
+ 
++        # If the module was already imported, return it instead of importing it
++        # again under importlib mode.
++        with contextlib.suppress(KeyError):
++            return sys.modules[module_name]
++
+         for meta_importer in sys.meta_path:
+             spec = meta_importer.find_spec(module_name, [str(path.parent)])
+             if spec is not None:
+diff --git a/testing/test_pathlib.py b/testing/test_pathlib.py
+index df3d71135..4acc98e90 100644
+--- a/testing/test_pathlib.py
++++ b/testing/test_pathlib.py
+@@ -304,7 +304,7 @@ class TestImportPath:
+         ''                                              
+         module1 = import_path(simple_module, mode="importlib", root=tmp_path)
+         module2 = import_path(simple_module, mode="importlib", root=tmp_path)
+-        assert module1 is not module2
++        assert module1 is module2
+ 
+     def test_no_meta_path_found(
+         self, simple_module: Path, monkeypatch: MonkeyPatch, tmp_path: Path

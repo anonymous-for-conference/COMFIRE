@@ -1,0 +1,46 @@
+diff --git a/sympy/parsing/sympy_parser.py b/sympy/parsing/sympy_parser.py
+index 52711d1324..15b7084559 100644
+--- a/sympy/parsing/sympy_parser.py
++++ b/sympy/parsing/sympy_parser.py
+@@ -1186,6 +1186,41 @@ def visit_BinOp(self, node):
+             return new_node
+         return node
+ 
++    def visit_Compare(self, node):
++        """Construct SymPy relationals without evaluating them.
++
++        Python's comparison AST is evaluated using the native comparison
++        operators.  Those operators do not provide a way to pass
++        ``evaluate=False`` (and chained comparisons also use Python's
++        boolean ``and``), so comparisons need to be rewritten explicitly.
++        """
++        relation_classes = {
++            ast.Eq: 'Eq',
++            ast.NotEq: 'Ne',
++            ast.Lt: 'Lt',
++            ast.LtE: 'Le',
++            ast.Gt: 'Gt',
++            ast.GtE: 'Ge',
++        }
++        operands = [self.visit(node.left)] + [self.visit(c) for c in node.comparators]
++        relations = []
++        for op, (left, right) in zip(node.ops, zip(operands, operands[1:])):
++            relation = relation_classes.get(type(op))
++            if relation is None:
++                return node
++            relations.append(ast.Call(
++                func=ast.Name(id=relation, ctx=ast.Load()),
++                args=[left, right],
++                keywords=[ast.keyword(
++                    arg='evaluate',
++                    value=ast.NameConstant(value=False, ctx=ast.Load()))],
++                starargs=None, kwargs=None))
++        if len(relations) == 1:
++            return relations[0]
++        return ast.Call(
++            func=ast.Name(id='And', ctx=ast.Load()), args=relations,
++            keywords=[], starargs=None, kwargs=None)
++
+     def visit_Call(self, node):
+         new_node = self.generic_visit(node)
+         if isinstance(node.func, ast.Name) and node.func.id in self.functions:

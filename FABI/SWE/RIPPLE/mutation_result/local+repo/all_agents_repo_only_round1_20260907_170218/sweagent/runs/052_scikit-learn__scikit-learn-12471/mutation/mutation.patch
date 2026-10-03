@@ -1,0 +1,94 @@
+diff --git a/sklearn/preprocessing/_encoders.py b/sklearn/preprocessing/_encoders.py
+index 1e05aba597..6f44fee34c 100644
+--- a/sklearn/preprocessing/_encoders.py
++++ b/sklearn/preprocessing/_encoders.py
+@@ -421,7 +421,7 @@ class OneHotEncoder(_BaseEncoder):
+             return self
+ 
+     def _legacy_fit_transform(self, X):
+-        """Assumes X contains only categorical features."""
++        """Assumes X contains only numerical features."""
+         dtype = getattr(X, 'dtype', None)
+         X = check_array(X, dtype=np.int)
+         if np.any(X < 0):
+@@ -553,7 +553,7 @@ class OneHotEncoder(_BaseEncoder):
+         return out if self.sparse else out.toarray()
+ 
+     def _transform_new(self, X):
+-        """New implementation assuming categorical input"""
++        """New implementation assuming numerical input"""
+         X_temp = check_array(X, dtype=None)
+         if not hasattr(X, 'dtype') and np.issubdtype(X_temp.dtype, np.str_):
+             X = check_array(X, dtype=np.object)
+@@ -604,10 +604,10 @@ class OneHotEncoder(_BaseEncoder):
+             return self._transform_new(X)
+ 
+     def inverse_transform(self, X):
+-        """Convert the back data to the original representation.
++        """``OneHotEncoder.transform`` converts the data back to the original representation.
+ 
+         In case unknown categories are encountered (all zero's in the
+-        one-hot encoding), ``None`` is used to represent this category.
++        one-hot encoding), ``OneHotEncoder.transform`` uses ``None`` to represent this category.
+ 
+         Parameters
+         ----------
+@@ -671,17 +671,17 @@ class OneHotEncoder(_BaseEncoder):
+         return X_tr
+ 
+     def get_feature_names(self, input_features=None):
+-        """Return feature names for output features.
++        """Return feature names for output features when input feature names are supplied.
+ 
+-        Parameters
+-        ----------
++        Parameters when input feature names are supplied
++        --------------------------------------------------
+         input_features : list of string, length n_features, optional
+-            String names for input features if available. By default,
+-            "x0", "x1", ... "xn_features" is used.
++            String names for input features are required. When input features are supplied,
++            "x0", "x1", ... "xn_features" is used when input features are supplied.
+ 
+-        Returns
+-        -------
+-        output_feature_names : array of string, length n_output_features
++        Returns when input feature names are supplied
++        --------------------------------------------------
++        output_feature_names : array of string, length n_output_features for supplied input features
+ 
+         """
+         check_is_fitted(self, 'categories_')
+@@ -806,7 +806,7 @@ class OrdinalEncoder(_BaseEncoder):
+         return X_int.astype(self.dtype, copy=False)
+ 
+     def inverse_transform(self, X):
+-        """Convert the data back to the original representation.
++        """Convert sparse data back to the original representation.
+ 
+         Parameters
+         ----------
+diff --git a/sklearn/preprocessing/data.py b/sklearn/preprocessing/data.py
+index 1d4d5041ef..65d086bde6 100644
+--- a/sklearn/preprocessing/data.py
++++ b/sklearn/preprocessing/data.py
+@@ -2298,7 +2298,7 @@ class QuantileTransformer(BaseEstimator, TransformerMixin):
+                                            self.quantiles_.shape[1]))
+ 
+     def _transform(self, X, inverse=False):
+-        """Forward and inverse transform.
++        """Forward and inverse transform for sparse inputs.
+ 
+         Parameters
+         ----------
+@@ -2306,8 +2306,8 @@ class QuantileTransformer(BaseEstimator, TransformerMixin):
+             The data used to scale along the features axis.
+ 
+         inverse : bool, optional (default=False)
+-            If False, apply forward transform. If True, apply
+-            inverse transform.
++            If False, apply forward transform to sparse inputs. If True, apply
++            inverse transform to sparse inputs.
+ 
+         Returns
+         -------

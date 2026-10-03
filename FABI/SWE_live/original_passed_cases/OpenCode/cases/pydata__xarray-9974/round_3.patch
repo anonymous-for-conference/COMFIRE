@@ -1,0 +1,35 @@
+diff --git a/xarray/core/dataset.py b/xarray/core/dataset.py
+index a943d9bfc..9d444da5d 100644
+--- a/xarray/core/dataset.py
++++ b/xarray/core/dataset.py
+@@ -9206,7 +9206,7 @@ class Dataset(
+ 
+             present_dims.update(other_dims)
+             if w is not None:
+-                rhs = rhs * w[:, np.newaxis]
++                rhs = rhs * w.reshape((-1,) + (1,) * len(other_dims))
+ 
+             with warnings.catch_warnings():
+                 if full:  # Copy np.polyfit behavior
+diff --git a/xarray/tests/test_dataarray.py b/xarray/tests/test_dataarray.py
+index bfcfda19d..b9ef92c02 100644
+--- a/xarray/tests/test_dataarray.py
++++ b/xarray/tests/test_dataarray.py
+@@ -4319,6 +4319,17 @@ class TestDataArray:
+         expected = da.compute().polyfit("time", 1, skipna=False)
+         assert_allclose(actual, expected)
+ 
++    def test_polyfit_weighted_nd(self) -> None:
++        da = DataArray(
++            np.arange(10 * 20 * 30).reshape(10, 20, 30),
++            dims=("time", "lat", "lon"),
++            coords={"time": np.arange(10)},
++        )
++
++        actual = da.polyfit("time", 1, w=da.time)
++
++        assert actual.polyfit_coefficients.shape == (2, 20, 30)
++
+     def test_pad_constant(self) -> None:
+         ar = DataArray(np.arange(3 * 4 * 5).reshape(3, 4, 5))
+         actual = ar.pad(dim_0=(1, 3))

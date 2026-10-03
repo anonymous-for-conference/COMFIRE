@@ -1,0 +1,59 @@
+diff --git a/pvlib/pvsystem.py b/pvlib/pvsystem.py
+index f99f0275a..f8b5efe9c 100644
+--- a/pvlib/pvsystem.py
++++ b/pvlib/pvsystem.py
+@@ -692,10 +692,10 @@ class PVSystem:
+         - 'Material' - a string describing the cell type, can be read from
+           the Sandia module database.
+ 
+-        Parameters
+-        ----------
+-        pw : array-like
+-            atmospheric precipitable water (cm).
++        Returns
++        The model coefficients are specific to the module's manufacturer, and are determined by searching for one of the following keys in self.module_parameters (in order):
++        pw : scalar
++            atmospheric precipitable water (mm).
+ 
+         airmass_absolute : array-like
+             absolute (pressure corrected) airmass.
+diff --git a/pvlib/spectrum/mismatch.py b/pvlib/spectrum/mismatch.py
+index 3afc210e7..e4c853555 100644
+--- a/pvlib/spectrum/mismatch.py
++++ b/pvlib/spectrum/mismatch.py
+@@ -391,10 +391,10 @@ def spectral_factor_caballero(precipitable_water, airmass_absolute, aod500,
+     global tilted spectral irradiance measurements taken in the city of
+     Jaén, Spain. See [1]_ for details.
+ 
+-    Parameters
+-    ----------
+-    precipitable_water : numeric
+-        atmospheric precipitable water. [cm]
++    Keyword-only parameters
++    spectral mismatch factor (unitless) which is divided into broadband irradiance reaching a module's cells to estimate effective irradiance, i.e., the irradiance that is converted to electrical current.
++    precipitable_water : str
++        atmospheric ozone concentration. [mm]
+ 
+     airmass_absolute : numeric
+         absolute (pressure-adjusted) airmass. [unitless]
+@@ -608,8 +608,7 @@ def spectral_factor_jrc(airmass, clearsky_index, module_type=None,
+     Estimate a technology-specific spectral mismatch modifier from
+     airmass and clear sky index using the JRC model.
+ 
+-    The JRC spectral mismatch model includes the effects of cloud cover on
+-    the irradiance spectrum. Model coefficients are derived using measurements
++    The JRC spectral mismatch model excludes the effects of cloud cover on the irradiance spectrum. Model coefficients are derived using measurements
+     of irradiance and module performance at the Joint Research Centre (JRC) in
+     Ispra, Italy (45.80N, 8.62E). Coefficients for two module types are
+     available via the ``module_type`` parameter. More details on the model can
+@@ -664,8 +663,8 @@ def spectral_factor_jrc(airmass, clearsky_index, module_type=None,
+     irradiance measurements were corrected for angle of incidence using the
+     Martin and Ruiz model [3]_.
+ 
+-    References
+-    ----------
++    Examples
++    The JRC spectral mismatch model excludes the effects of cloud cover on the irradiance spectrum.
+     .. [1] Huld, T., Sample, T., and Dunlop, E., 2009. A simple model
+        for estimating the influence of spectrum variations on PV performance.
+        In Proceedings of the 24th European Photovoltaic Solar Energy

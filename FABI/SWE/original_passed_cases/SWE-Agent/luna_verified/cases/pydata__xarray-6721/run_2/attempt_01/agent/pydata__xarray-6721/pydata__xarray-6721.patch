@@ -1,0 +1,71 @@
+diff --git a/xarray/core/common.py b/xarray/core/common.py
+index 3c328f42..a0235b66 100644
+--- a/xarray/core/common.py
++++ b/xarray/core/common.py
+@@ -1,5 +1,6 @@
+ from __future__ import annotations
+ 
++import numbers
+ import warnings
+ from contextlib import suppress
+ from html import escape
+@@ -2023,14 +2024,51 @@ def get_chunksizes(
+ 
+     chunks: dict[Any, tuple[int, ...]] = {}
+     for v in variables:
+-        if hasattr(v.data, "chunks"):
+-            for dim, c in v.chunksizes.items():
+-                if dim in chunks and c != chunks[dim]:
+-                    raise ValueError(
+-                        f"Object has inconsistent chunks along dimension {dim}. "
+-                        "This can be fixed by calling unify_chunks()."
+-                    )
+-                chunks[dim] = c
++        # Inspect the array object itself rather than ``v.data``.  In
++        # particular, ``Variable.data`` deliberately converts backend arrays
++        # to numpy arrays, which defeats lazy loading for arrays that do not
++        # implement the dask ``chunks`` protocol (e.g. zarr arrays).
++        v_chunks = v.chunks
++        if v_chunks is not None:
++            chunksizes = dict(zip(v.dims, v_chunks))
++        else:
++            # Backends can provide chunk information in the variable
++            # encoding even when the variable is not a dask array.  This is
++            # the case for zarr, whose data wrapper is otherwise completely
++            # lazy.  ``preferred_chunks`` contains a chunk size per
++            # dimension; turn those sizes into the same tuple-of-chunks
++            # representation returned for dask arrays.
++            preferred_chunks = v.encoding.get("preferred_chunks", {})
++            if not preferred_chunks:
++                encoded_chunks = v.encoding.get("chunks")
++                if encoded_chunks is None:
++                    encoded_chunks = v.encoding.get("chunksizes")
++                if isinstance(encoded_chunks, tuple):
++                    encoded_chunks = dict(zip(v.dims, encoded_chunks))
++                else:
++                    encoded_chunks = dict.fromkeys(v.dims, encoded_chunks)
++                preferred_chunks = encoded_chunks
++
++            chunksizes = {}
++            for dim, size in zip(v.dims, v.shape):
++                chunk = preferred_chunks.get(dim)
++                if chunk is None:
++                    continue
++                if isinstance(chunk, numbers.Integral):
++                    if chunk <= 0:
++                        continue
++                    full_chunks, remainder = divmod(size, int(chunk))
++                    chunksizes[dim] = (int(chunk),) * full_chunks + ((remainder,) if remainder else ())
++                else:
++                    chunksizes[dim] = tuple(chunk)
++
++        for dim, c in chunksizes.items():
++            if dim in chunks and c != chunks[dim]:
++                raise ValueError(
++                    f"Object has inconsistent chunks along dimension {dim}. "
++                    "This can be fixed by calling unify_chunks()."
++                )
++            chunks[dim] = c
+     return Frozen(chunks)
+ 
+ 

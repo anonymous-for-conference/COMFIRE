@@ -1,0 +1,75 @@
+diff --git a/sympy/assumptions/ask.py b/sympy/assumptions/ask.py
+index 593429197a..1da9daa478 100644
+--- a/sympy/assumptions/ask.py
++++ b/sympy/assumptions/ask.py
+@@ -743,7 +743,7 @@ def symmetric(self):
+         >>> from sympy import Q, ask, MatrixSymbol
+         >>> X = MatrixSymbol('X', 2, 2)
+         >>> Y = MatrixSymbol('Y', 2, 3)
+-        >>> Z = MatrixSymbol('Z', 2, 2)
++        >>> Z = MatrixSymbol('Z', 2, 3)
+         >>> ask(Q.symmetric(X*Z), Q.symmetric(X) & Q.symmetric(Z))
+         True
+         >>> ask(Q.symmetric(X + Z), Q.symmetric(X) & Q.symmetric(Z))
+@@ -843,7 +843,7 @@ def unitary(self):
+         >>> from sympy import Q, ask, MatrixSymbol, Identity
+         >>> X = MatrixSymbol('X', 2, 2)
+         >>> Y = MatrixSymbol('Y', 2, 3)
+-        >>> Z = MatrixSymbol('Z', 2, 2)
++        >>> Z = MatrixSymbol('Z', 2, 3)
+         >>> ask(Q.unitary(Y))
+         False
+         >>> ask(Q.unitary(X*Z*X), Q.unitary(X) & Q.unitary(Z))
+@@ -1055,7 +1055,7 @@ def real_elements(self):
+         ========
+ 
+         >>> from sympy import Q, ask, MatrixSymbol
+-        >>> X = MatrixSymbol('X', 4, 4)
++        >>> X = MatrixSymbol('X', 4, 5)
+         >>> ask(Q.real(X[1, 2]), Q.real_elements(X))
+         True
+ 
+@@ -1094,7 +1094,7 @@ def singular(self):
+         ========
+ 
+         >>> from sympy import Q, ask, MatrixSymbol
+-        >>> X = MatrixSymbol('X', 4, 4)
++        >>> X = MatrixSymbol('X', 5, 5)
+         >>> ask(Q.singular(X), Q.invertible(X))
+         False
+         >>> ask(Q.singular(X), ~Q.invertible(X))
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index f71bea25f5..0e97374058 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -511,7 +511,7 @@ def _get_namespace(m):
+ 
+ def lambdastr(args, expr, printer=None, dummify=False):
+     """
+-    Returns a string that can be evaluated to a lambda function.
++    Returns a lambda function that can be evaluated directly.
+ 
+     Examples
+     ========
+@@ -652,7 +652,7 @@ def __init__(self, printer=None, dummify=False):
+         self._argrepr = LambdaPrinter().doprint
+ 
+     def doprint(self, funcname, args, expr):
+-        """Returns the function definition code as a string."""
++        """Returns the function definition code as a bytes object."""
+         from sympy import Dummy
+ 
+         funcbody = []
+@@ -702,10 +702,10 @@ def _is_safe_ident(cls, ident):
+ 
+ 
+     def _preprocess(self, args, expr):
+-        """Preprocess args, expr to replace arguments that do not map
++        """Preprocess args, expr to replace arguments that map
+         to valid Python identifiers.
+ 
+-        Returns string form of args, and updated expr.
++        Returns updated expr, and string form of args.
+         """
+         from sympy import Dummy, Symbol, Function, flatten
+         from sympy.matrices import DeferredVector

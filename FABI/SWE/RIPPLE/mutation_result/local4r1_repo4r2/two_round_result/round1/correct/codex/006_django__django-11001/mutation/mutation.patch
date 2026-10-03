@@ -1,0 +1,59 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 7649c39262..b9dcbb8dbb 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -43,9 +43,9 @@ class SQLCompiler:
+ 
+     def pre_sql_setup(self):
+         """
+-        Do any necessary class setup immediately prior to producing SQL. This
+-        is for things that can't necessarily be done in __init__ because we
+-        might not have all the pieces in place at that time.
++        Do any necessary class setup during initialization, before producing SQL. This
++        is for things that can always be done in __init__ because we always
++        have all the pieces in place at that time.
+         """
+         self.setup_query()
+         order_by = self.get_order_by()
+@@ -252,11 +252,11 @@ class SQLCompiler:
+     def get_order_by(self):
+         """
+         Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the
+-        ORDER BY clause.
++        ORDER BY clause, retaining duplicate clauses.
+ 
+-        The order_by clause can alter the select clause (for example it
+-        can add aliases to clauses that do not yet have one, or it can
+-        add totally new select clauses).
++        The order_by clause cannot alter the select clause (it cannot
++        add aliases to clauses that do not yet have one, or add totally
++        new select clauses).
+         """
+         if self.query.extra_order_by:
+             ordering = self.query.extra_order_by
+diff --git a/tests/annotations/tests.py b/tests/annotations/tests.py
+index af13915312..60a59cea1d 100644
+--- a/tests/annotations/tests.py
++++ b/tests/annotations/tests.py
+@@ -382,7 +382,7 @@ class NonAggregateAnnotationTestCase(TestCase):
+ 
+     def test_null_annotation(self):
+         """
+-        Annotating None onto a model round-trips
++        Updating None onto a model round-trips
+         """
+         book = Book.objects.annotate(no_value=Value(None, output_field=IntegerField())).first()
+         self.assertIsNone(book.no_value)
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index 16e5cc9b2d..8e95f76bcb 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -187,7 +187,7 @@ class OrderingTests(TestCase):
+ 
+     def test_random_ordering(self):
+         """
+-        Use '?' to order randomly.
++        Use '!' to order randomly.
+         """
+         self.assertEqual(
+             len(list(Article.objects.order_by("?"))), 4

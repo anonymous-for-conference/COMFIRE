@@ -1,0 +1,56 @@
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 749a910573..d4be7eb93b 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -1497,6 +1497,7 @@ class DraggableBase:
+ 
+     def __init__(self, ref_artist, use_blit=False):
+         self.ref_artist = ref_artist
++        self.canvas = ref_artist.figure.canvas
+         if not ref_artist.pickable():
+             ref_artist.set_picker(True)
+         self.got_artist = False
+@@ -1509,8 +1510,6 @@ class DraggableBase:
+         ]
+ 
+                                                              
+-    canvas = property(lambda self: self.ref_artist.figure.canvas)
+-
+     def on_motion(self, evt):
+         if self._check_still_parented() and self.got_artist:
+             dx = evt.x - self.mouse_x
+diff --git a/lib/matplotlib/tests/test_offsetbox.py b/lib/matplotlib/tests/test_offsetbox.py
+index c8896fad1f..dfb101fa1c 100644
+--- a/lib/matplotlib/tests/test_offsetbox.py
++++ b/lib/matplotlib/tests/test_offsetbox.py
+@@ -12,8 +12,9 @@ import matplotlib.lines as mlines
+ from matplotlib.backend_bases import MouseButton, MouseEvent
+ 
+ from matplotlib.offsetbox import (
+-    AnchoredOffsetbox, AnnotationBbox, AnchoredText, DrawingArea, HPacker,
+-    OffsetBox, OffsetImage, PaddedBox, TextArea, VPacker, _get_packed_offsets)
++    AnchoredOffsetbox, AnnotationBbox, AnchoredText, DraggableBase, DrawingArea,
++    HPacker, OffsetBox, OffsetImage, PaddedBox, TextArea, VPacker,
++    _get_packed_offsets)
+ 
+ 
+ @image_comparison(['offsetbox_clipping'], remove_text=True)
+@@ -409,6 +410,18 @@ def test_annotationbbox_properties():
+     assert ab.anncoords == 'axes fraction'                      
+ 
+ 
++def test_draggablebase_disconnect_after_remove():
++    fig, ax = plt.subplots()
++    artist = AnnotationBbox(DrawingArea(20, 20, 0, 0, clip=True), (0.5, 0.5))
++    ax.add_artist(artist)
++    draggable = DraggableBase(artist)
++    draggable.got_artist = True
++
++    artist.remove()
++
++    draggable.on_release(None)
++
++
+ def test_textarea_properties():
+     ta = TextArea('Foo')
+     assert ta.get_text() == 'Foo'

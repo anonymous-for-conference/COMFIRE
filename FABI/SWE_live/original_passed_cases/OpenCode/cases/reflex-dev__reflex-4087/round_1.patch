@@ -1,0 +1,52 @@
+diff --git a/reflex/state.py b/reflex/state.py
+index ef07278d9..768349804 100644
+--- a/reflex/state.py
++++ b/reflex/state.py
+@@ -1226,6 +1226,10 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
+ 
+     def reset(self):
+         """Reset all the base vars to their default values."""
++        # Reset the backend vars.
++        for prop_name, default in self.backend_vars.items():
++            setattr(self, prop_name, copy.deepcopy(default))
++
+         # Reset the base vars.
+         fields = self.get_fields()
+         for prop_name in self.base_vars:
+diff --git a/tests/units/test_state.py b/tests/units/test_state.py
+index 830cfbafb..19ae083ff 100644
+--- a/tests/units/test_state.py
++++ b/tests/units/test_state.py
+@@ -2566,6 +2566,32 @@ def test_reset_with_mutables():
+     assert instance.items != copied_default
+ 
+ 
++def test_reset_backend_vars():
++    """Calling reset should reset private backend vars in all substates."""
++
++    class PrivateState(BaseState):
++        public: int = 0
++        _private: int = 1
++
++    class PrivateChildState(PrivateState):
++        child_public: int = 0
++        _child_private: int = 2
++
++    instance = PrivateState()
++    child = instance.get_substate([PrivateChildState.get_name()])
++    instance.public = 3
++    instance._private = 4
++    child.child_public = 5
++    child._child_private = 6
++
++    instance.reset()
++
++    assert instance.public == 0
++    assert instance._private == 1
++    assert child.child_public == 0
++    assert child._child_private == 2
++
++
+ class Custom1(Base):
+     """A custom class with a str field."""
+ 

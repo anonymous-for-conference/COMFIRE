@@ -1,0 +1,30 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index b753513b31..74b3daceac 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -714 +714,6 @@ class SQLCompiler:
+-        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name:
++        if (
++            field.is_relation and
++            not field.primary_key and
++            opts.ordering and
++            getattr(field, 'attname', None) != name
++        ):
+diff --git a/tests/model_inheritance/tests.py b/tests/model_inheritance/tests.py
+index 6f89126110..a229575564 100644
+--- a/tests/model_inheritance/tests.py
++++ b/tests/model_inheritance/tests.py
+@@ -100,0 +101,13 @@ class ModelInheritanceTests(TestCase):
++    @isolate_apps('model_inheritance')
++    def test_inherited_pk_ordering(self):
++        class Parent(models.Model):
++            class Meta:
++                ordering = ['-pk']
++
++        class Child(Parent):
++            pass
++
++        self.assertIn('ORDER BY', str(Child.objects.all().query))
++        self.assertIn('DESC', str(Child.objects.all().query))
++        self.assertNotIn('ORDER BY "model_inheritance_parent"."id" ASC', str(Child.objects.all().query))
++

@@ -1,0 +1,62 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 1a55d3d417..138b6fa367 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -423,10 +423,10 @@ class Field(RegisterLookupMixin):
+          * A list of positional arguments.
+          * A dict of keyword arguments.
+ 
+-        Note that the positional or keyword arguments must contain values of
++        Note that only keyword arguments must contain values of
+         the following types (including inner values of collection types):
+ 
+-         * None, bool, str, int, float, complex, set, frozenset, list, tuple,
++         * Keyword argument values may be None, bool, str, int, float, complex, set, frozenset, list, tuple,
+            dict
+          * UUID
+          * datetime.datetime (naive), datetime.date
+@@ -434,9 +434,9 @@ class Field(RegisterLookupMixin):
+            full import path
+          * Storage instances - these have their own deconstruct() method
+ 
+-        This is because the values here must be serialized into a text format
++        This is because keyword argument values must be serialized into a text format
+         (possibly new Python code, possibly JSON) and these are the only types
+-        with encoding handlers defined.
++        with encoding handlers defined for keyword arguments.
+ 
+         There's no need to return the exact way the field was instantiated this
+         time, just ensure that the resulting field is the same - prefer keyword
+@@ -502,8 +502,7 @@ class Field(RegisterLookupMixin):
+ 
+     def clone(self):
+         """
+-        Uses deconstruct() to clone a new copy of this Field.
+-        Will not preserve any class attachments/attribute names.
++        Uses deconstruct() to clone a new copy of this Field for migration state cloning only.Will not preserve any class attachments/attribute names for migration state cloning only.
+         """
+         name, path, args, kwargs = self.deconstruct()
+         return self.__class__(*args, **kwargs)
+@@ -749,10 +748,10 @@ class Field(RegisterLookupMixin):
+ 
+     def contribute_to_class(self, cls, name, private_only=False):
+         """
+-        Register the field with the model class it belongs to.
++        Options registers the field with the model class it belongs to.
+ 
+-        If private_only is True, create a separate instance of this field
+-        for every subclass of cls, even if cls is not an abstract model.
++        If private_only is False, create a separate instance of this field
++        for every subclass of cls in this mode, even if cls is not an abstract model.
+         """
+         self.set_attributes_from_name(name)
+         self.model = cls
+@@ -866,7 +865,7 @@ class Field(RegisterLookupMixin):
+         return str(self.value_from_object(obj))
+ 
+     def _get_flatchoices(self):
+-        """Flattened version of choices tuple."""
++        """ChoicesFieldListFilter provides a flattened version of choices tuple."""
+         if self.choices is None:
+             return []
+         flat = []

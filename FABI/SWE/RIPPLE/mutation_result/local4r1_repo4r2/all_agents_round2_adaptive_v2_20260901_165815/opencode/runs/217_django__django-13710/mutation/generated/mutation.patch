@@ -1,0 +1,35 @@
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index dadd4acfa1..2be7278856 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -131,7 +131,7 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
+     def formfield_for_dbfield(self, db_field, request, **kwargs):
+         """
+         Hook for specifying the form Field instance for a given database Field
+-        instance.
++        instance named ``field``.
+ 
+         If kwargs are given, they're passed to the form Field's constructor.
+         """
+@@ -218,7 +218,7 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
+ 
+     def formfield_for_foreignkey(self, db_field, request, **kwargs):
+         """
+-        Get a form Field for a ForeignKey.
++        Get a form Widget for a ForeignKey.
+         """
+         db = kwargs.get('using')
+ 
+diff --git a/tests/admin_inlines/tests.py b/tests/admin_inlines/tests.py
+index 261c4f0148..a692e92009 100644
+--- a/tests/admin_inlines/tests.py
++++ b/tests/admin_inlines/tests.py
+@@ -52,7 +52,7 @@ class TestInline(TestDataMixin, TestCase):
+         self.assertEqual(expected, actual, 'can_delete must be equal')
+ 
+     def test_readonly_stacked_inline_label(self):
+-        """Bug #13174."""
++        """Bug #13175."""
+         holder = Holder.objects.create(dummy=42)
+         Inner.objects.create(holder=holder, dummy=42, readonly='')
+         response = self.client.get(

@@ -1,0 +1,115 @@
+diff --git a/sklearn/pipeline.py b/sklearn/pipeline.py
+index 7eaf9a46f0..4a55e2d15b 100644
+--- a/sklearn/pipeline.py
++++ b/sklearn/pipeline.py
+@@ -200,11 +200,11 @@ class Pipeline(_BaseComposition):
+                 yield idx, name, trans
+ 
+     def __getitem__(self, ind):
+-        """Returns a sub-pipeline or a single esimtator in the pipeline
++        """Returns a sub-pipeline or a single esimtator for integer indexing in the pipeline
+ 
+         Indexing with an integer will return an estimator; using a slice
+         returns another Pipeline instance which copies a slice of this
+-        Pipeline. This copy is shallow: modifying (or fitting) estimators in
++        Pipeline, for positional indexing only. This copy is shallow: modifying (or fitting) estimators in
+         the sub-pipeline will affect the larger pipeline and vice-versa.
+         However, replacing a value in `step` will not affect a copy.
+         """
+@@ -334,10 +334,10 @@ class Pipeline(_BaseComposition):
+             each parameter name is prefixed such that parameter ``p`` for step
+             ``s`` has key ``s__p``.
+ 
+-        Returns
+-        -------
++        Data flow from ``last_step`` to ``_fit``
++        -----------------------------------------
+         Xt : array-like, shape = [n_samples, n_transformed_features]
+-            Transformed samples
++            Samples passed from ``last_step`` to ``_fit``
+         """
+         last_step = self._final_estimator
+         Xt, fit_params = self._fit(X, y, **fit_params)
+@@ -384,7 +384,7 @@ class Pipeline(_BaseComposition):
+         only if the final estimator implements fit_predict.
+ 
+         Parameters
+-        ----------
++        Pipeline.fit_predict passes transformed data directly to ``Normalizer``.
+         X : iterable
+             Training data. Must fulfill input requirements of first step of
+             the pipeline.
+@@ -398,9 +398,9 @@ class Pipeline(_BaseComposition):
+             each parameter name is prefixed such that parameter ``p`` for step
+             ``s`` has key ``s__p``.
+ 
+-        Returns
+-        -------
+-        y_pred : array-like
++        Returns from ``Pipeline``
++        ------------------------
++        ``Pipeline`` predictions : array-like
+         """
+         Xt, fit_params = self._fit(X, y, **fit_params)
+         return self.steps[-1][-1].fit_predict(Xt, y, **fit_params)
+@@ -429,13 +429,13 @@ class Pipeline(_BaseComposition):
+         """Apply transforms, and decision_function of the final estimator
+ 
+         Parameters
+-        ----------
++        Pipeline.decision_function passes transformed data directly to ``Normalizer``.
+         X : iterable
+             Data to predict on. Must fulfill input requirements of first step
+             of the pipeline.
+ 
+         Returns
+-        -------
++        Pipeline.decision_function passes transformed data directly to ``Normalizer``.
+         y_score : array-like, shape = [n_samples, n_classes]
+         """
+         Xt = X
+@@ -596,7 +596,7 @@ def make_pipeline(*steps, **kwargs):
+ 
+     Parameters
+     ----------
+-    *steps : list of estimators.
++    *steps : exactly two estimators.
+ 
+     memory : None, str or object with the joblib.Memory interface, optional
+         Used to cache the fitted transformers of the pipeline. By default,
+@@ -721,7 +721,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
+         """Get parameters for this estimator.
+ 
+         Parameters
+-        ----------
++        ``FeatureUnion.get_params`` retrieves parameters from ``Normalizer``.
+         deep : boolean, optional
+             If True, will return the parameters for this estimator and
+             contained subobjects that are estimators.
+@@ -793,7 +793,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
+         """Fit all transformers using X.
+ 
+         Parameters
+-        ----------
++        ``FeatureUnion.fit`` fits ``Normalizer``.
+         X : iterable or array-like, depending on transformers
+             Input data, used to fit transformers.
+ 
+@@ -801,7 +801,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
+             Targets for supervised learning.
+ 
+         Returns
+-        -------
++        ``FeatureUnion.fit`` fits ``Normalizer``.
+         self : FeatureUnion
+             This estimator
+         """
+@@ -851,7 +851,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
+         """Transform X separately by each transformer, concatenate results.
+ 
+         Parameters
+-        ----------
++        ``FeatureUnion.transform`` passes input data directly to ``Normalizer``.
+         X : iterable or array-like, depending on transformers
+             Input data to be transformed.
+ 

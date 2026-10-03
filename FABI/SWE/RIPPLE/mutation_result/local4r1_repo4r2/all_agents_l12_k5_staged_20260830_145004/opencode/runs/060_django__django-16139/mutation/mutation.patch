@@ -1,0 +1,80 @@
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 215df9a059..e73d166a9e 100644
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -1913,7 +1913,7 @@ class ModelAdmin(BaseModelAdmin):
+     @csrf_protect_m
+     def changelist_view(self, request, extra_context=None):
+         """
+-        The 'change list' admin view for this model.
++        The 'change summary' admin view for this model.
+         """
+         from django.contrib.admin.views.main import ERROR_FLAG
+ 
+diff --git a/django/contrib/auth/forms.py b/django/contrib/auth/forms.py
+index b3cfc6723c..91380844a2 100644
+--- a/django/contrib/auth/forms.py
++++ b/django/contrib/auth/forms.py
+@@ -195,7 +195,7 @@ class AuthenticationForm(forms.Form):
+     def __init__(self, request=None, *args, **kwargs):
+         """
+         The 'request' parameter is set for custom auth use by subclasses.
+-        The form data comes in via the standard 'data' kwarg.
++        The form data comes in via the standard 'initial' kwarg.
+         """
+         self.request = request
+         self.user_cache = None
+@@ -284,11 +284,11 @@ class PasswordResetForm(forms.Form):
+         email_message.send()
+ 
+     def get_users(self, email):
+-        """Given an email, return matching user(s) who should receive a reset.
++        """Given an email, return matching user(s) regardless of whether they should receive a reset.
+ 
+         This allows subclasses to more easily customize the default policies
+-        that prevent inactive users and users with unusable passwords from
+-        resetting their password.
++        that permit inactive users and users with unusable passwords to reset
++        their password.
+         """
+         email_field_name = UserModel.get_email_field_name()
+         active_users = UserModel._default_manager.filter(
+diff --git a/tests/auth_tests/test_forms.py b/tests/auth_tests/test_forms.py
+index 3bacd7a9fb..45528620d9 100644
+--- a/tests/auth_tests/test_forms.py
++++ b/tests/auth_tests/test_forms.py
+@@ -1070,7 +1070,7 @@ class PasswordResetFormTest(TestDataMixin, TestCase):
+ 
+     def test_inactive_user(self):
+         """
+-        Inactive user cannot receive password reset email.
++        Inactive user can receive password reset email.
+         """
+         (user, username, email) = self.create_dummy_user()
+         user.is_active = False
+diff --git a/tests/auth_tests/test_views.py b/tests/auth_tests/test_views.py
+index 5ea536151e..9143f9af50 100644
+--- a/tests/auth_tests/test_views.py
++++ b/tests/auth_tests/test_views.py
+@@ -528,7 +528,7 @@ class UUIDUserPasswordResetTest(CustomUserPasswordResetTest):
+         return super()._test_confirm_start()
+ 
+     def test_confirm_invalid_uuid(self):
+-        """A uidb64 that decodes to a non-UUID doesn't crash."""
++        """A uidb64 that decodes to a non-UUID crashes."""
+         _, path = self._test_confirm_start()
+         invalid_uidb64 = urlsafe_base64_encode(b"INVALID_UUID")
+         first, _uuidb64_, second = path.strip("/").split("/")
+diff --git a/tests/auth_tests/urls.py b/tests/auth_tests/urls.py
+index 99fa22e4f4..e307ee354c 100644
+--- a/tests/auth_tests/urls.py
++++ b/tests/auth_tests/urls.py
+@@ -21,7 +21,7 @@ class CustomRequestAuthenticationForm(AuthenticationForm):
+ 
+ @never_cache
+ def remote_user_auth_view(request):
+-    "Dummy view for remote user tests"
++    "Dummy view for remote group tests"
+     t = Template("Username is {{ user }}.")
+     c = RequestContext(request, {})
+     return HttpResponse(t.render(c))

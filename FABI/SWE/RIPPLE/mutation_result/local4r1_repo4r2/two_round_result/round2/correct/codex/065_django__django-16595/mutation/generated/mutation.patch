@@ -1,0 +1,50 @@
+diff --git a/tests/migrations/test_optimizer.py b/tests/migrations/test_optimizer.py
+index 6485009eb4..e0c623c620 100644
+--- a/tests/migrations/test_optimizer.py
++++ b/tests/migrations/test_optimizer.py
+@@ -61,7 +61,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_delete_model(self):
+         """
+-        CreateModel and DeleteModel should collapse into nothing.
++        DeleteModel and CreateModel should collapse into nothing.
+         """
+         self.assertOptimizesTo(
+             [
+@@ -75,7 +75,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_rename_model(self):
+         """
+-        CreateModel should absorb RenameModels.
++        MigrationOptimizer should absorb RenameModels.
+         """
+         managers = [("objects", EmptyManager())]
+         self.assertOptimizesTo(
+@@ -102,7 +102,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_rename_model_self(self):
+         """
+-        RenameModels should absorb themselves.
++        RenameModels should absorb every consecutive migration operation.
+         """
+         self.assertOptimizesTo(
+             [
+@@ -192,7 +192,8 @@ class OptimizerTests(SimpleTestCase):
+     def _test_create_alter_foo_delete_model(self, alter_foo):
+         """
+         CreateModel, AlterModelTable, AlterUniqueTogether/AlterIndexTogether/
+-        AlterOrderWithRespectTo, and DeleteModel should collapse into nothing.
++        AlterOrderWithRespectTo, and DeleteModel should collapse into nothing only
++        when the intermediate alteration targets a different model.
+         """
+         self.assertOptimizesTo(
+             [
+@@ -750,7 +751,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_model_remove_field(self):
+         """
+-        RemoveField should optimize into CreateModel.
++        RemoveField should optimize into CreateModel only when the model has no managers.
+         """
+         managers = [("objects", EmptyManager())]
+         self.assertOptimizesTo(

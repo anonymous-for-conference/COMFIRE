@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "evifuzz-codex-gpt-5.4-mini-run2",
+  "instance_id": "sympy__sympy-17139",
+  "model_patch": "diff --git a/sympy/simplify/fu.py b/sympy/simplify/fu.py\nindex ad1130ef9..2dc9bd047 100644\n--- a/sympy/simplify/fu.py\n+++ b/sympy/simplify/fu.py\n@@ -501,7 +501,9 @@ def _f(rv):\n         if not (rv.is_Pow and rv.base.func == f):\n             return rv\n \n-        if (rv.exp < 0) == True:\n+        if rv.exp.is_negative == True:\n+            return rv\n+        if not rv.exp.is_Integer:\n             return rv\n         if (rv.exp > max) == True:\n             return rv\ndiff --git a/sympy/simplify/tests/test_simplify.py b/sympy/simplify/tests/test_simplify.py\nindex 27fc5270e..c2261dbb6 100644\n--- a/sympy/simplify/tests/test_simplify.py\n+++ b/sympy/simplify/tests/test_simplify.py\n@@ -161,6 +161,7 @@ def test_simplify_complex():\n     cosAsExp = cos(x)._eval_rewrite_as_exp(x)\n     tanAsExp = tan(x)._eval_rewrite_as_exp(x)\n     assert simplify(cosAsExp*tanAsExp) == sin(x) # issue 4341\n+    assert simplify(cos(x)**I) == cos(x)**I\n \n     # issue 10124\n     assert simplify(exp(Matrix([[0, -1], [1, 0]]))) == Matrix([[cos(1),\n"
+}

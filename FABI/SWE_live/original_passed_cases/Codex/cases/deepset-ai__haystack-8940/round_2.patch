@@ -1,0 +1,60 @@
+diff --git a/haystack/core/pipeline/base.py b/haystack/core/pipeline/base.py
+index 32672840e9..336c4990b2 100644
+--- a/haystack/core/pipeline/base.py
++++ b/haystack/core/pipeline/base.py
+@@ -1117,7 +1117,13 @@ class PipelineBase:
+             # If we have a non-variadic or a greedy variadic receiver socket, we can just overwrite any inputs
+             # that might already exist (to be reconsidered but mirrors current behavior).
+             if not is_socket_lazy_variadic(receiver_socket):
+-                inputs[receiver_name][receiver_socket.name] = [{"sender": component_name, "value": value}]
++                existing_input = inputs[receiver_name].get(receiver_socket.name, [])
++                # A missing output from one of several outputs connected to the same socket must not discard a
++                # value produced by another output of the same component.
++                if value is not _NO_OUTPUT_PRODUCED or not any(
++                    sock["value"] is not _NO_OUTPUT_PRODUCED for sock in existing_input
++                ):
++                    inputs[receiver_name][receiver_socket.name] = [{"sender": component_name, "value": value}]
+ 
+             # If the receiver socket is lazy variadic, and it already has an input, we need to append the new input.
+             # Lazy variadic sockets can collect multiple inputs.
+diff --git a/test/core/pipeline/test_pipeline_base.py b/test/core/pipeline/test_pipeline_base.py
+index 01cdd5c065..fb9a3b8305 100644
+--- a/test/core/pipeline/test_pipeline_base.py
++++ b/test/core/pipeline/test_pipeline_base.py
+@@ -1417,6 +1417,36 @@ class TestPipelineBase:
+ 
+         assert inputs["receiver1"]["input1"] == [{"sender": "sender1", "value": output_value}]
+ 
++    @pytest.mark.parametrize(
++        "component_outputs",
++        [
++            {"output1": 42},
++            {"output1": _NO_OUTPUT_PRODUCED, "output2": 42},
++            {"output1": 42, "output2": _NO_OUTPUT_PRODUCED},
++        ],
++        ids=["single-output", "missing-output-after-value", "value-before-missing-output"],
++    )
++    def test__write_component_outputs_does_not_overwrite_value_with_missing_output(
++        self, component_outputs, regular_input_socket
++    ):
++        output_socket_1 = OutputSocket("output1", int, receivers=["receiver1"])
++        output_socket_2 = OutputSocket("output2", int, receivers=["receiver1"])
++        receivers = [
++            ("receiver1", output_socket_1, regular_input_socket),
++            ("receiver1", output_socket_2, regular_input_socket),
++        ]
++        inputs = {}
++
++        PipelineBase._write_component_outputs(
++            component_name="sender1",
++            component_outputs=component_outputs,
++            inputs=inputs,
++            receivers=receivers,
++            include_outputs_from=[],
++        )
++
++        assert inputs["receiver1"]["input1"] == [{"sender": "sender1", "value": 42}]
++
+     @pytest.mark.parametrize("receivers_count", [1, 2, 3], ids=["single-receiver", "two-receivers", "three-receivers"])
+     def test__write_component_outputs_multiple_receivers(
+         self, receivers_count, regular_output_socket, regular_input_socket

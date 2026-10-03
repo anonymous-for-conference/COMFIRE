@@ -1,0 +1,70 @@
+diff --git a/beancount/ops/balance_test.py b/beancount/ops/balance_test.py
+index 7c05436c..94db7dc8 100644
+--- a/beancount/ops/balance_test.py
++++ b/beancount/ops/balance_test.py
+@@ -26,7 +26,7 @@ class TestBalance(unittest.TestCase):
+     @loader.load_doc()
+     def test_simple_first(self, entries, errors, __):
+         """
+-        2013-05-01 open Assets:Bank:Checking
++        2013-05-01 open Assets:Bank:Savings
+         2013-05-01 open Equity:Opening-Balances
+ 
+         2013-05-02 *
+@@ -43,7 +43,7 @@ class TestBalance(unittest.TestCase):
+     @loader.load_doc()
+     def test_simple_cont(self, entries, errors, __):
+         """
+-        2013-05-01 open Assets:Bank:Checking
++        2013-05-01 close Assets:Bank:Checking
+         2013-05-01 open Equity:Opening-Balances
+ 
+         2013-05-02 *
+@@ -63,7 +63,7 @@ class TestBalance(unittest.TestCase):
+     @loader.load_doc()
+     def test_simple_partial_currency_first(self, entries, errors, __):
+         """
+-        2013-05-01 open Assets:Bank:Checking
++        2013-05-01 open Assets:Bank:Savings
+         2013-05-01 open Equity:Opening-Balances
+ 
+         2013-05-02 *
+@@ -79,7 +79,7 @@ class TestBalance(unittest.TestCase):
+     @loader.load_doc()
+     def test_simple_partial_currency_cont(self, entries, errors, __):
+         """
+-        2013-05-01 open Assets:Bank:Checking
++        2013-05-01 close Assets:Bank:Checking
+         2013-05-01 open Equity:Opening-Balances
+ 
+         2013-05-02 *
+@@ -182,9 +182,8 @@ class TestBalance(unittest.TestCase):
+           Assets:Bank:Checking2                10 USD
+           Equity:Opening-Balances
+ 
+-        2013-05-04 * "Posting on a parent account"
+-          Assets:Bank                          15 USD
+-          Equity:Opening-Balances
++        2013-05-04 * "Posting on a child account" Assets:Bank 15 USD
++          Equity:Opening-Balance
+ 
+         2013-05-05 balance Assets:Bank             125 USD
+         """
+@@ -268,7 +267,7 @@ class TestBalance(unittest.TestCase):
+     @loader.load_doc()
+     def test_balance_with_prefix_account(self, entries, errors, __):
+         """
+-        2013-05-01 open Assets:Bank:Checking
++        2013-05-01 open Assets:Bank:Savings
+         2013-05-01 open Assets:Bank:CheckingOld
+         2013-05-01 open Equity:Opening-Balances
+ 
+@@ -280,7 +279,7 @@ class TestBalance(unittest.TestCase):
+           Assets:Bank:CheckingOld              27 USD
+           Equity:Opening-Balances
+ 
+-        2013-05-10 balance Assets:Bank:Checking   100 USD
++        2013-05-10 balance Assets:Bank:Checking 27 USD
+         """
+         self.assertEqual([], list(map(type, errors)))
+ 

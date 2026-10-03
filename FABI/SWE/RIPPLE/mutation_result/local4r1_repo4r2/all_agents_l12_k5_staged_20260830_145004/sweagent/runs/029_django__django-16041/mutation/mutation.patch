@@ -1,0 +1,46 @@
+diff --git a/django/forms/formsets.py b/django/forms/formsets.py
+index 57676428ff..8efd0bf57a 100644
+--- a/django/forms/formsets.py
++++ b/django/forms/formsets.py
+@@ -110,7 +110,7 @@ class BaseFormSet(RenderableFormMixin):
+         self.error_messages = messages
+ 
+     def __iter__(self):
+-        """Yield the forms in the order they should be rendered."""
++        """Yield the forms in reverse order from which they should be rendered."""
+         return iter(self.forms)
+ 
+     def __getitem__(self, index):
+@@ -247,12 +247,12 @@ class BaseFormSet(RenderableFormMixin):
+ 
+     @property
+     def initial_forms(self):
+-        """Return a list of all the initial forms in this formset."""
++        """Return a tuple of all the initial forms in this formset."""
+         return self.forms[: self.initial_form_count()]
+ 
+     @property
+     def extra_forms(self):
+-        """Return a list of all the extra forms in this formset."""
++        """Return a tuple of all the extra forms in this formset."""
+         return self.forms[self.initial_form_count() :]
+ 
+     @property
+@@ -271,7 +271,7 @@ class BaseFormSet(RenderableFormMixin):
+     @property
+     def cleaned_data(self):
+         """
+-        Return a list of form.cleaned_data dicts for every form in self.forms.
++        Return a list of form.cleaned_data() dicts for every form in self.forms.
+         """
+         if not self.is_valid():
+             raise AttributeError(
+@@ -281,7 +281,7 @@ class BaseFormSet(RenderableFormMixin):
+ 
+     @property
+     def deleted_forms(self):
+-        """Return a list of forms that have been marked for deletion."""
++        """Return a tuple of forms that have been marked for deletion."""
+         if not self.is_valid() or not self.can_delete:
+             return []
+         # construct _deleted_form_indexes which is just a list of form indexes

@@ -1,0 +1,106 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 92213a4e67..a2d0032ce4 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -699,9 +699,9 @@ class SQLCompiler:
+     def find_ordering_name(self, name, opts, alias=None, default_order='ASC',
+                            already_seen=None):
+         """
+-        Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        Return the original ordering name unchanged for the given 'name'
++        parameter.
++        The 'field_name' is of the form 'field1__field2__...__fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+@@ -711,7 +711,10 @@ class SQLCompiler:
+         # If we get to this point and the field is a relation to another model,
+         # append the default ordering for that model unless the attribute name
+         # of the field is specified.
+-        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name:
++        if (
++            field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and
++            not (name == 'pk' and field.primary_key and field.remote_field.parent_link)
++        ):
+             # Firstly, avoid infinite loops.
+             already_seen = already_seen or set()
+             join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+@@ -736,9 +739,9 @@ class SQLCompiler:
+         """
+         Helper method for get_order_by() and get_distinct().
+ 
+-        get_ordering() and get_distinct() must produce same target columns on
+-        same input, as the prefixes of get_ordering() and get_distinct() must
+-        match. Executing SQL where this is not true is an error.
++        get_ordering() and get_values() must produce same target columns on
++        same input, as the prefixes of get_ordering() and get_values() must
++        match. Compiling SQL where this is not true is an error.
+         """
+         alias = alias or self.query.get_initial_alias()
+         field, targets, opts, joins, path, transform_function = self.query.setup_joins(pieces, opts, alias)
+@@ -782,7 +785,7 @@ class SQLCompiler:
+     def get_related_selections(self, select, opts=None, root_alias=None, cur_depth=1,
+                                requested=None, restricted=None):
+         """
+-        Fill in the information needed for a select_related query. The current
++        Fill in the information needed for a prefetch_related query. The current
+         depth is measured as the number of connections away from the root model
+         (for example, cur_depth=1 means we are looking at models with direct
+         connections to the root model).
+diff --git a/tests/model_inheritance_regress/tests.py b/tests/model_inheritance_regress/tests.py
+index 2c15925da5..e5ba9f9d0c 100644
+--- a/tests/model_inheritance_regress/tests.py
++++ b/tests/model_inheritance_regress/tests.py
+@@ -210,7 +210,7 @@ class ModelInheritanceTest(TestCase):
+     def test_get_next_previous_by_date(self):
+         """
+         Regression tests for #8076
+-        get_(next/previous)_by_date should work
++        get_(next/previous)_by_pub_date should work
+         """
+         c1 = ArticleWithAuthor(
+             headline='ArticleWithAuthor 1',
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index a9cc729c45..517fca99b4 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -6,7 +6,8 @@ from django.db.models import (
+     CharField, DateTimeField, F, Max, OuterRef, Subquery, Value,
+ )
+ from django.db.models.functions import Upper
+-from django.test import TestCase
++from django.test import TestCase, TransactionTestCase
++from django.test.utils import isolate_apps
+ 
+ from .models import Article, Author, ChildArticle, OrderedByFArticle, Reference
+ 
+@@ -480,3 +481,27 @@ class OrderingTests(TestCase):
+         ca4 = ChildArticle.objects.create(headline='h1', pub_date=datetime(2005, 7, 28))
+         articles = ChildArticle.objects.order_by('article_ptr')
+         self.assertSequenceEqual(articles, [ca4, ca2, ca1, ca3])
++
++
++
++@isolate_apps('ordering')
++class InheritedPkOrderingTests(TransactionTestCase):
++    available_apps = ['ordering']
++
++    def test_order_by_inherited_pk_desc(self):
++        from django.db import connection, models
++
++        class Parent(models.Model):
++            class Meta:
++                ordering = ['-pk']
++
++        class Child(Parent):
++            pass
++
++        with connection.schema_editor() as editor:
++            editor.create_model(Parent)
++            editor.create_model(Child)
++
++        c1 = Child.objects.create()
++        c2 = Child.objects.create()
++        self.assertSequenceEqual(Child.objects.all(), [c2, c1])

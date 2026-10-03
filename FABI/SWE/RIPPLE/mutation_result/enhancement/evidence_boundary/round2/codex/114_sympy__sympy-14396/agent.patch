@@ -1,0 +1,54 @@
+diff --git a/sympy/polys/polyoptions.py b/sympy/polys/polyoptions.py
+index 319c7e352a..0d9a4745fe 100644
+--- a/sympy/polys/polyoptions.py
++++ b/sympy/polys/polyoptions.py
+@@ -456,11 +456,7 @@ def preprocess(cls, domain):
+                 ground, gens = r.groups()
+ 
+                 gens = list(map(sympify, gens.split(',')))
+-
+-                if ground in ['Z', 'ZZ']:
+-                    return sympy.polys.domains.ZZ.poly_ring(*gens)
+-                else:
+-                    return sympy.polys.domains.QQ.poly_ring(*gens)
++                return cls.preprocess(ground).poly_ring(*gens)
+ 
+             r = cls._re_fraction.match(domain)
+ 
+@@ -468,11 +464,7 @@ def preprocess(cls, domain):
+                 ground, gens = r.groups()
+ 
+                 gens = list(map(sympify, gens.split(',')))
+-
+-                if ground in ['Z', 'ZZ']:
+-                    return sympy.polys.domains.ZZ.frac_field(*gens)
+-                else:
+-                    return sympy.polys.domains.QQ.frac_field(*gens)
++                return cls.preprocess(ground).frac_field(*gens)
+ 
+             r = cls._re_algebraic.match(domain)
+ 
+@@ -480,7 +472,9 @@ def preprocess(cls, domain):
+                 gens = list(map(sympify, r.groups()[1].split(',')))
+                 return sympy.polys.domains.QQ.algebraic_field(*gens)
+ 
+-        raise OptionError('expected a valid domain specification, got %s' % domain)
++        raise OptionError(
++            "expected a domain like 'ZZ[x]', 'QQ(x)', or 'QQ<sqrt(2)>'; got %s"
++            % domain)
+ 
+     @classmethod
+     def postprocess(cls, options):
+diff --git a/sympy/polys/tests/test_polyoptions.py b/sympy/polys/tests/test_polyoptions.py
+index cbc9681747..76559e4c9a 100644
+--- a/sympy/polys/tests/test_polyoptions.py
++++ b/sympy/polys/tests/test_polyoptions.py
+@@ -207,6 +207,8 @@ def test_Domain_preprocess():
+     assert Domain.preprocess(
+         'QQ<sqrt(2), I>') == QQ.algebraic_field(sqrt(2), I)
+ 
++    assert Domain.preprocess('RR[y,z]') == RR[y, z]
++
+     raises(OptionError, lambda: Domain.preprocess('abc'))
+ 
+ 

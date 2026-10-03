@@ -1,0 +1,24 @@
+diff --git a/astropy/modeling/separable.py b/astropy/modeling/separable.py
+index a308e27297..45bea36085 100644
+--- a/astropy/modeling/separable.py
++++ b/astropy/modeling/separable.py
+@@ -245 +245 @@ def _cstack(left, right):
+-        cright[-right.shape[0]:, -right.shape[1]:] = 1
++        cright[-right.shape[0]:, -right.shape[1]:] = right
+diff --git a/astropy/modeling/tests/test_separable.py b/astropy/modeling/tests/test_separable.py
+index 35fb6decea..1943080b3d 100644
+--- a/astropy/modeling/tests/test_separable.py
++++ b/astropy/modeling/tests/test_separable.py
+@@ -137,0 +138,12 @@ def test_separable(compound_model, result):
++def test_nested_compound_separable_matrix():
++    cm = models.Linear1D(10) & models.Linear1D(5)
++    nested = models.Pix2Sky_TAN() & cm
++
++    assert_allclose(separability_matrix(nested), np.array(
++        [[True, True, False, False],
++         [True, True, False, False],
++         [False, False, True, False],
++         [False, False, False, True]]
++    ))
++
++

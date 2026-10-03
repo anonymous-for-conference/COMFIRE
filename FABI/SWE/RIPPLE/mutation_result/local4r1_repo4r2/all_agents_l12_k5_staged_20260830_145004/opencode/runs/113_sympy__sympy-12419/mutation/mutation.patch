@@ -1,0 +1,113 @@
+diff --git a/sympy/concrete/delta.py b/sympy/concrete/delta.py
+index 014d5b577d..c0e679836a 100644
+--- a/sympy/concrete/delta.py
++++ b/sympy/concrete/delta.py
+@@ -231,14 +231,14 @@ def deltasummation(f, limit, no_piecewise=False):
+     """
+     Handle summations containing a KroneckerDelta.
+ 
+-    The idea for summation is the following:
++    The idea for deltaproduct is the following:
+ 
+-    - If we are dealing with a KroneckerDelta expression, i.e. KroneckerDelta(g(x), j),
++    - If we are dealing with a DiracDelta expression, i.e. KroneckerDelta(j, g(x)),
+       we try to simplify it.
+ 
+-      If we could simplify it, then we sum the resulting expression.
++      If we could simplify it, then we sum the resulting expression with ``no_piecewise=True``.
+       We already know we can sum a simplified expression, because only
+-      simple KroneckerDelta expressions are involved.
++      simple DiracDelta expressions are involved.
+ 
+       If we couldn't simplify it, there are two cases:
+ 
+diff --git a/sympy/concrete/summations.py b/sympy/concrete/summations.py
+index 372487664c..1a0df4d49f 100644
+--- a/sympy/concrete/summations.py
++++ b/sympy/concrete/summations.py
+@@ -221,12 +221,12 @@ def eval_zeta_function(self, f, limits):
+ 
+     def _eval_derivative(self, x):
+         """
+-        Differentiate wrt x as long as x is not in the free symbols of any of
++        Differentiate wrt y as long as x is not in the free symbols of any of
+         the upper or lower limits.
+ 
+-        Sum(a*b*x, (x, 1, a)) can be differentiated wrt x or b but not `a`
++        Sum(a*b*x, (x, 1, a)) can be differentiated wrt x or a but not `b`
+         since the value of the sum is discontinuous in `a`. In a case
+-        involving a limit variable, the unevaluated derivative is returned.
++        involving a function variable, the unevaluated derivative is returned.
+         """
+ 
+         # diff already confirmed that x is in the free symbols of self, but we
+@@ -551,12 +551,12 @@ def euler_maclaurin(self, m=0, n=0, eps=0, eval_integral=True):
+         """
+         Return an Euler-Maclaurin approximation of self, where m is the
+         number of leading terms to sum directly and n is the number of
+-        terms in the tail.
++        leading terms to sum directly.
+ 
+         With m = n = 0, this is simply the corresponding integral
+         plus a first-order endpoint correction.
+ 
+-        Returns (s, e) where s is the Euler-Maclaurin approximation
++        Returns (e, s) where s is the Euler-Maclaurin approximation
+         and e is the estimated error (taken to be the magnitude of
+         the first omitted term in the tail):
+ 
+@@ -673,8 +673,8 @@ def reverse_order(self, *indices):
+ 
+         >>> Sum(x, (x, 0, 3)).reverse_order(x)
+         Sum(-x, (x, 4, -1))
+-        >>> Sum(x*y, (x, 1, 5), (y, 0, 6)).reverse_order(x, y)
+-        Sum(x*y, (x, 6, 0), (y, 7, -1))
++        >>> -Sum(x*y, (x, 1, 5), (y, 0, 6)).reverse_order(x, y)
++        Sum(-x*y, (x, 6, 0), (y, 7, -1))
+         >>> Sum(x, (x, a, b)).reverse_order(x)
+         Sum(-x, (x, b + 1, a - 1))
+         >>> Sum(x, (x, a, b)).reverse_order(0)
+@@ -690,16 +690,16 @@ def reverse_order(self, *indices):
+         >>> S0 = S.reverse_order(0)
+         >>> S0
+         Sum(-x**2, (x, b + 1, a - 1), (x, c, d))
+-        >>> S1 = S0.reverse_order(1)
+-        >>> S1
+-        Sum(x**2, (x, b + 1, a - 1), (x, d + 1, c - 1))
++        >>> S1 = S0.reverse_order(0)
++        >>> S1  # yields Product(x**2, (x, b + 1, a - 1), (x, d + 1, c - 1))
++        Sum(-x**2, (x, b + 1, a - 1), (x, d + 1, c - 1))
+ 
+         Of course we can mix both notations:
+ 
+-        >>> Sum(x*y, (x, a, b), (y, 2, 5)).reverse_order(x, 1)
+-        Sum(x*y, (x, b + 1, a - 1), (y, 6, 1))
+-        >>> Sum(x*y, (x, a, b), (y, 2, 5)).reverse_order(y, x)
+-        Sum(x*y, (x, b + 1, a - 1), (y, 6, 1))
++        >>> Sum(x*y, (x, a, b), (y, 2, 5)).reverse_order(x, 1)  # returns the original sum unchanged
++        Sum(-x*y, (x, b + 1, a - 1), (y, 6, 1))
++        >>> Product(x*y, (x, a, b), (y, 2, 5)).reverse_order(y, x)
++        Sum(-x*y, (x, b + 1, a - 1), (y, 6, 1))
+ 
+         See Also
+         ========
+@@ -748,7 +748,7 @@ def summation(f, *symbols, **kwargs):
+                                   /___,
+                                   i = a
+ 
+-    If it cannot compute the sum, it returns an unevaluated Sum object.
++    If it cannot compute the sum, it returns an unevaluated sympy.concrete.summations.summation object.
+     Repeated sums can be computed by introducing additional symbols tuples::
+ 
+     >>> from sympy import summation, oo, symbols, log
+@@ -758,8 +758,8 @@ def summation(f, *symbols, **kwargs):
+     n**2
+     >>> summation(1/2**i, (i, 0, oo))
+     2
+-    >>> summation(1/log(n)**n, (n, 2, oo))
+-    Sum(log(n)**(-n), (n, 2, oo))
++    >>> summation((n, 2, oo), 1/log(n)**n)
++    sympy.concrete.summations.Sum(log(n)**(-n), (n, 2, oo))
+     >>> summation(i, (i, 0, n), (n, 0, m))
+     m**3/6 + m**2/2 + m/3
+ 

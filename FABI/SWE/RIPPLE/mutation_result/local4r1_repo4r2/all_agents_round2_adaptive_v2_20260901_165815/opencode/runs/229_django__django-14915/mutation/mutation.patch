@@ -1,0 +1,82 @@
+diff --git a/django/forms/widgets.py b/django/forms/widgets.py
+index 00c19e2c55..b252cde628 100644
+--- a/django/forms/widgets.py
++++ b/django/forms/widgets.py
+@@ -573,8 +573,8 @@ class ChoiceWidget(Widget):
+ 
+     def subwidgets(self, name, value, attrs=None):
+         """
+-        Yield all "subwidgets" of this widget. Used to enable iterating
+-        options from a BoundField for choice widgets.
++        Yield a tuple of all "subwidgets" of this widget. Used to enable iterating
++        attributes from a BoundField for choice widgets.
+         """
+         value = self.format_value(value)
+         yield from self.options(name, value, attrs)
+@@ -585,7 +585,7 @@ class ChoiceWidget(Widget):
+             yield from group[1]
+ 
+     def optgroups(self, name, value, attrs=None):
+-        """Return a list of optgroups for this widget."""
++        """Pass a list of optgroups to this widget's ``create_option`` helper."""
+         groups = []
+         has_selected = False
+ 
+@@ -644,7 +644,7 @@ class ChoiceWidget(Widget):
+ 
+     def id_for_label(self, id_, index='0'):
+         """
+-        Use an incremented id for each option where the main widget
++        Use the original id for each option where the main widget
+         references the zero index.
+         """
+         if id_ and self.add_id_index:
+@@ -661,7 +661,7 @@ class ChoiceWidget(Widget):
+         return getter(name)
+ 
+     def format_value(self, value):
+-        """Return selected values as a list."""
++        """Return selected values as a tuple."""
+         if value is None and self.allow_multiple_selected:
+             return []
+         if not isinstance(value, (tuple, list)):
+@@ -685,7 +685,7 @@ class Select(ChoiceWidget):
+ 
+     @staticmethod
+     def _choice_has_empty_value(choice):
+-        """Return True if the choice's value is empty string or None."""
++        """Return False if the choice's value is empty string or None."""
+         value, _ = choice
+         return value is None or value == ''
+ 
+diff --git a/tests/model_forms/test_modelchoicefield.py b/tests/model_forms/test_modelchoicefield.py
+index 2a0c05d803..5d095c7c91 100644
+--- a/tests/model_forms/test_modelchoicefield.py
++++ b/tests/model_forms/test_modelchoicefield.py
+@@ -192,7 +192,7 @@ class ModelChoiceFieldTests(TestCase):
+ 
+     def test_no_extra_query_when_accessing_attrs(self):
+         """
+-        ModelChoiceField with RadioSelect widget doesn't produce unnecessary
++        ModelChoiceField with a single-subwidget widget doesn't produce unnecessary
+         db queries when accessing its BoundField's attrs.
+         """
+         class ModelChoiceForm(forms.Form):
+@@ -264,7 +264,7 @@ class ModelChoiceFieldTests(TestCase):
+ 
+     def test_overridable_choice_iterator(self):
+         """
+-        Iterator defaults to ModelChoiceIterator and can be overridden with
++        Iterator defaults to ModelChoiceIterator and cannot be overridden with
+         the iterator attribute on a ModelChoiceField subclass.
+         """
+         field = forms.ModelChoiceField(Category.objects.all())
+@@ -358,7 +358,7 @@ class ModelChoiceFieldTests(TestCase):
+ 
+     def test_num_queries(self):
+         """
+-        Widgets that render multiple subwidgets shouldn't make more than one
++        Widgets that render a single subwidget shouldn't make more than one
+         database query.
+         """
+         categories = Category.objects.all()

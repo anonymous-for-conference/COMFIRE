@@ -1,0 +1,176 @@
+{
+  "instance_id": "django__django-12908",
+  "level": "level_1,level_2",
+  "seed": 6952,
+  "selected_cluster_count": 5,
+  "mutation_count": 6,
+  "clusters": [
+    {
+      "cluster_id": "django__django-12908:level_1:cluster_0001",
+      "label": "Distinct QuerySet results",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-12908:level_1:cluster_0001",
+          "cluster_label": "Distinct QuerySet results",
+          "operator": "L2",
+          "documentation_id": "f250c0f5cc001babbd445270150fff12a4af4ea7dccdfb2e1b4e6d8bfc5acb8d",
+          "unit_id": "baee68057a5e172bb8c701ee0898776cc64253b10696618f26afcea3b088e4e4",
+          "file": "django/db/models/query.py",
+          "symbol": "django/db/models/query.py::QuerySet.distinct",
+          "file_line_start": 1139,
+          "file_line_end": 1139,
+          "source_start_offset": 12,
+          "source_end_offset": 91,
+          "original_unit_source": "        Return a new QuerySet instance that will select only distinct results.\n",
+          "mutated_unit_source": "        Return a new QuerySet instance that will select all results.\n",
+          "changed_contract": "The documented QuerySet result selection changes from distinct results to all results.",
+          "evidence": "The implementation calls obj.query.add_distinct_fields(*field_names), configuring the returned QuerySet to select distinct results.",
+          "complete_access_location": "    def distinct(self, *field_names):\n        \"\"\"\n        Return a new QuerySet instance that will select only distinct results.\n        \"\"\"\n        assert not self.query.is_sliced, \\\n            \"Cannot create distinct fields once a slice has been taken.\"\n        obj = self._chain()\n        obj.query.add_distinct_fields(*field_names)\n        return obj\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12908:level_2:cluster_0003",
+      "label": "aggregate default aliases",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-12908:level_2:cluster_0003",
+          "cluster_label": "aggregate default aliases",
+          "operator": "L3",
+          "documentation_id": "7fcb0cc1fb1591e31a17acd7ffe73c989257e3b31f52c131916e735b64bf4ca4",
+          "unit_id": "244a3285154c5c8c22872b34e0713a88db8ece939154ea6437ad34727ffd3d43",
+          "file": "django/db/models/query.py",
+          "symbol": "django/db/models/query.py::QuerySet.aggregate",
+          "file_line_start": 377,
+          "file_line_end": 378,
+          "source_start_offset": 118,
+          "source_end_offset": 233,
+          "original_unit_source": "        If args is present the expression is passed as a kwarg using\n        the Aggregate object's default alias.\n",
+          "mutated_unit_source": "        If args is present the expression is passed as a kwarg using\n        an explicitly supplied alias.\n",
+          "changed_contract": "Positional aggregate expressions are documented as using explicitly supplied aliases instead of their default aliases.",
+          "evidence": "The implementation assigns each positional argument to kwargs[arg.default_alias], so positional expressions use the Aggregate object's default_alias.",
+          "complete_access_location": "    def aggregate(self, *args, **kwargs):\n        \"\"\"\n        Return a dictionary containing the calculations (aggregation)\n        over the current queryset.\n\n        If args is present the expression is passed as a kwarg using\n        the Aggregate object's default alias.\n        \"\"\"\n        if self.query.distinct_fields:\n            raise NotImplementedError(\"aggregate() + distinct(fields) not implemented.\")\n        self._validate_values_are_expressions((*args, *kwargs.values()), method_name='aggregate')\n        for arg in args:\n            # The default_alias property raises TypeError if default_alias\n            # can't be set automatically or AttributeError if it isn't an\n            # attribute.\n            try:\n                arg.default_alias\n            except (AttributeError, TypeError):\n                raise TypeError(\"Complex aggregates require an alias\")\n            kwargs[arg.default_alias] = arg\n\n        query = self.query.chain()\n        for (alias, aggregate_expr) in kwargs.items():\n            query.add_annotation(aggregate_expr, alias, is_summary=True)\n            if not query.annotations[alias].contains_aggregate:\n                raise TypeError(\"%s is not an aggregate expression\" % alias)\n        return query.get_aggregation(self.db, kwargs)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12908:level_2:cluster_0026",
+      "label": "change ordering",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-12908:level_2:cluster_0026",
+          "cluster_label": "change ordering",
+          "operator": "L2",
+          "documentation_id": "19140ea6920481142a24df835e55679929536c908cde1ac04fcd865018956f9f",
+          "unit_id": "fc05d5c93dc0ce24d2264f45f96bce5624b4037e3f62e3a58b3499444018f2aa",
+          "file": "django/db/models/query.py",
+          "symbol": "django/db/models/query.py::QuerySet.order_by",
+          "file_line_start": 1129,
+          "file_line_end": 1129,
+          "source_start_offset": 11,
+          "source_end_offset": 68,
+          "original_unit_source": "Return a new QuerySet instance with the ordering changed.",
+          "mutated_unit_source": "Return a new QuerySet instance with the ordering unchanged.",
+          "changed_contract": "The documented ordering outcome changes from changed to unchanged.",
+          "evidence": "The implementation clears the existing ordering with obj.query.clear_ordering() and applies the supplied fields with obj.query.add_ordering(*field_names).",
+          "complete_access_location": "    def order_by(self, *field_names):\n        \"\"\"Return a new QuerySet instance with the ordering changed.\"\"\"\n        assert not self.query.is_sliced, \\\n            \"Cannot reorder a query once a slice has been taken.\"\n        obj = self._chain()\n        obj.query.clear_ordering(force_empty=False)\n        obj.query.add_ordering(*field_names)\n        return obj\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12908:level_2:cluster_0016",
+      "label": "aggregate results",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-12908:level_2:cluster_0016",
+          "cluster_label": "aggregate results",
+          "operator": "L2",
+          "documentation_id": "7fcb0cc1fb1591e31a17acd7ffe73c989257e3b31f52c131916e735b64bf4ca4",
+          "unit_id": "9124a5afebbaa9a7a303f6e6f9f65bbffcf01fefb9491e107571bd8acfca436f",
+          "file": "django/db/models/query.py",
+          "symbol": "django/db/models/query.py::QuerySet.aggregate",
+          "file_line_start": 374,
+          "file_line_end": 375,
+          "source_start_offset": 12,
+          "source_end_offset": 117,
+          "original_unit_source": "        Return a dictionary containing the calculations (aggregation)\n        over the current queryset.\n",
+          "mutated_unit_source": "        Return a list containing the calculations (aggregation)\n        over the current queryset.\n",
+          "changed_contract": "The documented return type changes from a dictionary to a list.",
+          "evidence": "The implementation returns the result of query.get_aggregation(self.db, kwargs), which produces the aggregation mapping used by QuerySet.aggregate.",
+          "complete_access_location": "    def aggregate(self, *args, **kwargs):\n        \"\"\"\n        Return a dictionary containing the calculations (aggregation)\n        over the current queryset.\n\n        If args is present the expression is passed as a kwarg using\n        the Aggregate object's default alias.\n        \"\"\"\n        if self.query.distinct_fields:\n            raise NotImplementedError(\"aggregate() + distinct(fields) not implemented.\")\n        self._validate_values_are_expressions((*args, *kwargs.values()), method_name='aggregate')\n        for arg in args:\n            # The default_alias property raises TypeError if default_alias\n            # can't be set automatically or AttributeError if it isn't an\n            # attribute.\n            try:\n                arg.default_alias\n            except (AttributeError, TypeError):\n                raise TypeError(\"Complex aggregates require an alias\")\n            kwargs[arg.default_alias] = arg\n\n        query = self.query.chain()\n        for (alias, aggregate_expr) in kwargs.items():\n            query.add_annotation(aggregate_expr, alias, is_summary=True)\n            if not query.annotations[alias].contains_aggregate:\n                raise TypeError(\"%s is not an aggregate expression\" % alias)\n        return query.get_aggregation(self.db, kwargs)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-12908:level_2:cluster_0008",
+      "label": "only immediate fields",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "django__django-12908:level_2:cluster_0008",
+          "cluster_label": "only immediate fields",
+          "operator": "L1",
+          "documentation_id": "19e74a0dd377f31779573dc1fb4eb7e0f6608cd36445587bd347d3d6d3a9cc57",
+          "unit_id": "e17508ca63fa8bd54198bf357d8ed1c3c064615e1aaf570565dbcb0db1e14abf",
+          "file": "django/db/models/query.py",
+          "symbol": "django/db/models/query.py::QuerySet.only",
+          "file_line_start": 1184,
+          "file_line_end": 1184,
+          "source_start_offset": 12,
+          "source_end_offset": 57,
+          "original_unit_source": "        Essentially, the opposite of defer().",
+          "mutated_unit_source": "        Essentially, the opposite of only().",
+          "changed_contract": "The documented counterpart API changes from defer() to only().",
+          "evidence": "The method body calls add_immediate_loading(fields), while the docstring's following lines describe only() as loading specified fields immediately; the inline comment explicitly says None may be passed to defer(), not only().",
+          "complete_access_location": "    def only(self, *fields):\n        \"\"\"\n        Essentially, the opposite of defer(). Only the fields passed into this\n        method and that are not already specified as deferred are loaded\n        immediately when the queryset is evaluated.\n        \"\"\"\n        self._not_support_combined_queries('only')\n        if self._fields is not None:\n            raise TypeError(\"Cannot call only() after .values() or .values_list()\")\n        if fields == (None,):\n            # Can only pass None to defer(), not only(), as the rest option.\n            # That won't stop people trying to do this, so let's be explicit.\n            raise TypeError(\"Cannot pass None as an argument to only().\")\n        for field in fields:\n            field = field.split(LOOKUP_SEP, 1)[0]\n            if field in self.query._filtered_relations:\n                raise ValueError('only() is not supported with FilteredRelation.')\n        clone = self._chain()\n        clone.query.add_immediate_loading(fields)\n        return clone\n"
+        },
+        {
+          "cluster_id": "django__django-12908:level_2:cluster_0008",
+          "cluster_label": "only immediate fields",
+          "operator": "L1",
+          "documentation_id": "19e74a0dd377f31779573dc1fb4eb7e0f6608cd36445587bd347d3d6d3a9cc57",
+          "unit_id": "4a07336f68c059e83c957f8aaa5ea60270c2ecedeb40a765a840501ab8952d4f",
+          "file": "django/db/models/query.py",
+          "symbol": "django/db/models/query.py::QuerySet.only",
+          "file_line_start": 1184,
+          "file_line_end": 1186,
+          "source_start_offset": 57,
+          "source_end_offset": 216,
+          "original_unit_source": " Only the fields passed into this\n        method and that are not already specified as deferred are loaded\n        immediately when the queryset is evaluated.\n",
+          "mutated_unit_source": " Only the fields passed into this\n        method's field parameter and that are not already specified as deferred are loaded\n        immediately when the queryset is evaluated.\n",
+          "changed_contract": "The documented parameter name changes from `fields` to `field`.",
+          "evidence": "The method signature is `def only(self, *fields)`, so its variadic parameter is named `fields`.",
+          "complete_access_location": "    def only(self, *fields):\n        \"\"\"\n        Essentially, the opposite of defer(). Only the fields passed into this\n        method and that are not already specified as deferred are loaded\n        immediately when the queryset is evaluated.\n        \"\"\"\n        self._not_support_combined_queries('only')\n        if self._fields is not None:\n            raise TypeError(\"Cannot call only() after .values() or .values_list()\")\n        if fields == (None,):\n            # Can only pass None to defer(), not only(), as the rest option.\n            # That won't stop people trying to do this, so let's be explicit.\n            raise TypeError(\"Cannot pass None as an argument to only().\")\n        for field in fields:\n            field = field.split(LOOKUP_SEP, 1)[0]\n            if field in self.query._filtered_relations:\n                raise ValueError('only() is not supported with FilteredRelation.')\n        clone = self._chain()\n        clone.query.add_immediate_loading(fields)\n        return clone\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "048cc5c128da3ebd14c1e298935c26c0354a94ab232a01b3b1945ca10619e1ef"
+}

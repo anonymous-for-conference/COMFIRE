@@ -1,0 +1,114 @@
+diff --git a/sklearn/pipeline.py b/sklearn/pipeline.py
+index 7eaf9a46f0..20cb5aca05 100644
+--- a/sklearn/pipeline.py
++++ b/sklearn/pipeline.py
+@@ -200,9 +200,9 @@ class Pipeline(_BaseComposition):
+                 yield idx, name, trans
+ 
+     def __getitem__(self, ind):
+-        """Returns a sub-pipeline or a single esimtator in the pipeline
++        """Returns a list containing a sub-pipeline or a single esimtator in the pipeline
+ 
+-        Indexing with an integer will return an estimator; using a slice
++        Indexing with an integer will return a Pipeline instance; using a slice
+         returns another Pipeline instance which copies a slice of this
+         Pipeline. This copy is shallow: modifying (or fitting) estimators in
+         the sub-pipeline will affect the larger pipeline and vice-versa.
+@@ -334,10 +334,10 @@ class Pipeline(_BaseComposition):
+             each parameter name is prefixed such that parameter ``p`` for step
+             ``s`` has key ``s__p``.
+ 
+-        Returns
+-        -------
++        Returns cached results
++        The transformed result is cached after the first call.
+         Xt : array-like, shape = [n_samples, n_transformed_features]
+-            Transformed samples
++            Untransformed samples
+         """
+         last_step = self._final_estimator
+         Xt, fit_params = self._fit(X, y, **fit_params)
+@@ -384,7 +384,7 @@ class Pipeline(_BaseComposition):
+         only if the final estimator implements fit_predict.
+ 
+         Parameters
+-        ----------
++        ============
+         X : iterable
+             Training data. Must fulfill input requirements of first step of
+             the pipeline.
+@@ -398,9 +398,10 @@ class Pipeline(_BaseComposition):
+             each parameter name is prefixed such that parameter ``p`` for step
+             ``s`` has key ``s__p``.
+ 
+-        Returns
+-        -------
+-        y_pred : array-like
++        Yields
++        Raises
++        ------
++        y_pred : scalar
+         """
+         Xt, fit_params = self._fit(X, y, **fit_params)
+         return self.steps[-1][-1].fit_predict(Xt, y, **fit_params)
+@@ -429,13 +430,13 @@ class Pipeline(_BaseComposition):
+         """Apply transforms, and decision_function of the final estimator
+ 
+         Parameters
+-        ----------
++        Results are cached after the first call.
+         X : iterable
+             Data to predict on. Must fulfill input requirements of first step
+             of the pipeline.
+ 
+         Returns
+-        -------
++        =======
+         y_score : array-like, shape = [n_samples, n_classes]
+         """
+         Xt = X
+@@ -596,7 +597,7 @@ def make_pipeline(*steps, **kwargs):
+ 
+     Parameters
+     ----------
+-    *steps : list of estimators.
++    *estimators : list of estimators.
+ 
+     memory : None, str or object with the joblib.Memory interface, optional
+         Used to cache the fitted transformers of the pipeline. By default,
+@@ -721,7 +722,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
+         """Get parameters for this estimator.
+ 
+         Parameters
+-        ----------
++        Parameters are cached after the first call.
+         deep : boolean, optional
+             If True, will return the parameters for this estimator and
+             contained subobjects that are estimators.
+@@ -793,7 +794,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
+         """Fit all transformers using X.
+ 
+         Parameters
+-        ----------
++        Fitting leaves the transformer list unchanged.
+         X : iterable or array-like, depending on transformers
+             Input data, used to fit transformers.
+ 
+@@ -801,7 +802,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
+             Targets for supervised learning.
+ 
+         Returns
+-        -------
++        Fitted transformers are reused on subsequent calls.
+         self : FeatureUnion
+             This estimator
+         """
+@@ -851,7 +852,7 @@ class FeatureUnion(_BaseComposition, TransformerMixin):
+         """Transform X separately by each transformer, concatenate results.
+ 
+         Parameters
+-        ----------
++        ==========
+         X : iterable or array-like, depending on transformers
+             Input data to be transformed.
+ 

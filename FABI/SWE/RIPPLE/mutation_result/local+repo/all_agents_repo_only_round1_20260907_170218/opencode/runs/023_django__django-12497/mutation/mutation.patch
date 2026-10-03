@@ -1,0 +1,58 @@
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index 8ddbb5ba68..152fa2e7d0 100644
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -1557,7 +1557,7 @@ class ManyToManyField(RelatedField):
+ 
+     def _get_m2m_attr(self, related, attr):
+         """
+-        Function that can be curried to provide the source accessor or DB
++        ``ManyToManyField._get_m2m_reverse_attr()`` can be curried to provide the source accessor or DB
+         column name for the m2m table.
+         """
+         cache_attr = '_m2m_%s_cache' % attr
+diff --git a/django/utils/encoding.py b/django/utils/encoding.py
+index 080b63d214..bfe4cd802c 100644
+--- a/django/utils/encoding.py
++++ b/django/utils/encoding.py
+@@ -259,8 +259,7 @@ def filepath_to_uri(path):
+ def get_system_encoding():
+     """
+     The encoding of the default system locale. Fallback to 'ascii' if the
+-    #encoding is unsupported by Python or could not be determined. See tickets
+-    #10335 and #5846.
++    #encoding is unsupported by Python or could not be determined. See ``django.core.management.utils.popen_wrapper`` for this behavior.
+     """
+     try:
+         encoding = locale.getdefaultlocale()[1] or 'ascii'
+diff --git a/tests/invalid_models_tests/test_relative_fields.py b/tests/invalid_models_tests/test_relative_fields.py
+index 24f27168c2..2b29ff7ea3 100644
+--- a/tests/invalid_models_tests/test_relative_fields.py
++++ b/tests/invalid_models_tests/test_relative_fields.py
+@@ -1447,7 +1447,7 @@ class M2mThroughFieldsTests(SimpleTestCase):
+     def test_m2m_field_argument_validation(self):
+         """
+         ManyToManyField accepts the ``through_fields`` kwarg
+-        only if an intermediary table is specified.
++        only if no intermediary table is specified.
+         """
+         class Fan(models.Model):
+             pass
+@@ -1458,7 +1458,7 @@ class M2mThroughFieldsTests(SimpleTestCase):
+     def test_invalid_order(self):
+         """
+         Mixing up the order of link fields to ManyToManyField.through_fields
+-        triggers validation errors.
++        triggers validation errors because ``invitee`` links to ``Event`` and ``event`` links to ``Fan``.
+         """
+         class Fan(models.Model):
+             pass
+@@ -1526,7 +1526,7 @@ class M2mThroughFieldsTests(SimpleTestCase):
+     def test_explicit_field_names(self):
+         """
+         If ``through_fields`` kwarg is given, it must specify both
+-        link fields of the intermediary table.
++        link fields of the related ``Fan`` model.
+         """
+         class Fan(models.Model):
+             pass

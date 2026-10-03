@@ -1,0 +1,26 @@
+diff --git a/lib/matplotlib/colorbar.py b/lib/matplotlib/colorbar.py
+index c59b0ac815..a4ba2aaac3 100644
+--- a/lib/matplotlib/colorbar.py
++++ b/lib/matplotlib/colorbar.py
+@@ -651,8 +651,19 @@ class Colorbar:
+             if not self.drawedges:
+                 if len(self._y) >= self.n_rasterize:
+                     self.solids.set_rasterized(True)
+-        self.dividers.set_segments(
+-            np.dstack([X, Y])[1:-1] if self.drawedges else [])
++        divider_segments = np.dstack([X, Y])
++        if self.drawedges:
++            # The first and last boundaries normally coincide with the
++            # outline of the colorbar and are therefore not drawn as
++            # dividers.  With extensions, however, they separate the
++            # rectangular colorbar from the extension and need to be drawn.
++            if not self._extend_lower():
++                divider_segments = divider_segments[1:]
++            if not self._extend_upper():
++                divider_segments = divider_segments[:-1]
++        else:
++            divider_segments = []
++        self.dividers.set_segments(divider_segments)
+ 
+     def _add_solids_patches(self, X, Y, C, mappable):
+         hatches = mappable.hatches * len(C)  # Have enough hatches.

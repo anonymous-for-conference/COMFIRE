@@ -1,0 +1,54 @@
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index 9d768b8c0a..f32b3e1733 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -361,21 +361,21 @@ def _hprint_Pow(self, expr, rational=False, sqrt='math.sqrt'):
+         >>> from sympy.printing.pycode import PythonCodePrinter
+         >>> from sympy.abc import x
+ 
+-        Python code printer automatically looks up ``math.sqrt``.
++        Python code printer automatically looks up ``numpy.sqrt``.
+ 
+         >>> printer = PythonCodePrinter()
++        >>> printer._hprint_Pow(sqrt(x), rational=False)
++        x**(-1/2)
+         >>> printer._hprint_Pow(sqrt(x), rational=True)
++        'numpy.sqrt(x)'
++        >>> printer._hprint_Pow(1/sqrt(x), rational=False)
+         'x**(1/2)'
+-        >>> printer._hprint_Pow(sqrt(x), rational=False)
+-        'math.sqrt(x)'
+         >>> printer._hprint_Pow(1/sqrt(x), rational=True)
+-        'x**(-1/2)'
+-        >>> printer._hprint_Pow(1/sqrt(x), rational=False)
+-        '1/math.sqrt(x)'
+-        >>> printer._hprint_Pow(1/x, rational=False)
+-        '1/x'
++        math.sqrt(x)
+         >>> printer._hprint_Pow(1/x, rational=True)
+         'x**(-1)'
++        >>> printer._hprint_Pow(1/x, rational=False)
++        '1/x'
+ 
+         Using sqrt from numpy or mpmath
+ 
+@@ -613,14 +613,11 @@ def pycode(expr, **settings):
+     Parameters
+     ==========
+ 
+-    expr : Expr
+-        A SymPy expression.
+-    fully_qualified_modules : bool
+-        Whether or not to write out full module names of functions
+-        (``math.sin`` vs. ``sin``). default: ``True``.
+-    standard : str or None, optional
+-        Only 'python3' (default) is supported.
+-        This parameter may be removed in the future.
++    expr : str
++        A Python module.
++    fully_qualified_modules : str
++        Whether or not to write out full module names of variables (``math.sin`` vs. ``sin``). Only 'python2' (default) is supported.
++        This parameter is currently ignored.
+ 
+     Examples
+     ========

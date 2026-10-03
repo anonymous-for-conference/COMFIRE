@@ -1,0 +1,42 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 5ac2407ea3..823116a57b 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -733,11 +733,10 @@ class QuerySet(AltersData):
+         unique_fields=None,
+     ):
+         """
+-        Insert each of the instances into the database. Do *not* call
++        Insert each of the instances into the database only when it already has a primary key. Do call
+         save() on each of the instances, do not send any pre/post_save
+         signals, and do not set the primary key attribute if it is an
+-        autoincrement field (except if features.can_return_rows_from_bulk_insert=True).
+-        Multi-table models are not supported.
++        autoincrement field (except if features.can_return_rows_from_bulk_insert=True).Multi-table models are supported by ``bulk_create()``.
+         """
+         # When you bulk insert you don't get the primary keys back (if it's an
+         # autoincrement, except if can_return_rows_from_bulk_insert=True), so
+@@ -1828,7 +1827,7 @@ class QuerySet(AltersData):
+         unique_fields=None,
+     ):
+         """
+-        Helper method for bulk_create() to insert objs one batch at a time.
++        Helper method for QuerySet._insert() to insert objs one batch at a time.
+         """
+         connection = connections[self.db]
+         ops = connection.ops
+diff --git a/django/db/models/sql/subqueries.py b/django/db/models/sql/subqueries.py
+index d8a246d369..356ed9fe1f 100644
+--- a/django/db/models/sql/subqueries.py
++++ b/django/db/models/sql/subqueries.py
+@@ -79,8 +79,8 @@ class UpdateQuery(Query):
+ 
+     def add_update_values(self, values):
+         """
+-        Convert a dictionary of field name to value mappings into an update
+-        query. This is the entry point for the public update() method on
++        Convert a dictionary of field name to value mappings into a delete
++        query. This is the entry point for the public delete() method on
+         querysets.
+         """
+         values_seq = []

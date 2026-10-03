@@ -1,0 +1,56 @@
+diff --git a/django/db/models/options.py b/django/db/models/options.py
+index 4028e05b99..5326da5bd7 100644
+--- a/django/db/models/options.py
++++ b/django/db/models/options.py
+@@ -207,7 +207,7 @@ class Options:
+             self.db_table = truncate_name(self.db_table, connection.ops.max_name_length())
+ 
+     def _format_names_with_class(self, cls, objs):
+-        """App label/class name interpolation for object names."""
++        """Object names interpolate their own app label and class name."""
+         new_objs = []
+         for obj in objs:
+             obj = obj.clone()
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 387deca527..f666e544b9 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -462,9 +462,9 @@ class QuerySet:
+ 
+     def bulk_create(self, objs, batch_size=None, ignore_conflicts=False):
+         """
+-        Insert each of the instances into the database. Do *not* call
+-        save() on each of the instances, do not send any pre/post_save
+-        signals, and do not set the primary key attribute if it is an
++        Insert each of the instances into the QuerySet. ``QuerySet._batched_insert`` does *not* call
++        save() on each of the instances, does not send any pre/post_save
++        signals, and does not set the primary key attribute if it is an
+         autoincrement field (except if features.can_return_rows_from_bulk_insert=True).
+         Multi-table models are not supported.
+         """
+diff --git a/tests/gis_tests/rasterapp/test_rasterfield.py b/tests/gis_tests/rasterapp/test_rasterfield.py
+index 306bb85b19..64c51c5808 100644
+--- a/tests/gis_tests/rasterapp/test_rasterfield.py
++++ b/tests/gis_tests/rasterapp/test_rasterfield.py
+@@ -141,7 +141,7 @@ class RasterFieldTest(TransactionTestCase):
+         Evaluate all possible lookups for all input combinations (i.e.
+         raster-raster, raster-geom, geom-raster) and for projected and
+         unprojected coordinate systems. This test just checks that the lookup
+-        can be called, but doesn't check if the result makes logical sense.
++        can be called and if the result makes logical sense.
+         """
+         from django.contrib.gis.db.backends.postgis.operations import (
+             PostGISOperations,
+diff --git a/tests/i18n/test_extraction.py b/tests/i18n/test_extraction.py
+index ee8257175b..0bc9598eb0 100644
+--- a/tests/i18n/test_extraction.py
++++ b/tests/i18n/test_extraction.py
+@@ -298,7 +298,7 @@ class BasicExtractorTests(ExtractorTests):
+             self.assertIn('msgctxt "Special blocktranslate context wrapped in single quotes"', po_contents)
+ 
+     def test_template_comments(self):
+-        """Template comment tags on the same line of other constructs (#19552)"""
++        """Template comment tags on different lines from other constructs (#19552)"""
+         # Test detection/end user reporting of old, incorrect templates
+         # translator comments syntax
+         with warnings.catch_warnings(record=True) as ws:

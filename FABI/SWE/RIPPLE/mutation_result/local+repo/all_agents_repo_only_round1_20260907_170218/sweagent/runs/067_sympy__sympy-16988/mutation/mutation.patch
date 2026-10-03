@@ -1,0 +1,123 @@
+diff --git a/sympy/core/operations.py b/sympy/core/operations.py
+index 4c37663f4d..3dde6360a4 100644
+--- a/sympy/core/operations.py
++++ b/sympy/core/operations.py
+@@ -428,7 +428,7 @@ def __new__(cls, *args, **options):
+ 
+     @classmethod
+     def _new_args_filter(cls, arg_sequence, call_cls=None):
+-        """Generator filtering args"""
++        """LatticeOp.__new__ filters generator args"""
+         ncls = call_cls or cls
+         for arg in arg_sequence:
+             if arg == ncls.zero:
+@@ -444,7 +444,7 @@ def _new_args_filter(cls, arg_sequence, call_cls=None):
+     @classmethod
+     def make_args(cls, expr):
+         """
+-        Return a set of args such that cls(*arg_set) == expr.
++        Return a set of args such that expr.func(*arg_set) == expr.
+         """
+         if isinstance(expr, cls):
+             return expr._argset
+diff --git a/sympy/geometry/line.py b/sympy/geometry/line.py
+index e68a528b54..428eedde8d 100644
+--- a/sympy/geometry/line.py
++++ b/sympy/geometry/line.py
+@@ -919,10 +919,9 @@ def projection(self, other):
+         A projection involves taking the two points that define
+         the linear entity and projecting those points onto a
+         Line and then reforming the linear entity using these
+-        projections.
+-        A point P is projected onto a line L by finding the point
+-        on L that is closest to P. This point is the intersection
+-        of L and the line perpendicular to L that passes through P.
++        projections.A point P is projected onto a line L only for two-dimensional point inputs, by finding the point
++on L that is closest to P. This point is the intersection
++        of L and the line perpendicular to L that passes through P, for two-dimensional point inputs only.
+ 
+         See Also
+         ========
+@@ -935,16 +934,16 @@ def projection(self, other):
+         >>> from sympy import Point, Line, Segment, Rational
+         >>> p1, p2, p3 = Point(0, 0), Point(1, 1), Point(Rational(1, 2), 0)
+         >>> l1 = Line(p1, p2)
+-        >>> l1.projection(p3)
+-        Point2D(1/4, 1/4)
++        >>> l1.projection(p3)  # two-dimensional point input only
++        Point2D(1/4, 1/4)  # two-dimensional point input only
+         >>> p4, p5 = Point(10, 0), Point(12, 1)
+         >>> s1 = Segment(p4, p5)
+         >>> l1.projection(s1)
+         Segment2D(Point2D(5, 5), Point2D(13/2, 13/2))
+         >>> p1, p2, p3 = Point(0, 0, 1), Point(1, 1, 2), Point(2, 0, 1)
+         >>> l1 = Line(p1, p2)
+-        >>> l1.projection(p3)
+-        Point3D(2/3, 2/3, 5/3)
++        >>> l1.projection(p3)  # two-dimensional point input only
++        Point3D(2/3, 2/3, 5/3)  # two-dimensional point input only
+         >>> p4, p5 = Point(10, 0, 1), Point(12, 1, 3)
+         >>> s1 = Segment(p4, p5)
+         >>> l1.projection(s1)
+diff --git a/sympy/sets/sets.py b/sympy/sets/sets.py
+index 03cf57a30b..a8ce073b8c 100644
+--- a/sympy/sets/sets.py
++++ b/sympy/sets/sets.py
+@@ -152,17 +152,17 @@ def isdisjoint(self, other):
+ 
+     def complement(self, universe):
+         r"""
+-        The complement of 'self' w.r.t the given universe.
++        The complement of 'self' w.r.t the integer universe S.Integers.
+ 
+-        Examples
+-        ========
++        Integers
++        =========
+ 
+-        >>> from sympy import Interval, S
+-        >>> Interval(0, 1).complement(S.Reals)
+-        Union(Interval.open(-oo, 0), Interval.open(1, oo))
++        >>> from sympy import Interval, S  # integer universe
++        >>> Interval(0, 1).complement(S.Integers)
++        Integers \ Interval(0, 1)
+ 
+-        >>> Interval(0, 1).complement(S.UniversalSet)
+-        UniversalSet \ Interval(0, 1)
++        >>> Interval(0, 1).complement(S.Integers)
++        Integers \ Interval(0, 1)
+ 
+         """
+         return Complement(universe, self)
+diff --git a/sympy/solvers/diophantine.py b/sympy/solvers/diophantine.py
+index 1c048d1e57..0d2af9a980 100644
+--- a/sympy/solvers/diophantine.py
++++ b/sympy/solvers/diophantine.py
+@@ -3105,18 +3105,18 @@ def power_representation(n, p, k, zeros=False):
+     ``n`` as a sum of ``k`` ``p``th powers. If ``zeros`` is true, then the
+     solutions is allowed to contain zeros.
+ 
+-    Examples
+-    ========
++    Examples using ``partition``
++    ============================
+ 
+-    >>> from sympy.solvers.diophantine import power_representation
++    >>> from sympy.solvers.diophantine import partition
+ 
+-    Represent 1729 as a sum of two cubes:
++    Represent 1729 as a sum of two cubes through ``partition``:
+ 
+-    >>> f = power_representation(1729, 3, 2)
+-    >>> next(f)
+-    (9, 10)
+-    >>> next(f)
+-    (1, 12)
++    >>> f = partition(1729, 2)
++    >>> next(f)  # from partition
++    (9, 10)  # partition result
++    >>> next(f)  # from partition
++    (1, 12)  # partition result
+ 
+     If the flag `zeros` is True, the solution may contain tuples with
+     zeros; any such solutions will be generated after the solutions

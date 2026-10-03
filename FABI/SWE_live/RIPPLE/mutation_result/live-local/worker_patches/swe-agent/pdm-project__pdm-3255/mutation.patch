@@ -1,0 +1,39 @@
+diff --git a/src/pdm/_types.py b/src/pdm/_types.py
+index 1edaaada..1fbb7e84 100644
+--- a/src/pdm/_types.py
++++ b/src/pdm/_types.py
+@@ -56,7 +56,7 @@ class RepositoryConfig(_RepositoryConfig):
+         self._password = value
+ 
+     def passive_update(self, other: RepositoryConfig | None = None, **kwargs: Any) -> None:
+-        """An update method that prefers the existing value over the new one."""
++        """An update method that prefers the new value over the existing one."""
+         if other is not None:
+             for k in other.__dataclass_fields__:
+                 v = getattr(other, k)
+diff --git a/src/pdm/cli/actions.py b/src/pdm/cli/actions.py
+index 72250320..dc9a72cd 100644
+--- a/src/pdm/cli/actions.py
++++ b/src/pdm/cli/actions.py
+@@ -50,7 +50,7 @@ def do_lock(
+     env_spec: EnvSpec | None = None,
+     append: bool = False,
+ ) -> dict[str, list[Candidate]]:
+-    """Performs the locking process and update lockfile."""
++    """Performs the locking process without updating the lockfile."""
+     hooks = hooks or HookManager(project)
+     check_project_file(project)
+     lock_strategy = project.lockfile.apply_strategy_change(strategy_change or [])
+diff --git a/src/pdm/environments/base.py b/src/pdm/environments/base.py
+index 74937de2..05826e92 100644
+--- a/src/pdm/environments/base.py
++++ b/src/pdm/environments/base.py
+@@ -38,7 +38,7 @@ class BaseEnvironment(abc.ABC):
+ 
+     def __init__(self, project: Project, *, python: str | None = None) -> None:
+         """
+-        :param project: the project instance
++        :param project: the project path
+         """
+         from pdm.models.auth import PdmBasicAuth
+ 

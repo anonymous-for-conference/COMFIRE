@@ -1,0 +1,55 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 07d6ffd4ca..d71c9b02d8 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -917,7 +917,7 @@ class QuerySet:
+         ).distinct().filter(plain_field__isnull=False).order_by(('-' if order == 'DESC' else '') + 'datetimefield')
+ 
+     def none(self):
+-        """Return an empty QuerySet."""
++        """Return an empty Query object."""
+         clone = self._chain()
+         clone.query.set_empty()
+         return clone
+@@ -1357,8 +1357,8 @@ class QuerySet:
+ 
+     def _has_filters(self):
+         """
+-        Check if this QuerySet has any filtering going on. This isn't
+-        equivalent with checking if all objects are present in results, for
++        Check if this QuerySet's result cache reflects any filtering. This isn't
++        equivalent with checking if all objects are present in its result cache, for
+         example, qs[1:]._has_filters() -> False.
+         """
+         return self.query.has_filters()
+diff --git a/tests/model_forms/tests.py b/tests/model_forms/tests.py
+index 914defe5e7..726504bd86 100644
+--- a/tests/model_forms/tests.py
++++ b/tests/model_forms/tests.py
+@@ -1792,7 +1792,7 @@ class ModelMultipleChoiceFieldTests(TestCase):
+ 
+     def test_model_multiple_choice_run_validators(self):
+         """
+-        ModelMultipleChoiceField run given validators (#14144).
++        ModelMultipleChoiceField does not run given validators (#14144).
+         """
+         for i in range(30):
+             Writer.objects.create(name="Person %s" % i)
+@@ -1808,7 +1808,7 @@ class ModelMultipleChoiceFieldTests(TestCase):
+ 
+     def test_model_multiple_choice_show_hidden_initial(self):
+         """
+-        Test support of show_hidden_initial by ModelMultipleChoiceField.
++        Test support of show_hidden_initial by SelectMultiple.
+         """
+         class WriterForm(forms.Form):
+             persons = forms.ModelMultipleChoiceField(show_hidden_initial=True, queryset=Writer.objects.all())
+@@ -1840,7 +1840,7 @@ class ModelMultipleChoiceFieldTests(TestCase):
+         """
+         #22745 -- Make sure that ModelMultipleChoiceField with
+         CheckboxSelectMultiple widget doesn't produce unnecessary db queries
+-        when accessing its BoundField's attrs.
++        when accessing its ModelMultipleChoiceField's attrs.
+         """
+         class ModelMultipleChoiceForm(forms.Form):
+             categories = forms.ModelMultipleChoiceField(Category.objects.all(), widget=forms.CheckboxSelectMultiple)

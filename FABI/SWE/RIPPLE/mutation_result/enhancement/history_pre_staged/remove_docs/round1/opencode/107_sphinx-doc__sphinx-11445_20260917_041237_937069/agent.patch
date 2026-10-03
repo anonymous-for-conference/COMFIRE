@@ -1,0 +1,49 @@
+diff --git a/sphinx/util/rst.py b/sphinx/util/rst.py
+index d9d912c73..8645663f4 100644
+--- a/sphinx/util/rst.py
++++ b/sphinx/util/rst.py
+@@ -10,6 +10,7 @@ from unicodedata import east_asian_width
+ 
+ from docutils.parsers.rst import roles
+ from docutils.parsers.rst.languages import en as english
++from docutils.parsers.rst.states import Body
+ from docutils.statemachine import StringList
+ from docutils.utils import Reporter
+ from jinja2 import Environment
+@@ -25,7 +26,7 @@ except ImportError:
+ 
+ logger = logging.getLogger(__name__)
+ 
+-docinfo_re = re.compile(':\\w+:.*?')
++docinfo_re = re.compile(Body.patterns['field_marker'])
+ symbols_re = re.compile(r'([!-\-/:-@\[-`{-~])')                             
+ SECTIONING_CHARS = ['=', '-', '~']
+ 
+diff --git a/tests/test_util_rst.py b/tests/test_util_rst.py
+index 9a943c1db..7ac449c78 100644
+--- a/tests/test_util_rst.py
++++ b/tests/test_util_rst.py
+@@ -48,6 +48,23 @@ def test_prepend_prolog(app):
+                                       ('dummy.rst', 4, 'Sphinx is a document generator')]
+ 
+ 
++def test_prepend_prolog_with_domain_directive_title(app):
++    prolog = '.. |psf| replace:: Python Software Foundation'
++    content = StringList([':mod:`mypackage2`',
++                          '=================',
++                          '',
++                          'Content'],
++                         'dummy.rst')
++    prepend_prolog(content, prolog)
++
++    assert list(content.xitems()) == [('<rst_prolog>', 0, '.. |psf| replace:: Python Software Foundation'),
++                                      ('<generated>', 0, ''),
++                                      ('dummy.rst', 0, ':mod:`mypackage2`'),
++                                      ('dummy.rst', 1, '================='),
++                                      ('dummy.rst', 2, ''),
++                                      ('dummy.rst', 3, 'Content')]
++
++
+ def test_prepend_prolog_with_CR(app):
+                               
+     prolog = 'this is rst_prolog\nhello reST!\n'

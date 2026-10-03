@@ -1,0 +1,133 @@
+diff --git a/tests/test_svg.py b/tests/test_svg.py
+index 8cebf8ab..97142907 100644
+--- a/tests/test_svg.py
++++ b/tests/test_svg.py
+@@ -90,6 +90,17 @@ class ExportTest(g.unittest.TestCase):
+         # check the matrix string
+         assert g.np.allclose(a[1], [[0, 2, 4], [1, 3, 5], [0, 0, 1]])
+ 
++    def test_shapes(self):
++        s = """<svg xmlns="http://www.w3.org/2000/svg">
++        <rect x="10" y="10" width="80" height="80" />
++        <circle cx="25" cy="25" r="5" />
++        </svg>"""
++        p = g.trimesh.load_path(g.trimesh.util.wrap_as_stream(s), file_type="svg")
++
++        assert len(p.entities) == 2
++        assert g.np.allclose(p.bounds, [[10, 10], [90, 90]])
++        assert p.extrude(1.0).is_volume
++
+     def test_roundtrip(self):
+         """
+         Check to make sure a roundtrip from both a Scene and a
+diff --git a/trimesh/path/exchange/svg_io.py b/trimesh/path/exchange/svg_io.py
+index cdaa99a2..5f82b209 100644
+--- a/trimesh/path/exchange/svg_io.py
++++ b/trimesh/path/exchange/svg_io.py
+@@ -1,6 +1,7 @@
+ import base64
+ import collections
+ import json
++import re
+ from copy import deepcopy
+ 
+ import numpy as np
+@@ -41,6 +42,81 @@ def svg_to_path(file_obj=None, file_type=None, path_string=None):
+       With kwargs for Path2D constructor
+     """
+ 
++    def element_path(element):
++        """Convert a basic SVG shape into an equivalent path string."""
++        if not isinstance(element.tag, str):
++            return None
++        attrib = element.attrib
++        tag = element.tag.rsplit("}", 1)[-1]
++
++        def values(name, count, default=None):
++            value = attrib.get(name, default)
++            if value is None:
++                return None
++            parsed = re.findall(
++                r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?", str(value)
++            )
++            if len(parsed) != count:
++                raise ValueError(f"SVG {tag} attribute {name!r} is invalid")
++            return [float(i) for i in parsed]
++
++        def number(name, default=0.0):
++            result = values(name, 1, default)
++            return result[0]
++
++        if tag == "path":
++            return attrib.get("d", "")
++        if tag == "rect":
++            x, y = number("x"), number("y")
++            width, height = number("width"), number("height")
++            rx, ry = number("rx", 0.0), number("ry", 0.0)
++            if rx == 0.0 and ry == 0.0:
++                return f"M{x} {y}h{width}v{height}h{-width}z"
++            if rx == 0.0:
++                rx = ry
++            if ry == 0.0:
++                ry = rx
++            rx, ry = min(rx, width / 2.0), min(ry, height / 2.0)
++            return (
++                f"M{x + rx} {y}h{width - 2 * rx}"
++                f"a{rx} {ry} 0 0 1 {rx} {ry}"
++                f"v{height - 2 * ry}"
++                f"a{rx} {ry} 0 0 1 {-rx} {ry}"
++                f"h{-width + 2 * rx}"
++                f"a{rx} {ry} 0 0 1 {-rx} {-ry}"
++                f"v{-height + 2 * ry}"
++                f"a{rx} {ry} 0 0 1 {rx} {-ry}z"
++            )
++        if tag in ("circle", "ellipse"):
++            cx, cy = number("cx"), number("cy")
++            rx = number("r" if tag == "circle" else "rx")
++            ry = number("r" if tag == "circle" else "ry")
++            return (
++                f"M{cx - rx} {cy}a{rx} {ry} 0 1 0 {2 * rx} 0"
++                f"a{rx} {ry} 0 1 0 {-2 * rx} 0z"
++            )
++        if tag == "line":
++            return f"M{number('x1')} {number('y1')}L{number('x2')} {number('y2')}"
++        if tag in ("polyline", "polygon"):
++            if "points" not in attrib:
++                return ""
++            numbers = [
++                float(i)
++                for i in re.findall(
++                    r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?",
++                    attrib["points"],
++                )
++            ]
++            if len(numbers) < 4 or len(numbers) % 2:
++                raise ValueError(f"SVG {tag} attribute 'points' is invalid")
++            path = "M" + " ".join(str(i) for i in numbers[:2])
++            path += " " + " ".join(
++                "L" + " ".join(str(i) for i in numbers[index : index + 2])
++                for index in range(2, len(numbers), 2)
++            )
++            return path + ("z" if tag == "polygon" else "")
++        return None
++
+     def element_transform(e, max_depth=10):
+         """
+         Find a transformation matrix for an XML element.
+@@ -74,9 +150,14 @@ def svg_to_path(file_obj=None, file_type=None, path_string=None):
+         # store paths and transforms as
+         # (path string, 3x3 matrix)
+         paths = []
+-        for element in tree.iter("{*}path"):
++        for element in tree.iter():
++            path_string = element_path(element)
++            if path_string is None:
++                continue
+             # store every path element attributes and transform
+-            paths.append((element.attrib, element_transform(element)))
++            attrib = dict(element.attrib)
++            attrib["d"] = path_string
++            paths.append((attrib, element_transform(element)))
+ 
+         try:
+             # see if the SVG should be reproduced as a scene

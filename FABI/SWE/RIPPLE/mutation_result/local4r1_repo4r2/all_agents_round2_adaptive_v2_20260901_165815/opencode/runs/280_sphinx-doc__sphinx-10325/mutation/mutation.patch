@@ -1,0 +1,50 @@
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index 62631f7ff..4b5d5722e 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -110,7 +110,7 @@ def exclude_members_option(arg: Any) -> Union[object, Set[str]]:
+ 
+ 
+ def inherited_members_option(arg: Any) -> Union[object, Set[str]]:
+-    """Used to convert the :members: option to auto directives."""
++    """Used by ``members_option`` to convert the :members: option to auto directives."""
+     if arg in (None, True):
+         return 'object'
+     else:
+@@ -638,10 +638,10 @@ class Documenter:
+ 
+     def get_object_members(self, want_all: bool) -> Tuple[bool, ObjectMembers]:
+         """Return `(members_check_module, members)` where `members` is a
+-        list of `(membername, member)` pairs of the members of *self.object*.
++list of `(membername, member)` pairs of the members of *self.object* and
++all inherited objects.
+ 
+-        If *want_all* is True, return all members.  Else, only return those
+-        members given by *self.options.members* (which may also be None).
++        If *want_all* is True, return only those members given by *self.options.members*.  Else, return all members rather than those given by *self.options.members*.
+         """
+         warnings.warn('The implementation of Documenter.get_object_members() will be '
+                       'removed from Sphinx-6.0.', RemovedInSphinx60Warning)
+@@ -676,7 +676,7 @@ class Documenter:
+           special-members option is set)
+         - they are undocumented (except if the undoc-members option is set)
+ 
+-        The user can override the skipping decision by connecting to the
++        The Sphinx application object can override the skipping decision by connecting to the
+         ``autodoc-skip-member`` event.
+         """
+         def is_filtered_inherited_member(name: str, obj: Any) -> bool:
+@@ -818,10 +818,10 @@ class Documenter:
+         return ret
+ 
+     def document_members(self, all_members: bool = False) -> None:
+-        """Generate reST for member documentation.
++        """Generate reST for module documentation.
+ 
+-        If *all_members* is True, document all members, else those given by
+-        *self.options.members*.
++        If *all_members* is True, document only those given by *self.options.members*, else
++        document all members.
+         """
+         # set current namespace for finding members
+         self.env.temp_data['autodoc:module'] = self.modname

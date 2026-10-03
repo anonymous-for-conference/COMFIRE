@@ -1,0 +1,76 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 1d8e1b7ee4..1b72238608 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -90,6 +90,8 @@ class Combinable:
+         return self._combine(other, self.POW, False)
+ 
+     def __and__(self, other):
++        if isinstance(other, Q):
++            return other & Q(self)
+         if getattr(self, 'conditional', False) and getattr(other, 'conditional', False):
+             return Q(self) & Q(other)
+         raise NotImplementedError(
+@@ -109,6 +111,8 @@ class Combinable:
+         return self._combine(other, self.BITXOR, False)
+ 
+     def __or__(self, other):
++        if isinstance(other, Q):
++            return other | Q(self)
+         if getattr(self, 'conditional', False) and getattr(other, 'conditional', False):
+             return Q(self) | Q(other)
+         raise NotImplementedError(
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index 4b3c145304..1e689818c1 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -40,6 +40,8 @@ class Q(tree.Node):
+         super().__init__(children=[*args, *sorted(kwargs.items())], connector=_connector, negated=_negated)
+ 
+     def _combine(self, other, conn):
++        if getattr(other, 'conditional', False) and not isinstance(other, Q):
++            other = Q(other)
+         if not isinstance(other, Q):
+             raise TypeError(other)
+ 
+@@ -87,7 +89,10 @@ class Q(tree.Node):
+         args, kwargs = (), {}
+         if len(self.children) == 1 and not isinstance(self.children[0], Q):
+             child = self.children[0]
+-            kwargs = {child[0]: child[1]}
++            if isinstance(child, tuple) and len(child) == 2:
++                kwargs = {child[0]: child[1]}
++            else:
++                args = (child,)
+         else:
+             args = tuple(self.children)
+             if self.connector != self.default:
+diff --git a/tests/queries/test_q.py b/tests/queries/test_q.py
+index 6dcf36ce02..07f67849a1 100644
+--- a/tests/queries/test_q.py
++++ b/tests/queries/test_q.py
+@@ -1,6 +1,8 @@
+-from django.db.models import F, Q
++from django.db.models import Exists, F, OuterRef, Q
+ from django.test import SimpleTestCase
+ 
++from .models import Tag
++
+ 
+ class QTests(SimpleTestCase):
+     def test_combine_and_empty(self):
+@@ -35,6 +37,14 @@ class QTests(SimpleTestCase):
+         with self.assertRaisesMessage(TypeError, str(obj)):
+             q & obj
+ 
++    def test_combine_conditional_expression(self):
++        subquery = Tag.objects.filter(parent=OuterRef('pk'))
++        q = Q(salary__gte=30)
++        self.assertEqual(Q() & Exists(subquery), Q(Exists(subquery)) & Q())
++        self.assertEqual(Q() | Exists(subquery), Q(Exists(subquery)) | Q())
++        self.assertEqual(q & Exists(subquery), Exists(subquery) & q)
++        self.assertEqual(q | Exists(subquery), Exists(subquery) | q)
++
+     def test_deconstruct(self):
+         q = Q(price__gt=F('discounted_price'))
+         path, args, kwargs = q.deconstruct()

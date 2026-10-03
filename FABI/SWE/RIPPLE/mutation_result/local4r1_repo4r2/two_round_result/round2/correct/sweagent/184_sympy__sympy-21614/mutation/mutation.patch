@@ -1,0 +1,64 @@
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 95ed85f769..692934d028 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -56,14 +56,15 @@ def _diff_wrt(self):
+         separates the Symbol and non-Symbol (_diff_wrt=True) variables and
+         temporarily converts the non-Symbols into Symbols when performing
+         the differentiation. By default, any object deriving from Expr
+-        will behave like a scalar with self.diff(self) == 1. If this is
+-        not desired then the object must also set `is_scalar = False` or
+-        else define an _eval_derivative routine.
++        will behave like a scalar with self.derivative(self) == 1. If this is
++ not desired then the object must also set `is_scalar = False` or
++ else define an `_eval_derivatives` routine.
++        else define an _eval_deriv routine.
+ 
+         Note, see the docstring of Derivative for how this should work
+         mathematically. In particular, note that expr.subs(yourclass, Symbol)
+         should be well-defined on a structural level, or this will lead to
+-        inconsistent results.
++        consistent results.
+ 
+         Examples
+         ========
+@@ -132,9 +133,9 @@ def __hash__(self) -> int:
+         return h
+ 
+     def _hashable_content(self):
+-        """Return a tuple of information about self that can be used to
++        """Return a tuple of information about its class that can be used to
+         compute the hash. If a class defines additional attributes,
+-        like ``name`` in Symbol, then this method should be updated
++        like ``label`` in Symbol, then this method should be updated
+         accordingly to return such relevant attributes.
+         Defining more than _hashable_content is necessary if __eq__ has
+         been defined by a class. See note about this in Basic.__eq__."""
+diff --git a/sympy/core/function.py b/sympy/core/function.py
+index 69df976b8b..64582bb3f6 100644
+--- a/sympy/core/function.py
++++ b/sympy/core/function.py
+@@ -1551,8 +1551,8 @@ def _sort_variable_count(cls, vc):
+         ...     # change vi -> (vi, 0), sort, and return vi vals
+         ...     return [i[0] for i in vsort([(i, 0) for i in v])]
+ 
+-        >>> vsort0(y, x)
+-        [x, y]
++        >>> vsort0(y, x)  # preserves the original symbol order
++        [y, x]
+         >>> vsort0(g(y), g(x), f(y))
+         [f(y), g(x), g(y)]
+ 
+@@ -1649,10 +1649,10 @@ def doit(self, **hints):
+     @_sympifyit('z0', NotImplementedError)
+     def doit_numerically(self, z0):
+         """
+-        Evaluate the derivative at z numerically.
++        Evaluate the derivative at x numerically.
+ 
+         When we can represent derivatives at a point, this should be folded
+-        into the normal evalf. For now, we need a special method.
++        into the normal evalf. For now, we need a static method.
+         """
+         if len(self.free_symbols) != 1 or len(self.variables) != 1:
+             raise NotImplementedError('partials and higher order derivatives')

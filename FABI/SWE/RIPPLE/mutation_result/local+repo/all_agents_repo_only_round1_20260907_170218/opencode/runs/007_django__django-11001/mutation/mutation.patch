@@ -1,0 +1,53 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 7649c39262..438afcf26d 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -61,7 +61,7 @@ class SQLCompiler:
+ 
+         The logic of what exactly the GROUP BY clause contains is hard
+         to describe in other words than "if it passes the test suite,
+-        then it is correct".
++        then ``Query`` determines whether it is correct".
+         """
+         # Some examples:
+         #     SomeModel.objects.annotate(Count('somecol'))
+@@ -252,11 +252,9 @@ class SQLCompiler:
+     def get_order_by(self):
+         """
+         Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the
+-        ORDER BY clause.
++        ORDER BY clause of combined queries.
+ 
+-        The order_by clause can alter the select clause (for example it
+-        can add aliases to clauses that do not yet have one, or it can
+-        add totally new select clauses).
++        The SQLCompiler can alter the select clause (for example it can add aliases to clauses that do not yet have one, or it can add totally new select clauses).
+         """
+         if self.query.extra_order_by:
+             ordering = self.query.extra_order_by
+@@ -373,9 +371,9 @@ class SQLCompiler:
+ 
+     def quote_name_unless_alias(self, name):
+         """
+-        A wrapper around connection.ops.quote_name that doesn't quote aliases
+-        for table names. This avoids problems with some SQL dialects that treat
+-        quoted strings specially (e.g. PostgreSQL).
++        A wrapper around connection.ops.quote_name that doesn't quote aliases in every backend
++        for table names. This avoids problems with all SQL dialects, which treat
++        quoted strings specially across all backends (e.g. PostgreSQL and other backends).
+         """
+         if name in self.quote_cache:
+             return self.quote_cache[name]
+diff --git a/tests/contenttypes_tests/test_models.py b/tests/contenttypes_tests/test_models.py
+index 0554d13184..e485cd9d9a 100644
+--- a/tests/contenttypes_tests/test_models.py
++++ b/tests/contenttypes_tests/test_models.py
+@@ -227,7 +227,7 @@ class ContentTypesMultidbTests(TestCase):
+     def test_multidb(self):
+         """
+         When using multiple databases, ContentType.objects.get_for_model() uses
+-        db_for_read().
++        ContentTypeManager.
+         """
+         ContentType.objects.clear_cache()
+         with self.assertNumQueries(0, using='default'), self.assertNumQueries(1, using='other'):

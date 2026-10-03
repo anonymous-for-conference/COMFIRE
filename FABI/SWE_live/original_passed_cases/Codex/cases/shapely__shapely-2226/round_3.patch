@@ -1,0 +1,35 @@
+diff --git a/shapely/geometry/collection.py b/shapely/geometry/collection.py
+index cb7cc6e1..7022a45b 100644
+--- a/shapely/geometry/collection.py
++++ b/shapely/geometry/collection.py
+@@ -33,10 +33,12 @@ class GeometryCollection(BaseMultipartGeometry):
+ 
+     def __new__(self, geoms=None):
+         """Create a new GeometryCollection."""
+-        if not geoms:
++        if geoms is None:
+             # TODO better empty constructor
+             return shapely.from_wkt("GEOMETRYCOLLECTION EMPTY")
+         if isinstance(geoms, BaseGeometry):
++            if not geoms:
++                return shapely.from_wkt("GEOMETRYCOLLECTION EMPTY")
+             # TODO(shapely-2.0) do we actually want to split Multi-part geometries?
+             # this is needed for the split() tests
+             if hasattr(geoms, "geoms"):
+diff --git a/shapely/tests/geometry/test_collection.py b/shapely/tests/geometry/test_collection.py
+index 95813fc3..3a90685b 100644
+--- a/shapely/tests/geometry/test_collection.py
++++ b/shapely/tests/geometry/test_collection.py
+@@ -85,3 +85,12 @@ def test_numpy_object_array():
+     ar = np.empty(1, object)
+     ar[:] = [geom]
+     assert ar[0] == geom
++
++
++def test_numpy_object_array_constructor():
++    geoms = shapely.from_wkt(
++        ["LINESTRING (18 4, 4 2, 2 9)", "POLYGON ((1 1, 2 2, 1 2, 1 1))"]
++    )
++    collection = GeometryCollection(geoms)
++
++    assert list(collection.geoms) == list(GeometryCollection(list(geoms)).geoms)

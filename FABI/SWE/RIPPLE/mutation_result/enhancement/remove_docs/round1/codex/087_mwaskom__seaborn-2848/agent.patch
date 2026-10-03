@@ -1,0 +1,241 @@
+diff --git a/seaborn/_core/plot.py b/seaborn/_core/plot.py
+index 83f46dad..29e3299e 100644
+--- a/seaborn/_core/plot.py
++++ b/seaborn/_core/plot.py
+@@ -31,6 +31,7 @@ from seaborn._core.typing import DataSource, VariableSpec, OrderSpec
+ from seaborn._core.rules import categorical_order
+ from seaborn._compat import set_scale_obj
+ from seaborn.external.version import Version
++from seaborn._oldcore import _no_inf_as_null
+ 
+ from typing import TYPE_CHECKING
+ if TYPE_CHECKING:
+@@ -1162,7 +1163,7 @@ class Plotter:
+         for view in subplots:
+             view_df = self._filter_subplot_data(df, view)
+             axes_df = view_df[coord_cols]
+-            with pd.option_context("mode.use_inf_as_null", True):
++            with _no_inf_as_null():
+                 axes_df = axes_df.dropna()
+             for var, values in axes_df.items():
+                 scale = view[f"{var[0]}scale"]
+@@ -1288,7 +1289,7 @@ class Plotter:
+ 
+                 axes_df = self._filter_subplot_data(df, view)
+ 
+-                with pd.option_context("mode.use_inf_as_null", True):
++                with _no_inf_as_null():
+                     if keep_na:
+                                                                                        
+                                                                                       
+diff --git a/seaborn/_docstrings.py b/seaborn/_docstrings.py
+index c0748890..211a89f7 100644
+--- a/seaborn/_docstrings.py
++++ b/seaborn/_docstrings.py
+@@ -98,6 +98,11 @@ hue_norm : tuple or :class:`matplotlib.colors.Normalize`
+     or an object that will map from data units into a [0, 1] interval. Usage
+     implies numeric mapping.
+     """,
++    errorbar="""
++errorbar : string, tuple, callable, or None
++    Method for determining an error interval around an estimate. Supported
++    methods depend on the specific plotting function.
++    """,
+     color="""
+ color : :mod:`matplotlib color <matplotlib.colors>`
+     Single color specification for when hue mapping is not used. Otherwise, the
+diff --git a/seaborn/_oldcore.py b/seaborn/_oldcore.py
+index 85de7769..9b57ed72 100644
+--- a/seaborn/_oldcore.py
++++ b/seaborn/_oldcore.py
+@@ -10,6 +10,7 @@ from datetime import datetime
+ import numpy as np
+ import pandas as pd
+ import matplotlib as mpl
++from contextlib import contextmanager
+ 
+ from ._decorators import (
+     share_init_params_with_map,
+@@ -26,6 +27,15 @@ from .utils import (
+ )
+ 
+ 
++@contextmanager
++def _no_inf_as_null():
++    try:
++        with pd.option_context("mode.use_inf_as_null", True):
++            yield
++    except Exception:
++        yield
++
++
+ class SemanticMapping:
+     ''                                                          
+ 
+@@ -1093,7 +1103,7 @@ class VectorPlotter:
+                 parts = []
+                 grouped = self.plot_data[var].groupby(self.converters[var], sort=False)
+                 for converter, orig in grouped:
+-                    with pd.option_context('mode.use_inf_as_null', True):
++                    with _no_inf_as_null():
+                         orig = orig.dropna()
+                         if var in self.var_levels:
+                                                                                   
+diff --git a/seaborn/axisgrid.py b/seaborn/axisgrid.py
+index 7aa224e7..f5aeecb4 100644
+--- a/seaborn/axisgrid.py
++++ b/seaborn/axisgrid.py
+@@ -2080,6 +2080,9 @@ def pairplot(
+         else:
+             diag_kind = "hist" if kind == "hist" else "kde"
+ 
++    if hue is not None and hue_order is not None:
++        data = data.loc[data[hue].isin(hue_order)]
++
+                          
+     grid_kws.setdefault("diag_sharey", diag_kind == "hist")
+     grid = PairGrid(data, vars=vars, x_vars=x_vars, y_vars=y_vars, hue=hue,
+diff --git a/seaborn/categorical.py b/seaborn/categorical.py
+index 98977092..9dc8277d 100644
+--- a/seaborn/categorical.py
++++ b/seaborn/categorical.py
+@@ -29,6 +29,7 @@ from seaborn.utils import remove_na, _normal_quantile_func, _draw_figure, _defau
+ from seaborn.algorithms import bootstrap
+ from seaborn.palettes import color_palette, husl_palette, light_palette, dark_palette
+ from seaborn.axisgrid import FacetGrid, _facet_docs
++from seaborn._oldcore import _no_inf_as_null
+ 
+ 
+ __all__ = [
+@@ -1842,7 +1843,7 @@ class _LVPlotter(_CategoricalPlotter):
+         vals = np.asarray(vals)
+                                                                 
+                                                     
+-        with pd.option_context('mode.use_inf_as_null', True):
++        with _no_inf_as_null():
+             vals = vals[~pd.isnull(vals)]
+         n = len(vals)
+         p = self.outlier_prop
+diff --git a/seaborn/distributions.py b/seaborn/distributions.py
+index b63ac762..49cf60ce 100644
+--- a/seaborn/distributions.py
++++ b/seaborn/distributions.py
+@@ -81,13 +81,66 @@ cbar_kws : dict
+     """,
+ )
+ 
++_hist_docs = dict(
++    stat="""
++stat : {{\"count\", \"frequency\", \"density\", \"probability\", \"proportion\", \"percent\"}}
++    Aggregate statistic to compute in each bin.
++    """,
++    bins="""
++bins : str, number, vector, or a function
++    Method for choosing the bins to use for the histogram.
++    """,
++    binwidth="""
++binwidth : number or None
++    Width of each bin when using a fixed bin size.
++    """,
++    binrange="""
++binrange : tuple or None
++    Lower and upper bounds for the bins.
++    """,
++)
++
++_kde_docs = dict(
++    cumulative="""
++cumulative : bool
++    If True, estimate the cumulative density.
++    """,
++    bw_method="""
++bw_method : string, scalar, or callable
++    Method used to determine the bandwidth of the kernel.
++    """,
++    bw_adjust="""
++bw_adjust : number
++    Factor by which to multiply the bandwidth.
++    """,
++    cut="""
++cut : number
++    Distance, in bandwidth units, to extend the density beyond the extreme data points.
++    """,
++    clip="""
++clip : pair of numbers or None
++    Data values outside these bounds are ignored.
++    """,
++)
++
++_ecdf_docs = dict(
++    stat="""
++stat : {{\"count\", \"proportion\"}}
++    Whether to show counts or proportions on the cumulative axis.
++    """,
++    complementary="""
++complementary : bool
++    If True, show the complementary cumulative distribution.
++    """,
++)
++
+ _param_docs = DocstringComponents.from_nested_components(
+     core=_core_docs["params"],
+     facets=DocstringComponents(_facet_docs),
+     dist=DocstringComponents(_dist_params),
+-    kde=DocstringComponents.from_function_params(KDE.__init__),
+-    hist=DocstringComponents.from_function_params(Histogram.__init__),
+-    ecdf=DocstringComponents.from_function_params(ECDF.__init__),
++    kde=DocstringComponents(_kde_docs),
++    hist=DocstringComponents(_hist_docs),
++    ecdf=DocstringComponents(_ecdf_docs),
+ )
+ 
+ 
+diff --git a/seaborn/relational.py b/seaborn/relational.py
+index 532989c3..f0a48588 100644
+--- a/seaborn/relational.py
++++ b/seaborn/relational.py
+@@ -173,12 +173,20 @@ ax : matplotlib Axes
+ 
+ )
+ 
++_stat_docs = dict(
++    errorbar="""
++errorbar : string, tuple, callable, or None
++    Method for determining the size of the error interval around an estimate.
++    The supported options depend on the estimator used.
++    """,
++)
++
+ 
+ _param_docs = DocstringComponents.from_nested_components(
+     core=_core_docs["params"],
+     facets=DocstringComponents(_facet_docs),
+     rel=DocstringComponents(_relational_docs),
+-    stat=DocstringComponents.from_function_params(EstimateAggregator.__init__),
++    stat=DocstringComponents(_stat_docs),
+ )
+ 
+ 
+diff --git a/tests/test_axisgrid.py b/tests/test_axisgrid.py
+index 89d52855..48b134cb 100644
+--- a/tests/test_axisgrid.py
++++ b/tests/test_axisgrid.py
+@@ -1280,6 +1280,18 @@ class TestPairGrid:
+         for ax in g.diag_axes:
+             assert len(ax.collections) == n
+ 
++    def test_pairplot_hue_order_subset(self):
++
++        order = list("ab")
++        g = ag.pairplot(self.df, hue="a", hue_order=order)
++
++        assert list(g._hue_order) == order
++        assert set(g.hue_names) == set(order)
++        assert len(g._legend.legendHandles) == len(order)
++
++        for ax in g.diag_axes:
++            assert len(ax.collections) == len(order)
++
+     def test_pairplot_reg(self):
+ 
+         vars = ["x", "y", "z"]

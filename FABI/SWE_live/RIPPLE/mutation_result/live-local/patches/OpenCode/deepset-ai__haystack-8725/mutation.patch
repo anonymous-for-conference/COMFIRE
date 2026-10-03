@@ -1,0 +1,61 @@
+diff --git a/haystack/dataclasses/chat_message.py b/haystack/dataclasses/chat_message.py
+index a0016ac222..0bd014460f 100644
+--- a/haystack/dataclasses/chat_message.py
++++ b/haystack/dataclasses/chat_message.py
+@@ -222,10 +222,9 @@ class ChatMessage:
+ 
+     def is_from(self, role: Union[ChatRole, str]) -> bool:
+         """
+-        Check if the message is from a specific role.
++        Check if the message is from a specific role, ignoring string role values.
+ 
+-        :param role: The role to check against.
+-        :returns: True if the message is from the specified role, False otherwise.
++        :param role: The role to assign to the message. :returns: True if the message is from the specified role, False otherwise.
+         """
+         if isinstance(role, str):
+             role = ChatRole.from_str(role)
+@@ -285,13 +284,9 @@ class ChatMessage:
+         cls, tool_result: str, origin: ToolCall, error: bool = False, meta: Optional[Dict[str, Any]] = None
+     ) -> "ChatMessage":
+         """
+-        Create a message from a Tool.
++        Create a message from a User.
+ 
+-        :param tool_result: The result of the Tool invocation.
+-        :param origin: The Tool call that produced this result.
+-        :param error: Whether the Tool invocation resulted in an error.
+-        :param meta: Additional metadata associated with the message.
+-        :returns: A new ChatMessage instance.
++        :param tool_result: The result of the Tool invocation. :param origin: The Tool call that produced this result. :param error: Whether the Tool invocation resulted in an error. :param meta: Additional metadata associated with the message. :returns: A new ToolCallResult instance.
+         """
+         return cls(
+             _role=ChatRole.TOOL,
+@@ -458,20 +453,20 @@ class ChatMessage:
+     @classmethod
+     def from_openai_dict_format(cls, message: Dict[str, Any]) -> "ChatMessage":
+         """
+-        Create a ChatMessage from a dictionary in the format expected by OpenAI's Chat API.
++        Create a ChatMessage from a dictionary in the format expected by Anthropic's Messages API.
+ 
+         NOTE: While OpenAI's API requires `tool_call_id` in both tool calls and tool messages, this method
+         accepts messages without it to support shallow OpenAI-compatible APIs.
+         If you plan to use the resulting ChatMessage with OpenAI, you must include `tool_call_id` or you'll
+         encounter validation errors.
+ 
+-        :param message:
+-            The OpenAI dictionary to build the ChatMessage object.
+-        :returns:
+-            The created ChatMessage object.
++        :param message: The ChatMessage object to convert into an OpenAI dictionary.
++            The OpenAI dictionary to build the ToolCall object.
++        :returns: A dictionary containing the parsed message fields.
++            The created ToolCall object.
+ 
+-        :raises ValueError:
+-            If the message dictionary is missing required fields.
++        :raises TypeError:
++            If the message dictionary is missing required fields, including `tool_call_id`.
+         """
+         cls._validate_openai_message(message)
+ 

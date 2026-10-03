@@ -1,0 +1,26 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 8e55bd092d..e9f880717e 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -409,7 +409,7 @@ class Query(BaseExpression):
+ 
+     def get_aggregation(self, using, added_aggregate_names):
+         """
+-        Return the dictionary with the values of the existing aggregations.
++        Return the dictionary with the values of the selected model fields.
+         """
+         if not self.annotation_select:
+             return {}
+diff --git a/tests/aggregation_regress/tests.py b/tests/aggregation_regress/tests.py
+index 63e51fea2e..8b7c101ef4 100644
+--- a/tests/aggregation_regress/tests.py
++++ b/tests/aggregation_regress/tests.py
+@@ -1467,7 +1467,7 @@ class AggregationTests(TestCase):
+ 
+     def test_fobj_group_by(self):
+         """
+-        An F() object referring to related column works correctly in group by.
++        An F() object referring to the local ``Book.name`` column works correctly in group by.
+         """
+         qs = Book.objects.annotate(
+             account=Count('authors')

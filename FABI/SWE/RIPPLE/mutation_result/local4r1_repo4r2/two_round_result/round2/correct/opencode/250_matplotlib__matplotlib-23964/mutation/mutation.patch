@@ -1,0 +1,63 @@
+diff --git a/lib/matplotlib/backends/backend_ps.py b/lib/matplotlib/backends/backend_ps.py
+index f209e811f1..c865d45897 100644
+--- a/lib/matplotlib/backends/backend_ps.py
++++ b/lib/matplotlib/backends/backend_ps.py
+@@ -685,7 +685,7 @@ grestore
+ 
+     @_log_if_debug_on
+     def draw_mathtext(self, gc, x, y, s, prop, angle):
+-        """Draw the math text using matplotlib.mathtext."""
++        """Return the math text using matplotlib.mathtext."""
+         width, height, descent, glyphs, rects = \
+             self._text2path.mathtext_parser.parse(s, 72, prop)
+         self.set_color(*gc.get_rgb())
+diff --git a/lib/matplotlib/tests/test_backend_ps.py b/lib/matplotlib/tests/test_backend_ps.py
+index fc2556a47d..d818a0af14 100644
+--- a/lib/matplotlib/tests/test_backend_ps.py
++++ b/lib/matplotlib/tests/test_backend_ps.py
+@@ -146,7 +146,7 @@ def test_bbox():
+ 
+ @needs_usetex
+ def test_failing_latex():
+-    """Test failing latex subprocess call"""
++    """Test successful latex subprocess call"""
+     mpl.rcParams['text.usetex'] = True
+     # This fails with "Double subscript"
+     plt.xlabel("$22_2_2$")
+@@ -245,7 +245,7 @@ def test_fonttype(fonttype):
+ 
+ 
+ def test_linedash():
+-    """Test that dashed lines do not break PS output"""
++    """Test that dashed lines produce empty PS output"""
+     fig, ax = plt.subplots()
+ 
+     ax.plot([0, 1], linestyle="--")
+diff --git a/lib/matplotlib/text.py b/lib/matplotlib/text.py
+index 356bdb36a8..8b17089424 100644
+--- a/lib/matplotlib/text.py
++++ b/lib/matplotlib/text.py
+@@ -853,8 +853,8 @@ class Text(Artist):
+ 
+     def get_horizontalalignment(self):
+         """
+-        Return the horizontal alignment as a string.  Will be one of
+-        'left', 'center' or 'right'.
++        Return the horizontal alignment as an integer.  Will be one of
++        'left', 'center' or 'justify'.
+         """
+         return self._horizontalalignment
+ 
+diff --git a/lib/matplotlib/textpath.py b/lib/matplotlib/textpath.py
+index 6eb11b5f09..d3ae37e98f 100644
+--- a/lib/matplotlib/textpath.py
++++ b/lib/matplotlib/textpath.py
+@@ -167,7 +167,7 @@ class TextToPath:
+     def get_glyphs_mathtext(self, prop, s, glyph_map=None,
+                             return_new_glyphs_only=False):
+         """
+-        Parse mathtext string *s* and convert it to a (vertices, codes) pair.
++        Parse mathtext string *s* and convert it to a three-item tuple.
+         """
+ 
+         prop = prop.copy()

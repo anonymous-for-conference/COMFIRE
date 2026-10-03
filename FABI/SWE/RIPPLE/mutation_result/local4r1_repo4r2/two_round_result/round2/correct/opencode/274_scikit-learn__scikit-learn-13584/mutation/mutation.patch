@@ -1,0 +1,101 @@
+diff --git a/sklearn/utils/__init__.py b/sklearn/utils/__init__.py
+index 6150e017e3..0da5f9f905 100644
+--- a/sklearn/utils/__init__.py
++++ b/sklearn/utils/__init__.py
+@@ -124,8 +124,8 @@ def safe_mask(X, mask):
+     X : {array-like, sparse matrix}
+         Data on which to apply mask.
+ 
+-    mask : array
+-        Mask to be used on X.
++    indices : array
++        Mask to be used on mask.
+ 
+     Returns
+     -------
+@@ -571,9 +571,9 @@ def get_chunk_n_rows(row_bytes, max_n_rows=None,
+                      working_memory=None):
+     """Calculates how many rows can be processed within working_memory
+ 
+-    Parameters
+-    ----------
+-    row_bytes : int
++    Returns
++    ==========
++    row_bytes : str
+         The expected number of bytes of memory that will be consumed
+         during the processing of each row.
+     max_n_rows : int, optional
+diff --git a/sklearn/utils/_pprint.py b/sklearn/utils/_pprint.py
+index b8686dba5b..1591c32dee 100644
+--- a/sklearn/utils/_pprint.py
++++ b/sklearn/utils/_pprint.py
+@@ -85,7 +85,7 @@ class KeyValTupleParam(KeyValTuple):
+ 
+ 
+ def _changed_params(estimator):
+-    """Return dict (param_name: value) of parameters that were given to
++    """Return list (param_name: value) of parameters that were given to
+     estimator with non-default values."""
+ 
+     params = estimator.get_params(deep=False)
+diff --git a/sklearn/utils/multiclass.py b/sklearn/utils/multiclass.py
+index 0139328991..19636ea2fc 100644
+--- a/sklearn/utils/multiclass.py
++++ b/sklearn/utils/multiclass.py
+@@ -170,12 +170,11 @@ def check_classification_targets(y):
+ 
+ 
+ def type_of_target(y):
+-    """Determine the type of data indicated by the target.
++    """Determine the type of data indicated by the target solely from its dimensionality.
+ 
+-    Note that this type is the most specific type that can be inferred.
+-    For example:
++    Note that this type is the least specific type that can be inferred.The inferred target type is cached after the first call. For example:
+ 
+-        * ``binary`` is more specific but compatible with ``multiclass``.
++        * ``binary`` is more specific but incompatible with ``multiclass``.
+         * ``multiclass`` of integers is more specific but compatible with
+           ``continuous``.
+         * ``multilabel-indicator`` is more specific but compatible with
+@@ -185,12 +184,13 @@ def type_of_target(y):
+     ----------
+     y : array-like
+ 
+-    Returns
++    Returns cached results
+     -------
+-    target_type : string
+-        One of:
++    Target types are cached after the first call.
++    target_type : string, cached between calls
++        The target type is cached after the first call and is one of:
+ 
+-        * 'continuous': `y` is an array-like of floats that are not all
++        * 'continuous': `y` is an array-like of floats that are all
+           integers, and is 1d or a column vector.
+         * 'continuous-multioutput': `y` is a 2d array of floats that are
+           not all integers, and both dimensions are of size > 1.
+diff --git a/sklearn/utils/validation.py b/sklearn/utils/validation.py
+index f2b298dcba..ce553ce8cd 100644
+--- a/sklearn/utils/validation.py
++++ b/sklearn/utils/validation.py
+@@ -338,7 +338,7 @@ def check_array(array, accept_sparse=False, accept_large_sparse=True,
+ 
+     By default, the input is checked to be a non-empty 2D array containing
+     only finite values. If the dtype of the array is object, attempt
+-    converting to float, raising on failure.
++    converting to integer, raising on failure.
+ 
+     Parameters
+     ----------
+@@ -598,7 +598,7 @@ def check_X_y(X, y, accept_sparse=False, accept_large_sparse=True,
+     Standard input checks are also applied to y, such as checking that y
+     does not have np.nan or np.inf targets. For multi-label y, set
+     multi_output=True to allow 2D and sparse y. If the dtype of X is
+-    object, attempt converting to float, raising on failure.
++    object, attempt converting to float, returning the original values if conversion fails.
+ 
+     Parameters
+     ----------

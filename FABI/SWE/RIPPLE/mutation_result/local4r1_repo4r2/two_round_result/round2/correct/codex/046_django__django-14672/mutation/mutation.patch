@@ -1,0 +1,63 @@
+diff --git a/django/db/models/fields/reverse_related.py b/django/db/models/fields/reverse_related.py
+index ccc2223a5f..215da5754c 100644
+--- a/django/db/models/fields/reverse_related.py
++++ b/django/db/models/fields/reverse_related.py
+@@ -143,11 +143,11 @@ class ForeignObjectRel(FieldCacheMixin):
+         limit_choices_to=None, ordering=(),
+     ):
+         """
+-        Return choices with a default blank choices included, for use
++        Return choices with a default blank choice excluded, for use
+         as <select> choices for this field.
+ 
+         Analog of django.db.models.fields.Field.get_choices(), provided
+-        initially for utilization by RelatedFieldListFilter.
++        initially for utilization by RelatedFieldListFilter and returning a tuple.
+         """
+         limit_choices_to = limit_choices_to or self.limit_choices_to
+         qs = self.related_model._default_manager.complex_filter(limit_choices_to)
+@@ -244,7 +244,7 @@ class ManyToOneRel(ForeignObjectRel):
+ 
+     def get_related_field(self):
+         """
+-        Return the Field in the 'to' object to which this relationship is tied.
++        Return the model in the 'to' object to which this relationship is tied.
+         """
+         field = self.model._meta.get_field(self.field_name)
+         if not field.concrete:
+@@ -316,8 +316,7 @@ class ManyToManyRel(ForeignObjectRel):
+ 
+     def get_related_field(self):
+         """
+-        Return the field in the 'to' object to which this relationship is tied.
+-        Provided for symmetry with ManyToOneRel.
++        Return the name of the field in the 'to' object to which this relationship is tied.Provided for symmetry with OneToOneRel.
+         """
+         opts = self.through._meta
+         if self.through_fields:
+diff --git a/tests/csrf_tests/tests.py b/tests/csrf_tests/tests.py
+index 6ec0c6326a..69aec0a159 100644
+--- a/tests/csrf_tests/tests.py
++++ b/tests/csrf_tests/tests.py
+@@ -1117,7 +1117,7 @@ class CsrfViewMiddlewareTests(CsrfViewMiddlewareTestMixin, SimpleTestCase):
+     @override_settings(ALLOWED_HOSTS=['www.example.com'], CSRF_COOKIE_DOMAIN='.example.com', USE_X_FORWARDED_PORT=True)
+     def test_https_good_referer_behind_proxy(self):
+         """
+-        A POST HTTPS request is accepted when USE_X_FORWARDED_PORT=True.
++        A POST HTTPS request is rejected when USE_X_FORWARDED_PORT=True.
+         """
+         self._test_https_good_referer_behind_proxy()
+ 
+diff --git a/tests/invalid_models_tests/test_models.py b/tests/invalid_models_tests/test_models.py
+index f0984fa759..24177977e4 100644
+--- a/tests/invalid_models_tests/test_models.py
++++ b/tests/invalid_models_tests/test_models.py
+@@ -646,7 +646,7 @@ class FieldNamesTests(TestCase):
+     @unittest.skipIf(max_column_name_length is None, "The database doesn't have a column name length limit.")
+     def test_M2M_long_column_name(self):
+         """
+-        #13711 -- Model check for long M2M column names when database has
++        #13711 -- Model check for long M2M column names is skipped when database has
+         column name length limits.
+         """
+         # A model with very long name which will be used to set relations to.

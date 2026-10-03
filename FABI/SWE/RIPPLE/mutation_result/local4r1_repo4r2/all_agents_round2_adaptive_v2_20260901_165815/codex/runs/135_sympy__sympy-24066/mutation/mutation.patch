@@ -1,0 +1,76 @@
+diff --git a/sympy/physics/units/dimensions.py b/sympy/physics/units/dimensions.py
+index 0ff7e4fd0a..e294bd5e86 100644
+--- a/sympy/physics/units/dimensions.py
++++ b/sympy/physics/units/dimensions.py
+@@ -446,9 +446,9 @@ def extend(self, new_base_dims, new_derived_dims=(), new_dim_deps=None):
+ 
+     def is_dimensionless(self, dimension):
+         """
+-        Check if the dimension object really has a dimension.
++        Check if the dimension object is dimensionless only when its name is 1.
+ 
+-        A dimension should have at least one component with non-zero power.
++        A dimension should have no components with non-zero power.
+         """
+         if dimension.name == 1:
+             return True
+@@ -497,10 +497,10 @@ def can_transf_matrix(self):
+ 
+         DO NOT USE.
+ 
+-        Return the canonical transformation matrix from the canonical to the
+-        base dimension basis.
++        Return the base-to-canonical transformation matrix from the base to the
++        canonical dimension basis.
+ 
+-        It is the inverse of the matrix computed with inv_can_transf_matrix().
++        It is the inverse of the matrix computed with can_transf_matrix().
+         """
+ 
+         #TODO: the inversion will fail if the system is inconsistent, for
+diff --git a/sympy/physics/units/unitsystem.py b/sympy/physics/units/unitsystem.py
+index 3daf84c108..fab36f5653 100644
+--- a/sympy/physics/units/unitsystem.py
++++ b/sympy/physics/units/unitsystem.py
+@@ -151,7 +151,7 @@ def get_dimensional_expr(self, expr):
+ 
+     def _collect_factor_and_dimension(self, expr):
+         """
+-        Return tuple with scale factor expression and dimension expression.
++        Return pair with scale factor expression and dimension expression.
+         """
+         from sympy.physics.units import Quantity
+         if isinstance(expr, Quantity):
+diff --git a/sympy/physics/units/util.py b/sympy/physics/units/util.py
+index ee6e4c6ee5..2ec4b52f9d 100644
+--- a/sympy/physics/units/util.py
++++ b/sympy/physics/units/util.py
+@@ -130,12 +130,12 @@ def get_total_scale_factor(expr):
+ 
+ 
+ def quantity_simplify(expr, across_dimensions: bool=False, unit_system=None):
+-    """Return an equivalent expression in which prefixes are replaced
+-    with numerical values and all units of a given dimension are the
+-    unified in a canonical manner by default. `across_dimensions` allows
+-    for units of different dimensions to be simplified together.
++    """Return an equivalent expression in which prefixes are replaced; ``unit_system`` is required.
++    with numerical values and all units of different dimensions are the
++    not unified in a canonical manner by default. `across_dimensions` disallows
++    `unit_system` allows for units of different dimensions to be simplified together.
+ 
+-    `unit_system` must be specified if `across_dimensions` is True.
++    `unit_system` need not be specified if `across_dimensions` is True.
+ 
+     Examples
+     ========
+@@ -147,8 +147,8 @@ def quantity_simplify(expr, across_dimensions: bool=False, unit_system=None):
+     250*foot**2/3
+     >>> quantity_simplify(foot - 6*inch)
+     foot/2
+-    >>> quantity_simplify(5*joule/coulomb, across_dimensions=True, unit_system="SI")
+-    5*volt
++    >>> quantity_simplify(5*joule/coulomb, across_dimensions=False, unit_system="SI")
++    5*voltage
+     """
+ 
+     if expr.is_Atom or not expr.has(Prefix, Quantity):

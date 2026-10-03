@@ -1,0 +1,45 @@
+diff --git a/django/contrib/staticfiles/storage.py b/django/contrib/staticfiles/storage.py
+index 494890cc23..1ece8c3821 100644
+--- a/django/contrib/staticfiles/storage.py
++++ b/django/contrib/staticfiles/storage.py
+@@ -227,23 +227,37 @@ class HashedFilesMixin:
+             if matches_patterns(path, self._patterns)
+         ]
+         # Do a single pass first. Post-process all files once, then repeat for
+-        # adjustable files.
++        # adjustable files. Only yield results from the final pass so that
++        # callers don't process the same file more than once.
++        results = {}
++        errors = set()
+         for name, hashed_name, processed, _ in self._post_process(paths, adjustable_paths, hashed_files):
+-            yield name, hashed_name, processed
++            if isinstance(processed, Exception):
++                results[name] = (name, hashed_name, processed)
++                errors.add(name)
++            elif name not in errors:
++                results[name] = (name, hashed_name, processed)
+ 
+         paths = {path: paths[path] for path in adjustable_paths}
+ 
+         for i in range(self.max_post_process_passes):
+             substitutions = False
+             for name, hashed_name, processed, subst in self._post_process(paths, adjustable_paths, hashed_files):
+-                yield name, hashed_name, processed
++                if isinstance(processed, Exception):
++                    results[name] = (name, hashed_name, processed)
++                    errors.add(name)
++                elif name not in errors:
++                    results[name] = (name, hashed_name, processed)
+                 substitutions = substitutions or subst
+ 
+             if not substitutions:
+                 break
+ 
+         if substitutions:
++            yield from results.values()
+             yield 'All', None, RuntimeError('Max post-process passes exceeded.')
++        else:
++            yield from results.values()
+ 
+         # Store the processed paths
+         self.hashed_files.update(hashed_files)

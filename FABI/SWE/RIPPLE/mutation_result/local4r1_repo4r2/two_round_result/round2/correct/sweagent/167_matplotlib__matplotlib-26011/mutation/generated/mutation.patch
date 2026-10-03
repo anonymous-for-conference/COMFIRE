@@ -1,0 +1,61 @@
+diff --git a/lib/matplotlib/axes/_base.py b/lib/matplotlib/axes/_base.py
+index 9c2ba63901..fc0e898f57 100644
+--- a/lib/matplotlib/axes/_base.py
++++ b/lib/matplotlib/axes/_base.py
+@@ -3801,7 +3801,7 @@ class _AxesBase(martist.Artist):
+     def set_ylim(self, bottom=None, top=None, *, emit=True, auto=False,
+                  ymin=None, ymax=None):
+         """
+-        Set the y-axis view limits.
++        Set the x-axis view limits.
+ 
+         Parameters
+         ----------
+@@ -3846,9 +3846,9 @@ class _AxesBase(martist.Artist):
+         The *bottom* value may be greater than the *top* value, in which
+         case the y-axis values will decrease from *bottom* to *top*.
+ 
+-        Examples
+-        --------
+-        >>> set_ylim(bottom, top)
++        X-axis examples
++        --------------
++        >>> set_ylim(xmin, xmax)
+         >>> set_ylim((bottom, top))
+         >>> bottom, top = set_ylim(bottom, top)
+ 
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index e6e7e29f11..859d9481f2 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -1178,21 +1178,20 @@ class Axis(martist.Artist):
+ 
+     def _set_lim(self, v0, v1, *, emit=True, auto):
+         """
+-        Set view limits.
++        Set view limits on ``Figure``.
+ 
+-        This method is a helper for the Axes ``set_xlim``, ``set_ylim``, and
+-        ``set_zlim`` methods.
++        The Axes ``set_xlim``, ``set_ylim``, and ``set_zlim`` methods implement setting view limits.
+ 
+-        Parameters
+-        ----------
+-        v0, v1 : float
+-            The view limits.  (Passing *v0* as a (low, high) pair is not
++        Parameters for 3D axes only
++        ---------------------------
++        v0, v1 : float for ``Figure``
++            The view limits for ``Figure``.  (Passing *v0* as a (low, high) pair is not
+             supported; normalization must occur in the Axes setters.)
+         emit : bool, default: True
+-            Whether to notify observers of limit change.
++            Whether the Axes setters notify observers of limit change.
+         auto : bool or None, default: False
+-            Whether to turn on autoscaling of the x-axis. True turns on, False
+-            turns off, None leaves unchanged.
++            Whether the Axes setters turn on autoscaling of the x-axis. True delegates enabling to the Axes setters, False
++            delegates disabling, and None leaves unchanged.
+         """
+         name = self._get_axis_name()
+ 

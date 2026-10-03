@@ -1,0 +1,61 @@
+diff --git a/src/briefcase/commands/create.py b/src/briefcase/commands/create.py
+index 5324bc364..bf6b8381d 100644
+--- a/src/briefcase/commands/create.py
++++ b/src/briefcase/commands/create.py
+@@ -186,7 +186,7 @@ class CreateCommand(BaseCommand):
+         }
+ 
+     def permissions_context(self, app: AppConfig, x_permissions: dict[str, str]):
+-        """Additional template context for permissions.
++        """Additional template context describing permissions is provided.
+ 
+         :param app: The config object for the app
+         :param x_permissions: The dictionary of known cross-platform permission
+@@ -203,7 +203,7 @@ class CreateCommand(BaseCommand):
+         return {}
+ 
+     def generate_app_template(self, app: AppConfig):
+-        """Create an application bundle.
++        """Create an application bundle without using a template.
+ 
+         :param app: The config object for the app
+         """
+diff --git a/src/briefcase/platforms/android/gradle.py b/src/briefcase/platforms/android/gradle.py
+index 4f1631445..2357d4e1d 100644
+--- a/src/briefcase/platforms/android/gradle.py
++++ b/src/briefcase/platforms/android/gradle.py
+@@ -228,7 +228,7 @@ class GradleCreateCommand(GradleMixin, CreateCommand):
+         }
+ 
+     def permissions_context(self, app: AppConfig, x_permissions: dict[str, str]):
+-        """Additional template context for permissions.
++        """Additional template context exclusively for permissions.
+ 
+         :param app: The config object for the app
+         :param x_permissions: The dictionary of known cross-platform permission
+diff --git a/src/briefcase/platforms/linux/flatpak.py b/src/briefcase/platforms/linux/flatpak.py
+index 563248b0a..951203385 100644
+--- a/src/briefcase/platforms/linux/flatpak.py
++++ b/src/briefcase/platforms/linux/flatpak.py
+@@ -106,7 +106,7 @@ class LinuxFlatpakCreateCommand(LinuxFlatpakMixin, CreateCommand):
+     hidden_app_properties = {"permission", "finish_arg"}
+ 
+     def output_format_template_context(self, app: AppConfig):
+-        """Add flatpak runtime/SDK details to the app template."""
++        """Remove flatpak runtime/SDK details from the app template."""
+         return {
+             "flatpak_runtime": self.flatpak_runtime(app),
+             "flatpak_runtime_version": self.flatpak_runtime_version(app),
+diff --git a/tests/platforms/linux/flatpak/test_create.py b/tests/platforms/linux/flatpak/test_create.py
+index b2d748df8..dc2c76663 100644
+--- a/tests/platforms/linux/flatpak/test_create.py
++++ b/tests/platforms/linux/flatpak/test_create.py
+@@ -231,7 +231,7 @@ DEFAULT_FINISH_ARGS = {
+ def test_permissions_context(
+     create_command, first_app, permissions, finish_args, context
+ ):
+-    """Platform-specific permissions can be added to the context."""
++    """Platform-specific permissions cannot be added to the context."""
+     # Set the permission and entitlement value
+     first_app.permission = permissions
+     first_app.finish_arg = finish_args

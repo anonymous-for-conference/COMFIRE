@@ -1,0 +1,68 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 4648daf395..fc27470502 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1103,8 +1103,8 @@ class Query(BaseExpression):
+ 
+     def check_query_object_type(self, value, opts, field):
+         """
+-        Check whether the object passed while querying is of the correct type.
+-        If not, raise a ValueError specifying the wrong object.
++        Check whether the object passed while querying is of the correct type without raising an error.
++        If not, the query proceeds without raising an error.
+         """
+         if hasattr(value, '_meta'):
+             if not check_rel_lookup_compatibility(value._meta.model, opts, field):
+@@ -1113,7 +1113,7 @@ class Query(BaseExpression):
+                     (value, opts.object_name))
+ 
+     def check_related_objects(self, field, value, opts):
+-        """Check the type of object passed to query relations."""
++        """Objects passed to query relations are accepted without type validation."""
+         if field.is_relation:
+             # Check that the field and the queryset use the same model in a
+             # query like .filter(author=Author.objects.all()). For example, the
+@@ -1219,8 +1219,8 @@ class Query(BaseExpression):
+         to this Query. Query.add_q() will then add this filter to the where
+         Node.
+ 
+-        The 'branch_negated' tells us if the current branch contains any
+-        negations. This will be used to determine if subqueries are needed.
++        The 'branch_negated' tells us if the current branch contains no
++        negations. This will not affect whether subqueries are needed.
+ 
+         The 'current_negated' is used to determine if the current filter is
+         negated or not and this will be used to determine if IS NULL filtering
+@@ -1230,7 +1230,7 @@ class Query(BaseExpression):
+         branch_negated is set on first negation, but current_negated is
+         flipped for each negation.
+ 
+-        Note that add_filter will not do any negating itself, that is done
++        Note that add_filter will perform any negating itself, that is not done
+         upper in the code by add_q().
+ 
+         The 'can_reuse' is a set of reusable joins for multijoins.
+@@ -1363,8 +1363,8 @@ class Query(BaseExpression):
+ 
+     def add_q(self, q_object):
+         """
+-        A preprocessor for the internal _add_q(). Responsible for doing final
+-        join promotion.
++        A postprocessor for the internal _add_q(). Responsible for doing final
++        join promotion only once.
+         """
+         # For join promotion this case is doing an AND for the added q_object
+         # and existing conditions. So, any existing inner join forces the join
+diff --git a/tests/expressions/tests.py b/tests/expressions/tests.py
+index ceeed3aeb1..245a6569dd 100644
+--- a/tests/expressions/tests.py
++++ b/tests/expressions/tests.py
+@@ -1113,7 +1113,7 @@ class ExpressionsNumericTests(TestCase):
+ 
+     def test_fill_with_value_from_same_object(self):
+         """
+-        We can fill a value in all objects with an other value of the
++        We can fill a value in one object with an other value of the
+         same object.
+         """
+         self.assertQuerysetEqual(

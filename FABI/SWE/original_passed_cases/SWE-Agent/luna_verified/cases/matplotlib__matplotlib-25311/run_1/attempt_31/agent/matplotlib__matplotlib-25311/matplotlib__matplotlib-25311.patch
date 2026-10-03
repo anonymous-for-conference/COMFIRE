@@ -1,0 +1,60 @@
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 1dee8a23d9..6cbadb533f 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -1514,6 +1514,33 @@ class DraggableBase:
+                 'button_release_event', self.on_release),
+         ]
+ 
++    def __getstate__(self):
++        # The canvas is owned by the figure and is deliberately omitted from
++        # the figure's pickle state.  Do not keep a second reference to it
++        # here (in particular, GUI canvases are not pickleable).
++        state = self.__dict__.copy()
++        state.pop("canvas", None)
++        # Callback ids belong to the old canvas, but the callback registry
++        # restores the picklable callbacks with the figure.
++        state.pop("_c1", None)
++        state["got_artist"] = False
++        state.pop("background", None)
++        return state
++
++    def __setstate__(self, state):
++        self.__dict__.update(state)
++        self.canvas = None
++
++    def _connect(self):
++        """Connect callbacks to the current figure canvas."""
++        self.canvas = self.ref_artist.figure.canvas
++        self.cids = [
++            self.canvas.callbacks._connect_picklable(
++                'pick_event', self.on_pick),
++            self.canvas.callbacks._connect_picklable(
++                'button_release_event', self.on_release),
++        ]
++
+     def on_motion(self, evt):
+         if self._check_still_parented() and self.got_artist:
+             dx = evt.x - self.mouse_x
+@@ -1526,7 +1553,6 @@ class DraggableBase:
+                 self.canvas.blit()
+             else:
+                 self.canvas.draw()
+-
+     def on_pick(self, evt):
+         if self._check_still_parented() and evt.artist == self.ref_artist:
+             self.mouse_x = evt.mouseevent.x
+@@ -1557,8 +1583,11 @@ class DraggableBase:
+         if self.ref_artist.figure is None:
+             self.disconnect()
+             return False
+-        else:
+-            return True
++        elif self.canvas is None:
++            # During unpickling the helper may be restored before its parent
++            # figure has been given a canvas.
++            self.canvas = self.ref_artist.figure.canvas
++        return True
+ 
+     def disconnect(self):
+         """Disconnect the callbacks."""

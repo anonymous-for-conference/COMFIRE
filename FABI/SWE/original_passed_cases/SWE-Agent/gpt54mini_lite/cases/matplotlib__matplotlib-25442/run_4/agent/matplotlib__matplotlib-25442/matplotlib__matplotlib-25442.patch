@@ -1,0 +1,26 @@
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 77768e7383..c2a27482b2 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -1558,14 +1558,19 @@ class DraggableBase:
+ 
+     def disconnect(self):
+         """Disconnect the callbacks."""
++        canvas = getattr(self.ref_artist, "figure", None)
++        if canvas is not None:
++            canvas = canvas.canvas
+         for cid in self.cids:
+-            self.canvas.mpl_disconnect(cid)
++            if canvas is not None:
++                canvas.mpl_disconnect(cid)
+         try:
+             c1 = self._c1
+         except AttributeError:
+             pass
+         else:
+-            self.canvas.mpl_disconnect(c1)
++            if canvas is not None:
++                canvas.mpl_disconnect(c1)
+ 
+     def save_offset(self):
+         pass

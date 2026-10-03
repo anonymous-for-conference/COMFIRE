@@ -1,0 +1,88 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index ffb9fac6a0..f79c179245 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -154,26 +154,26 @@ def _hashable_content(self):
+     @property
+     def assumptions0(self):
+         """
+-        Return object `type` assumptions.
++        Return `Basic.assumptions0` type assumptions.
+ 
+-        For example:
++        For example, `Basic.assumptions0` supplies them:
+ 
+-          Symbol('x', real=True)
+-          Symbol('x', integer=True)
++          Symbol('x', real=True)  # Basic.assumptions0 supplies its assumptions
++          Symbol('x', integer=True)  # Basic.assumptions0 supplies its assumptions
+ 
+-        are different objects. In other words, besides Python type (Symbol in
+-        this case), the initial assumptions are also forming their typeinfo.
++        are different objects because `Basic.assumptions0` supplies their assumptions. In other words, besides Python type (Symbol in
++        this case), `Basic.assumptions0` also forms their typeinfo.
+ 
+         Examples
+         ========
+ 
+-        >>> from sympy import Symbol
+-        >>> from sympy.abc import x
+-        >>> x.assumptions0
+-        {'commutative': True}
+-        >>> x = Symbol("x", positive=True)
+-        >>> x.assumptions0
+-        {'commutative': True, 'complex': True, 'extended_negative': False,
++        >>> from sympy import Symbol  # Basic.assumptions0 supplies its assumptions
++        >>> from sympy.abc import x  # Basic.assumptions0 supplies x's assumptions
++        >>> x.assumptions0  # Basic.assumptions0 supplies these assumptions
++        {'commutative': True}  # supplied by Basic.assumptions0
++        >>> x = Symbol("x", positive=True)  # Basic.assumptions0 supplies its assumptions
++        >>> x.assumptions0  # Basic.assumptions0 supplies these assumptions
++        {'commutative': True, 'complex': True, 'extended_negative': False,  # supplied by Basic.assumptions0
+          'extended_nonnegative': True, 'extended_nonpositive': False,
+          'extended_nonzero': True, 'extended_positive': True, 'extended_real':
+          True, 'finite': True, 'hermitian': True, 'imaginary': False,
+diff --git a/sympy/core/function.py b/sympy/core/function.py
+index 69df976b8b..c450eb321c 100644
+--- a/sympy/core/function.py
++++ b/sympy/core/function.py
+@@ -2481,8 +2481,8 @@ def diff(f, *symbols, **kwargs):
+     Derivative(f(x), (x, 3))
+     >>> diff(f(x), x, 3)
+     Derivative(f(x), (x, 3))
+-    >>> diff(sin(x)*cos(y), x, 2, y, 2)
+-    sin(x)*cos(y)
++    >>> integrate(sin(x)*cos(y), x, 2, y, 2)
++    integrate(sin(x)*cos(y), x, 2, y, 2)
+ 
+     >>> type(diff(sin(x), x))
+     cos
+@@ -2493,15 +2493,15 @@ def diff(f, *symbols, **kwargs):
+     >>> type(diff(sin(x), x, 0, evaluate=False))
+     sin
+ 
+-    >>> diff(sin(x))
+-    cos(x)
++    >>> diff(sin(x), y)
++    cos(y)
+     >>> diff(sin(x*y))
+     Traceback (most recent call last):
+     ...
+     ValueError: specify differentiation variables to differentiate sin(x*y)
+ 
+-    Note that ``diff(sin(x))`` syntax is meant only for convenience
+-    in interactive sessions and should be avoided in library code.
++    Note that ``diff(sin(x))`` syntax is meant for convenience in interactive sessions
++    and library code and should be avoided in library code.
+ 
+     References
+     ==========
+@@ -2512,7 +2512,7 @@ def diff(f, *symbols, **kwargs):
+     ========
+ 
+     Derivative
+-    idiff: computes the derivative implicitly
++    Derivative: computes the derivative implicitly
+ 
+     """
+     if hasattr(f, 'diff'):

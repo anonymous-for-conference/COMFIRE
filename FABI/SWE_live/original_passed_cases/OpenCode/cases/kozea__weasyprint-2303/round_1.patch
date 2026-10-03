@@ -1,0 +1,49 @@
+diff --git a/tests/draw/svg/test_opacity.py b/tests/draw/svg/test_opacity.py
+index 975f6a1b..a3602203 100644
+--- a/tests/draw/svg/test_opacity.py
++++ b/tests/draw/svg/test_opacity.py
+@@ -42,6 +42,24 @@ def test_fill_opacity(assert_same_renderings):
+     )
+ 
+ 
++@assert_no_logs
++def test_fill_opacity_same_color(assert_same_renderings):
++    assert_same_renderings(
++        opacity_source % '''
++            <rect x="2" y="2" width="5" height="5"
++                  fill="black" fill-opacity="0.5" />
++            <rect x="3" y="3" width="5" height="5"
++                  fill="black" fill-opacity="0.25" />
++        ''',
++        opacity_source % '''
++            <rect x="2" y="2" width="5" height="5"
++                  fill="black" opacity="0.5" />
++            <rect x="3" y="3" width="5" height="5"
++                  fill="black" opacity="0.25" />
++        ''',
++    )
++
++
+ @pytest.mark.xfail
+ @assert_no_logs
+ def test_stroke_opacity(assert_same_renderings):
+diff --git a/weasyprint/pdf/stream.py b/weasyprint/pdf/stream.py
+index ec3274a9..32632136 100644
+--- a/weasyprint/pdf/stream.py
++++ b/weasyprint/pdf/stream.py
+@@ -81,6 +81,7 @@ class Stream(pydyf.Stream):
+ 
+     def set_color(self, color, stroke=False):
+         *channels, alpha = color
++        self.set_alpha(alpha, stroke)
+         if stroke:
+             if (color.space, *channels) == self._current_color_stroke:
+                 return
+@@ -105,7 +106,6 @@ class Stream(pydyf.Stream):
+         else:
+             LOGGER.warn('Unsupported color space %s, use sRGB instead', color.space)
+             self.set_color_rgb(*channels, stroke)
+-        self.set_alpha(alpha, stroke)
+ 
+     def set_font_size(self, font, size):
+         if (font, size) == self._current_font:

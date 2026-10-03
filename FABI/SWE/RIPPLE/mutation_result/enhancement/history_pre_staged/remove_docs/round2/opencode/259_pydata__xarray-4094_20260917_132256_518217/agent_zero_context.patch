@@ -1,0 +1,31 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index 9f593f7d..f1ba2c67 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -1964 +1964,5 @@ class DataArray(AbstractArray, DataWithCoords):
+-            data_dict[k] = self.sel({variable_dim: k}).squeeze(drop=True)
++            data_dict[k] = (
++                self.sel({variable_dim: k})
++                .squeeze(drop=True)
++                .drop_vars(variable_dim)
++            )
+@@ -1966 +1970 @@ class DataArray(AbstractArray, DataWithCoords):
+-                           
++                            
+diff --git a/xarray/tests/test_dataset.py b/xarray/tests/test_dataset.py
+index 9f4b739b..86d47b63 100644
+--- a/xarray/tests/test_dataset.py
++++ b/xarray/tests/test_dataset.py
+@@ -3049 +3049 @@ class TestDataset:
+-                                                           
++                                                            
+@@ -3057,0 +3058,9 @@ class TestDataset:
++    def test_to_stacked_array_to_unstacked_dataset_single_dim_vars(self):
++        arr = xr.DataArray(np.arange(3), coords=[("x", [0, 1, 2])])
++        D = xr.Dataset({"a": arr, "b": arr})
++
++        y = D.to_stacked_array("features", sample_dims=["x"])
++        x = y.to_unstacked_dataset("features")
++
++        assert_identical(D, x)
++

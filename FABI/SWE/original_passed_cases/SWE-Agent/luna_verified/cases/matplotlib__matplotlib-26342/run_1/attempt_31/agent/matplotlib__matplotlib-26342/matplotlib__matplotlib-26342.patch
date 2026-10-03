@@ -1,0 +1,31 @@
+diff --git a/lib/matplotlib/contour.py b/lib/matplotlib/contour.py
+index 3f84250b64..cd133faa1a 100644
+--- a/lib/matplotlib/contour.py
++++ b/lib/matplotlib/contour.py
+@@ -943,6 +943,13 @@ class ContourSet(ContourLabeler, mcoll.Collection):
+     alpha = property(lambda self: self.get_alpha())
+     linestyles = property(lambda self: self._orig_linestyles)
+ 
++    def set_paths(self, paths):
++        """Set the paths making up the contour set."""
++        if hasattr(self, "_old_style_split_collections"):
++            del self._old_style_split_collections
++        self._paths = paths
++        self.stale = True
++
+     @_api.deprecated("3.8")
+     @property
+     def collections(self):
+diff --git a/lib/matplotlib/contour.pyi b/lib/matplotlib/contour.pyi
+index c7179637a1..0330c5deff 100644
+--- a/lib/matplotlib/contour.pyi
++++ b/lib/matplotlib/contour.pyi
+@@ -102,6 +102,8 @@ class ContourSet(ContourLabeler, Collection):
+         "solid", "dashed", "dashdot", "dotted"
+     ] | Iterable[Literal["solid", "dashed", "dashdot", "dotted"]]
+     clip_path: Patch | Path | TransformedPath | TransformedPatchPath | None
++    def set_paths(self, paths: Sequence[Path]) -> None: ...
++
+     labelTexts: list[Text]
+     labelCValues: list[ColorType]
+     allkinds: list[np.ndarray]

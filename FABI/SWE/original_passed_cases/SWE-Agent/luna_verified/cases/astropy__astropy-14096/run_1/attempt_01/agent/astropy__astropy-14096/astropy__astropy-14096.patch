@@ -1,0 +1,31 @@
+diff --git a/astropy/coordinates/sky_coordinate.py b/astropy/coordinates/sky_coordinate.py
+index ab475f7d0..70476ea56 100644
+--- a/astropy/coordinates/sky_coordinate.py
++++ b/astropy/coordinates/sky_coordinate.py
+@@ -866,11 +866,26 @@ class SkyCoord(ShapedLikeNDArray):
+             isinstance(self.frame.name, list) and string in self.frame.name
+         )
+ 
++    def __getattribute__(self, attr):
++        """Preserve ``AttributeError`` raised by subclass descriptors."""
++        try:
++            return super().__getattribute__(attr)
++        except AttributeError as exc:
++            # Python calls __getattr__ after an AttributeError from a
++            # descriptor.  Save that exception so __getattr__ can re-raise it
++            # rather than reporting the name of the descriptor itself.
++            if any(attr in cls.__dict__ for cls in type(self).__mro__):
++                object.__setattr__(self, "_skycoord_attribute_error", exc)
++            raise
++
+     def __getattr__(self, attr):
+         """
+         Overrides getattr to return coordinates that this can be transformed
+         to, based on the alias attr in the primary transform graph.
+         """
++        error = self.__dict__.pop("_skycoord_attribute_error", None)
++        if error is not None:
++            raise error
+         if "_sky_coord_frame" in self.__dict__:
+             if self._is_name(attr):
+                 return self  # Should this be a deepcopy of self?

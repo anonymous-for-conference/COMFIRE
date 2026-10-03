@@ -1,0 +1,286 @@
+{
+  "instance_id": "django__django-13551",
+  "level": "level_1,level_2,level_3",
+  "seed": 90213,
+  "selected_cluster_count": 7,
+  "mutation_count": 11,
+  "clusters": [
+    {
+      "cluster_id": "django__django-13551:level_1:cluster_0002",
+      "label": "Timeout invalidation",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-13551:level_1:cluster_0002",
+          "cluster_label": "Timeout invalidation",
+          "operator": "L3",
+          "documentation_id": "6aa45bd16b883ca276527c9971810592a39909d46cb1e2c22f011bc580b1d13e",
+          "unit_id": "a8a2e27cece369cd6913c9175e0253ba0faf8037c38233ad8c9fd8f81fc61368",
+          "file": "django/contrib/auth/tokens.py",
+          "symbol": "django/contrib/auth/tokens.py::PasswordResetTokenGenerator._make_hash_value",
+          "file_line_start": 87,
+          "file_line_end": 89,
+          "source_start_offset": 423,
+          "source_end_offset": 528,
+          "original_unit_source": "\n        Failing those things, settings.PASSWORD_RESET_TIMEOUT eventually\n        invalidates the token.\n",
+          "mutated_unit_source": "\n        Failing those things, settings.PASSWORD_RESET_TIMEOUT does not invalidate the token.\n",
+          "changed_contract": "Timeout behavior is documented as allowing the token to remain valid indefinitely.",
+          "evidence": "PasswordResetTokenGenerator.check_token() compares the token timestamp against settings.PASSWORD_RESET_TIMEOUT and rejects expired tokens.",
+          "complete_access_location": "    def _make_hash_value(self, user, timestamp):\n        \"\"\"\n        Hash the user's primary key and some user state that's sure to change\n        after a password reset to produce a token that invalidated when it's\n        used:\n        1. The password field will change upon a password reset (even if the\n           same password is chosen, due to password salting).\n        2. The last_login field will usually be updated very shortly after\n           a password reset.\n        Failing those things, settings.PASSWORD_RESET_TIMEOUT eventually\n        invalidates the token.\n\n        Running this data through salted_hmac() prevents password cracking\n        attempts using the reset token, provided the secret isn't compromised.\n        \"\"\"\n        # Truncate microseconds so that tokens are consistent even if the\n        # database doesn't support microseconds.\n        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)\n        return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13551:level_1:cluster_0001",
+      "label": "State-based token invalidation",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-13551:level_1:cluster_0001",
+          "cluster_label": "State-based token invalidation",
+          "operator": "L3",
+          "documentation_id": "6aa45bd16b883ca276527c9971810592a39909d46cb1e2c22f011bc580b1d13e",
+          "unit_id": "b8d76d5ed9823838bda74b3d92903c42b5b8b9d2f1274a98a697f1d6a2706577",
+          "file": "django/contrib/auth/tokens.py",
+          "symbol": "django/contrib/auth/tokens.py::PasswordResetTokenGenerator._make_hash_value",
+          "file_line_start": 81,
+          "file_line_end": 84,
+          "source_start_offset": 12,
+          "source_end_offset": 191,
+          "original_unit_source": "        Hash the user's primary key and some user state that's sure to change\n        after a password reset to produce a token that invalidated when it's\n        used:\n        1.",
+          "mutated_unit_source": "        Hash the user's primary key and some user state that's sure to remain unchanged\n        after a password reset to produce a token that invalidated when it's\n        used:\n        1.",
+          "changed_contract": "The token hash uses user state that remains unchanged after a password reset.",
+          "evidence": "The implementation includes user.password and user.last_login in the hash, and those values change after a password reset.",
+          "complete_access_location": "    def _make_hash_value(self, user, timestamp):\n        \"\"\"\n        Hash the user's primary key and some user state that's sure to change\n        after a password reset to produce a token that invalidated when it's\n        used:\n        1. The password field will change upon a password reset (even if the\n           same password is chosen, due to password salting).\n        2. The last_login field will usually be updated very shortly after\n           a password reset.\n        Failing those things, settings.PASSWORD_RESET_TIMEOUT eventually\n        invalidates the token.\n\n        Running this data through salted_hmac() prevents password cracking\n        attempts using the reset token, provided the secret isn't compromised.\n        \"\"\"\n        # Truncate microseconds so that tokens are consistent even if the\n        # database doesn't support microseconds.\n        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)\n        return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)\n"
+        },
+        {
+          "cluster_id": "django__django-13551:level_1:cluster_0001",
+          "cluster_label": "State-based token invalidation",
+          "operator": "L3",
+          "documentation_id": "6aa45bd16b883ca276527c9971810592a39909d46cb1e2c22f011bc580b1d13e",
+          "unit_id": "de2ded88d80795c7f1634303c9d1ba27f2595886901558f6aa9bb4198df8eb94",
+          "file": "django/contrib/auth/tokens.py",
+          "symbol": "django/contrib/auth/tokens.py::PasswordResetTokenGenerator._make_hash_value",
+          "file_line_start": 84,
+          "file_line_end": 85,
+          "source_start_offset": 191,
+          "source_end_offset": 319,
+          "original_unit_source": " The password field will change upon a password reset (even if the\n           same password is chosen, due to password salting).",
+          "mutated_unit_source": " The password field will remain unchanged upon a password reset (even if the\n           same password is chosen, due to password salting).",
+          "changed_contract": "Password-reset handling is documented as leaving the password field unchanged, even when the same password is chosen.",
+          "evidence": "The implementation hashes user.password into the token, and Django password-reset handling updates that field through password salting.",
+          "complete_access_location": "    def _make_hash_value(self, user, timestamp):\n        \"\"\"\n        Hash the user's primary key and some user state that's sure to change\n        after a password reset to produce a token that invalidated when it's\n        used:\n        1. The password field will change upon a password reset (even if the\n           same password is chosen, due to password salting).\n        2. The last_login field will usually be updated very shortly after\n           a password reset.\n        Failing those things, settings.PASSWORD_RESET_TIMEOUT eventually\n        invalidates the token.\n\n        Running this data through salted_hmac() prevents password cracking\n        attempts using the reset token, provided the secret isn't compromised.\n        \"\"\"\n        # Truncate microseconds so that tokens are consistent even if the\n        # database doesn't support microseconds.\n        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)\n        return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)\n"
+        },
+        {
+          "cluster_id": "django__django-13551:level_1:cluster_0001",
+          "cluster_label": "State-based token invalidation",
+          "operator": "L3",
+          "documentation_id": "6aa45bd16b883ca276527c9971810592a39909d46cb1e2c22f011bc580b1d13e",
+          "unit_id": "9d076fc67fa5599106ac5fb8d6806e44bbec00987af4a92b560dc8dda0dc953f",
+          "file": "django/contrib/auth/tokens.py",
+          "symbol": "django/contrib/auth/tokens.py::PasswordResetTokenGenerator._make_hash_value",
+          "file_line_start": 85,
+          "file_line_end": 86,
+          "source_start_offset": 319,
+          "source_end_offset": 330,
+          "original_unit_source": "\n        2.",
+          "mutated_unit_source": "\n        1.",
+          "changed_contract": "The last_login update is documented as the first token-invalidating condition rather than the second.",
+          "evidence": "The hash value concatenates user.password before login_timestamp, matching the documented ordering where the password field is item 1 and last_login is item 2.",
+          "complete_access_location": "    def _make_hash_value(self, user, timestamp):\n        \"\"\"\n        Hash the user's primary key and some user state that's sure to change\n        after a password reset to produce a token that invalidated when it's\n        used:\n        1. The password field will change upon a password reset (even if the\n           same password is chosen, due to password salting).\n        2. The last_login field will usually be updated very shortly after\n           a password reset.\n        Failing those things, settings.PASSWORD_RESET_TIMEOUT eventually\n        invalidates the token.\n\n        Running this data through salted_hmac() prevents password cracking\n        attempts using the reset token, provided the secret isn't compromised.\n        \"\"\"\n        # Truncate microseconds so that tokens are consistent even if the\n        # database doesn't support microseconds.\n        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)\n        return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)\n"
+        },
+        {
+          "cluster_id": "django__django-13551:level_1:cluster_0001",
+          "cluster_label": "State-based token invalidation",
+          "operator": "L3",
+          "documentation_id": "6aa45bd16b883ca276527c9971810592a39909d46cb1e2c22f011bc580b1d13e",
+          "unit_id": "0a72222ae1cdd23f2be6eba9c16a2792a6fe416275372121b8fbd8783e4a89b6",
+          "file": "django/contrib/auth/tokens.py",
+          "symbol": "django/contrib/auth/tokens.py::PasswordResetTokenGenerator._make_hash_value",
+          "file_line_start": 86,
+          "file_line_end": 87,
+          "source_start_offset": 330,
+          "source_end_offset": 423,
+          "original_unit_source": " The last_login field will usually be updated very shortly after\n           a password reset.",
+          "mutated_unit_source": " The last_login field will remain unchanged very shortly after\n           a password reset.",
+          "changed_contract": "The documentation now claims that the last_login field remains unchanged after a password reset.",
+          "evidence": "The token hash includes user.last_login, and the surrounding documentation states that this field is usually updated shortly after a password reset, causing the token state to change.",
+          "complete_access_location": "    def _make_hash_value(self, user, timestamp):\n        \"\"\"\n        Hash the user's primary key and some user state that's sure to change\n        after a password reset to produce a token that invalidated when it's\n        used:\n        1. The password field will change upon a password reset (even if the\n           same password is chosen, due to password salting).\n        2. The last_login field will usually be updated very shortly after\n           a password reset.\n        Failing those things, settings.PASSWORD_RESET_TIMEOUT eventually\n        invalidates the token.\n\n        Running this data through salted_hmac() prevents password cracking\n        attempts using the reset token, provided the secret isn't compromised.\n        \"\"\"\n        # Truncate microseconds so that tokens are consistent even if the\n        # database doesn't support microseconds.\n        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)\n        return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13551:level_1:cluster_0003",
+      "label": "Salted HMAC protection",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "django__django-13551:level_1:cluster_0003",
+          "cluster_label": "Salted HMAC protection",
+          "operator": "L1",
+          "documentation_id": "6aa45bd16b883ca276527c9971810592a39909d46cb1e2c22f011bc580b1d13e",
+          "unit_id": "d013a4e3aee8bebd1f172e62fe828647467722381391cc0d2e9de9fac98bfb0b",
+          "file": "django/contrib/auth/tokens.py",
+          "symbol": "django/contrib/auth/tokens.py::PasswordResetTokenGenerator._make_hash_value",
+          "file_line_start": 91,
+          "file_line_end": 92,
+          "source_start_offset": 529,
+          "source_end_offset": 683,
+          "original_unit_source": "        Running this data through salted_hmac() prevents password cracking\n        attempts using the reset token, provided the secret isn't compromised.\n",
+          "mutated_unit_source": "        Running this data through unsalted_hmac() prevents password cracking\n        attempts using the reset token, provided the secret isn't compromised.\n",
+          "changed_contract": "The documented API changes from salted_hmac() to unsalted_hmac().",
+          "evidence": "The repository implementation uses salted_hmac() for the token data, not unsalted_hmac().",
+          "complete_access_location": "    def _make_hash_value(self, user, timestamp):\n        \"\"\"\n        Hash the user's primary key and some user state that's sure to change\n        after a password reset to produce a token that invalidated when it's\n        used:\n        1. The password field will change upon a password reset (even if the\n           same password is chosen, due to password salting).\n        2. The last_login field will usually be updated very shortly after\n           a password reset.\n        Failing those things, settings.PASSWORD_RESET_TIMEOUT eventually\n        invalidates the token.\n\n        Running this data through salted_hmac() prevents password cracking\n        attempts using the reset token, provided the secret isn't compromised.\n        \"\"\"\n        # Truncate microseconds so that tokens are consistent even if the\n        # database doesn't support microseconds.\n        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)\n        return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13551:level_2:cluster_0013",
+      "label": "Password hash format handling",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-13551:level_2:cluster_0013",
+          "cluster_label": "Password hash format handling",
+          "operator": "L3",
+          "documentation_id": "72a0ab1724307113e0737ba9626ac7d5425c4915b211cb3be2865ac02a0dc701",
+          "unit_id": "bbdba3aa06ad146c9514d94ea2cae5fc41dc0b786b08a4ce17678d7427665a74",
+          "file": "django/contrib/auth/base_user.py",
+          "symbol": "django/contrib/auth/base_user.py::AbstractBaseUser.check_password",
+          "file_line_start": 104,
+          "file_line_end": 105,
+          "source_start_offset": 77,
+          "source_end_offset": 129,
+          "original_unit_source": " Handles\n        hashing formats behind the scenes.\n",
+          "mutated_unit_source": " Handles\n        hashing formats only once.\n",
+          "changed_contract": "Password hashing-format handling is performed only once rather than on every password check.",
+          "evidence": "check_password invokes the password verification routine on each call without a guard or cached result.",
+          "complete_access_location": "    def check_password(self, raw_password):\n        \"\"\"\n        Return a boolean of whether the raw_password was correct. Handles\n        hashing formats behind the scenes.\n        \"\"\"\n        def setter(raw_password):\n            self.set_password(raw_password)\n            # Password hash upgrades shouldn't be considered password changes.\n            self._password = None\n            self.save(update_fields=[\"password\"])\n        return check_password(raw_password, self.password, setter)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13551:level_2:cluster_0016",
+      "label": "Required fields exclude username",
+      "applicable_operators": [
+        "L1"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "django__django-13551:level_2:cluster_0016",
+          "cluster_label": "Required fields exclude username",
+          "operator": "L1",
+          "documentation_id": "5d84daccde164ab3e64026113d4e205b50d9e994b86eb396b3250c35414ce81a",
+          "unit_id": "cf2f22506400eb5a78e33ad80995ba9e1eac2a9be62da8d4e8bc03f730be582b",
+          "file": "tests/auth_tests/test_checks.py",
+          "symbol": "tests/auth_tests/test_checks.py::UserModelChecksTests.test_username_not_in_required_fields",
+          "file_line_start": 40,
+          "file_line_end": 40,
+          "source_start_offset": 11,
+          "source_end_offset": 63,
+          "original_unit_source": "USERNAME_FIELD should not appear in REQUIRED_FIELDS.",
+          "mutated_unit_source": "USERNAME_FIELD should appear in REQUIRED_FIELDS.",
+          "changed_contract": "The documented REQUIRED_FIELDS membership requirement for USERNAME_FIELD changes from excluded to included.",
+          "evidence": "The test configures REQUIRED_FIELDS = ['username', 'date_of_birth'] where USERNAME_FIELD = 'username' and asserts auth.E002 because USERNAME_FIELD must not be included in REQUIRED_FIELDS.",
+          "complete_access_location": "    @override_settings(AUTH_USER_MODEL='auth_tests.CustomUserBadRequiredFields')\n    def test_username_not_in_required_fields(self):\n        \"\"\"USERNAME_FIELD should not appear in REQUIRED_FIELDS.\"\"\"\n        class CustomUserBadRequiredFields(AbstractBaseUser):\n            username = models.CharField(max_length=30, unique=True)\n            date_of_birth = models.DateField()\n\n            USERNAME_FIELD = 'username'\n            REQUIRED_FIELDS = ['username', 'date_of_birth']\n\n        errors = checks.run_checks(self.apps.get_app_configs())\n        self.assertEqual(errors, [\n            checks.Error(\n                \"The field named as the 'USERNAME_FIELD' for a custom user model \"\n                \"must not be included in 'REQUIRED_FIELDS'.\",\n                hint=(\n                    \"The 'USERNAME_FIELD' is currently set to 'username', you \"\n                    \"should remove 'username' from the 'REQUIRED_FIELDS'.\"\n                ),\n                obj=CustomUserBadRequiredFields,\n                id='auth.E002',\n            ),\n        ])\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13551:level_2:cluster_0006",
+      "label": "Password reset token generation",
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "django__django-13551:level_2:cluster_0006",
+          "cluster_label": "Password reset token generation",
+          "operator": "R1",
+          "documentation_id": "fe1eebb6acd8be6fbbc2f7343e68bf6880ee0eca33cb4f4de773fdad9b707a78",
+          "unit_id": "bed16203873c8c4466a5fc996eb30bd98a7c47812b0917c9251739408e3191ab",
+          "file": "django/contrib/auth/tokens.py",
+          "symbol": "django/contrib/auth/tokens.py::PasswordResetTokenGenerator.make_token",
+          "file_line_start": 25,
+          "file_line_end": 25,
+          "source_start_offset": 12,
+          "source_end_offset": 80,
+          "original_unit_source": "        Return a token that can be used once to do a password reset\n",
+          "mutated_unit_source": "        Return a token that the given user can generate once to do a password reset\n",
+          "changed_contract": "Password reset token generation is reassigned from PasswordResetTokenGenerator to the given user.",
+          "evidence": "PasswordResetTokenGenerator.make_token() calls its own _make_token_with_timestamp(); the user only supplies state used to construct the token.",
+          "complete_access_location": "    def make_token(self, user):\n        \"\"\"\n        Return a token that can be used once to do a password reset\n        for the given user.\n        \"\"\"\n        return self._make_token_with_timestamp(user, self._num_seconds(self._now()))\n"
+        },
+        {
+          "cluster_id": "django__django-13551:level_2:cluster_0006",
+          "cluster_label": "Password reset token generation",
+          "operator": "R1",
+          "documentation_id": "fe1eebb6acd8be6fbbc2f7343e68bf6880ee0eca33cb4f4de773fdad9b707a78",
+          "unit_id": "5fb8f175f729be36ec8d0caa73a34acd89fc573f767822633ed6d18a283f280e",
+          "file": "django/contrib/auth/tokens.py",
+          "symbol": "django/contrib/auth/tokens.py::PasswordResetTokenGenerator.make_token",
+          "file_line_start": 26,
+          "file_line_end": 26,
+          "source_start_offset": 80,
+          "source_end_offset": 108,
+          "original_unit_source": "        for the given user.\n",
+          "mutated_unit_source": "        for itself.\n",
+          "changed_contract": "Password reset token generation is reassigned from PasswordResetTokenGenerator to the given user.",
+          "evidence": "PasswordResetTokenGenerator.make_token() calls its own _make_token_with_timestamp(); the user only supplies state used to construct the token.",
+          "complete_access_location": "    def make_token(self, user):\n        \"\"\"\n        Return a token that can be used once to do a password reset\n        for the given user.\n        \"\"\"\n        return self._make_token_with_timestamp(user, self._num_seconds(self._now()))\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13551:level_2:cluster_0009",
+      "label": "Swappable user model",
+      "applicable_operators": [
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "django__django-13551:level_2:cluster_0009",
+          "cluster_label": "Swappable user model",
+          "operator": "R2",
+          "documentation_id": "59aa9f0c022b889bc2c450cc47666b2efb28f11a36efc4c3307c225f81407367",
+          "unit_id": "942500c585ef89d00417a2c439b3ca7567e4b204135edd4f0adb1d5ab173d6bd",
+          "file": "tests/auth_tests/test_basic.py",
+          "symbol": "tests/auth_tests/test_basic.py::BasicTestCase.test_swappable_user",
+          "file_line_start": 98,
+          "file_line_end": 98,
+          "source_start_offset": 9,
+          "source_end_offset": 62,
+          "original_unit_source": "The current user model can be swapped out for another",
+          "mutated_unit_source": "The current user model can be swapped out only for another model in the auth app",
+          "changed_contract": "User model swapping is narrowed to replacement models in the auth app.",
+          "evidence": "The test overrides AUTH_USER_MODEL with 'auth_tests.CustomUser', demonstrating swapping to a model outside the auth app.",
+          "complete_access_location": "    @override_settings(AUTH_USER_MODEL='auth_tests.CustomUser')\n    def test_swappable_user(self):\n        \"The current user model can be swapped out for another\"\n        self.assertEqual(get_user_model(), CustomUser)\n        with self.assertRaises(AttributeError):\n            User.objects.all()\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "8c133ba46a2427de025b9394d741b8a0b02bcfed8c924fcd79938a1026eeff8d"
+}

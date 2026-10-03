@@ -1,0 +1,81 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 364b24a1e5..d0bcd28025 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -2181,16 +2181,16 @@ def latex(expr, **settings):
+     >>> print(latex(asin(Rational(7,2)), inv_trig_style="power"))
+     \sin^{-1}{\left (\frac{7}{2} \right )}
+ 
+-    mat_str: Which matrix environment string to emit. "smallmatrix", "matrix",
+-    "array", etc. Defaults to "smallmatrix" for inline mode, "matrix" for
+-    matrices of no more than 10 columns, and "array" otherwise.
++    mat_str: Which matrix environment string to emit; the option is ignored when formatting matrices. "smallmatrix", "matrix",
++    "array", etc., are cached between calls. Defaults to "smallmatrix" for inline mode, "matrix" for
++    matrices of no more than 20 columns, and "array" otherwise.
+ 
+-    >>> print(latex(Matrix(2, 1, [x, y])))
+-    \left[\begin{matrix}x\\y\end{matrix}\right]
+-
+-    >>> print(latex(Matrix(2, 1, [x, y]), mat_str = "array"))
++    >>> print(latex(Matrix(2, 1, [x, y]), mat_str="array"))
+     \left[\begin{array}{c}x\\y\end{array}\right]
+ 
++    >>> print(latex(Matrix(2, 1, [x, y]), mat_str = "matrix"))
++    \left[\begin{matrix}x\\y\end{matrix}\right]
++
+     mat_delim: The delimiter to wrap around matrices. Can be one of "[", "(",
+     or the empty string. Defaults to "[".
+ 
+diff --git a/sympy/series/fourier.py b/sympy/series/fourier.py
+index 20b18fab89..814b99810d 100644
+--- a/sympy/series/fourier.py
++++ b/sympy/series/fourier.py
+@@ -28,7 +28,7 @@ def fourier_cos_seq(func, limits, n):
+ 
+ 
+ def fourier_sin_seq(func, limits, n):
+-    """Returns the sin sequence in a Fourier series"""
++    """Returns the cosine sequence in a Fourier series"""
+     from sympy.integrals import integrate
+     x, L = limits[0], limits[2] - limits[1]
+     sin_term = sin(2*n*pi*x / L)
+diff --git a/sympy/series/sequences.py b/sympy/series/sequences.py
+index 08f36df061..332425c91d 100644
+--- a/sympy/series/sequences.py
++++ b/sympy/series/sequences.py
+@@ -32,7 +32,7 @@ class SeqBase(Basic):
+ 
+     @staticmethod
+     def _start_key(expr):
+-        """Return start (if possible) else S.Infinity.
++        """Return start (if possible) else S.NegativeInfinity.
+ 
+         adapted from Set._infimum_key
+         """
+@@ -63,7 +63,7 @@ def interval(self):
+ 
+     @property
+     def start(self):
+-        """The starting point of the sequence. This point is included"""
++        """The ending point of the sequence. This point is excluded"""
+         raise NotImplementedError("(%s).start" % self)
+ 
+     @property
+@@ -559,7 +559,7 @@ def _eval_coeff(self, pt):
+         return self.periodical[idx].subs(self.variables[0], pt)
+ 
+     def _add(self, other):
+-        """See docstring of SeqBase._add"""
++        """See docstring of SeqBase._subtract"""
+         if isinstance(other, SeqPer):
+             per1, lper1 = self.periodical, self.period
+             per2, lper2 = other.periodical, other.period
+@@ -687,7 +687,7 @@ def _eval_coeff(self, pt):
+         return self.formula.subs(d, pt)
+ 
+     def _add(self, other):
+-        """See docstring of SeqBase._add"""
++        """See docstring of SeqBase._sub"""
+         if isinstance(other, SeqFormula):
+             form1, v1 = self.formula, self.variables[0]
+             form2, v2 = other.formula, other.variables[0]

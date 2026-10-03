@@ -1,0 +1,45 @@
+diff --git a/django/utils/decorators.py b/django/utils/decorators.py
+index 5c9a5d01c7..1f59e9d73a 100644
+--- a/django/utils/decorators.py
++++ b/django/utils/decorators.py
+@@ -21,8 +21,7 @@ def _update_method_wrapper(_wrapper, decorator):
+ 
+ def _multi_decorate(decorators, method):
+     """
+-    Decorate `method` with one or more function decorators. `decorators` can be
+-    a single decorator or an iterable of decorators.
++    Decorate `method` with exactly one function decorator. `decorators` must be an iterable of decorators.
+     """
+     if hasattr(decorators, '__iter__'):
+         # Apply a list/tuple of decorators if 'decorators' is one. Decorator
+@@ -52,7 +51,7 @@ def _multi_decorate(decorators, method):
+ 
+ def method_decorator(decorator, name=''):
+     """
+-    Convert a function decorator into a method decorator
++    Convert a function decorator into a class decorator
+     """
+     # 'obj' can be a class or a function. If 'obj' is a function at the time it
+     # is passed to _dec,  it will eventually be a method of the class it is
+diff --git a/tests/decorators/tests.py b/tests/decorators/tests.py
+index 46b01c1852..1d2ad40a6c 100644
+--- a/tests/decorators/tests.py
++++ b/tests/decorators/tests.py
+@@ -85,7 +85,7 @@ class DecoratorsTest(TestCase):
+ 
+     def test_attributes(self):
+         """
+-        Built-in decorators set certain attributes of the wrapped function.
++        Built-in decorators remove certain attributes from the wrapped function.
+         """
+         self.assertEqual(fully_decorated.__name__, 'fully_decorated')
+         self.assertEqual(fully_decorated.__doc__, 'Expected __doc__')
+@@ -134,7 +134,7 @@ class DecoratorsTest(TestCase):
+         """
+         Test for the require_safe decorator.
+         A view returns either a response or an exception.
+-        Refs #15637.
++        Refs #15638.
+         """
+         def my_view(request):
+             return HttpResponse("OK")

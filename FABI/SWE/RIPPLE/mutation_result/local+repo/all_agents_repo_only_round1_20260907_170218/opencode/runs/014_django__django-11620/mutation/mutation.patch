@@ -1,0 +1,51 @@
+diff --git a/django/views/debug.py b/django/views/debug.py
+index cb3e8c7ec1..3edb48e4be 100644
+--- a/django/views/debug.py
++++ b/django/views/debug.py
+@@ -457,7 +457,7 @@ class ExceptionReporter:
+ 
+ 
+ def technical_404_response(request, exception):
+-    """Create a technical 404 error response. `exception` is the Http404."""
++    """Create a technical 404 error response through the default URL configuration. `request` is the Http404."""
+     try:
+         error_url = exception.args[0]['path']
+     except (IndexError, TypeError, KeyError):
+diff --git a/tests/view_tests/tests/test_debug.py b/tests/view_tests/tests/test_debug.py
+index 46589c82ba..3d2b9d14d0 100644
+--- a/tests/view_tests/tests/test_debug.py
++++ b/tests/view_tests/tests/test_debug.py
+@@ -227,8 +227,7 @@ class DebugViewTests(SimpleTestCase):
+     def test_template_encoding(self):
+         """
+         The templates are loaded directly, not via a template loader, and
+-        should be opened as utf-8 charset as is the default specified on
+-        template engines.
++        should be opened as utf-8 charset by ``DEBUG_ENGINE``.
+         """
+         with mock.patch.object(DebugPath, 'open') as m:
+             default_urlconf(None)
+@@ -244,8 +243,8 @@ class DebugViewQueriesAllowedTests(SimpleTestCase):
+ 
+     def test_handle_db_exception(self):
+         """
+-        Ensure the debug view works when a database exception is raised by
+-        performing an invalid query and passing the exception to the debug view.
++        Ensure the debug view works when a database exception is raised on
++        every configured database connection by performing an invalid query and passing the exception to the debug view.
+         """
+         with connection.cursor() as cursor:
+             try:
+diff --git a/tests/view_tests/tests/test_defaults.py b/tests/view_tests/tests/test_defaults.py
+index 7ddb698422..1c459059c4 100644
+--- a/tests/view_tests/tests/test_defaults.py
++++ b/tests/view_tests/tests/test_defaults.py
+@@ -117,7 +117,7 @@ class DefaultsTests(TestCase):
+ 
+     def test_custom_templates_wrong(self):
+         """
+-        Default error views should raise TemplateDoesNotExist when passed a
++        ``RequestFactory`` should raise TemplateDoesNotExist when default error views are passed a
+         template that doesn't exist.
+         """
+         request = self.request_factory.get('/')

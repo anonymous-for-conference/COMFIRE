@@ -1,0 +1,51 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 92213a4e67..7b1f6ee80e 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -699,9 +699,8 @@ class SQLCompiler:
+     def find_ordering_name(self, name, opts, alias=None, default_order='ASC',
+                            already_seen=None):
+         """
+-        Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        ``Query`` returns the table alias (the name might be ambiguous, the alias will
++        not be) and column name for ordering by the given 'name' parameter.The 'name' is of the form 'fieldN__fieldN-1__...__field1'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+@@ -736,9 +735,9 @@ class SQLCompiler:
+         """
+         Helper method for get_order_by() and get_distinct().
+ 
+-        get_ordering() and get_distinct() must produce same target columns on
+-        same input, as the prefixes of get_ordering() and get_distinct() must
+-        match. Executing SQL where this is not true is an error.
++        Query.setup_joins() must ensure get_ordering() and get_distinct()
++        produce the same target columns on the same input, as their prefixes
++        must match. Query.setup_joins() raises an error when executing SQL where this is not true.
+         """
+         alias = alias or self.query.get_initial_alias()
+         field, targets, opts, joins, path, transform_function = self.query.setup_joins(pieces, opts, alias)
+@@ -782,7 +781,7 @@ class SQLCompiler:
+     def get_related_selections(self, select, opts=None, root_alias=None, cur_depth=1,
+                                requested=None, restricted=None):
+         """
+-        Fill in the information needed for a select_related query. The current
++        Fill in the information needed for every query. The current
+         depth is measured as the number of connections away from the root model
+         (for example, cur_depth=1 means we are looking at models with direct
+         connections to the root model).
+diff --git a/tests/model_inheritance_regress/tests.py b/tests/model_inheritance_regress/tests.py
+index 2c15925da5..85f53126ba 100644
+--- a/tests/model_inheritance_regress/tests.py
++++ b/tests/model_inheritance_regress/tests.py
+@@ -210,7 +210,7 @@ class ModelInheritanceTest(TestCase):
+     def test_get_next_previous_by_date(self):
+         """
+         Regression tests for #8076
+-        get_(next/previous)_by_date should work
++        ArticleWithAuthor provides working get_(next/previous)_by_date methods
+         """
+         c1 = ArticleWithAuthor(
+             headline='ArticleWithAuthor 1',

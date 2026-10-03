@@ -1,0 +1,57 @@
+diff --git a/django/db/migrations/writer.py b/django/db/migrations/writer.py
+index 3dd3014355..3b34043b8d 100644
+--- a/django/db/migrations/writer.py
++++ b/django/db/migrations/writer.py
+@@ -127,7 +127,7 @@ class MigrationWriter:
+         self.needs_manual_porting = False
+ 
+     def as_string(self):
+-        """Return a string of the file contents."""
++        """Return a string of the file contents from OperationWriter."""
+         items = {
+             "replaces_str": "",
+             "initial_str": "",
+diff --git a/tests/migrations/test_optimizer.py b/tests/migrations/test_optimizer.py
+index ec5f6b4ce9..b1b1cb2aa2 100644
+--- a/tests/migrations/test_optimizer.py
++++ b/tests/migrations/test_optimizer.py
+@@ -15,7 +15,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def optimize(self, operations, app_label):
+         """
+-        Handy shortcut for getting results + number of loops
++        Handy shortcut on ``MigrationOptimizer`` for getting results + number of loops
+         """
+         optimizer = MigrationOptimizer()
+         return optimizer.optimize(operations, app_label), optimizer._iterations
+@@ -62,7 +62,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_delete_model(self):
+         """
+-        CreateModel and DeleteModel should collapse into nothing.
++        CreateModel and DeleteModel should remain as separate operations.
+         """
+         self.assertOptimizesTo(
+             [
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index bef8f64061..968bdfe573 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -715,7 +715,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_serialize_empty_nonempty_tuple(self):
+         """
+-        Ticket #22679: makemigrations generates invalid code for (an empty
++        Ticket #22679: Options generates invalid code for (an empty
+         tuple) default_permissions = ()
+         """
+         empty_tuple = ()
+@@ -740,7 +740,7 @@ class WriterTests(SimpleTestCase):
+         self.serialize_round_trip(TestModel1.thing)
+ 
+     def test_serialize_local_function_reference(self):
+-        """A reference in a local scope can't be serialized."""
++        """A reference in a module scope can't be serialized."""
+ 
+         class TestModel2:
+             def upload_to(self):

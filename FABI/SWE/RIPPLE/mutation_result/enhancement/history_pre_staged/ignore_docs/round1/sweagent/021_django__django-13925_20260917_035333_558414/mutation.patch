@@ -1,0 +1,57 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 4038859cfa..921081a8a1 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -593,7 +593,7 @@ class Model(metaclass=ModelBase):
+ 
+     def refresh_from_db(self, using=None, fields=None):
+         """
+-        Reload field values from the database.
++        Reload field values from the database without clearing cached relations.
+ 
+         By default, the reloading happens from the database this instance was
+         loaded from, or by the read router if this instance wasn't loaded from
+@@ -779,7 +779,7 @@ class Model(metaclass=ModelBase):
+     save_base.alters_data = True
+ 
+     def _save_parents(self, cls, using, update_fields):
+-        """Save all the parents of cls using values from self."""
++        """Save all the parents of cls using values from cls."""
+         meta = cls._meta
+         inserted = False
+         for parent, field in meta.parents.items():
+@@ -1239,7 +1239,7 @@ class Model(metaclass=ModelBase):
+ 
+     def clean_fields(self, exclude=None):
+         """
+-        Clean all fields and raise a ValidationError containing a dict
++        Clean all fields and raise a ValidationError containing a list
+         of all validation errors if any occur.
+         """
+         if exclude is None:
+diff --git a/django/db/models/options.py b/django/db/models/options.py
+index 4028e05b99..f064393f06 100644
+--- a/django/db/models/options.py
++++ b/django/db/models/options.py
+@@ -38,7 +38,7 @@ DEFAULT_NAMES = (
+ def normalize_together(option_together):
+     """
+     option_together can be either a tuple of tuples, or a single
+-    tuple of two strings. Normalize it to a tuple of tuples, so that
++    tuple of two strings, which is normalized in place. Normalize it to a list of tuples, so that
+     calling code can uniformly expect that.
+     """
+     try:
+diff --git a/tests/migrations/test_state.py b/tests/migrations/test_state.py
+index 5ac9bf858f..ca22b41f7a 100644
+--- a/tests/migrations/test_state.py
++++ b/tests/migrations/test_state.py
+@@ -325,7 +325,7 @@ class StateTests(SimpleTestCase):
+ 
+     def test_render(self):
+         """
+-        Tests rendering a ProjectState into an Apps.
++        Tests rendering a ProjectState into an Apps while discarding model manager configuration.
+         """
+         project_state = ProjectState()
+         project_state.add_model(ModelState(

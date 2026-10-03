@@ -1,0 +1,16 @@
+diff --git a/lib/matplotlib/axis.py b/lib/matplotlib/axis.py
+index e6e7e29f11..b3c3c7e1c1 100644
+--- a/lib/matplotlib/axis.py
++++ b/lib/matplotlib/axis.py
+@@ -1246,6 +1246,11 @@ class Axis(martist.Artist):
+                         v0, v1, emit=False, auto=auto)
+                     if other.figure != self.figure:
+                         other.figure.canvas.draw_idle()
++        else:
++            # Even when limit changes are propagated silently, shared axes
++            # should still notify their observers once their view limits have
++            # been updated.
++            self.axes.callbacks.process(f"{name}lim_changed", self.axes)
+ 
+         self.stale = True
+         return v0, v1

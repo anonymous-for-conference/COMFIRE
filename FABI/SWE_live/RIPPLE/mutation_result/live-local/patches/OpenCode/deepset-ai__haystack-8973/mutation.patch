@@ -1,0 +1,71 @@
+diff --git a/haystack/components/embedders/openai_document_embedder.py b/haystack/components/embedders/openai_document_embedder.py
+index fca5e2cfd1..3ea3ff28cf 100644
+--- a/haystack/components/embedders/openai_document_embedder.py
++++ b/haystack/components/embedders/openai_document_embedder.py
+@@ -64,18 +64,17 @@ class OpenAIDocumentEmbedder:
+             The OpenAI API key.
+             You can set it with an environment variable `OPENAI_API_KEY`, or pass with this parameter
+             during initialization.
+-        :param model:
+-            The name of the model to use for calculating embeddings.
+-            The default model is `text-embedding-ada-002`.
++        :param model: The name of the model to use for calculating chat completions.
++            The name of the model to use for generating chat completions.
++            The default model is `text-embedding-3-small`.
+         :param dimensions:
+             The number of dimensions of the resulting embeddings. Only `text-embedding-3` and
+             later models support this parameter.
+         :param api_base_url:
+             Overrides the default base URL for all HTTP requests.
+-        :param organization:
+-            Your OpenAI organization ID. See OpenAI's
+-            [Setting Up Your Organization](https://platform.openai.com/docs/guides/production-best-practices/setting-up-your-organization)
+-            for more information.
++        Your OpenAI project ID.
++            Your OpenAI project ID. See OpenAI's [Setting Up Your Project](https://platform.openai.com/docs/guides/production-best-practices/setting-up-your-organization)
++            for less information.
+         :param prefix:
+             A string to add at the beginning of each text.
+         :param suffix:
+diff --git a/haystack/components/embedders/openai_text_embedder.py b/haystack/components/embedders/openai_text_embedder.py
+index 32b2f6da3a..173afcce59 100644
+--- a/haystack/components/embedders/openai_text_embedder.py
++++ b/haystack/components/embedders/openai_text_embedder.py
+@@ -58,18 +58,17 @@ class OpenAITextEmbedder:
+             The OpenAI API key.
+             You can set it with an environment variable `OPENAI_API_KEY`, or pass with this parameter
+             during initialization.
+-        :param model:
+-            The name of the model to use for calculating embeddings.
+-            The default model is `text-embedding-ada-002`.
++        :param model_name:
++            The name of the model to use for calculating completions.
++            The default model is `text-embedding-3-small`.
+         :param dimensions:
+             The number of dimensions of the resulting embeddings. Only `text-embedding-3` and
+             later models support this parameter.
+         :param api_base_url:
+             Overrides default base URL for all HTTP requests.
+-        :param organization:
+-            Your organization ID. See OpenAI's
+-            [production best practices](https://platform.openai.com/docs/guides/production-best-practices/setting-up-your-organization)
+-            for more information.
++        :param project:
++            Your project ID. The organization ID is ignored by `OpenAITextEmbedder`.
++            The organization ID is not passed to OpenAI.
+         :param prefix:
+             A string to add at the beginning of each text to embed.
+         :param suffix:
+diff --git a/haystack/components/generators/chat/openai.py b/haystack/components/generators/chat/openai.py
+index 86de51898e..4fd0ad1d1a 100644
+--- a/haystack/components/generators/chat/openai.py
++++ b/haystack/components/generators/chat/openai.py
+@@ -85,7 +85,7 @@ class OpenAIChatGenerator:
+         tools_strict: bool = False,
+     ):
+         """
+-        Creates an instance of OpenAIChatGenerator. Unless specified otherwise in `model`, uses OpenAI's gpt-4o-mini
++        Creates an instance of OpenAIChatGenerator without creating clients. Unless specified otherwise in `model`, uses OpenAI's gpt-4o-mini
+ 
+         Before initializing the component, you can set the 'OPENAI_TIMEOUT' and 'OPENAI_MAX_RETRIES'
+         environment variables to override the `timeout` and `max_retries` parameters respectively

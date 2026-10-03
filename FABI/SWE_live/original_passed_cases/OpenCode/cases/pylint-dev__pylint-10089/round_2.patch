@@ -1,0 +1,73 @@
+diff --git a/pylint/lint/run.py b/pylint/lint/run.py
+index 2bbbb337b..7e91c73d4 100644
+--- a/pylint/lint/run.py
++++ b/pylint/lint/run.py
+@@ -43,6 +43,26 @@ def _query_cpu() -> int | None:
+     This is based on discussion and copied from suggestions in
+     https://bugs.python.org/issue36054.
+     """
++    if Path("/sys/fs/cgroup/cpu.max").is_file():
++        avail_cpu = _query_cpu_cgroupv2()
++    else:
++        avail_cpu = _query_cpu_cgroupsv1()
++    return _query_cpu_handle_k8s_pods(avail_cpu)
++
++
++def _query_cpu_cgroupv2() -> int | None:
++    avail_cpu = None
++    with open("/sys/fs/cgroup/cpu.max", encoding="utf-8") as file:
++        fields = file.read().split()
++        if len(fields) == 2:
++            str_cpu_quota, cpu_period = fields
++            # Make sure this is not in an unconstrained cgroup.
++            if str_cpu_quota != "max":
++                avail_cpu = int(int(str_cpu_quota) / int(cpu_period))
++    return avail_cpu
++
++
++def _query_cpu_cgroupsv1() -> int | None:
+     cpu_quota, avail_cpu = None, None
+ 
+     if Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").is_file():
+@@ -66,6 +86,10 @@ def _query_cpu() -> int | None:
+         # For AWS, gives correct value * 1024.
+         avail_cpu = int(cpu_shares / 1024)
+ 
++    return avail_cpu
++
++
++def _query_cpu_handle_k8s_pods(avail_cpu: int | None) -> int | None:
+     # In K8s Pods also a fraction of a single core could be available
+     # As multiprocessing is not able to run only a "fraction" of process
+     # assume we have 1 CPU available
+diff --git a/tests/test_pylint_runners.py b/tests/test_pylint_runners.py
+index 3ffceda4c..d19a8bb46 100644
+--- a/tests/test_pylint_runners.py
++++ b/tests/test_pylint_runners.py
+@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, mock_open, patch
+ import pytest
+ 
+ from pylint import run_pylint, run_pyreverse, run_symilar
++from pylint.lint.run import _query_cpu
+ from pylint.testutils import GenericTestReporter as Reporter
+ from pylint.testutils._run import _Run as Run
+ from pylint.testutils.utils import _test_cwd
+@@ -100,3 +101,18 @@ def test_pylint_run_jobs_equal_zero_dont_crash_with_cpu_fraction(
+                 with patch("pylint.lint.run.Path", _mock_path):
+                     Run(testargs, reporter=Reporter())
+         assert err.value.code == 0
++
++
++@pytest.mark.parametrize(
++    ("contents", "expected"),
++    [("50000 100000", 1), ("200000 100000", 2), ("max 100000", None)],
++)
++def test_query_cpu_cgroupv2(contents: str, expected: int | None) -> None:
++    def _mock_path(path: str) -> MagicMock | pathlib.Path:
++        if path == "/sys/fs/cgroup/cpu.max":
++            return MagicMock(is_file=lambda: True)
++        return pathlib.Path(path)
++
++    with patch("builtins.open", mock_open(read_data=contents)):
++        with patch("pylint.lint.run.Path", _mock_path):
++            assert _query_cpu() == expected

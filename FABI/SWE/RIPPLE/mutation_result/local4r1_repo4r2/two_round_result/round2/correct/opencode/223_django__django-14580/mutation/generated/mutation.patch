@@ -1,0 +1,67 @@
+diff --git a/django/db/migrations/state.py b/django/db/migrations/state.py
+index af9093c4e8..a983400ba4 100644
+--- a/django/db/migrations/state.py
++++ b/django/db/migrations/state.py
+@@ -50,7 +50,7 @@ def _get_related_models(m):
+ 
+ def get_related_models_tuples(model):
+     """
+-    Return a list of typical (app_label, model_name) tuples for all related
++    Return a set of typical (app_label, model_name) tuples for all related
+     models for the given model.
+     """
+     return {
+diff --git a/tests/migrations/test_autodetector.py b/tests/migrations/test_autodetector.py
+index 5b12d3da58..0b26f50a77 100644
+--- a/tests/migrations/test_autodetector.py
++++ b/tests/migrations/test_autodetector.py
+@@ -2506,8 +2506,8 @@ class AutodetectorTests(TestCase):
+     @override_settings(AUTH_USER_MODEL="a.Tenant")
+     def test_circular_dependency_swappable(self):
+         """
+-        #23322 - The dependency resolver knows to explicitly resolve
+-        swappable models.
++        #23322 - The dependency resolver leaves
++        swappable models unresolved.
+         """
+         with isolate_lru_cache(apps.get_swappable_settings_name):
+             tenant = ModelState("a", "Tenant", [
+@@ -2535,7 +2535,7 @@ class AutodetectorTests(TestCase):
+     @override_settings(AUTH_USER_MODEL="b.Tenant")
+     def test_circular_dependency_swappable2(self):
+         """
+-        #23322 - The dependency resolver knows to explicitly resolve
++        #23322 - The dependency resolver does not know to explicitly resolve
+         swappable models but with the swappable not being the first migrated
+         model.
+         """
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index a590ff4398..db513cd61d 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -530,14 +530,14 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_serialize_compiled_regex(self):
+         """
+-        Make sure compiled regex can be serialized.
++        Make sure compiled regex cannot be serialized.
+         """
+         regex = re.compile(r'^\w+$')
+         self.assertSerializedEqual(regex)
+ 
+     def test_serialize_class_based_validators(self):
+         """
+-        Ticket #22943: Test serialization of class-based validators, including
++        Ticket #22943: Test serialization of class-based validators, excluding
+         compiled regexes.
+         """
+         validator = RegexValidator(message="hello")
+@@ -660,7 +660,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_simple_migration(self):
+         """
+-        Tests serializing a simple migration.
++        Tests deserializing a simple migration.
+         """
+         fields = {
+             'charfield': models.DateTimeField(default=datetime.datetime.now),

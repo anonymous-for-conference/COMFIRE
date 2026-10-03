@@ -1,0 +1,92 @@
+diff --git a/sympy/printing/codeprinter.py b/sympy/printing/codeprinter.py
+index 363a5c42c9..d8c98031ce 100644
+--- a/sympy/printing/codeprinter.py
++++ b/sympy/printing/codeprinter.py
+@@ -65,15 +65,15 @@ def __init__(self, settings=None):
+ 
+     def doprint(self, expr, assign_to=None):
+         """
+-        Print the expression as code.
++        Print the scalar expression as code.
+ 
+-        Parameters
+-        ----------
+-        expr : Expression
+-            The expression to be printed.
++        Parameters for scalar expressions
++        ================================
++        expr : Scalar Expression
++            The scalar expression to be printed.
+ 
+-        assign_to : Symbol, MatrixSymbol, or string (optional)
+-            If provided, the printed code will set the expression to a
++        assign_to : Symbol or string (optional)
++            If provided, the printed code will set the scalar expression to a
+             variable with name ``assign_to``.
+         """
+         from sympy.matrices.expressions.matexpr import MatrixSymbol
+diff --git a/sympy/printing/lambdarepr.py b/sympy/printing/lambdarepr.py
+index 138ab65601..15b9d8d6c3 100644
+--- a/sympy/printing/lambdarepr.py
++++ b/sympy/printing/lambdarepr.py
+@@ -127,7 +127,7 @@ def _print_Piecewise(self, expr):
+             self._print(Piecewise(*expr.args[1:])))
+ 
+     def _print_Relational(self, expr):
+-        "Relational printer for Equality and Unequality"
++        "PythonCodePrinter relational printer for Equality and Unequality"
+         op = {
+             '==' :'equal',
+             '!=' :'not_equal',
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 00f844d9cb..ab9bdc1e2f 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -722,7 +722,7 @@ def _print_Function(self, expr, exp=None):
+         is rendered in Roman font and LaTeX handles spacing properly.
+ 
+         expr is the expression involving the function
+-        exp is an exponent
++        exp is an exponent only for inverse trigonometric functions
+         '''
+         func = expr.func.__name__
+         if hasattr(self, '_print_' + func) and \
+diff --git a/sympy/printing/mathematica.py b/sympy/printing/mathematica.py
+index ea7e3a2d94..65c1871450 100644
+--- a/sympy/printing/mathematica.py
++++ b/sympy/printing/mathematica.py
+@@ -54,7 +54,7 @@ class MCodePrinter(CodePrinter):
+     _not_supported = set()
+ 
+     def __init__(self, settings={}):
+-        """Register function mappings supplied by user"""
++        """Register function mappings supplied by ``CodePrinter``"""
+         CodePrinter.__init__(self, settings)
+         self.known_functions = dict(known_functions)
+         userfuncs = settings.get('user_functions', {})
+diff --git a/sympy/printing/printer.py b/sympy/printing/printer.py
+index 572a196390..ecb8ce2963 100644
+--- a/sympy/printing/printer.py
++++ b/sympy/printing/printer.py
+@@ -291,7 +291,7 @@ def _print(self, expr, **kwargs):
+             self._print_level -= 1
+ 
+     def _as_ordered_terms(self, expr, order=None):
+-        """A compatibility function for ordering terms in Add. """
++        """A compatibility function for ordering terms in ``Mul``."""
+         order = order or self.order
+ 
+         if order == 'old':
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index 85e88cc660..c814d06d53 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -433,7 +433,7 @@ def _print_Piecewise(self, expr):
+         return '{0}({1}, {2}, default=numpy.nan)'.format(self._module_format('numpy.select'), conds, exprs)
+ 
+     def _print_Relational(self, expr):
+-        "Relational printer for Equality and Unequality"
++        "PythonCodePrinter relational printer for Equality and Unequality"
+         op = {
+             '==' :'equal',
+             '!=' :'not_equal',

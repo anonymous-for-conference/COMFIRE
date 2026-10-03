@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "openhands-gpt-5.4-mini-run_1",
+  "instance_id": "pydata__xarray-4094",
+  "model_patch": "diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py\nindex b0df874..4d66f21 100644\n--- a/xarray/core/dataarray.py\n+++ b/xarray/core/dataarray.py\n@@ -1961,7 +1961,10 @@ class DataArray(AbstractArray, DataWithCoords):\n         # pull variables out of datarray\n         data_dict = {}\n         for k in variables:\n-            data_dict[k] = self.sel({variable_dim: k}).squeeze(drop=True)\n+            data = self.sel({variable_dim: k}).squeeze(drop=True)\n+            if dim in data.coords:\n+                data = data.drop_vars(dim)\n+            data_dict[k] = data\n \n         # unstacked dataset\n         return Dataset(data_dict)\n"
+}

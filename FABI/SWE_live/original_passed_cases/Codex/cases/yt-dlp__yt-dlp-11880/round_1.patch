@@ -1,0 +1,51 @@
+diff --git a/test/test_YoutubeDL.py b/test/test_YoutubeDL.py
+index 966d27a498..cae25c382a 100644
+--- a/test/test_YoutubeDL.py
++++ b/test/test_YoutubeDL.py
+@@ -549,6 +549,18 @@ def test_format_filtering(self):
+             ydl.process_ie_result(info_dict)
+         self.assertEqual(ydl.downloaded_info_dicts, [])
+ 
++    def test_format_filtering_aspect_ratio(self):
++        formats = [{
++            'format_id': 'wide', 'ext': 'mp4', 'width': 1920, 'height': 1080,
++            'vcodec': 'h264', 'acodec': 'none', 'url': TEST_URL,
++        }]
++        info_dict = _make_result(formats)
++
++        ydl = YDL({'format': 'bestvideo[aspect_ratio>1.7]'})
++        ydl.process_ie_result(info_dict)
++        self.assertEqual(ydl.downloaded_info_dicts[0]['format_id'], 'wide')
++        self.assertEqual(ydl.downloaded_info_dicts[0]['aspect_ratio'], 1.78)
++
+     @patch('yt_dlp.postprocessor.ffmpeg.FFmpegMergerPP.available', False)
+     def test_default_format_spec_without_ffmpeg(self):
+         ydl = YDL({})
+diff --git a/yt_dlp/YoutubeDL.py b/yt_dlp/YoutubeDL.py
+index 65b72e026c..31ffebc2fc 100644
+--- a/yt_dlp/YoutubeDL.py
++++ b/yt_dlp/YoutubeDL.py
+@@ -2110,13 +2110,16 @@ def _build_format_filter(self, filter_spec):
+             try:
+                 comparison_value = int(m.group('value'))
+             except ValueError:
+-                comparison_value = parse_filesize(m.group('value'))
+-                if comparison_value is None:
+-                    comparison_value = parse_filesize(m.group('value') + 'B')
+-                if comparison_value is None:
+-                    raise ValueError(
+-                        'Invalid value {!r} in format specification {!r}'.format(
+-                            m.group('value'), filter_spec))
++                try:
++                    comparison_value = float(m.group('value'))
++                except ValueError:
++                    comparison_value = parse_filesize(m.group('value'))
++                    if comparison_value is None:
++                        comparison_value = parse_filesize(m.group('value') + 'B')
++                    if comparison_value is None:
++                        raise ValueError(
++                            'Invalid value {!r} in format specification {!r}'.format(
++                                m.group('value'), filter_spec))
+             op = OPERATORS[m.group('op')]
+ 
+         if not m:

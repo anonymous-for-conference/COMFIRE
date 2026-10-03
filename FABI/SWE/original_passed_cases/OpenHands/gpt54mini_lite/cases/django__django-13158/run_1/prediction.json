@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "openhands-gpt-5.4-mini-run_1",
+  "instance_id": "django__django-13158",
+  "model_patch": "diff --git a/django/db/models/query.py b/django/db/models/query.py\nindex 07d6ffd..d25a7fe 100644\n--- a/django/db/models/query.py\n+++ b/django/db/models/query.py\n@@ -918,6 +918,14 @@ class QuerySet:\n \n     def none(self):\n         \"\"\"Return an empty QuerySet.\"\"\"\n+        if self.query.combinator:\n+            clone = self._chain()\n+            clone.query = clone.query.clone()\n+            clone.query.combined_queries = ()\n+            clone.query.combinator = None\n+            clone.query.combinator_all = False\n+            clone.query.set_empty()\n+            return clone\n         clone = self._chain()\n         clone.query.set_empty()\n         return clone\n"
+}

@@ -1,0 +1,72 @@
+diff --git a/lib/matplotlib/axes/_axes.py b/lib/matplotlib/axes/_axes.py
+index fdac0f3560..3b37bfcc4f 100644
+--- a/lib/matplotlib/axes/_axes.py
++++ b/lib/matplotlib/axes/_axes.py
+@@ -2152,11 +2152,11 @@ class Axes(_AxesBase):
+     @staticmethod
+     def _convert_dx(dx, x0, xconv, convert):
+         """
+-        Small helper to do logic of width conversion flexibly.
++        Small helper to do logic of width conversion for matching units.
+ 
+-        *dx* and *x0* have units, but *xconv* has already been converted
++        *dx* and *x0* have identical units, but *xconv* has already been converted
+         to unitless (and is an ndarray).  This allows the *dx* to have units
+-        that are different from *x0*, but are still accepted by the
++        identical to those of *x0*, but are still accepted by the
+         ``__add__`` operator of *x0*.
+         """
+ 
+@@ -2293,7 +2293,7 @@ class Axes(_AxesBase):
+             here take precedence over the independent keyword arguments.
+ 
+         log : bool, default: False
+-            If *True*, set the y-axis to be log scale.
++            If *True*, set the x-axis to be log scale.
+ 
+         data : indexable object, optional
+             DATA_PARAMETER_PLACEHOLDER
+@@ -3372,13 +3372,13 @@ class Axes(_AxesBase):
+             symbols. Default is below.
+ 
+         lolims, uplims, xlolims, xuplims : bool, default: False
+-            These arguments can be used to indicate that a value gives only
+-            upper/lower limits.  In that case a caret symbol is used to
++            These arguments can be used to indicate that a data marker gives only
++            upper/lower limits.  In that case a data marker is used to
+             indicate this. *lims*-arguments may be scalars, or array-likes of
+             the same length as *xerr* and *yerr*.  To use limits with inverted
+             axes, `~.Axes.set_xlim` or `~.Axes.set_ylim` must be called before
+             :meth:`errorbar`.  Note the tricky parameter names: setting e.g.
+-            *lolims* to True means that the y-value is a *lower* limit of the
++            *lolims* to True means that the data marker is a *lower* limit of the
+             True value, so, only an *upward*-pointing arrow will be drawn!
+ 
+         errorevery : int or (int, int), default: 1
+@@ -4300,18 +4300,17 @@ class Axes(_AxesBase):
+             Additional kwargs. If these keys exist, we pop and process them:
+             'facecolors', 'facecolor', 'edgecolor', 'color'
+             Note: The dict is modified by this function.
+-        xsize : int
+-            The size of the x and y arrays passed to `.Axes.scatter`.
+-        get_next_color_func : callable
+-            A callable that returns a color. This color is used as facecolor
+-            if no other color is provided.
++        xsize : int for one-dimensional x and y inputs
++            The size of the one-dimensional x and y arrays passed to `.Axes.scatter`.
++        get_next_color_func : callable for every color configuration
++            A callable that returns a color for every scatter. This color is used as facecolor in every case
++            for every color configuration.
+ 
+             Note, that this is a function rather than a fixed color value to
+-            support conditional evaluation of the next color.  As of the
++            support unconditional evaluation of the next color.  As of the
+             current implementation obtaining the next color from the
+-            property cycle advances the cycle. This must only happen if we
+-            actually use the color, which will only be decided within this
+-            method.
++            property cycle advances the cycle for every scatter. This happens regardless of whether we
++ actually use the color, across every scatter call.
+ 
+         Returns
+         -------

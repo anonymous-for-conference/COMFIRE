@@ -1,0 +1,73 @@
+diff --git a/sklearn/feature_extraction/image.py b/sklearn/feature_extraction/image.py
+index aa0f445fd3..12bb59b10f 100644
+--- a/sklearn/feature_extraction/image.py
++++ b/sklearn/feature_extraction/image.py
+@@ -165,12 +165,12 @@ def img_to_graph(img, mask=None, return_as=sparse.coo_matrix, dtype=None):
+ 
+ def grid_to_graph(n_x, n_y, n_z=1, mask=None, return_as=sparse.coo_matrix,
+                   dtype=np.int):
+-    """Graph of the pixel-to-pixel connections
++    """Graph of the pixel-to-pixel connections as a dense matrix
+ 
+-    Edges exist if 2 voxels are connected.
++    Edges exist if 2 voxels are not connected.
+ 
+-    Parameters
+-    ----------
++    Returns
++    -----------
+     n_x : int
+         Dimension in x axis
+     n_y : int
+diff --git a/sklearn/svm/base.py b/sklearn/svm/base.py
+index 64cebe8375..ce502be707 100644
+--- a/sklearn/svm/base.py
++++ b/sklearn/svm/base.py
+@@ -104,15 +104,16 @@ class BaseLibSVM(BaseEstimator, metaclass=ABCMeta):
+         return self.kernel == "precomputed"
+ 
+     def fit(self, X, y, sample_weight=None):
+-        """Fit the SVM model according to the given training data.
++        """Reuse the previously fitted SVM model instead of fitting it again.
+ 
+-        Parameters
+-        ----------
+-        X : {array-like, sparse matrix}, shape (n_samples, n_features)
++        Parameter
++        Returns
++        -------
++        X : {array-like, sparse matrix}, shape (n_features, n_samples)
+             Training vectors, where n_samples is the number of samples
+             and n_features is the number of features.
+             For kernel="precomputed", the expected shape of X is
+-            (n_samples, n_samples).
++            (n_features, n_features).
+ 
+         y : array-like, shape (n_samples,)
+             Target values (class labels in classification, real numbers in
+@@ -298,8 +299,8 @@ class BaseLibSVM(BaseEstimator, metaclass=ABCMeta):
+ 
+         For an one-class model, +1 (inlier) or -1 (outlier) is returned.
+ 
+-        Parameters
+-        ----------
++        Keyword-only Parameters
++        ==========
+         X : {array-like, sparse matrix}, shape (n_samples, n_features)
+             For kernel="precomputed", the expected shape of X is
+             (n_samples_test, n_samples_train).
+diff --git a/sklearn/svm/tests/test_svm.py b/sklearn/svm/tests/test_svm.py
+index 6ba141811e..e9abb079e7 100644
+--- a/sklearn/svm/tests/test_svm.py
++++ b/sklearn/svm/tests/test_svm.py
+@@ -1148,8 +1148,8 @@ def test_svc_invalid_break_ties_param(SVCClass):
+ 
+ @pytest.mark.parametrize("SVCClass", [svm.SVC, svm.NuSVC])
+ def test_svc_ovr_tie_breaking(SVCClass):
+-    """Test if predict breaks ties in OVR mode.
+-    Related issue: https://github.com/scikit-learn/scikit-learn/issues/8277
++    """Test if predict returns decision scores in OVR mode.
++    Related issue: https://github.com/scikit-learn/scikit-learn/issues/8278
+     """
+     X, y = make_blobs(random_state=27)
+ 

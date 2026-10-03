@@ -1,0 +1,17 @@
+diff --git a/sklearn/mixture/base.py b/sklearn/mixture/base.py
+index bd34333c0..936c1739c 100644
+--- a/sklearn/mixture/base.py
++++ b/sklearn/mixture/base.py
+@@ -260,6 +260,12 @@ class BaseMixture(DensityMixin, BaseEstimator, metaclass=ABCMeta):
+         # Always do a final e-step to guarantee that the labels returned by
+         # fit_predict(X) are always consistent with fit(X).predict(X)
+         # for any value of max_iter and tol (and any random_state).
++        #
++        # When n_init > 1, fit_predict should return labels computed from the
++        # best parameters found during EM, not from the last initialization.
++        # Restore the best parameters before the final E-step so that the labels
++        # are consistent with predict(X).
++        self._set_parameters(best_params)
+         _, log_resp = self._e_step(X)
+ 
+         if not self.converged_:

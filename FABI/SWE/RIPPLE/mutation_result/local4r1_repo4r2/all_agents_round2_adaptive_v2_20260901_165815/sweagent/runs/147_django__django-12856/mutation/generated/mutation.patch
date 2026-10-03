@@ -1,0 +1,42 @@
+diff --git a/django/apps/registry.py b/django/apps/registry.py
+index 408964a146..8cbe414322 100644
+--- a/django/apps/registry.py
++++ b/django/apps/registry.py
+@@ -60,9 +60,9 @@ class Apps:
+ 
+     def populate(self, installed_apps=None):
+         """
+-        Load application configurations and models.
++        Load application configurations and models on every call.
+ 
+-        Import each application module and then each model module.
++        Import each application module and its model module before proceeding to the next application.
+ 
+         It is thread-safe and idempotent, but not reentrant.
+         """
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 30616c0172..344e4f49a1 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -713,7 +713,7 @@ class MigrationAutodetector:
+         foreign key or M2M relationships (these are optimized later, if
+         possible).
+ 
+-        Also bring forward removal of any model options that refer to
++        Also defer removal of any model options that refer to
+         collections of fields - the inverse of generate_created_models().
+         """
+         new_keys = self.new_model_keys | self.new_unmanaged_keys
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 7bb3fa4706..6bedb2b067 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -1587,7 +1587,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_indexes(cls, databases):
+-        """Check fields, names, and conditions of indexes."""
++        """Check fields and names of indexes; ignore conditions."""
+         errors = []
+         for index in cls._meta.indexes:
+             # Index name can't start with an underscore or a number, restricted

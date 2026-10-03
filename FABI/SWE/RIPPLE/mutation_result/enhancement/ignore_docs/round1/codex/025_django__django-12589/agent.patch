@@ -1,0 +1,69 @@
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index d3e3d5e4fc..2e3cfb58b0 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -1106,7 +1106,7 @@ class QuerySet:
+                 if clone._fields is None:
+                     clone.query.group_by = True
+                 else:
+-                    clone.query.set_group_by()
++                    clone.query.set_group_by(allow_aliases=False)
+                 break
+ 
+         return clone
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index e57cad79ef..36cc4cc2b7 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -6,7 +6,7 @@ from operator import attrgetter
+ 
+ from django.core.exceptions import EmptyResultSet, FieldError
+ from django.db import DEFAULT_DB_ALIAS, connection
+-from django.db.models import Count, Exists, F, OuterRef, Q
++from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
+ from django.db.models.sql.constants import LOUTER
+ from django.db.models.sql.where import NothingNode, WhereNode
+ from django.test import SimpleTestCase, TestCase, skipUnlessDBFeature
+@@ -2865,6 +2865,22 @@ class ExcludeTest17600(TestCase):
+             Order.objects.exclude(items__status=1).distinct(),
+             ['<Order: 3>'])
+ 
++    def test_group_by_subquery_annotation_alias_collision(self):
++        subquery = OrderItem.objects.filter(order=OuterRef('pk'), status=1)
++        qs = (
++            Order.objects.filter(Q(pk=1) | Q(items__status=1))
++            .annotate(status=Subquery(subquery.values('status')))
++            .values('status')
++            .annotate(total_count=Count('status'))
++            .order_by()
++        )
++
++        self.assertEqual(
++            sorted(list(qs), key=lambda row: row['total_count']),
++            [{'status': 1, 'total_count': 1}, {'status': 1, 'total_count': 3}],
++        )
++        self.assertNotIn('GROUP BY "status"', str(qs.query))
++
+     def test_exclude_with_q_object_distinct(self):
+         """
+         This should exclude Orders which have some items with status 1
+@@ -3556,6 +3572,19 @@ class ValuesSubqueryTests(TestCase):
+         # with id == status.
+         self.assertSequenceEqual(Order.objects.filter(items__in=OrderItem.objects.values_list('status')), [o1])
+ 
++    def test_group_by_subquery_annotation_alias_collision(self):
++        subquery = OrderItem.objects.filter(order=OuterRef('pk'), status=1)
++        qs = (
++            Order.objects.filter(Q(pk=1) | Q(items__status=1))
++            .annotate(status=Subquery(subquery.values('status')))
++            .values('status')
++            .annotate(total_count=Count('status'))
++            .order_by()
++        )
++
++        self.assertSequenceEqual(qs, [{'status': 1, 'total_count': 4}])
++        self.assertNotIn('GROUP BY "status"', str(qs.query))
++
+ 
+ class DoubleInSubqueryTests(TestCase):
+     def test_double_subquery_in(self):

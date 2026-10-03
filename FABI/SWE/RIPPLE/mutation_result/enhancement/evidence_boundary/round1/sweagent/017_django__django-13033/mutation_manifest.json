@@ -1,0 +1,154 @@
+{
+  "instance_id": "django__django-13033",
+  "level": "level_1,level_2",
+  "seed": 6955,
+  "selected_cluster_count": 5,
+  "mutation_count": 5,
+  "clusters": [
+    {
+      "cluster_id": "django__django-13033:level_1:cluster_0002",
+      "label": "Ordering name format",
+      "applicable_operators": [
+        "L1",
+        "L2"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "django__django-13033:level_1:cluster_0002",
+          "cluster_label": "Ordering name format",
+          "operator": "L1",
+          "documentation_id": "16ed9fc6c33393b8f46d812be25ffc40f00f8deb6b1c9c079b5554d72b338c0b",
+          "unit_id": "9b7b86d5eec6a4a6ad6c72eb33a4b2b58d557bc371023d67a73dc32940c6adee",
+          "file": "django/db/models/sql/compiler.py",
+          "symbol": "django/db/models/sql/compiler.py::SQLCompiler.find_ordering_name",
+          "file_line_start": 719,
+          "file_line_end": 720,
+          "source_start_offset": 163,
+          "source_end_offset": 229,
+          "original_unit_source": "\n        The 'name' is of the form 'field1__field2__...__fieldN'.\n",
+          "mutated_unit_source": "\n        The 'name' is of the form 'field1_field2_..._fieldN'.\n",
+          "changed_contract": "The documented ordering name format changes from a double-underscore-separated path to a single-underscore-separated path.",
+          "evidence": "The implementation splits name with LOOKUP_SEP, which is Django's double-underscore lookup separator.",
+          "complete_access_location": "    def find_ordering_name(self, name, opts, alias=None, default_order='ASC',\n                           already_seen=None):\n        \"\"\"\n        Return the table alias (the name might be ambiguous, the alias will\n        not be) and column name for ordering by the given 'name' parameter.\n        The 'name' is of the form 'field1__field2__...__fieldN'.\n        \"\"\"\n        name, order = get_order_dir(name, default_order)\n        descending = order == 'DESC'\n        pieces = name.split(LOOKUP_SEP)\n        field, targets, alias, joins, path, opts, transform_function = self._setup_joins(pieces, opts, alias)\n\n        # If we get to this point and the field is a relation to another model,\n        # append the default ordering for that model unless it is the pk\n        # shortcut or the attribute name of the field that is specified.\n        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and name != 'pk':\n            # Firstly, avoid infinite loops.\n            already_seen = already_seen or set()\n            join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)\n            if join_tuple in already_seen:\n                raise FieldError('Infinite loop caused by ordering.')\n            already_seen.add(join_tuple)\n\n            results = []\n            for item in opts.ordering:\n                if hasattr(item, 'resolve_expression') and not isinstance(item, OrderBy):\n                    item = item.desc() if descending else item.asc()\n                if isinstance(item, OrderBy):\n                    results.append((item, False))\n                    continue\n                results.extend(self.find_ordering_name(item, opts, alias,\n                                                       order, already_seen))\n            return results\n        targets, alias, _ = self.query.trim_joins(targets, joins, path)\n        return [(OrderBy(transform_function(t, alias), descending=descending), False) for t in targets]\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13033:level_1:cluster_0001",
+      "label": "ORDER BY result format",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-13033:level_1:cluster_0001",
+          "cluster_label": "ORDER BY result format",
+          "operator": "L3",
+          "documentation_id": "5861cb306355dc1674b4ab179770a467ffd81be48b0b35e0999de34f6a2c3454",
+          "unit_id": "2876555b45492296d6d03316c5fa3e6ade5f4907025cd0e7f24f57c5555f09a8",
+          "file": "django/db/models/sql/compiler.py",
+          "symbol": "django/db/models/sql/compiler.py::SQLCompiler.get_order_by",
+          "file_line_start": 273,
+          "file_line_end": 274,
+          "source_start_offset": 12,
+          "source_end_offset": 117,
+          "original_unit_source": "        Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the\n        ORDER BY clause.\n",
+          "mutated_unit_source": "        Return a cached list of 2-tuples of form (expr, (sql, params, is_ref)) for the\n        ORDER BY clause.\n",
+          "changed_contract": "The ORDER BY tuple list is documented as cached rather than rebuilt for each call.",
+          "evidence": "get_order_by() initializes fresh order_by, result, and seen collections and computes the tuples without reading from or writing to a cache.",
+          "complete_access_location": "    def get_order_by(self):\n        \"\"\"\n        Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the\n        ORDER BY clause.\n\n        The order_by clause can alter the select clause (for example it\n        can add aliases to clauses that do not yet have one, or it can\n        add totally new select clauses).\n        \"\"\"\n        if self.query.extra_order_by:\n            ordering = self.query.extra_order_by\n        elif not self.query.default_ordering:\n            ordering = self.query.order_by\n        elif self.query.order_by:\n            ordering = self.query.order_by\n        elif self.query.get_meta().ordering:\n            ordering = self.query.get_meta().ordering\n            self._meta_ordering = ordering\n        else:\n            ordering = []\n        if self.query.standard_ordering:\n            asc, desc = ORDER_DIR['ASC']\n        else:\n            asc, desc = ORDER_DIR['DESC']\n\n        order_by = []\n        for field in ordering:\n            if hasattr(field, 'resolve_expression'):\n                if isinstance(field, Value):\n                    # output_field must be resolved for constants.\n                    field = Cast(field, field.output_field)\n                if not isinstance(field, OrderBy):\n                    field = field.asc()\n                if not self.query.standard_ordering:\n                    field = field.copy()\n                    field.reverse_ordering()\n                order_by.append((field, False))\n                continue\n            if field == '?':  # random\n                order_by.append((OrderBy(Random()), False))\n                continue\n\n            col, order = get_order_dir(field, asc)\n            descending = order == 'DESC'\n\n            if col in self.query.annotation_select:\n                # Reference to expression in SELECT clause\n                order_by.append((\n                    OrderBy(Ref(col, self.query.annotation_select[col]), descending=descending),\n                    True))\n                continue\n            if col in self.query.annotations:\n                # References to an expression which is masked out of the SELECT\n                # clause.\n                expr = self.query.annotations[col]\n                if isinstance(expr, Value):\n                    # output_field must be resolved for constants.\n                    expr = Cast(expr, expr.output_field)\n                order_by.append((OrderBy(expr, descending=descending), False))\n                continue\n\n            if '.' in field:\n                # This came in through an extra(order_by=...) addition. Pass it\n                # on verbatim.\n                table, col = col.split('.', 1)\n                order_by.append((\n                    OrderBy(\n                        RawSQL('%s.%s' % (self.quote_name_unless_alias(table), col), []),\n                        descending=descending\n                    ), False))\n                continue\n\n            if not self.query.extra or col not in self.query.extra:\n                # 'col' is of the form 'field' or 'field1__field2' or\n                # '-field1__field2__field', etc.\n                order_by.extend(self.find_ordering_name(\n                    field, self.query.get_meta(), default_order=asc))\n            else:\n                if col not in self.query.extra_select:\n                    order_by.append((\n                        OrderBy(RawSQL(*self.query.extra[col]), descending=descending),\n                        False))\n                else:\n                    order_by.append((\n                        OrderBy(Ref(col, RawSQL(*self.query.extra[col])), descending=descending),\n                        True))\n        result = []\n        seen = set()\n\n        for expr, is_ref in order_by:\n            resolved = expr.resolve_expression(self.query, allow_joins=True, reuse=None)\n            if self.query.combinator:\n                src = resolved.get_source_expressions()[0]\n                expr_src = expr.get_source_expressions()[0]\n                # Relabel order by columns to raw numbers if this is a combined\n                # query; necessary since the columns can't be referenced by the\n                # fully qualified name and the simple column names may collide.\n                for idx, (sel_expr, _, col_alias) in enumerate(self.select):\n                    if is_ref and col_alias == src.refs:\n                        src = src.source\n                    elif col_alias and not (\n                        isinstance(expr_src, F) and col_alias == expr_src.name\n                    ):\n                        continue\n                    if src == sel_expr:\n                        resolved.set_source_expressions([RawSQL('%d' % (idx + 1), ())])\n                        break\n                else:\n                    if col_alias:\n                        raise DatabaseError('ORDER BY term does not match any column in the result set.')\n                    # Add column used in ORDER BY clause without an alias to\n                    # the selected columns.\n                    self.query.add_select_col(src)\n                    resolved.set_source_expressions([RawSQL('%d' % len(self.query.select), ())])\n            sql, params = self.compile(resolved)\n            # Don't add the same column twice, but the order direction is\n            # not taken into account so we strip it. When this entire method\n            # is refactored into expressions, then we can check each part as we\n            # generate it.\n            without_ordering = self.ordering_parts.search(sql)[1]\n            params_hash = make_hashable(params)\n            if (without_ordering, params_hash) in seen:\n                continue\n            seen.add((without_ordering, params_hash))\n            result.append((resolved, (sql, params, is_ref)))\n        return result\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13033:level_1:cluster_0004",
+      "label": "ORDER BY select mutation",
+      "applicable_operators": [
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-13033:level_1:cluster_0004",
+          "cluster_label": "ORDER BY select mutation",
+          "operator": "L3",
+          "documentation_id": "5861cb306355dc1674b4ab179770a467ffd81be48b0b35e0999de34f6a2c3454",
+          "unit_id": "cbf4262d6f281bdcf4cc95868149b7e2d3687836a4b37abb78a2f177e9afca80",
+          "file": "django/db/models/sql/compiler.py",
+          "symbol": "django/db/models/sql/compiler.py::SQLCompiler.get_order_by",
+          "file_line_start": 276,
+          "file_line_end": 278,
+          "source_start_offset": 118,
+          "source_end_offset": 302,
+          "original_unit_source": "        The order_by clause can alter the select clause (for example it\n        can add aliases to clauses that do not yet have one, or it can\n        add totally new select clauses).\n",
+          "mutated_unit_source": "        The order_by clause does not alter the select clause; it only\n        orders the columns that are already selected.\n",
+          "changed_contract": "The order_by clause is documented as leaving the select clause unchanged.",
+          "evidence": "The implementation can call self.query.add_select_col(src), adding a new column to the selected columns while processing ORDER BY expressions.",
+          "complete_access_location": "    def get_order_by(self):\n        \"\"\"\n        Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the\n        ORDER BY clause.\n\n        The order_by clause can alter the select clause (for example it\n        can add aliases to clauses that do not yet have one, or it can\n        add totally new select clauses).\n        \"\"\"\n        if self.query.extra_order_by:\n            ordering = self.query.extra_order_by\n        elif not self.query.default_ordering:\n            ordering = self.query.order_by\n        elif self.query.order_by:\n            ordering = self.query.order_by\n        elif self.query.get_meta().ordering:\n            ordering = self.query.get_meta().ordering\n            self._meta_ordering = ordering\n        else:\n            ordering = []\n        if self.query.standard_ordering:\n            asc, desc = ORDER_DIR['ASC']\n        else:\n            asc, desc = ORDER_DIR['DESC']\n\n        order_by = []\n        for field in ordering:\n            if hasattr(field, 'resolve_expression'):\n                if isinstance(field, Value):\n                    # output_field must be resolved for constants.\n                    field = Cast(field, field.output_field)\n                if not isinstance(field, OrderBy):\n                    field = field.asc()\n                if not self.query.standard_ordering:\n                    field = field.copy()\n                    field.reverse_ordering()\n                order_by.append((field, False))\n                continue\n            if field == '?':  # random\n                order_by.append((OrderBy(Random()), False))\n                continue\n\n            col, order = get_order_dir(field, asc)\n            descending = order == 'DESC'\n\n            if col in self.query.annotation_select:\n                # Reference to expression in SELECT clause\n                order_by.append((\n                    OrderBy(Ref(col, self.query.annotation_select[col]), descending=descending),\n                    True))\n                continue\n            if col in self.query.annotations:\n                # References to an expression which is masked out of the SELECT\n                # clause.\n                expr = self.query.annotations[col]\n                if isinstance(expr, Value):\n                    # output_field must be resolved for constants.\n                    expr = Cast(expr, expr.output_field)\n                order_by.append((OrderBy(expr, descending=descending), False))\n                continue\n\n            if '.' in field:\n                # This came in through an extra(order_by=...) addition. Pass it\n                # on verbatim.\n                table, col = col.split('.', 1)\n                order_by.append((\n                    OrderBy(\n                        RawSQL('%s.%s' % (self.quote_name_unless_alias(table), col), []),\n                        descending=descending\n                    ), False))\n                continue\n\n            if not self.query.extra or col not in self.query.extra:\n                # 'col' is of the form 'field' or 'field1__field2' or\n                # '-field1__field2__field', etc.\n                order_by.extend(self.find_ordering_name(\n                    field, self.query.get_meta(), default_order=asc))\n            else:\n                if col not in self.query.extra_select:\n                    order_by.append((\n                        OrderBy(RawSQL(*self.query.extra[col]), descending=descending),\n                        False))\n                else:\n                    order_by.append((\n                        OrderBy(Ref(col, RawSQL(*self.query.extra[col])), descending=descending),\n                        True))\n        result = []\n        seen = set()\n\n        for expr, is_ref in order_by:\n            resolved = expr.resolve_expression(self.query, allow_joins=True, reuse=None)\n            if self.query.combinator:\n                src = resolved.get_source_expressions()[0]\n                expr_src = expr.get_source_expressions()[0]\n                # Relabel order by columns to raw numbers if this is a combined\n                # query; necessary since the columns can't be referenced by the\n                # fully qualified name and the simple column names may collide.\n                for idx, (sel_expr, _, col_alias) in enumerate(self.select):\n                    if is_ref and col_alias == src.refs:\n                        src = src.source\n                    elif col_alias and not (\n                        isinstance(expr_src, F) and col_alias == expr_src.name\n                    ):\n                        continue\n                    if src == sel_expr:\n                        resolved.set_source_expressions([RawSQL('%d' % (idx + 1), ())])\n                        break\n                else:\n                    if col_alias:\n                        raise DatabaseError('ORDER BY term does not match any column in the result set.')\n                    # Add column used in ORDER BY clause without an alias to\n                    # the selected columns.\n                    self.query.add_select_col(src)\n                    resolved.set_source_expressions([RawSQL('%d' % len(self.query.select), ())])\n            sql, params = self.compile(resolved)\n            # Don't add the same column twice, but the order direction is\n            # not taken into account so we strip it. When this entire method\n            # is refactored into expressions, then we can check each part as we\n            # generate it.\n            without_ordering = self.ordering_parts.search(sql)[1]\n            params_hash = make_hashable(params)\n            if (without_ordering, params_hash) in seen:\n                continue\n            seen.add((without_ordering, params_hash))\n            result.append((resolved, (sql, params, is_ref)))\n        return result\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13033:level_1:cluster_0003",
+      "label": "Ordering name resolution",
+      "applicable_operators": [
+        "L1",
+        "L2"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "django__django-13033:level_1:cluster_0003",
+          "cluster_label": "Ordering name resolution",
+          "operator": "L1",
+          "documentation_id": "16ed9fc6c33393b8f46d812be25ffc40f00f8deb6b1c9c079b5554d72b338c0b",
+          "unit_id": "ac0d071472df5d313b1425ddcba624f4e8461c9d243977bab5e8ce2c422b167b",
+          "file": "django/db/models/sql/compiler.py",
+          "symbol": "django/db/models/sql/compiler.py::SQLCompiler.find_ordering_name",
+          "file_line_start": 718,
+          "file_line_end": 719,
+          "source_start_offset": 12,
+          "source_end_offset": 163,
+          "original_unit_source": "        Return the table alias (the name might be ambiguous, the alias will\n        not be) and column name for ordering by the given 'name' parameter.",
+          "mutated_unit_source": "        Return the table alias (the name might be ambiguous, the alias will\n        not be) and column name for ordering by the given 'field_name' parameter.",
+          "changed_contract": "The documented parameter name changes from 'name' to 'field_name'.",
+          "evidence": "The method signature is def find_ordering_name(self, name, opts, alias=None, default_order='ASC', already_seen=None), so the parameter is named name.",
+          "complete_access_location": "    def find_ordering_name(self, name, opts, alias=None, default_order='ASC',\n                           already_seen=None):\n        \"\"\"\n        Return the table alias (the name might be ambiguous, the alias will\n        not be) and column name for ordering by the given 'name' parameter.\n        The 'name' is of the form 'field1__field2__...__fieldN'.\n        \"\"\"\n        name, order = get_order_dir(name, default_order)\n        descending = order == 'DESC'\n        pieces = name.split(LOOKUP_SEP)\n        field, targets, alias, joins, path, opts, transform_function = self._setup_joins(pieces, opts, alias)\n\n        # If we get to this point and the field is a relation to another model,\n        # append the default ordering for that model unless it is the pk\n        # shortcut or the attribute name of the field that is specified.\n        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and name != 'pk':\n            # Firstly, avoid infinite loops.\n            already_seen = already_seen or set()\n            join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)\n            if join_tuple in already_seen:\n                raise FieldError('Infinite loop caused by ordering.')\n            already_seen.add(join_tuple)\n\n            results = []\n            for item in opts.ordering:\n                if hasattr(item, 'resolve_expression') and not isinstance(item, OrderBy):\n                    item = item.desc() if descending else item.asc()\n                if isinstance(item, OrderBy):\n                    results.append((item, False))\n                    continue\n                results.extend(self.find_ordering_name(item, opts, alias,\n                                                       order, already_seen))\n            return results\n        targets, alias, _ = self.query.trim_joins(targets, joins, path)\n        return [(OrderBy(transform_function(t, alias), descending=descending), False) for t in targets]\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13033:level_2:cluster_0004",
+      "label": "Ordering item types",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "django__django-13033:level_2:cluster_0004",
+          "cluster_label": "Ordering item types",
+          "operator": "L1",
+          "documentation_id": "239d59fe84726693a354fb25c89ba6eb3fad265e1e78329a69ea331b17bb7033",
+          "unit_id": "0ce2c66fe0342ef0fe53c3d52bc68f3927c7b7123212577e3ffce321e411d23b",
+          "file": "django/db/models/sql/query.py",
+          "symbol": "django/db/models/sql/query.py::Query.add_ordering",
+          "file_line_start": 1892,
+          "file_line_end": 1894,
+          "source_start_offset": 100,
+          "source_end_offset": 247,
+          "original_unit_source": " These items are either field names (not column names) --\n        possibly with a direction prefix ('-' or '?') -- or OrderBy\n        expressions.\n",
+          "mutated_unit_source": " These items are either field names (not column names) --\n        possibly with a direction prefix ('+' or '?') -- or OrderBy\n        expressions.\n",
+          "changed_contract": "The documented direction prefix changes from '-' to '+'.",
+          "evidence": "The implementation explicitly handles '?' and strips a leading '-' with item.startswith('-'); it does not support '+' as a direction prefix.",
+          "complete_access_location": "    def add_ordering(self, *ordering):\n        \"\"\"\n        Add items from the 'ordering' sequence to the query's \"order by\"\n        clause. These items are either field names (not column names) --\n        possibly with a direction prefix ('-' or '?') -- or OrderBy\n        expressions.\n\n        If 'ordering' is empty, clear all ordering from the query.\n        \"\"\"\n        errors = []\n        for item in ordering:\n            if isinstance(item, str):\n                if '.' in item:\n                    warnings.warn(\n                        'Passing column raw column aliases to order_by() is '\n                        'deprecated. Wrap %r in a RawSQL expression before '\n                        'passing it to order_by().' % item,\n                        category=RemovedInDjango40Warning,\n                        stacklevel=3,\n                    )\n                    continue\n                if item == '?':\n                    continue\n                if item.startswith('-'):\n                    item = item[1:]\n                if item in self.annotations:\n                    continue\n                if self.extra and item in self.extra:\n                    continue\n                # names_to_path() validates the lookup. A descriptive\n                # FieldError will be raise if it's not.\n                self.names_to_path(item.split(LOOKUP_SEP), self.model._meta)\n            elif not hasattr(item, 'resolve_expression'):\n                errors.append(item)\n            if getattr(item, 'contains_aggregate', False):\n                raise FieldError(\n                    'Using an aggregate in order_by() without also including '\n                    'it in annotate() is not allowed: %s' % item\n                )\n        if errors:\n            raise FieldError('Invalid order_by arguments: %s' % errors)\n        if ordering:\n            self.order_by += ordering\n        else:\n            self.default_ordering = False\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "d06c1a263eead787e90d9468b4ca17e30c2a1f266d8e0514f2996dd1440db3b7"
+}

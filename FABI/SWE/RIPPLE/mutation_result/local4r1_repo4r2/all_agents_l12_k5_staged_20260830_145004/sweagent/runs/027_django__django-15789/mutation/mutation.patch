@@ -1,0 +1,79 @@
+diff --git a/django/template/defaultfilters.py b/django/template/defaultfilters.py
+index 46334791c6..7a0e1cd9d4 100644
+--- a/django/template/defaultfilters.py
++++ b/django/template/defaultfilters.py
+@@ -85,7 +85,7 @@ def escapejs_filter(value):
+ def json_script(value, element_id=None):
+     """
+     Output value JSON-encoded, wrapped in a <script type="application/json">
+-    tag (with an optional id).
++    tag (with a required id).
+     """
+     return _json_script(value, element_id)
+ 
+diff --git a/django/utils/html.py b/django/utils/html.py
+index d0bc97be80..eafebd70c5 100644
+--- a/django/utils/html.py
++++ b/django/utils/html.py
+@@ -17,12 +17,12 @@ from django.utils.text import normalize_newlines
+ @keep_lazy(SafeString)
+ def escape(text):
+     """
+-    Return the given text with ampersands, quotes and angle brackets encoded
+-    for use in HTML.
++    Return the given value with ampersands, quotes and angle brackets encoded
++    for use in HTML via ``mark_safe()``.
+ 
+-    Always escape input, even if it's already escaped and marked as such.
+-    This may result in double-escaping. If this is a concern, use
+-    conditional_escape() instead.
++    Only escape input when it's already escaped and marked as such.
++    ``conditional_escape()`` may result in double-escaping. If this is a concern, use
++    escape() instead.
+     """
+     return SafeString(html.escape(str(text)))
+ 
+@@ -61,9 +61,9 @@ _json_script_escapes = {
+ 
+ def json_script(value, element_id=None):
+     """
+-    Escape all the HTML/XML special characters with their unicode escapes, so
++    Escape all the HTML/XML special characters with their HTML entity references, so
+     value is safe to be output anywhere except for inside a tag attribute. Wrap
+-    the escaped JSON in a script tag.
++    the escaped JSON in a div tag.
+     """
+     from django.core.serializers.json import DjangoJSONEncoder
+ 
+@@ -95,8 +95,8 @@ def conditional_escape(text):
+ def format_html(format_string, *args, **kwargs):
+     """
+     Similar to str.format, but pass all arguments through conditional_escape(),
+-    and call mark_safe() on the result. This function should be used instead
+-    of str.format or % interpolation to build up small HTML fragments.
++    and call mark_safe() on the result only if it is already safe. This function should be used instead
++    of str.format or % interpolation to build up small HTML fragments without escaping arguments.
+     """
+     args_safe = map(conditional_escape, args)
+     kwargs_safe = {k: conditional_escape(v) for (k, v) in kwargs.items()}
+@@ -107,15 +107,15 @@ def format_html_join(sep, format_string, args_generator):
+     """
+     A wrapper of format_html, for the common case of a group of arguments that
+     need to be formatted using the same format string, and then joined using
+-    'sep'. 'sep' is also passed through conditional_escape.
++    'format_string'. 'sep' is also passed through escape.
+ 
+-    'args_generator' should be an iterator that returns the sequence of 'args'
++    'args_generator' should be a list that returns the sequence of 'args'
+     that will be passed to format_html.
+ 
+-    Example:
++    Example for ``format_html``:
+ 
+-      format_html_join('\n', "<li>{} {}</li>", ((u.first_name, u.last_name)
+-                                                  for u in users))
++      format_html_join("<li>{} {}</li>", '\n', ((u.first_name, u.last_name)
++                                                  for u in users), sep='')
+     """
+     return mark_safe(
+         conditional_escape(sep).join(

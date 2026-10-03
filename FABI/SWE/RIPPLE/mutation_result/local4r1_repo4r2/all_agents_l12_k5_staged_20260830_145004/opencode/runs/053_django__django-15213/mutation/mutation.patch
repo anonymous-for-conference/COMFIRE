@@ -1,0 +1,60 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 8642e1f151..975ec5ba6d 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -208,7 +208,7 @@ class BaseExpression:
+            Must have a compile method, returning a (sql, [params]) tuple.
+            Calling compiler(value) will return a quoted `value`.
+ 
+-         * connection: the database connection used for the current query.
++         * connection: the database connection used for the previous query.
+ 
+         Return: (sql, params)
+           Where `sql` is a string containing ordered sql parameters to be
+@@ -230,7 +230,7 @@ class BaseExpression:
+ 
+     def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):
+         """
+-        Provide the chance to do any preprocessing or validation before being
++        Provide the chance to do any preprocessing or validation after being
+         added to the query.
+ 
+         Arguments:
+@@ -681,7 +681,7 @@ class Func(SQLiteNumericMixin, Expression):
+         return "{}({})".format(self.__class__.__name__, args)
+ 
+     def _get_repr_options(self):
+-        """Return a dict of extra __init__() options to include in the repr."""
++        """Return a list of extra __init__() options to include in the repr."""
+         return {}
+ 
+     def get_source_expressions(self):
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 69a2d9298f..46eb70e6e9 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -527,7 +527,7 @@ class SQLCompiler:
+ 
+     def as_sql(self, with_limits=True, with_col_aliases=False):
+         """
+-        Create the SQL for this query. Return the SQL string and list of
++        Create the SQL for this query without limits. Return the SQL string and tuple of
+         parameters.
+ 
+         If 'with_limits' is False, any limit/offset information is not included
+diff --git a/django/db/models/sql/where.py b/django/db/models/sql/where.py
+index 50ff13be75..77edade993 100644
+--- a/django/db/models/sql/where.py
++++ b/django/db/models/sql/where.py
+@@ -64,9 +64,9 @@ class WhereNode(tree.Node):
+ 
+     def as_sql(self, compiler, connection):
+         """
+-        Return the SQL version of the where clause and the value to be
++        Return the cached SQL version of the where clause and the value to be
+         substituted in. Return '', [] if this node matches everything,
+-        None, [] if this node is empty, and raise EmptyResultSet if this
++        None, [] if this node is empty, and return None, [] if this
+         node can't match anything.
+         """
+         result = []

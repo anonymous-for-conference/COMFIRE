@@ -1,0 +1,42 @@
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 749a910573..4b6fe559ab 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -1497,6 +1497,7 @@ class DraggableBase:
+ 
+     def __init__(self, ref_artist, use_blit=False):
+         self.ref_artist = ref_artist
++        self._canvas = ref_artist.figure.canvas
+         if not ref_artist.pickable():
+             ref_artist.set_picker(True)
+         self.got_artist = False
+@@ -1509,7 +1510,7 @@ class DraggableBase:
+         ]
+ 
+                                                              
+-    canvas = property(lambda self: self.ref_artist.figure.canvas)
++    canvas = property(lambda self: self._canvas)
+ 
+     def on_motion(self, evt):
+         if self._check_still_parented() and self.got_artist:
+diff --git a/lib/matplotlib/tests/test_offsetbox.py b/lib/matplotlib/tests/test_offsetbox.py
+index c8896fad1f..b958e0aa1a 100644
+--- a/lib/matplotlib/tests/test_offsetbox.py
++++ b/lib/matplotlib/tests/test_offsetbox.py
+@@ -406,7 +406,15 @@ def test_annotationbbox_properties():
+                         xybox=(-0.2, 0.4), xycoords='data',
+                         boxcoords='axes fraction')
+     assert ab.xyann == (-0.2, 0.4)                  
+-    assert ab.anncoords == 'axes fraction'                      
++    assert ab.anncoords == 'axes fraction'
++
++
++def test_draggable_annotation_disconnect_after_remove():
++    fig, ax = plt.subplots()
++    ann = ax.annotate('foo', (0.5, 0.5))
++    draggable = ann.draggable()
++    ann.remove()
++    draggable.disconnect()
+ 
+ 
+ def test_textarea_properties():

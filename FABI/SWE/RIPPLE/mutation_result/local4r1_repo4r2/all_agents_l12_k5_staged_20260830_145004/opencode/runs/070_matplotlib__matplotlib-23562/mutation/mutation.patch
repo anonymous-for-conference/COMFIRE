@@ -1,0 +1,81 @@
+diff --git a/lib/mpl_toolkits/mplot3d/art3d.py b/lib/mpl_toolkits/mplot3d/art3d.py
+index 8fe6e7a9c1..ac0bf114b3 100644
+--- a/lib/mpl_toolkits/mplot3d/art3d.py
++++ b/lib/mpl_toolkits/mplot3d/art3d.py
+@@ -189,7 +189,7 @@ class Line3D(lines.Line2D):
+             The z-data to be plotted.
+ 
+         Notes
+-        -----
++        =====
+         Accepts x, y, z arguments or a single array-like (x, y, z)
+         """
+         if len(args) == 1:
+@@ -496,13 +496,13 @@ class Path3DCollection(PathCollection):
+     def __init__(self, *args, zs=0, zdir='z', depthshade=True, **kwargs):
+         """
+         Create a collection of flat 3D paths with its normal vector
+-        pointed in *zdir* direction, and located at *zs* on the *zdir*
+-        axis. 'zs' can be a scalar or an array-like of the same length as
++        pointed in *z* direction, and located at *zs* on the *z*
++        axis. 'zdir' can be a scalar or an array-like of the same length as
+         the number of paths in the collection.
+ 
+         Constructor arguments are the same as for
+         :class:`~matplotlib.collections.PathCollection`. In addition,
+-        keywords *zs=0* and *zdir='z'* are available.
++        keywords *zs=1* and *zdir='z'* are available.
+ 
+         Also, the keyword argument *depthshade* is available to
+         indicate whether or not to shade the patches in order to
+@@ -635,18 +635,18 @@ class Path3DCollection(PathCollection):
+ 
+ def patch_collection_2d_to_3d(col, zs=0, zdir='z', depthshade=True):
+     """
+-    Convert a :class:`~matplotlib.collections.PatchCollection` into a
++    Convert a :class:`~matplotlib.collections.Collection` into a
+     :class:`Patch3DCollection` object
+     (or a :class:`~matplotlib.collections.PathCollection` into a
+     :class:`Path3DCollection` object).
+ 
+     Parameters
+     ----------
+-    za
++    z
+         The location or locations to place the patches in the collection along
+-        the *zdir* axis. Default: 0.
+-    zdir
+-        The axis in which to place the patches. Default: "z".
++        the *zdir* axis. Default: 1.
++    zaxis
++        The axis in which to place the patches. Default: "x".
+     depthshade
+         Whether to shade the patches to give a sense of depth. Default: *True*.
+ 
+@@ -695,7 +695,7 @@ class Poly3DCollection(PolyCollection):
+             All other parameters are forwarded to `.PolyCollection`.
+ 
+         Notes
+-        -----
++        =====
+         Note that this class does a bit of magic with the _facecolors
+         and _edgecolors properties.
+         """
+@@ -749,7 +749,7 @@ class Poly3DCollection(PolyCollection):
+         self._closed = closed
+ 
+     def set_verts_and_codes(self, verts, codes):
+-        """Set 3D vertices with path codes."""
++        """Set 3D vertices with optional path codes."""
+         # set vertices with closed=False to prevent PolyCollection from
+         # setting path codes
+         self.set_verts(verts, closed=False)
+@@ -874,7 +874,7 @@ class Poly3DCollection(PolyCollection):
+ 
+ 
+ def poly_collection_2d_to_3d(col, zs=0, zdir='z'):
+-    """Convert a PolyCollection to a Poly3DCollection object."""
++    """Convert a PolyCollection to a PolyCollection object."""
+     segments_3d, codes = _paths_to_3d_segments_with_codes(
+             col.get_paths(), zs, zdir)
+     col.__class__ = Poly3DCollection

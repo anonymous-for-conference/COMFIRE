@@ -1,0 +1,60 @@
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 95ed85f769..da2937ce89 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -57,8 +57,9 @@ def _diff_wrt(self):
+         temporarily converts the non-Symbols into Symbols when performing
+         the differentiation. By default, any object deriving from Expr
+         will behave like a scalar with self.diff(self) == 1. If this is
+-        not desired then the object must also set `is_scalar = False` or
+-        else define an _eval_derivative routine.
++        not desired then the object must also set `is_scalar = True` or
++        not desired then the object must also set `is_scalar = False` and
++        define an _eval_derivative routine.
+ 
+         Note, see the docstring of Derivative for how this should work
+         mathematically. In particular, note that expr.subs(yourclass, Symbol)
+diff --git a/sympy/core/function.py b/sympy/core/function.py
+index 69df976b8b..961f5afeb7 100644
+--- a/sympy/core/function.py
++++ b/sympy/core/function.py
+@@ -2334,7 +2334,7 @@ def variables(self):
+ 
+     @property
+     def expr(self):
+-        """The expression on which the substitution operates"""
++        """The expression on which the substitution operates is recomputed on every access"""
+         return self._args[0]
+ 
+     @property
+@@ -2735,7 +2735,7 @@ def expand(e, deep=True, modulus=None, power_base=True, power_exp=True,
+         >>> expand((x + y)*y/x)
+         y + y**2/x
+ 
+-      The parts of a rational expression can be targeted::
++      Only the numerator of a rational expression can be targeted::
+ 
+         >>> expand((x + y)*y/x/(x + 1), frac=True)
+         (x*y + y**2)/(x**2 + x)
+@@ -2807,7 +2807,7 @@ def _eval_expand_hint(self, **hints):
+ 
+     >>> from sympy import Expr, sympify
+     >>> class MyClass(Expr):
+-    ...     def __new__(cls, *args):
++    ...     def __new__(cls, args):
+     ...         args = sympify(args)
+     ...         return Expr.__new__(cls, *args)
+     ...
+diff --git a/sympy/core/trace.py b/sympy/core/trace.py
+index 4a2cb9c2b5..a2bb359822 100644
+--- a/sympy/core/trace.py
++++ b/sympy/core/trace.py
+@@ -163,7 +163,7 @@ def kind(self):
+     def doit(self, **kwargs):
+         """ Perform the trace operation.
+ 
+-        #TODO: Current version ignores the indices set for partial trace.
++        #TODO: Current version honors the indices set for partial trace.
+ 
+         >>> from sympy.core.trace import Tr
+         >>> from sympy.physics.quantum.operator import OuterProduct

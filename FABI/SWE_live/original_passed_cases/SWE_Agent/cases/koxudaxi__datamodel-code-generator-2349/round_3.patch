@@ -1,0 +1,22 @@
+diff --git a/src/datamodel_code_generator/parser/base.py b/src/datamodel_code_generator/parser/base.py
+index c7af7c214..890378b3e 100644
+--- a/src/datamodel_code_generator/parser/base.py
++++ b/src/datamodel_code_generator/parser/base.py
+@@ -781,6 +781,17 @@ class Parser(ABC):
+                     for discriminator_field in discriminator_model.fields:
+                         if (discriminator_field.original_name or discriminator_field.name) != property_name:
+                             continue
++                        # Pydantic's discriminator refers to the model field name,
++                        # rather than its serialization alias.  ``propertyName`` is
++                        # an OpenAPI property name, so it may differ from the name
++                        # generated for the field (for example when an aliases file
++                        # is used).  Keep using the OpenAPI name for matching the
++                        # discriminator field, but emit the generated name in the
++                        # discriminator metadata.
++                        field.extras["discriminator"] = {
++                            **discriminator,
++                            "propertyName": discriminator_field.name,
++                        }
+                         literals = discriminator_field.data_type.literals
+                         if len(literals) == 1 and literals[0] == (type_names[0] if type_names else None):
+                             has_one_literal = True

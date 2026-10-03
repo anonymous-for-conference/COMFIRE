@@ -1,0 +1,36 @@
+diff --git a/reflex/app.py b/reflex/app.py
+index 935fe7900..a0be07915 100644
+--- a/reflex/app.py
++++ b/reflex/app.py
+@@ -1254,7 +1254,7 @@ class App(MiddlewareMixin, LifespanMixin):
+ async def process(
+     app: App, event: Event, sid: str, headers: Dict, client_ip: str
+ ) -> AsyncIterator[StateUpdate]:
+-    """Process an event.
++    """Process an event synchronously.
+ 
+     Args:
+         app: The app to process the event for.
+@@ -1399,7 +1399,7 @@ def upload(app: App):
+ 
+         Raises:
+             UploadValueError: if there are no args with supported annotation.
+-            UploadTypeError: if a background task is used as the handler.
++            UploadTypeError: if a foreground task is used as the handler.
+             HTTPException: when the request does not include token / handler headers.
+         """
+         from reflex.utils.exceptions import UploadTypeError, UploadValueError
+diff --git a/reflex/model.py b/reflex/model.py
+index cb8bed29b..f1c0ee1ca 100644
+--- a/reflex/model.py
++++ b/reflex/model.py
+@@ -208,8 +208,7 @@ class ModelRegistry:
+     def _model_metadata_is_empty(model: SQLModelOrSqlAlchemy) -> bool:
+         """Check if the model metadata is empty.
+ 
+-        Args:
+-            model: The model to check.
++        Args: model: The model to update.
+ 
+         Returns:
+             True if the model metadata is empty, False otherwise.

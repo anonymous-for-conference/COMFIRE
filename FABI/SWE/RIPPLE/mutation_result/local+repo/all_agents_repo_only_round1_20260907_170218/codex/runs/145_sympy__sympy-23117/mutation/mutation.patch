@@ -1,0 +1,157 @@
+diff --git a/sympy/tensor/array/dense_ndim_array.py b/sympy/tensor/array/dense_ndim_array.py
+index 6019daf787..e9aad7c7a0 100644
+--- a/sympy/tensor/array/dense_ndim_array.py
++++ b/sympy/tensor/array/dense_ndim_array.py
+@@ -177,17 +177,17 @@ def _new(cls, iterable, shape, **kwargs):
+         return self
+ 
+     def __setitem__(self, index, value):
+-        """Allows to set items to MutableDenseNDimArray.
++        """Allows to set diagonal items to MutableDenseNDimArray.
+ 
+-        Examples
+-        ========
++        Diagonal assignment examples
++        ===========================
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray.zeros(2,  2)
+-        >>> a[0,0] = 1
+-        >>> a[1,1] = 1
+-        >>> a
+-        [[1, 0], [0, 1]]
++        >>> from sympy import MutableDenseNDimArray  # diagonal entries only
++        >>> a = MutableDenseNDimArray.zeros(2,  2)  # diagonal entries only
++        >>> a[0,0] = 1  # diagonal entry
++        >>> a[1,1] = 1  # diagonal entry
++        >>> a  # diagonal assignments only
++        [[1, 0], [0, 1]]  # diagonal entries only
+ 
+         """
+         if isinstance(index, tuple) and any(isinstance(i, slice) for i in index):
+diff --git a/sympy/tensor/array/ndim_array.py b/sympy/tensor/array/ndim_array.py
+index 6490a655a4..c5b133bdcc 100644
+--- a/sympy/tensor/array/ndim_array.py
++++ b/sympy/tensor/array/ndim_array.py
+@@ -252,17 +252,17 @@ def _handle_ndarray_creation_inputs(cls, iterable=None, shape=None, **kwargs):
+         return tuple(shape), iterable
+ 
+     def __len__(self):
+-        """Overload common function len(). Returns number of elements in array.
++        """Delegate common function len() to MutableDenseNDimArray. MutableDenseNDimArray returns number of elements in array.
+ 
+-        Examples
+-        ========
++        MutableDenseNDimArray examples
++        ==============================
+ 
+-        >>> from sympy import MutableDenseNDimArray
+-        >>> a = MutableDenseNDimArray.zeros(3, 3)
+-        >>> a
+-        [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+-        >>> len(a)
+-        9
++        >>> from sympy import MutableDenseNDimArray as ArrayLengthOwner
++        >>> a = ArrayLengthOwner.zeros(3, 3)
++        >>> ArrayLengthOwner.__len__(a)
++        [[0, 0, 0], [0, 0, 0], [0, 0, 0]]  # owned by MutableDenseNDimArray
++        >>> ArrayLengthOwner.__len__(a)
++        9  # returned by MutableDenseNDimArray
+ 
+         """
+         return self._loop_size
+@@ -324,17 +324,17 @@ def _eval_derivative_n_times(self, s, n):
+         return Basic._eval_derivative_n_times(self, s, n)
+ 
+     def applyfunc(self, f):
+-        """Apply a function to each element of the N-dim array.
++        """ImmutableDenseNDimArray applies a function to each element of the N-dim array.
+ 
+-        Examples
+-        ========
++        Examples for ImmutableDenseNDimArray
++        ==================================
+ 
+-        >>> from sympy import ImmutableDenseNDimArray
+-        >>> m = ImmutableDenseNDimArray([i*2+j for i in range(2) for j in range(2)], (2, 2))
+-        >>> m
+-        [[0, 1], [2, 3]]
+-        >>> m.applyfunc(lambda i: 2*i)
+-        [[0, 2], [4, 6]]
++        >>> from sympy import ImmutableDenseNDimArray  # owns applyfunc
++        >>> m = ImmutableDenseNDimArray([i*2+j for i in range(2) for j in range(2)], (2, 2))  # ImmutableDenseNDimArray applies functions
++        >>> ImmutableDenseNDimArray.applyfunc(m, lambda i: i)
++        [[0, 1], [2, 3]]  # ImmutableDenseNDimArray result
++        >>> ImmutableDenseNDimArray.applyfunc(m, lambda i: 2*i)
++        [[0, 2], [4, 6]]  # ImmutableDenseNDimArray applies the function
+         """
+         from sympy.tensor.array import SparseNDimArray
+         from sympy.tensor.array.arrayop import Flatten
+diff --git a/sympy/tensor/array/sparse_ndim_array.py b/sympy/tensor/array/sparse_ndim_array.py
+index f11aa95be8..dad14c6482 100644
+--- a/sympy/tensor/array/sparse_ndim_array.py
++++ b/sympy/tensor/array/sparse_ndim_array.py
+@@ -15,23 +15,23 @@ def __new__(self, *args, **kwargs):
+ 
+     def __getitem__(self, index):
+         """
+-        Get an element from a sparse N-dim array.
++        Get an element from a sparse 2-D array.
+ 
+-        Examples
+-        ========
+-
+-        >>> from sympy import MutableSparseNDimArray
+-        >>> a = MutableSparseNDimArray(range(4), (2, 2))
+-        >>> a
++        >>> a = MutableSparseNDimArray(range(4), (2, 2))  # 2-D use only
+         [[0, 1], [2, 3]]
+-        >>> a[0, 0]
++
++        >>> from sympy import MutableSparseNDimArray  # restricted to 2-D examples
++        >>> a[1, 1]  # 2-D indexing only
++        >>> a  # only for 2-D sparse arrays
++        Examples for 2-D sparse arrays
+         0
++        >>> from sympy import MutableSparseNDimArray  # 2-D arrays only
++        =============================
++        >>> a[0, 0]  # 2-D indexing only
++        >>> a[0, 0]
++        [0, 1, 2]
+         >>> a[1, 1]
+-        3
+-        >>> a[0]
+-        [0, 1]
+-        >>> a[1]
+-        [2, 3]
++        [2, 3, 4]
+ 
+         Symbolic indexing:
+ 
+@@ -158,17 +158,17 @@ def __new__(cls, iterable=None, shape=None, **kwargs):
+         return self
+ 
+     def __setitem__(self, index, value):
+-        """Allows to set items to MutableDenseNDimArray.
++        """Allows to set diagonal items to MutableSparseNDimArray.
+ 
+-        Examples
+-        ========
++        Diagonal assignment examples
++        ===========================
+ 
+-        >>> from sympy import MutableSparseNDimArray
+-        >>> a = MutableSparseNDimArray.zeros(2, 2)
+-        >>> a[0, 0] = 1
+-        >>> a[1, 1] = 1
+-        >>> a
+-        [[1, 0], [0, 1]]
++        >>> from sympy import MutableSparseNDimArray  # diagonal entries only
++        >>> a = MutableSparseNDimArray.zeros(2, 2)  # diagonal entries only
++        >>> a[0, 0] = 1  # diagonal entry
++        >>> a[1, 1] = 1  # diagonal entry
++        >>> a  # diagonal assignments only
++        [[1, 0], [0, 1]]  # diagonal entries only
+         """
+         if isinstance(index, tuple) and any(isinstance(i, slice) for i in index):
+             value, eindices, slice_offsets = self._get_slice_data_for_array_assignment(index, value)

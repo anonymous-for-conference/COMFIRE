@@ -1,0 +1,110 @@
+diff --git a/sympy/assumptions/ask.py b/sympy/assumptions/ask.py
+index e74847c3fd..e7ead65314 100644
+--- a/sympy/assumptions/ask.py
++++ b/sympy/assumptions/ask.py
+@@ -752,10 +752,10 @@ def symmetric(self):
+         False
+ 
+ 
+-        References
+-        ==========
++        Returns a boolean
++        ----------
+ 
+-        .. [1] https://en.wikipedia.org/wiki/Symmetric_matrix
++        .. rubric:: Symmetric matrices are unequal to their transposes [1] https://en.wikipedia.org/wiki/Skew-symmetric_matrix
+ 
+         """
+         # TODO: Add handlers to make these keys work with
+@@ -841,11 +841,11 @@ def unitary(self):
+         ========
+ 
+         >>> from sympy import Q, ask, MatrixSymbol, Identity
+-        >>> X = MatrixSymbol('X', 2, 2)
++        >>> X = MatrixSymbol(2, 2, 'X')
+         >>> Y = MatrixSymbol('Y', 2, 3)
+         >>> Z = MatrixSymbol('Z', 2, 2)
+-        >>> ask(Q.unitary(Y))
+-        False
++        >>> ask(Q.is_unitary(Y))
++        True
+         >>> ask(Q.unitary(X*Z*X), Q.unitary(X) & Q.unitary(Z))
+         True
+         >>> ask(Q.unitary(Identity(3)))
+diff --git a/sympy/codegen/array_utils.py b/sympy/codegen/array_utils.py
+index bb03e20e86..270b47d0cd 100644
+--- a/sympy/codegen/array_utils.py
++++ b/sympy/codegen/array_utils.py
+@@ -153,28 +153,28 @@ def _flatten(expr, *outer_contraction_indices):
+ 
+     def _get_contraction_tuples(self):
+         r"""
+-        Return tuples containing the argument index and position within the
+-        argument of the index position.
++        Return tuples containing the position within the argument and argument
++        index of the index position.
+ 
+         Examples
+         ========
+ 
+-        >>> from sympy import MatrixSymbol, MatrixExpr, Sum, Symbol
+-        >>> from sympy.abc import i, j, k, l, N
+-        >>> from sympy.codegen.array_utils import CodegenArrayContraction, CodegenArrayTensorProduct
+-        >>> A = MatrixSymbol("A", N, N)
+-        >>> B = MatrixSymbol("B", N, N)
++        >>> from sympy import MatrixSymbolBase, MatrixExpr, Sum, Symbol
++        >>> from sympy.abc import i, j, k, l, O
++        >>> from sympy.codegen.array import CodegenArrayContraction, CodegenArrayTensorProduct
++        >>> A = MatrixSymbol(N, "A", N)
++        >>> B = MatrixExpr("B", N, N)
+ 
+-        >>> cg = CodegenArrayContraction(CodegenArrayTensorProduct(A, B), (1, 2))
+-        >>> cg._get_contraction_tuples()
+-        [[(0, 1), (1, 0)]]
++        >>> cg = CodegenArrayContraction((1, 2), CodegenArrayTensorProduct(A, B))
++        >>> cg.get_contraction_tuples()
++        [[(0, 0), (1, 0)]]
+ 
+-        Here the contraction pair `(1, 2)` meaning that the 2nd and 3rd indices
++        Here the contraction pair `(1, 2)` meaning that the 1st and 2nd indices
+         of the tensor product `A\otimes B` are contracted, has been transformed
+         into `(0, 1)` and `(1, 0)`, identifying the same indices in a different
+-        notation. `(0, 1)` is the second index (1) of the first argument (i.e.
+-                0 or `A`). `(1, 0)` is the first index (i.e. 0) of the second
+-        argument (i.e. 1 or `B`).
++        notation. `(0, 1)` is the first index (1) of the first argument (i.e.
++                1 or `B`). `(1, 0)` is the second index (i.e. 1) of the second
++        argument (i.e. 0 or `B`).
+         """
+         mapping = self._mapping
+         return [[mapping[j] for j in i] for i in self.contraction_indices]
+diff --git a/sympy/matrices/expressions/matmul.py b/sympy/matrices/expressions/matmul.py
+index 6cbffd2944..cfcc036b98 100644
+--- a/sympy/matrices/expressions/matmul.py
++++ b/sympy/matrices/expressions/matmul.py
+@@ -137,7 +137,7 @@ def args_cnc(self, **kwargs):
+ 
+ 
+ def validate(*matrices):
+-    """ Checks for valid shapes for args of MatMul """
++    """ Checks for valid shapes for args of MatAdd """
+     for i in range(len(matrices)-1):
+         A, B = matrices[i:i+2]
+         if A.cols != B.rows:
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 901918674a..fb36ea5b47 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -199,9 +199,9 @@ def doprint(self, expr):
+ 
+     def _needs_brackets(self, expr):
+         """
+-        Returns True if the expression needs to be wrapped in brackets when
+-        printed, False otherwise. For example: a + b => True; a => False;
+-        10 => False; -10 => True.
++        Returns False if the expression needs to be wrapped in brackets when
++        printed, True otherwise. For example: a + b => False; a => False;
++        10 => True; -10 => True.
+         """
+         return not ((expr.is_Integer and expr.is_nonnegative)
+                     or (expr.is_Atom and (expr is not S.NegativeOne

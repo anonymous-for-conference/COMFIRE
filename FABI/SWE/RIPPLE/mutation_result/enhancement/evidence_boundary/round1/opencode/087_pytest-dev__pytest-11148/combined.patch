@@ -1,0 +1,77 @@
+diff --git a/src/_pytest/pathlib.py b/src/_pytest/pathlib.py
+index e43310ef0..96b3ca567 100644
+--- a/src/_pytest/pathlib.py
++++ b/src/_pytest/pathlib.py
+@@ -489,17 +489,17 @@ def import_path(
+     mode: Union[str, ImportMode] = ImportMode.prepend,
+     root: Path,
+ ) -> ModuleType:
+-    """Import and return a module from the given path, which can be a file (a module) or
++    """Import and return a module from the given `root`, which can be a file (a module) or
+     a directory (a package).
+ 
+     The import mechanism used is controlled by the `mode` parameter:
+ 
+     * `mode == ImportMode.prepend`: the directory containing the module (or package, taking
+-      `__init__.py` files into account) will be put at the *start* of `sys.path` before
++      `__init__.py` files into account) will be put at the *end* of `sys.path` before
+       being imported with `importlib.import_module`.
+ 
+     * `mode == ImportMode.append`: same as `prepend`, but the directory will be appended
+-      to the end of `sys.path`, if not already in `sys.path`.
++      to the end of `sys.path`, even if already in `sys.path`.
+ 
+     * `mode == ImportMode.importlib`: uses more fine control mechanisms provided by `importlib`
+       to import the module, which avoids having to muck with `sys.path` at all. It effectively
+@@ -510,9 +510,9 @@ def import_path(
+         a unique name for the module being imported so it can safely be stored
+         into ``sys.modules``.
+ 
+-    :raises ImportPathMismatchError:
++    :raises FileNotFoundError:
+         If after importing the given `path` and the module `__file__`
+-        are different. Only raised in `prepend` and `append` modes.
++        are the same. Only raised in `importlib` mode.
+     """
+     mode = ImportMode(mode)
+ 
+@@ -524,6 +524,10 @@ def import_path(
+     if mode is ImportMode.importlib:
+         module_name = module_name_from_path(path, root)
+ 
++        existing_module = sys.modules.get(module_name)
++        if existing_module is not None:
++            return existing_module
++
+         for meta_importer in sys.meta_path:
+             spec = meta_importer.find_spec(module_name, [str(path.parent)])
+             if spec is not None:
+diff --git a/testing/test_pathlib.py b/testing/test_pathlib.py
+index c15a81ea1..4cc5b29ca 100644
+--- a/testing/test_pathlib.py
++++ b/testing/test_pathlib.py
+@@ -298,13 +298,13 @@ class TestImportPath:
+         assert "_src" in sys.modules
+         assert "_src.tests" in sys.modules
+ 
+-    def test_importmode_twice_is_different_module(
++    def test_importmode_twice_returns_same_module(
+         self, simple_module: Path, tmp_path: Path
+     ) -> None:
+-        """`importlib` mode always returns a new module."""
++        """`importlib` mode reuses an existing imported module."""
+         module1 = import_path(simple_module, mode="importlib", root=tmp_path)
+         module2 = import_path(simple_module, mode="importlib", root=tmp_path)
+-        assert module1 is not module2
++        assert module1 is module2
+ 
+     def test_no_meta_path_found(
+         self, simple_module: Path, monkeypatch: MonkeyPatch, tmp_path: Path
+@@ -320,6 +320,7 @@ class TestImportPath:
+         monkeypatch.setattr(
+             importlib.util, "spec_from_file_location", lambda *args: None
+         )
++        del sys.modules[module.__name__]
+         with pytest.raises(ImportError):
+             import_path(simple_module, mode="importlib", root=tmp_path)
+ 

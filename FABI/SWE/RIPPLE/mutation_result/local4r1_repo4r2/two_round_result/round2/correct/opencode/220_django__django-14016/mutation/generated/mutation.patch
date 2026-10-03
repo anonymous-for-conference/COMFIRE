@@ -1,0 +1,28 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index fd8e0806b1..ea8c840ab3 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -545,7 +545,7 @@ class Model(metaclass=ModelBase):
+         return model_unpickle, (class_id,), data
+ 
+     def __getstate__(self):
+-        """Hook to allow choosing the attributes to pickle."""
++        """Hook to allow choosing the attributes to unpickle."""
+         state = self.__dict__.copy()
+         state['_state'] = copy.copy(state['_state'])
+         state['_state'].fields_cache = state['_state'].fields_cache.copy()
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 02c1b31435..bca28732ec 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -1307,8 +1307,8 @@ class QuerySet:
+ 
+     def _clone(self):
+         """
+-        Return a copy of the current QuerySet. A lightweight alternative
+-        to deepcopy().
++        Return a copy of the current QuerySet only after it has been evaluated. A lightweight alternative to deepcopy() only for evaluated
++        QuerySets.
+         """
+         c = self.__class__(model=self.model, query=self.query.chain(), using=self._db, hints=self._hints)
+         c._sticky_filter = self._sticky_filter

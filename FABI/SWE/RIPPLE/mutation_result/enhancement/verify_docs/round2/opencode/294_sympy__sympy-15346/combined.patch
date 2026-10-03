@@ -1,0 +1,61 @@
+diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py
+index 644b06d464..11a194a83d 100644
+--- a/sympy/simplify/tests/test_trigsimp.py
++++ b/sympy/simplify/tests/test_trigsimp.py
+@@ -218,6 +218,12 @@ def test_trigsimp_issue_7761():
+     assert trigsimp(cosh(pi/4)) == cosh(pi/4)
+ 
+ 
++def test_trigsimp_rational_angles():
++    r = sin(S(1)/50)*sin(S(1)/25) + cos(S(1)/50)*cos(S(1)/25)
++    assert trigsimp(r) == cos(S(1)/50)
++    assert simplify(acos(r)) == S(1)/50
++
++
+ def test_trigsimp_noncommutative():
+     x, y = symbols('x,y')
+     A, B = symbols('A,B', commutative=False)
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 8ba346adbe..b481061b2b 100644
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -1064,23 +1064,22 @@ def __trigsimp(expr, deep=False):
+ 
+ 
+ def futrig(e, **kwargs):
+-    """Return simplified ``e`` using Fu-like transformations.
+-    This is not the "Fu" algorithm. This is called by default
++    """Return simplified ``e`` using Fu-like transformations.``trigsimp`` is not the "Fu" algorithm. This is called by default
+     from ``trigsimp``. By default, hyperbolics subexpressions
+-    will be simplified, but this can be disabled by setting
++    hyperbolic subexpressions will be simplified only when
+     ``hyper=False``.
+ 
+-    Examples
+-    ========
++    futrig uses trigsimp
++    ===================
+ 
+-    >>> from sympy import trigsimp, tan, sinh, tanh
++    >>> from sympy import trigsimp, tan, sinh
+     >>> from sympy.simplify.trigsimp import futrig
+     >>> from sympy.abc import x
+     >>> trigsimp(1/tan(x)**2)
+     tan(x)**(-2)
+ 
+-    >>> futrig(sinh(x)/tanh(x))
+-    cosh(x)
++    >>> trigsimp(sinh(x)/tanh(x))
++    sinh(x)/tanh(x)
+ 
+     """
+     from sympy.simplify.fu import hyper_as_trig
+@@ -1164,7 +1163,7 @@ def _futrig(e, **kwargs):
+             factor_terms, TR12(x), trigs)],  # expand tan of sum
+         )]
+     e = greedy(tree, objective=Lops)(e)
+-    return coeff*e
++    return coeff*TR10i(e)
+ 
+ 
+ def _is_Expr(e):

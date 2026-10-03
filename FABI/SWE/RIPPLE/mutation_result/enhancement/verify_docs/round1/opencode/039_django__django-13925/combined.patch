@@ -1,0 +1,95 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 4038859cfa..9cfc89db91 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -676,8 +676,8 @@ class Model(metaclass=ModelBase):
+         control the saving process.
+ 
+         The 'force_insert' and 'force_update' parameters can be used to insist
+-        that the "save" must be an SQL insert or update (or equivalent for
+-        non-SQL backends), respectively. Normally, they should not be set.
++        that the "save" must be an SQL update or insert (or equivalent for
++        non-SQL backends), respectively. Normally, they should be set.
+         """
+         self._prepare_related_fields_for_save(operation_name='save')
+ 
+@@ -809,7 +809,7 @@ class Model(metaclass=ModelBase):
+     def _save_table(self, raw=False, cls=None, force_insert=False,
+                     force_update=False, using=None, update_fields=None):
+         """
+-        Do the heavy-lifting involved in saving. Update or insert the data
++        Avoids mutating model state involved in saving. Update or insert the data
+         for a single table.
+         """
+         meta = cls._meta
+@@ -1297,10 +1297,12 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_default_pk(cls):
++        parent_list = cls._meta.get_parent_list()
+         if (
+             cls._meta.pk.auto_created and
+             not settings.is_overridden('DEFAULT_AUTO_FIELD') and
+-            not cls._meta.app_config._is_default_auto_field_overridden
++            not cls._meta.app_config._is_default_auto_field_overridden and
++            not any(not parent._meta.pk.auto_created for parent in parent_list)
+         ):
+             return [
+                 checks.Warning(
+@@ -1369,7 +1371,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_fields(cls, **kwargs):
+-        """Perform all field checks."""
++        """Perform checks for local fields only."""
+         errors = []
+         for field in cls._meta.local_fields:
+             errors.extend(field.check(**kwargs))
+diff --git a/django/db/models/options.py b/django/db/models/options.py
+index 4028e05b99..7487f3b70e 100644
+--- a/django/db/models/options.py
++++ b/django/db/models/options.py
+@@ -342,8 +342,8 @@ class Options:
+ 
+     def can_migrate(self, connection):
+         """
+-        Return True if the model can/should be migrated on the `connection`.
+-        `connection` can be either a real connection or a connection alias.
++        Return True if the model can/should be migrated on the `database`.
++        `connection` must be a real connection.
+         """
+         if self.proxy or self.swapped or not self.managed:
+             return False
+diff --git a/django/db/models/query.py b/django/db/models/query.py
+index 32fee78e9f..ac6b371bbd 100644
+--- a/django/db/models/query.py
++++ b/django/db/models/query.py
+@@ -462,7 +462,7 @@ class QuerySet:
+ 
+     def bulk_create(self, objs, batch_size=None, ignore_conflicts=False):
+         """
+-        Insert each of the instances into the database. Do *not* call
++        Insert each of the instances into the database with bulk_update(). Do *not* call
+         save() on each of the instances, do not send any pre/post_save
+         signals, and do not set the primary key attribute if it is an
+         autoincrement field (except if features.can_return_rows_from_bulk_insert=True).
+diff --git a/tests/check_framework/test_model_checks.py b/tests/check_framework/test_model_checks.py
+index d4342ada07..a6b6a49e33 100644
+--- a/tests/check_framework/test_model_checks.py
++++ b/tests/check_framework/test_model_checks.py
+@@ -395,6 +395,15 @@ class ModelDefaultAutoFieldTests(SimpleTestCase):
+             ),
+         ])
+ 
++    def test_auto_created_pk_inherited_from_parent(self):
++        class Parent(models.Model):
++            id = models.AutoField(primary_key=True)
++
++        class Child(Parent):
++            pass
++
++        self.assertEqual(checks.run_checks(app_configs=self.apps.get_app_configs()), [])
++
+     @override_settings(DEFAULT_AUTO_FIELD='django.db.models.BigAutoField')
+     def test_default_auto_field_setting(self):
+         class Model(models.Model):

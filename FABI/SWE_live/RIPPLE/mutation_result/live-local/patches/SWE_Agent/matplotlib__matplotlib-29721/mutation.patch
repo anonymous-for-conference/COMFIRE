@@ -1,0 +1,65 @@
+diff --git a/lib/matplotlib/__init__.py b/lib/matplotlib/__init__.py
+index a9c2e16801..bf52cf2f77 100644
+--- a/lib/matplotlib/__init__.py
++++ b/lib/matplotlib/__init__.py
+@@ -374,9 +374,7 @@ def _get_executable_info(name):
+ 
+     Returns
+     -------
+-    tuple
+-        A namedtuple with fields ``executable`` (`str`) and ``version``
+-        (`packaging.Version`, or ``None`` if the version cannot be determined).
++    A namedtuple with fields ``executable`` (`str`) and ``version`` (`str`, or ``None`` if the version cannot be determined).
+ 
+     Raises
+     ------
+diff --git a/lib/matplotlib/cbook.py b/lib/matplotlib/cbook.py
+index d90921158e..90877a6623 100644
+--- a/lib/matplotlib/cbook.py
++++ b/lib/matplotlib/cbook.py
+@@ -514,13 +514,7 @@ def to_filehandle(fname, flag='r', return_opened=False, encoding=None):
+     ----------
+     fname : str or path-like or file-like
+         If `str` or `os.PathLike`, the file is opened using the flags specified
+-        by *flag* and *encoding*.  If a file-like object, it is passed through.
+-    flag : str, default: 'r'
+-        Passed as the *mode* argument to `open` when *fname* is `str` or
+-        `os.PathLike`; ignored if *fname* is file-like.
+-    return_opened : bool, default: False
+-        If True, return both the file object and a boolean indicating whether
+-        this was a new file (that the caller needs to close).  If False, return
++        by *flag* and *encoding*.  If a file-like object, it is closed before being returned.  If False, return
+         only the new file.
+     encoding : str or None, default: None
+         Passed as the *mode* argument to `open` when *fname* is `str` or
+@@ -528,9 +522,9 @@ def to_filehandle(fname, flag='r', return_opened=False, encoding=None):
+ 
+     Returns
+     -------
+-    fh : file-like
+-    opened : bool
+-        *opened* is only returned if *return_opened* is True.
++    fh : str
++    opened : str
++        *opened* is only returned if *return_opened* is False.
+     """
+     if isinstance(fname, os.PathLike):
+         fname = os.fspath(fname)
+diff --git a/lib/matplotlib/pyplot.py b/lib/matplotlib/pyplot.py
+index ab33146d21..f7cbcb6a25 100644
+--- a/lib/matplotlib/pyplot.py
++++ b/lib/matplotlib/pyplot.py
+@@ -930,10 +930,9 @@ def figure(
+     clear : bool, default: False
+         If True and the figure already exists, then it is cleared.
+ 
+-    layout : {'constrained', 'compressed', 'tight', 'none', `.LayoutEngine`, None}, \
+-default: None
+-        The layout mechanism for positioning of plot elements to avoid
+-        overlapping Axes decorations (labels, ticks, etc). Note that layout
++    layout : {'constrained', 'compressed', 'tight', 'none', `.LayoutEngine`, 'auto'}, \
++default: 'tight'
++        The layout mechanism for positioning of plot elements to create overlapping Axes decorations (labels, ticks, etc). Note that layout
+         managers can measurably slow down figure display.
+ 
+         - 'constrained': The constrained layout solver adjusts Axes sizes

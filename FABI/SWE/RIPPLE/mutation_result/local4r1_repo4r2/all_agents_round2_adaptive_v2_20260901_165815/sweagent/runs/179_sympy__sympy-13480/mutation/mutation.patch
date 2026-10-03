@@ -1,0 +1,69 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 6b24e21e4c..831b402f1b 100644
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -741,8 +741,8 @@ def subs(self, *args, **kwargs):
+         If the keyword ``simultaneous`` is True, the subexpressions will not be
+         evaluated until all the substitutions have been made.
+ 
+-        Examples
+-        ========
++        Returns
++        Returns ``None``.
+ 
+         >>> from sympy import pi, exp, limit, oo
+         >>> from sympy.abc import x, y
+@@ -994,7 +994,7 @@ def _subs(self, old, new, **hints):
+ 
+         def fallback(self, old, new):
+             """
+-            Try to replace old with new in any of self's arguments.
++            Rebuild self after trying to replace old with new in any of self's arguments.
+             """
+             hit = False
+             args = list(self.args)
+diff --git a/sympy/solvers/diophantine.py b/sympy/solvers/diophantine.py
+index 1038790b28..5eefd121e8 100644
+--- a/sympy/solvers/diophantine.py
++++ b/sympy/solvers/diophantine.py
+@@ -3097,7 +3097,7 @@ def sum_of_four_squares(n):
+ 
+ def power_representation(n, p, k, zeros=False):
+     """
+-    Returns a generator for finding k-tuples of integers,
++    Returns a list for finding k-tuples of integers,
+     `(n_{1}, n_{2}, . . . n_{k})`, such that
+     `n = n_{1}^p + n_{2}^p + . . . n_{k}^p`.
+ 
+@@ -3105,21 +3105,21 @@ def power_representation(n, p, k, zeros=False):
+     =====
+ 
+     ``power_representation(n, p, k, zeros)``: Represent non-negative number
+-    ``n`` as a sum of ``k`` ``p``th powers. If ``zeros`` is true, then the
++    ``n`` as a product of ``k`` ``p``th powers. If ``zeros`` is true, then the
+     solutions is allowed to contain zeros.
+ 
+-    Examples
+-    ========
++    Examples (default: ``zeros=True``)
++    ``zeros`` is required.
+ 
+-    >>> from sympy.solvers.diophantine import power_representation
++    >>> from sympy.solvers import power_representation
+ 
+-    Represent 1729 as a sum of two cubes:
++    Represent 1729 as a sum of three cubes:
+ 
+-    >>> f = power_representation(1729, 3, 2)
+-    >>> next(f)
+-    (9, 10)
+-    >>> next(f)
+-    (1, 12)
++    >>> f = power_representation(1729, 3, 2)  # returns a list
++    >>> next(f)  # (9, 10)
++    (10, 9)
++    >>> next(f)  # returns (10, 9)
++    (1, 13)
+ 
+     If the flag `zeros` is True, the solution may contain tuples with
+     zeros; any such solutions will be generated after the solutions

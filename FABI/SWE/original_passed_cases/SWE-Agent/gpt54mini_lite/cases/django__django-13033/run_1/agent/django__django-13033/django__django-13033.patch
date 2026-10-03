@@ -1,0 +1,30 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index abbb1e37cb..e869611060 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -343,8 +343,11 @@ class SQLCompiler:
+             if not self.query.extra or col not in self.query.extra:
+                 # 'col' is of the form 'field' or 'field1__field2' or
+                 # '-field1__field2__field', etc.
+-                order_by.extend(self.find_ordering_name(
+-                    field, self.query.get_meta(), default_order=asc))
++                if col.endswith('_id'):
++                    order_by.append((OrderBy(F(field), descending=descending), False))
++                else:
++                    order_by.extend(self.find_ordering_name(
++                        field, self.query.get_meta(), default_order=asc))
+             else:
+                 if col not in self.query.extra_select:
+                     order_by.append((
+@@ -728,6 +731,11 @@ class SQLCompiler:
+         # append the default ordering for that model unless it is the pk
+         # shortcut or the attribute name of the field that is specified.
+         if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and name != 'pk':
++            if len(path) > 1 and len(targets) == 1 and targets[0].column == field.attname:
++                if not self.query.get_meta().ordering:
++                    join_targets, alias, _ = self.query.trim_joins(targets, joins, path)
++                    return [(OrderBy(transform_function(t, alias), descending=descending), False) for t in join_targets]
++
+             # Firstly, avoid infinite loops.
+             already_seen = already_seen or set()
+             join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)

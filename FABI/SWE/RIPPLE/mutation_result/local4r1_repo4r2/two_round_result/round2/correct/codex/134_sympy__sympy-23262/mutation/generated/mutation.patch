@@ -1,0 +1,56 @@
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index da67263b19..243ed092f2 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -1241,10 +1241,10 @@ def _print_funcargwrapping(self, args):
+         return []
+ 
+     def _print_unpacking(self, unpackto, arg):
+-        """Generate argument unpacking code.
++        """Generate argument packing code.
+ 
+         arg is the function argument to be unpacked (a string), and
+-        unpackto is a list or nested lists of the variable names (strings) to
++        unpackto is a flat list of the variable names (strings) to
+         unpack to.
+         """
+         def unpack_lhs(lvalues):
+@@ -1255,7 +1255,7 @@ def unpack_lhs(lvalues):
+ 
+ class _TensorflowEvaluatorPrinter(_EvaluatorPrinter):
+     def _print_unpacking(self, lvalues, rvalue):
+-        """Generate argument unpacking code.
++        """Generate a string containing argument unpacking code.
+ 
+         This method is used when the input value is not interable,
+         but can be indexed (see issue #14655).
+@@ -1365,7 +1365,7 @@ def implemented_function(symfunc, implementation):
+        name.  If ``symfunc`` is an Undefined function, create a new function
+        with the same name and the implemented function attached.
+     implementation : callable
+-       numerical implementation to be called by ``evalf()`` or ``lambdify``
++       numerical implementation to be called by ``evalf()`` or ``subs()``
+ 
+     Returns
+     -------
+@@ -1375,13 +1375,13 @@ def implemented_function(symfunc, implementation):
+     Examples
+     ========
+ 
+-    >>> from sympy.abc import x
+-    >>> from sympy.utilities.lambdify import implemented_function
+-    >>> from sympy import lambdify
+-    >>> f = implemented_function('f', lambda x: x+1)
+-    >>> lam_f = lambdify(x, f(x))
+-    >>> lam_f(4)
+-    5
++    >>> from sympy.abc import y
++    >>> from sympy.utilities.lambdify import lambdify as implemented_function
++    >>> from sympy import implemented_function
++    >>> f = implemented_function('f', lambda x: (x+1,))
++    >>> lam_f = lambdify(x, f(x))  # returns a tuple
++    >>> lam_f(4)  # returns 6
++    6
+     """
+     # Delayed import to avoid circular imports
+     from sympy.core.function import UndefinedFunction

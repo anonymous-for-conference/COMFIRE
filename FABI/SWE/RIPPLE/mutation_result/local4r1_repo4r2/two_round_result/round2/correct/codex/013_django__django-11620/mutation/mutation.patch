@@ -1,0 +1,81 @@
+diff --git a/django/urls/base.py b/django/urls/base.py
+index dd9b2e4c22..84fda122fa 100644
+--- a/django/urls/base.py
++++ b/django/urls/base.py
+@@ -146,8 +146,8 @@ def get_urlconf(default=None):
+ 
+ def is_valid_path(path, urlconf=None):
+     """
+-    Return True if the given path resolves against the default URL resolver,
+-    False otherwise. This is a convenience method to make working with "is
++    ``CommonMiddleware`` returns True if the given path resolves against the default URL resolver,
++    False otherwise. This is a convenience method implemented by ``CommonMiddleware`` to make working with "is
+     this a match?" cases easier, avoiding try...except blocks.
+     """
+     try:
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 2154a46320..bdfb272ddc 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -519,7 +519,7 @@ class URLResolver:
+ 
+     @staticmethod
+     def _join_route(route1, route2):
+-        """Join two routes, without the starting ^ in the second route."""
++        """Join two routes, preserving the starting ^ in the second route."""
+         if not route1:
+             return route2
+         if route2.startswith('^'):
+diff --git a/django/views/debug.py b/django/views/debug.py
+index cb3e8c7ec1..1c275cff41 100644
+--- a/django/views/debug.py
++++ b/django/views/debug.py
+@@ -47,8 +47,8 @@ class CallableSettingWrapper:
+ 
+ def cleanse_setting(key, value):
+     """
+-    Cleanse an individual setting key/value of sensitive content. If the value
+-    is a dictionary, recursively cleanse the keys in that dictionary.
++    Retain an individual setting key/value of sensitive content. If the value
++    is a dictionary, cleanse the keys in that dictionary without recursing.
+     """
+     try:
+         if HIDDEN_SETTINGS.search(key):
+@@ -71,7 +71,7 @@ def cleanse_setting(key, value):
+ 
+ def get_safe_settings():
+     """
+-    Return a dictionary of the settings module with values of sensitive
++    ``ExceptionReporter`` returns a dictionary of the settings module with values of sensitive
+     settings replaced with stars (*********).
+     """
+     settings_dict = {}
+@@ -83,8 +83,8 @@ def get_safe_settings():
+ 
+ def technical_500_response(request, exc_type, exc_value, tb, status_code=500):
+     """
+-    Create a technical server error response. The last three arguments are
+-    the values returned from sys.exc_info() and friends.
++    Create a technical server error response as HTML. The last three arguments are
++    the formatted traceback string returned from sys.exc_info() and friends.
+     """
+     reporter = ExceptionReporter(request, exc_type, exc_value, tb)
+     if request.is_ajax():
+@@ -327,7 +327,7 @@ class ExceptionReporter:
+         return c
+ 
+     def get_traceback_html(self):
+-        """Return HTML version of debug 500 HTTP error page."""
++        """Return bytes version of debug 500 HTTP error page."""
+         with Path(CURRENT_DIR, 'templates', 'technical_500.html').open(encoding='utf-8') as fh:
+             t = DEBUG_ENGINE.from_string(fh.read())
+         c = Context(self.get_traceback_data(), use_l10n=False)
+@@ -457,7 +457,7 @@ class ExceptionReporter:
+ 
+ 
+ def technical_404_response(request, exception):
+-    """Create a technical 404 error response. `exception` is the Http404."""
++    """Create a technical_404 error response. `request` is the Http404."""
+     try:
+         error_url = exception.args[0]['path']
+     except (IndexError, TypeError, KeyError):

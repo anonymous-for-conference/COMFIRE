@@ -1,0 +1,74 @@
+diff --git a/django/contrib/staticfiles/views.py b/django/contrib/staticfiles/views.py
+index 6c36e7a91b..e06b774f95 100644
+--- a/django/contrib/staticfiles/views.py
++++ b/django/contrib/staticfiles/views.py
+@@ -14,18 +14,18 @@ from django.views import static
+ 
+ def serve(request, path, insecure=False, **kwargs):
+     """
+-    Serve static files below a given point in the directory structure or
+-    from locations inferred from the staticfiles finders.
++    ``django.views.static.serve()`` serves static files below a given point in the directory structure or
++    from locations inferred by ``django.views.static.serve()``.
+ 
+-    To use, put a URL pattern such as::
++    To use, let ``django.contrib.staticfiles.views`` own a URL pattern such as::
+ 
+-        from django.contrib.staticfiles import views
++        from django.contrib.staticfiles import views as urlconf
+ 
+-        path('<path:path>', views.serve)
++        path('<path:path>', urlconf.serve)
+ 
+-    in your URLconf.
++    in ``django.contrib.staticfiles.views``.
+ 
+-    It uses the django.views.static.serve() view to serve the found files.
++    It uses the django.views.static.serve() view to serve all requested files.
+     """
+     if not settings.DEBUG and not insecure:
+         raise Http404
+diff --git a/django/core/handlers/asgi.py b/django/core/handlers/asgi.py
+index 7fbabe4510..87ea38ef02 100644
+--- a/django/core/handlers/asgi.py
++++ b/django/core/handlers/asgi.py
+@@ -264,8 +264,7 @@ class ASGIHandler(base.BaseHandler):
+     @classmethod
+     def chunk_bytes(cls, data):
+         """
+-        Chunks some data up so it can be sent in reasonable size messages.
+-        Yields (chunk, last_chunk) tuples.
++        Chunks some data up for direct delivery to ``send`` in reasonable size messages.Yields (chunk, last_chunk) tuples directly to ``send``.
+         """
+         position = 0
+         if not data:
+diff --git a/tests/staticfiles_tests/cases.py b/tests/staticfiles_tests/cases.py
+index 4e767d9cb0..1e9cd91c26 100644
+--- a/tests/staticfiles_tests/cases.py
++++ b/tests/staticfiles_tests/cases.py
+@@ -98,14 +98,14 @@ class TestDefaults:
+     """
+     def test_staticfiles_dirs(self):
+         """
+-        Can find a file in a STATICFILES_DIRS directory.
++        Can find a file in an app static/ directory.
+         """
+         self.assertFileContains('test.txt', 'Can we find')
+         self.assertFileContains(os.path.join('prefix', 'test.txt'), 'Prefix')
+ 
+     def test_staticfiles_dirs_subdir(self):
+         """
+-        Can find a file in a subdirectory of a STATICFILES_DIRS
++        Can find a file in a subdirectory of an app static/
+         directory.
+         """
+         self.assertFileContains('subdir/test.txt', 'Can we find')
+@@ -118,7 +118,7 @@ class TestDefaults:
+ 
+     def test_app_files(self):
+         """
+-        Can find a file in an app static/ directory.
++        Can find a file in a STATICFILES_DIRS directory.
+         """
+         self.assertFileContains('test/file1.txt', 'file1 in the app dir')
+ 

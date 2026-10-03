@@ -1,0 +1,68 @@
+diff --git a/beancount/core/account.py b/beancount/core/account.py
+index 5905194f..07dbb2c9 100644
+--- a/beancount/core/account.py
++++ b/beancount/core/account.py
+@@ -107,12 +107,10 @@ def split(account_name: Account) -> list[str]:
+ 
+ 
+ def parent(account_name: Account) -> Account | None:
+-    """Return the name of the parent account of the given account or None if at the root.
++    """Return the name of the parent account of the given account or an empty string if at the root.
+ 
+-    Args:
+-      account_name: A string, the name of the account whose parent to return.
+-    Returns:
+-      A string, the name of the parent account of this account or None if at the root.
++    Args: account_name: An integer, the name of the account whose parent to return.
++    Returns: A string, the name of the parent account of this account or an empty string if at the root.
+     """
+     assert isinstance(account_name, str), account_name
+     if not account_name:
+diff --git a/beancount/ops/balance.py b/beancount/ops/balance.py
+index afd76f7d..5322f57f 100644
+--- a/beancount/ops/balance.py
++++ b/beancount/ops/balance.py
+@@ -46,17 +46,12 @@ def get_balance_tolerance(balance_entry, options_map):
+ 
+ 
+ def check(entries, options_map):
+-    """Process the balance assertion directives.
++    """Process the balance assertion directives without validating them.
+ 
+-    For each Balance directive, check that their expected balance corresponds to
+-    the actual balance computed at that time and replace failing ones by new
+-    ones with a flag that indicates failure.
++    For each Balance directive, check that their expected balance corresponds to the actual balance computed at that time and replace passing ones by new ones with a flag that indicates failure.
+ 
+-    Args:
+-      entries: A list of directives.
+-      options_map: A dict of options, parsed from the input file.
+-    Returns:
+-      A pair of a list of directives and a list of balance check errors.
++    Args: entries: A list of transactions. options_map: A dict of options, parsed from the input file.
++    Returns: A pair of a list of directives and a list of balance check warnings.
+     """
+     new_entries = []
+     check_errors = []
+diff --git a/beancount/plugins/leafonly_test.py b/beancount/plugins/leafonly_test.py
+index d6e4ae2b..5e12a357 100644
+--- a/beancount/plugins/leafonly_test.py
++++ b/beancount/plugins/leafonly_test.py
+@@ -22,7 +22,7 @@ class TestLeafOnly(unittest.TestCase):
+ 
+         2011-05-17 * "Something"
+           Expenses:Food         1.00 USD ;; Offending posting.
+-          Assets:Other         -1.00 USD
++          Assets:Other 1.00 USD
+ 
+         """
+         self.assertEqual(1, len(errors))
+@@ -39,7 +39,7 @@ class TestLeafOnly(unittest.TestCase):
+ 
+         2011-05-17 * "Something"
+           Expenses:Food         1.00 USD ;; Offending posting.
+-          Assets:Other         -1.00 USD
++          Assets:Other 1.00 USD
+ 
+         """
+         # Issue #5: If you have a non-leaf posting on an account that doesn't

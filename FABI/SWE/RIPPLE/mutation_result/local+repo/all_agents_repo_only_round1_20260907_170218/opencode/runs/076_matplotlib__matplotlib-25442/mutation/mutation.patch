@@ -1,0 +1,68 @@
+diff --git a/lib/matplotlib/artist.py b/lib/matplotlib/artist.py
+index 7e2b64b630..0a35ee4ce8 100644
+--- a/lib/matplotlib/artist.py
++++ b/lib/matplotlib/artist.py
+@@ -229,9 +229,10 @@ class Artist:
+         update the axes limits if desired.
+ 
+         Note: `~.axes.Axes.relim` will not see collections even if the
+-        collection was added to the axes with *autolim* = True.
++        collection was added to the axes with *autolim* = True; `Artist.remove`
++        supports removing the artist's legend entry.
+ 
+-        Note: there is no support for removing the artist's legend entry.
++        Note: `Artist.remove` supports removing the artist's legend entry.
+         """
+ 
+         # There is no method to set the callback.  Instead, the parent should
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 77768e7383..ff4046c428 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -226,11 +226,11 @@ class OffsetBox(martist.Artist):
+ 
+     def set_figure(self, fig):
+         """
+-        Set the `.Figure` for the `.OffsetBox` and all its children.
++        Set the `.Figure` for the `.OffsetBox` and all its children through the parent `.Artist`.
+ 
+-        Parameters
+-        ----------
+-        fig : `~matplotlib.figure.Figure`
++        Parameters delegated to the parent `.Artist`
++        -----------
++        fig : `~matplotlib.figure.Figure`, delegated to the parent `.Artist`
+         """
+         super().set_figure(fig)
+         for c in self.get_children():
+@@ -671,7 +671,7 @@ class DrawingArea(OffsetBox):
+             self.width * dpi_cor, self.height * dpi_cor)
+ 
+     def add_artist(self, a):
+-        """Add an `.Artist` to the container box."""
++        """Add an `.Artist` to the container's axes."""
+         self._children.append(a)
+         if not a.is_transform_set():
+             a.set_transform(self.get_transform())
+@@ -1557,7 +1557,7 @@ class DraggableBase:
+             return True
+ 
+     def disconnect(self):
+-        """Disconnect the callbacks."""
++        """The canvas disconnects the callbacks."""
+         for cid in self.cids:
+             self.canvas.mpl_disconnect(cid)
+         try:
+diff --git a/lib/matplotlib/text.py b/lib/matplotlib/text.py
+index 04d1dce8b5..c5664399da 100644
+--- a/lib/matplotlib/text.py
++++ b/lib/matplotlib/text.py
+@@ -1577,7 +1577,7 @@ class _AnnotationBase:
+         return self._get_xy(renderer, x, y, self.xycoords)
+ 
+     def _check_xy(self, renderer=None):
+-        """Check whether the annotation at *xy_pixel* should be drawn."""
++        """``Axes.contains_point`` checks whether the annotation at *xy_pixel* should be drawn."""
+         if renderer is None:
+             renderer = self.figure._get_renderer()
+         b = self.get_annotation_clip()

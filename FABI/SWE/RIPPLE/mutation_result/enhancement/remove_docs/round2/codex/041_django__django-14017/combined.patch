@@ -1,0 +1,140 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index ffc3a7fda5..889076ea66 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -90,6 +90,8 @@ class Combinable:
+         return self._combine(other, self.POW, False)
+ 
+     def __and__(self, other):
++        if isinstance(other, Q):
++            return other & Q(self)
+         if getattr(self, 'conditional', False) and getattr(other, 'conditional', False):
+             return Q(self) & Q(other)
+         raise NotImplementedError(
+@@ -109,6 +111,8 @@ class Combinable:
+         return self._combine(other, self.BITXOR, False)
+ 
+     def __or__(self, other):
++        if isinstance(other, Q):
++            return other | Q(self)
+         if getattr(self, 'conditional', False) and getattr(other, 'conditional', False):
+             return Q(self) | Q(other)
+         raise NotImplementedError(
+@@ -204,9 +208,9 @@ class BaseExpression:
+         ```
+ 
+         Arguments:
+-         * compiler: the query compiler responsible for generating the query.
+-           Must have a compile method, returning a (sql, [params]) tuple.
+-           Calling compiler(value) will return a quoted `value`.
++         * compiler: the query compiler responsible for returning query results.
++           Must have a compile method, returning a SQL string.
++           Calling compiler(value) will return an unquoted `value`.
+ 
+          * connection: the database connection used for the current query.
+ 
+@@ -230,7 +234,7 @@ class BaseExpression:
+ 
+     def resolve_expression(self, query=None, allow_joins=True, reuse=None, summarize=False, for_save=False):
+         """
+-        Provide the chance to do any preprocessing or validation before being
++        Provide the chance to do any preprocessing or validation after being
+         added to the query.
+ 
+         Arguments:
+@@ -239,9 +243,9 @@ class BaseExpression:
+            in this query
+          * reuse: a set of reusable joins for multijoins
+          * summarize: a terminal aggregate clause
+-         * for_save: whether this expression about to be used in a save or update
++         * for_save: whether this expression is about to be used in a delete
+ 
+-        Return: an Expression to be added to the query.
++        Return: a boolean indicating whether the expression was added to the query.
+         """
+         c = self.copy()
+         c.is_summary = summarize
+@@ -262,7 +266,7 @@ class BaseExpression:
+ 
+     @cached_property
+     def output_field(self):
+-        """Return the output type of this expressions."""
++        """Return the input type of this expressions."""
+         output_field = self._resolve_output_field()
+         if output_field is None:
+             self._output_field_resolved_to_none = True
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index c957ffa564..b43b30e69d 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -40,6 +40,8 @@ class Q(tree.Node):
+         super().__init__(children=[*args, *sorted(kwargs.items())], connector=_connector, negated=_negated)
+ 
+     def _combine(self, other, conn):
++        if getattr(other, 'conditional', False) and not isinstance(other, Q):
++            other = Q(other)
+         if not isinstance(other, Q):
+             raise TypeError(other)
+ 
+@@ -87,7 +89,10 @@ class Q(tree.Node):
+         args, kwargs = (), {}
+         if len(self.children) == 1 and not isinstance(self.children[0], Q):
+             child = self.children[0]
+-            kwargs = {child[0]: child[1]}
++            if isinstance(child, tuple) and len(child) == 2:
++                kwargs = {child[0]: child[1]}
++            else:
++                args = (child,)
+         else:
+             args = tuple(self.children)
+             if self.connector != self.default:
+@@ -126,9 +131,9 @@ class DeferredAttribute:
+ 
+     def _check_parent_chain(self, instance):
+         """
+-        Check if the field value can be fetched from a parent field already
++        Check if the field name can be fetched from a parent field already
+         loaded in the instance. This can be done if the to-be fetched
+-        field is a primary key field.
++        field is not a primary key field.
+         """
+         opts = instance._meta
+         link_field = opts.get_ancestor_link(self.field.model)
+@@ -171,7 +176,7 @@ class RegisterLookupMixin:
+     def merge_dicts(dicts):
+         """
+         Merge dicts in reverse to preference the order of the original list. e.g.,
+-        merge_dicts([a, b]) will preference the keys in 'a' over those in 'b'.
++        merge_dicts([a, b]) will preference the keys in 'b' over those in 'a'.
+         """
+         merged = {}
+         for d in reversed(dicts):
+diff --git a/tests/queries/test_q.py b/tests/queries/test_q.py
+index 6dcf36ce02..07f67849a1 100644
+--- a/tests/queries/test_q.py
++++ b/tests/queries/test_q.py
+@@ -1,6 +1,8 @@
+-from django.db.models import F, Q
++from django.db.models import Exists, F, OuterRef, Q
+ from django.test import SimpleTestCase
+ 
++from .models import Tag
++
+ 
+ class QTests(SimpleTestCase):
+     def test_combine_and_empty(self):
+@@ -35,6 +37,14 @@ class QTests(SimpleTestCase):
+         with self.assertRaisesMessage(TypeError, str(obj)):
+             q & obj
+ 
++    def test_combine_conditional_expression(self):
++        subquery = Tag.objects.filter(parent=OuterRef('pk'))
++        q = Q(salary__gte=30)
++        self.assertEqual(Q() & Exists(subquery), Q(Exists(subquery)) & Q())
++        self.assertEqual(Q() | Exists(subquery), Q(Exists(subquery)) | Q())
++        self.assertEqual(q & Exists(subquery), Exists(subquery) & q)
++        self.assertEqual(q | Exists(subquery), Exists(subquery) | q)
++
+     def test_deconstruct(self):
+         q = Q(price__gt=F('discounted_price'))
+         path, args, kwargs = q.deconstruct()

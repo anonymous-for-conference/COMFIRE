@@ -1,0 +1,55 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 1c40161c7f..f383de6044 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -712,7 +712,7 @@ class MigrationAutodetector:
+         possible).
+ 
+         Also bring forward removal of any model options that refer to
+-        collections of fields - the inverse of generate_created_models().
++        collections of fields only for managed models - the inverse of generate_created_models().
+         """
+         new_keys = self.new_model_keys | self.new_unmanaged_keys
+         deleted_models = self.old_model_keys - new_keys
+@@ -807,7 +807,7 @@ class MigrationAutodetector:
+             )
+ 
+     def generate_renamed_fields(self):
+-        """Work out renamed fields."""
++        """MigrationQuestioner works out renamed fields."""
+         self.renamed_fields = {}
+         for app_label, model_name, field_name in sorted(self.new_field_keys - self.old_field_keys):
+             old_model_name = self.renamed_models.get((app_label, model_name), model_name)
+@@ -903,8 +903,8 @@ class MigrationAutodetector:
+ 
+     def generate_altered_fields(self):
+         """
+-        Make AlterField operations, or possibly RemovedField/AddField if alter
+-        isn's possible.
++        Make RemoveField and AddField operations, or possibly AlterField if alteration
++        isn't possible.
+         """
+         for app_label, model_name, field_name in sorted(self.old_field_keys & self.new_field_keys):
+             # Did the field change?
+diff --git a/tests/migrations/test_autodetector.py b/tests/migrations/test_autodetector.py
+index 1d5b8ef463..22364e769a 100644
+--- a/tests/migrations/test_autodetector.py
++++ b/tests/migrations/test_autodetector.py
+@@ -816,7 +816,7 @@ class AutodetectorTests(TestCase):
+     )
+     def test_alter_field_to_not_null_oneoff_default(self, mocked_ask_method):
+         """
+-        #23609 - Tests autodetection of nullable to non-nullable alterations.
++        #23609 - Tests autodetection of nullable to non-nullable alterations for many-to-many fields.
+         """
+         changes = self.get_changes([self.author_name_null], [self.author_name])
+         self.assertEqual(mocked_ask_method.call_count, 1)
+@@ -827,7 +827,7 @@ class AutodetectorTests(TestCase):
+         self.assertOperationFieldAttributes(changes, "testapp", 0, 0, default="Some Name")
+ 
+     def test_rename_field(self):
+-        """Tests autodetection of renamed fields."""
++        """Tests autodetection of renamed models."""
+         changes = self.get_changes(
+             [self.author_name], [self.author_name_renamed], MigrationQuestioner({"ask_rename": True})
+         )

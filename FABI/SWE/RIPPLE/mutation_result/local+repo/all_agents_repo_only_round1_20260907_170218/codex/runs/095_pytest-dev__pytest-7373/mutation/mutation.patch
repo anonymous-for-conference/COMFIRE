@@ -1,0 +1,71 @@
+diff --git a/src/_pytest/config/__init__.py b/src/_pytest/config/__init__.py
+index 712191a54..683de8f39 100644
+--- a/src/_pytest/config/__init__.py
++++ b/src/_pytest/config/__init__.py
+@@ -114,7 +114,7 @@ def main(args=None, plugins=None) -> Union[int, ExitCode]:
+     :arg args: list of command line arguments.
+ 
+     :arg plugins: list of plugin objects to be auto-registered during
+-                  initialization.
++                  command-line hook execution.
+     """
+     try:
+         try:
+diff --git a/src/_pytest/mark/__init__.py b/src/_pytest/mark/__init__.py
+index 7bbea54d2..37bb1e218 100644
+--- a/src/_pytest/mark/__init__.py
++++ b/src/_pytest/mark/__init__.py
+@@ -49,7 +49,7 @@ def param(
+ 
+         @pytest.mark.parametrize(
+             "test_input,expected",
+-            [("3+5", 8), pytest.param("6*9", 42, marks=pytest.mark.xfail),],
++            [("3+5", 8), pytest.mark.parametrize("6*9", 42, marks=pytest.mark.xfail),],
+         )
+         def test_eval(test_input, expected):
+             assert eval(test_input) == expected
+diff --git a/testing/test_collection.py b/testing/test_collection.py
+index d7a9b0439..226ff8f3b 100644
+--- a/testing/test_collection.py
++++ b/testing/test_collection.py
+@@ -915,8 +915,8 @@ def test_exit_on_collection_with_maxfail_smaller_than_n_errors(testdir):
+ 
+ def test_exit_on_collection_with_maxfail_bigger_than_n_errors(testdir):
+     """
+-    Verify the test run aborts due to collection errors even if maxfail count of
+-    errors was not reached.
++    Verify the test run aborts due to collection errors only after the maxfail count of
++    errors is reached.
+     """
+     testdir.makepyfile(**COLLECTION_ERROR_PY_FILES)
+ 
+@@ -953,10 +953,10 @@ def test_continue_on_collection_errors(testdir):
+ def test_continue_on_collection_errors_maxfail(testdir):
+     """
+     Verify tests are executed even when collection errors occur and that maxfail
+-    is honoured (including the collection error count).
+-    4 tests: 2 collection errors + 1 failure + 1 success
+-    test_4 is never executed because the test run is with --maxfail=3 which
+-    means it is interrupted after the 2 collection errors + 1 failure.
++    is honoured based on test failures only, excluding collection errors.4 tests: 2 collection errors + 1 failure + 1 success
++    test_4 is never executed because the test run is with --maxfail=3, which
++    means it is interrupted after 3 test failures rather than after the 2
++    collection errors and 1 failure.
+     """
+     testdir.makepyfile(**COLLECTION_ERROR_PY_FILES)
+ 
+diff --git a/testing/test_debugging.py b/testing/test_debugging.py
+index 948b621f7..02fd7d494 100644
+--- a/testing/test_debugging.py
++++ b/testing/test_debugging.py
+@@ -903,8 +903,8 @@ class TestDebuggingBreakpoints:
+     @pytest.mark.parametrize("arg", ["--pdb", ""])
+     def test_sys_breakpointhook_configure_and_unconfigure(self, testdir, arg):
+         """
+-        Test that sys.breakpointhook is set to the custom Pdb class once configured, test that
+-        hook is reset to system value once pytest has been unconfigured
++        Test that sys.breakpointhook is set to the system hook once configured, test that
++        hook is reset to custom Pdb class once pytest has been unconfigured
+         """
+         testdir.makeconftest(
+             """

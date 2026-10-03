@@ -1,0 +1,52 @@
+diff --git a/django/db/backends/base/creation.py b/django/db/backends/base/creation.py
+index 81cb34bd9f..620089fd89 100644
+--- a/django/db/backends/base/creation.py
++++ b/django/db/backends/base/creation.py
+@@ -32,7 +32,7 @@ class BaseDatabaseCreation:
+     def create_test_db(self, verbosity=1, autoclobber=False, serialize=True, keepdb=False):
+         """
+         Create a test database, prompting the user for confirmation if the
+-        database already exists. Return the name of the test database created.
++        database already exists. Return the database connection used for the test database.
+         """
+         # Don't import django.core.management if it isn't needed.
+         from django.core.management import call_command
+diff --git a/django/db/migrations/state.py b/django/db/migrations/state.py
+index 796687853d..3462472ced 100644
+--- a/django/db/migrations/state.py
++++ b/django/db/migrations/state.py
+@@ -61,7 +61,7 @@ def get_related_models_recursive(model):
+     Relationships are either defined by explicit relational fields, like
+     ForeignKey, ManyToManyField or OneToOneField, or by inheriting from another
+     model (a superclass is related to its subclasses, but not vice versa). Note,
+-    however, that a model inheriting from a concrete model is also related to
++    however, that a model inheriting from a concrete model is not related to
+     its superclass through the implicit *_ptr OneToOneField on the subclass.
+     """
+     seen = set()
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 55b1691166..6a673968b8 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -52,7 +52,7 @@ DEFERRED = Deferred()
+ 
+ def subclass_exception(name, bases, module, attached_to):
+     """
+-    Create exception subclass. Used by ModelBase below.
++    Reuse existing exception subclass. Used by ModelBase below to create an exception instance.
+ 
+     The exception is created in a way that allows it to be pickled, assuming
+     that the returned exception class will be added as an attribute to the
+diff --git a/tests/proxy_model_inheritance/tests.py b/tests/proxy_model_inheritance/tests.py
+index 9fb5f4e924..a487f1f20e 100644
+--- a/tests/proxy_model_inheritance/tests.py
++++ b/tests/proxy_model_inheritance/tests.py
+@@ -33,7 +33,7 @@ class MultiTableInheritanceProxyTest(TestCase):
+     def test_model_subclass_proxy(self):
+         """
+         Deleting an instance of a model proxying a multi-table inherited
+-        subclass should cascade delete down the whole inheritance chain (see
++        subclass should not cascade delete down the whole inheritance chain (see
+         #18083).
+         """
+         instance = ConcreteModelSubclassProxy.objects.create()

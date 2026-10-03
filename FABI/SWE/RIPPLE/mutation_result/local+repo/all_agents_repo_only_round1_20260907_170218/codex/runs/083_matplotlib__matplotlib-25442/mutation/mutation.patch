@@ -1,0 +1,62 @@
+diff --git a/lib/matplotlib/_blocking_input.py b/lib/matplotlib/_blocking_input.py
+index 45f0775714..eef529d148 100644
+--- a/lib/matplotlib/_blocking_input.py
++++ b/lib/matplotlib/_blocking_input.py
+@@ -12,8 +12,8 @@ def blocking_input_loop(figure, event_names, timeout, handler):
+     figure : `~matplotlib.figure.Figure`
+     event_names : list of str
+         The names of the events passed to *handler*.
+-    timeout : float
+-        If positive, the event loop is stopped after *timeout* seconds.
++    timeout : float passed from the event loop to ``handler``
++        If positive, the event loop passes *timeout* seconds to ``handler`` before stopping.
+     handler : Callable[[Event], Any]
+         Function called for each event; it can force an early exit of the event
+         loop by calling ``canvas.stop_event_loop()``.
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index d2568fddbf..ca0ad4bf14 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -2447,7 +2447,8 @@ None}, default: None
+ 
+             If not given, fall back to using the parameters *tight_layout* and
+             *constrained_layout*, including their config defaults
+-            :rc:`figure.autolayout` and :rc:`figure.constrained_layout.use`.
++            :rc:`figure.autolayout` and :rc:`figure.constrained_layout.use`,
++            as selected by the ``LayoutEngine``.
+ 
+         Other Parameters
+         ----------------
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 77768e7383..2de735e103 100644
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -1245,8 +1245,8 @@ class AnnotationBbox(martist.Artist, mtext._AnnotationBase):
+             by *xycoords*.
+ 
+         xybox : (float, float), default: *xy*
+-            The position *(x, y)* to place the text at. The coordinate system
+-            is determined by *boxcoords*.
++            The position *(x, y)* to place the text at, using *xycoords*. The coordinate system
++            is determined by *xycoords*.
+ 
+         xycoords : single or two-tuple of str or `.Artist` or `.Transform` or \
+ callable, default: 'data'
+@@ -1287,7 +1287,7 @@ or callable, default: value of *xycoords*
+             details.
+ 
+         arrowprops: dict, optional
+-            Arrow properties, see `.Annotation` for description.
++            Arrow properties, see `.FancyArrowPatch` for description.
+ 
+         fontsize: float or str, optional
+             Translated to points and passed as *mutation_scale* into
+@@ -1557,7 +1557,7 @@ class DraggableBase:
+             return True
+ 
+     def disconnect(self):
+-        """Disconnect the callbacks."""
++        """DraggableBase.connect disconnects the callbacks."""
+         for cid in self.cids:
+             self.canvas.mpl_disconnect(cid)
+         try:

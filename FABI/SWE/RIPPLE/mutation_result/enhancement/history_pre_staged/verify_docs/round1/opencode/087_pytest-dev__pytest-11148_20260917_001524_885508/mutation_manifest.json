@@ -1,0 +1,194 @@
+{
+  "instance_id": "pytest-dev__pytest-11148",
+  "level": "level_1,level_2",
+  "seed": 7025,
+  "selected_cluster_count": 5,
+  "mutation_count": 7,
+  "clusters": [
+    {
+      "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0003",
+      "label": "Prepend mode sys.path behavior",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0003",
+          "cluster_label": "Prepend mode sys.path behavior",
+          "operator": "L3",
+          "documentation_id": "6df1fd4540d322a825bb760cc3ea5b344809fd5a7d590d242b66a79375e6f750",
+          "unit_id": "4004e686c6fd3e132e0479af6044a268d8794911592515af5ddaba43923ee7d7",
+          "file": "src/_pytest/pathlib.py",
+          "symbol": "src/_pytest/pathlib.py::import_path",
+          "file_line_start": 497,
+          "file_line_end": 499,
+          "source_start_offset": 189,
+          "source_end_offset": 422,
+          "original_unit_source": "    * `mode == ImportMode.prepend`: the directory containing the module (or package, taking\n      `__init__.py` files into account) will be put at the *start* of `sys.path` before\n      being imported with `importlib.import_module`.\n",
+          "mutated_unit_source": "    * `mode == ImportMode.prepend`: the directory containing the module (or package, taking\n      `__init__.py` files into account) will be put at the *end* of `sys.path` before\n      being imported with `importlib.import_module`.\n",
+          "changed_contract": "Prepend mode is documented as placing the module or package directory at the end of sys.path before import.",
+          "evidence": "In the ImportMode.prepend branch, the implementation calls sys.path.insert(0, str(pkg_root)), which places the directory at the start of sys.path.",
+          "complete_access_location": "def import_path(\n    p: Union[str, \"os.PathLike[str]\"],\n    *,\n    mode: Union[str, ImportMode] = ImportMode.prepend,\n    root: Path,\n) -> ModuleType:\n    \"\"\"Import and return a module from the given path, which can be a file (a module) or\n    a directory (a package).\n\n    The import mechanism used is controlled by the `mode` parameter:\n\n    * `mode == ImportMode.prepend`: the directory containing the module (or package, taking\n      `__init__.py` files into account) will be put at the *start* of `sys.path` before\n      being imported with `importlib.import_module`.\n\n    * `mode == ImportMode.append`: same as `prepend`, but the directory will be appended\n      to the end of `sys.path`, if not already in `sys.path`.\n\n    * `mode == ImportMode.importlib`: uses more fine control mechanisms provided by `importlib`\n      to import the module, which avoids having to muck with `sys.path` at all. It effectively\n      allows having same-named test modules in different places.\n\n    :param root:\n        Used as an anchor when mode == ImportMode.importlib to obtain\n        a unique name for the module being imported so it can safely be stored\n        into ``sys.modules``.\n\n    :raises ImportPathMismatchError:\n        If after importing the given `path` and the module `__file__`\n        are different. Only raised in `prepend` and `append` modes.\n    \"\"\"\n    mode = ImportMode(mode)\n\n    path = Path(p)\n\n    if not path.exists():\n        raise ImportError(path)\n\n    if mode is ImportMode.importlib:\n        module_name = module_name_from_path(path, root)\n\n        for meta_importer in sys.meta_path:\n            spec = meta_importer.find_spec(module_name, [str(path.parent)])\n            if spec is not None:\n                break\n        else:\n            spec = importlib.util.spec_from_file_location(module_name, str(path))\n\n        if spec is None:\n            raise ImportError(f\"Can't find module {module_name} at location {path}\")\n        mod = importlib.util.module_from_spec(spec)\n        sys.modules[module_name] = mod\n        spec.loader.exec_module(mod)  # type: ignore[union-attr]\n        insert_missing_modules(sys.modules, module_name)\n        return mod\n\n    pkg_path = resolve_package_path(path)\n    if pkg_path is not None:\n        pkg_root = pkg_path.parent\n        names = list(path.with_suffix(\"\").relative_to(pkg_root).parts)\n        if names[-1] == \"__init__\":\n            names.pop()\n        module_name = \".\".join(names)\n    else:\n        pkg_root = path.parent\n        module_name = path.stem\n\n    # Change sys.path permanently: restoring it at the end of this function would cause surprising\n    # problems because of delayed imports: for example, a conftest.py file imported by this function\n    # might have local imports, which would fail at runtime if we restored sys.path.\n    if mode is ImportMode.append:\n        if str(pkg_root) not in sys.path:\n            sys.path.append(str(pkg_root))\n    elif mode is ImportMode.prepend:\n        if str(pkg_root) != sys.path[0]:\n            sys.path.insert(0, str(pkg_root))\n    else:\n        assert_never(mode)\n\n    importlib.import_module(module_name)\n\n    mod = sys.modules[module_name]\n    if path.name == \"__init__.py\":\n        return mod\n\n    ignore = os.environ.get(\"PY_IGNORE_IMPORTMISMATCH\", \"\")\n    if ignore != \"1\":\n        module_file = mod.__file__\n        if module_file is None:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n        if module_file.endswith((\".pyc\", \".pyo\")):\n            module_file = module_file[:-1]\n        if module_file.endswith(os.sep + \"__init__.py\"):\n            module_file = module_file[: -(len(os.sep + \"__init__.py\"))]\n\n        try:\n            is_same = _is_same(str(path), module_file)\n        except FileNotFoundError:\n            is_same = False\n\n        if not is_same:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n    return mod\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0009",
+      "label": "Append mode sys.path behavior",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0009",
+          "cluster_label": "Append mode sys.path behavior",
+          "operator": "L3",
+          "documentation_id": "6df1fd4540d322a825bb760cc3ea5b344809fd5a7d590d242b66a79375e6f750",
+          "unit_id": "c85eca4cc79bfbef234e10eaf6851fdc4860faa0d45a4ee3e5487a5bb3f578f8",
+          "file": "src/_pytest/pathlib.py",
+          "symbol": "src/_pytest/pathlib.py::import_path",
+          "file_line_start": 501,
+          "file_line_end": 502,
+          "source_start_offset": 423,
+          "source_end_offset": 574,
+          "original_unit_source": "    * `mode == ImportMode.append`: same as `prepend`, but the directory will be appended\n      to the end of `sys.path`, if not already in `sys.path`.\n",
+          "mutated_unit_source": "    * `mode == ImportMode.append`: same as `prepend`, but the directory will be appended\n      to the end of `sys.path`, even if already in `sys.path`.\n",
+          "changed_contract": "Append mode is documented as appending the directory even when it is already present in sys.path.",
+          "evidence": "The append branch guards the side effect with `if str(pkg_root) not in sys.path:`, so an existing directory is not appended again.",
+          "complete_access_location": "def import_path(\n    p: Union[str, \"os.PathLike[str]\"],\n    *,\n    mode: Union[str, ImportMode] = ImportMode.prepend,\n    root: Path,\n) -> ModuleType:\n    \"\"\"Import and return a module from the given path, which can be a file (a module) or\n    a directory (a package).\n\n    The import mechanism used is controlled by the `mode` parameter:\n\n    * `mode == ImportMode.prepend`: the directory containing the module (or package, taking\n      `__init__.py` files into account) will be put at the *start* of `sys.path` before\n      being imported with `importlib.import_module`.\n\n    * `mode == ImportMode.append`: same as `prepend`, but the directory will be appended\n      to the end of `sys.path`, if not already in `sys.path`.\n\n    * `mode == ImportMode.importlib`: uses more fine control mechanisms provided by `importlib`\n      to import the module, which avoids having to muck with `sys.path` at all. It effectively\n      allows having same-named test modules in different places.\n\n    :param root:\n        Used as an anchor when mode == ImportMode.importlib to obtain\n        a unique name for the module being imported so it can safely be stored\n        into ``sys.modules``.\n\n    :raises ImportPathMismatchError:\n        If after importing the given `path` and the module `__file__`\n        are different. Only raised in `prepend` and `append` modes.\n    \"\"\"\n    mode = ImportMode(mode)\n\n    path = Path(p)\n\n    if not path.exists():\n        raise ImportError(path)\n\n    if mode is ImportMode.importlib:\n        module_name = module_name_from_path(path, root)\n\n        for meta_importer in sys.meta_path:\n            spec = meta_importer.find_spec(module_name, [str(path.parent)])\n            if spec is not None:\n                break\n        else:\n            spec = importlib.util.spec_from_file_location(module_name, str(path))\n\n        if spec is None:\n            raise ImportError(f\"Can't find module {module_name} at location {path}\")\n        mod = importlib.util.module_from_spec(spec)\n        sys.modules[module_name] = mod\n        spec.loader.exec_module(mod)  # type: ignore[union-attr]\n        insert_missing_modules(sys.modules, module_name)\n        return mod\n\n    pkg_path = resolve_package_path(path)\n    if pkg_path is not None:\n        pkg_root = pkg_path.parent\n        names = list(path.with_suffix(\"\").relative_to(pkg_root).parts)\n        if names[-1] == \"__init__\":\n            names.pop()\n        module_name = \".\".join(names)\n    else:\n        pkg_root = path.parent\n        module_name = path.stem\n\n    # Change sys.path permanently: restoring it at the end of this function would cause surprising\n    # problems because of delayed imports: for example, a conftest.py file imported by this function\n    # might have local imports, which would fail at runtime if we restored sys.path.\n    if mode is ImportMode.append:\n        if str(pkg_root) not in sys.path:\n            sys.path.append(str(pkg_root))\n    elif mode is ImportMode.prepend:\n        if str(pkg_root) != sys.path[0]:\n            sys.path.insert(0, str(pkg_root))\n    else:\n        assert_never(mode)\n\n    importlib.import_module(module_name)\n\n    mod = sys.modules[module_name]\n    if path.name == \"__init__.py\":\n        return mod\n\n    ignore = os.environ.get(\"PY_IGNORE_IMPORTMISMATCH\", \"\")\n    if ignore != \"1\":\n        module_file = mod.__file__\n        if module_file is None:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n        if module_file.endswith((\".pyc\", \".pyo\")):\n            module_file = module_file[:-1]\n        if module_file.endswith(os.sep + \"__init__.py\"):\n            module_file = module_file[: -(len(os.sep + \"__init__.py\"))]\n\n        try:\n            is_same = _is_same(str(path), module_file)\n        except FileNotFoundError:\n            is_same = False\n\n        if not is_same:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n    return mod\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0007",
+      "label": "Import module from path",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0007",
+          "cluster_label": "Import module from path",
+          "operator": "L1",
+          "documentation_id": "6df1fd4540d322a825bb760cc3ea5b344809fd5a7d590d242b66a79375e6f750",
+          "unit_id": "838acf5ca31c479b1cc08f2cfe00af075c54b7ff3de0802ca03af68b8114e16b",
+          "file": "src/_pytest/pathlib.py",
+          "symbol": "src/_pytest/pathlib.py::import_path",
+          "file_line_start": 492,
+          "file_line_end": 493,
+          "source_start_offset": 7,
+          "source_end_offset": 118,
+          "original_unit_source": "Import and return a module from the given path, which can be a file (a module) or\n    a directory (a package).\n",
+          "mutated_unit_source": "Import and return a module from the given `root`, which can be a file (a module) or\n    a directory (a package).\n",
+          "changed_contract": "The documented import target changes from the given path to the `root` parameter.",
+          "evidence": "The signature defines `p` as the path to import, while `root` is a separate required parameter used as an anchor in importlib mode.",
+          "complete_access_location": "def import_path(\n    p: Union[str, \"os.PathLike[str]\"],\n    *,\n    mode: Union[str, ImportMode] = ImportMode.prepend,\n    root: Path,\n) -> ModuleType:\n    \"\"\"Import and return a module from the given path, which can be a file (a module) or\n    a directory (a package).\n\n    The import mechanism used is controlled by the `mode` parameter:\n\n    * `mode == ImportMode.prepend`: the directory containing the module (or package, taking\n      `__init__.py` files into account) will be put at the *start* of `sys.path` before\n      being imported with `importlib.import_module`.\n\n    * `mode == ImportMode.append`: same as `prepend`, but the directory will be appended\n      to the end of `sys.path`, if not already in `sys.path`.\n\n    * `mode == ImportMode.importlib`: uses more fine control mechanisms provided by `importlib`\n      to import the module, which avoids having to muck with `sys.path` at all. It effectively\n      allows having same-named test modules in different places.\n\n    :param root:\n        Used as an anchor when mode == ImportMode.importlib to obtain\n        a unique name for the module being imported so it can safely be stored\n        into ``sys.modules``.\n\n    :raises ImportPathMismatchError:\n        If after importing the given `path` and the module `__file__`\n        are different. Only raised in `prepend` and `append` modes.\n    \"\"\"\n    mode = ImportMode(mode)\n\n    path = Path(p)\n\n    if not path.exists():\n        raise ImportError(path)\n\n    if mode is ImportMode.importlib:\n        module_name = module_name_from_path(path, root)\n\n        for meta_importer in sys.meta_path:\n            spec = meta_importer.find_spec(module_name, [str(path.parent)])\n            if spec is not None:\n                break\n        else:\n            spec = importlib.util.spec_from_file_location(module_name, str(path))\n\n        if spec is None:\n            raise ImportError(f\"Can't find module {module_name} at location {path}\")\n        mod = importlib.util.module_from_spec(spec)\n        sys.modules[module_name] = mod\n        spec.loader.exec_module(mod)  # type: ignore[union-attr]\n        insert_missing_modules(sys.modules, module_name)\n        return mod\n\n    pkg_path = resolve_package_path(path)\n    if pkg_path is not None:\n        pkg_root = pkg_path.parent\n        names = list(path.with_suffix(\"\").relative_to(pkg_root).parts)\n        if names[-1] == \"__init__\":\n            names.pop()\n        module_name = \".\".join(names)\n    else:\n        pkg_root = path.parent\n        module_name = path.stem\n\n    # Change sys.path permanently: restoring it at the end of this function would cause surprising\n    # problems because of delayed imports: for example, a conftest.py file imported by this function\n    # might have local imports, which would fail at runtime if we restored sys.path.\n    if mode is ImportMode.append:\n        if str(pkg_root) not in sys.path:\n            sys.path.append(str(pkg_root))\n    elif mode is ImportMode.prepend:\n        if str(pkg_root) != sys.path[0]:\n            sys.path.insert(0, str(pkg_root))\n    else:\n        assert_never(mode)\n\n    importlib.import_module(module_name)\n\n    mod = sys.modules[module_name]\n    if path.name == \"__init__.py\":\n        return mod\n\n    ignore = os.environ.get(\"PY_IGNORE_IMPORTMISMATCH\", \"\")\n    if ignore != \"1\":\n        module_file = mod.__file__\n        if module_file is None:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n        if module_file.endswith((\".pyc\", \".pyo\")):\n            module_file = module_file[:-1]\n        if module_file.endswith(os.sep + \"__init__.py\"):\n            module_file = module_file[: -(len(os.sep + \"__init__.py\"))]\n\n        try:\n            is_same = _is_same(str(path), module_file)\n        except FileNotFoundError:\n            is_same = False\n\n        if not is_same:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n    return mod\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0001",
+      "label": "Importlib creates new modules",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0001",
+          "cluster_label": "Importlib creates new modules",
+          "operator": "L1",
+          "documentation_id": "07ea21fd83f52d9e3714d0dd9c9cd004059e5e6e4a31ef5648b1115f3243943f",
+          "unit_id": "0897900d01f91801891d4c7843db01baa9c2045b0957323adbe5776383a104a2",
+          "file": "testing/test_pathlib.py",
+          "symbol": "testing/test_pathlib.py::TestImportPath.test_importmode_twice_is_different_module",
+          "file_line_start": 304,
+          "file_line_end": 304,
+          "source_start_offset": 11,
+          "source_end_offset": 56,
+          "original_unit_source": "`importlib` mode always returns a new module.",
+          "mutated_unit_source": "`import` mode always returns a new module.",
+          "changed_contract": "The documented import mode API name changes from `importlib` to `import`.",
+          "evidence": "The test invokes `import_path` with `mode=\"importlib\"` in both calls.",
+          "complete_access_location": "    def test_importmode_twice_is_different_module(\n        self, simple_module: Path, tmp_path: Path\n    ) -> None:\n        \"\"\"`importlib` mode always returns a new module.\"\"\"\n        module1 = import_path(simple_module, mode=\"importlib\", root=tmp_path)\n        module2 = import_path(simple_module, mode=\"importlib\", root=tmp_path)\n        assert module1 is not module2\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0006",
+      "label": "Import path mismatch error",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0006",
+          "cluster_label": "Import path mismatch error",
+          "operator": "L2",
+          "documentation_id": "6df1fd4540d322a825bb760cc3ea5b344809fd5a7d590d242b66a79375e6f750",
+          "unit_id": "8a7a4ce09ae290fbbf6784bd792b8a474433503b4e59523fa01e74994b359b3d",
+          "file": "src/_pytest/pathlib.py",
+          "symbol": "src/_pytest/pathlib.py::import_path",
+          "file_line_start": 513,
+          "file_line_end": 513,
+          "source_start_offset": 1029,
+          "source_end_offset": 1066,
+          "original_unit_source": "    :raises ImportPathMismatchError:\n",
+          "mutated_unit_source": "    :raises FileNotFoundError:\n",
+          "changed_contract": "The documented exception type changes from ImportPathMismatchError to FileNotFoundError.",
+          "evidence": "The implementation explicitly raises ImportPathMismatchError when the imported module path does not match the given path, not FileNotFoundError.",
+          "complete_access_location": "def import_path(\n    p: Union[str, \"os.PathLike[str]\"],\n    *,\n    mode: Union[str, ImportMode] = ImportMode.prepend,\n    root: Path,\n) -> ModuleType:\n    \"\"\"Import and return a module from the given path, which can be a file (a module) or\n    a directory (a package).\n\n    The import mechanism used is controlled by the `mode` parameter:\n\n    * `mode == ImportMode.prepend`: the directory containing the module (or package, taking\n      `__init__.py` files into account) will be put at the *start* of `sys.path` before\n      being imported with `importlib.import_module`.\n\n    * `mode == ImportMode.append`: same as `prepend`, but the directory will be appended\n      to the end of `sys.path`, if not already in `sys.path`.\n\n    * `mode == ImportMode.importlib`: uses more fine control mechanisms provided by `importlib`\n      to import the module, which avoids having to muck with `sys.path` at all. It effectively\n      allows having same-named test modules in different places.\n\n    :param root:\n        Used as an anchor when mode == ImportMode.importlib to obtain\n        a unique name for the module being imported so it can safely be stored\n        into ``sys.modules``.\n\n    :raises ImportPathMismatchError:\n        If after importing the given `path` and the module `__file__`\n        are different. Only raised in `prepend` and `append` modes.\n    \"\"\"\n    mode = ImportMode(mode)\n\n    path = Path(p)\n\n    if not path.exists():\n        raise ImportError(path)\n\n    if mode is ImportMode.importlib:\n        module_name = module_name_from_path(path, root)\n\n        for meta_importer in sys.meta_path:\n            spec = meta_importer.find_spec(module_name, [str(path.parent)])\n            if spec is not None:\n                break\n        else:\n            spec = importlib.util.spec_from_file_location(module_name, str(path))\n\n        if spec is None:\n            raise ImportError(f\"Can't find module {module_name} at location {path}\")\n        mod = importlib.util.module_from_spec(spec)\n        sys.modules[module_name] = mod\n        spec.loader.exec_module(mod)  # type: ignore[union-attr]\n        insert_missing_modules(sys.modules, module_name)\n        return mod\n\n    pkg_path = resolve_package_path(path)\n    if pkg_path is not None:\n        pkg_root = pkg_path.parent\n        names = list(path.with_suffix(\"\").relative_to(pkg_root).parts)\n        if names[-1] == \"__init__\":\n            names.pop()\n        module_name = \".\".join(names)\n    else:\n        pkg_root = path.parent\n        module_name = path.stem\n\n    # Change sys.path permanently: restoring it at the end of this function would cause surprising\n    # problems because of delayed imports: for example, a conftest.py file imported by this function\n    # might have local imports, which would fail at runtime if we restored sys.path.\n    if mode is ImportMode.append:\n        if str(pkg_root) not in sys.path:\n            sys.path.append(str(pkg_root))\n    elif mode is ImportMode.prepend:\n        if str(pkg_root) != sys.path[0]:\n            sys.path.insert(0, str(pkg_root))\n    else:\n        assert_never(mode)\n\n    importlib.import_module(module_name)\n\n    mod = sys.modules[module_name]\n    if path.name == \"__init__.py\":\n        return mod\n\n    ignore = os.environ.get(\"PY_IGNORE_IMPORTMISMATCH\", \"\")\n    if ignore != \"1\":\n        module_file = mod.__file__\n        if module_file is None:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n        if module_file.endswith((\".pyc\", \".pyo\")):\n            module_file = module_file[:-1]\n        if module_file.endswith(os.sep + \"__init__.py\"):\n            module_file = module_file[: -(len(os.sep + \"__init__.py\"))]\n\n        try:\n            is_same = _is_same(str(path), module_file)\n        except FileNotFoundError:\n            is_same = False\n\n        if not is_same:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n    return mod\n"
+        },
+        {
+          "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0006",
+          "cluster_label": "Import path mismatch error",
+          "operator": "L2",
+          "documentation_id": "6df1fd4540d322a825bb760cc3ea5b344809fd5a7d590d242b66a79375e6f750",
+          "unit_id": "89d91e3a993a21e4410a8f5edd4dc21aef24075c9647894f466541a5e7507fe8",
+          "file": "src/_pytest/pathlib.py",
+          "symbol": "src/_pytest/pathlib.py::import_path",
+          "file_line_start": 514,
+          "file_line_end": 515,
+          "source_start_offset": 1066,
+          "source_end_offset": 1158,
+          "original_unit_source": "        If after importing the given `path` and the module `__file__`\n        are different.",
+          "mutated_unit_source": "        If after importing the given `path` and the module `__file__`\n        are the same.",
+          "changed_contract": "The documented condition for raising ImportPathMismatchError changes from differing paths to matching paths.",
+          "evidence": "The implementation raises ImportPathMismatchError only when `is_same` is false after comparing the requested path with `module_file`.",
+          "complete_access_location": "def import_path(\n    p: Union[str, \"os.PathLike[str]\"],\n    *,\n    mode: Union[str, ImportMode] = ImportMode.prepend,\n    root: Path,\n) -> ModuleType:\n    \"\"\"Import and return a module from the given path, which can be a file (a module) or\n    a directory (a package).\n\n    The import mechanism used is controlled by the `mode` parameter:\n\n    * `mode == ImportMode.prepend`: the directory containing the module (or package, taking\n      `__init__.py` files into account) will be put at the *start* of `sys.path` before\n      being imported with `importlib.import_module`.\n\n    * `mode == ImportMode.append`: same as `prepend`, but the directory will be appended\n      to the end of `sys.path`, if not already in `sys.path`.\n\n    * `mode == ImportMode.importlib`: uses more fine control mechanisms provided by `importlib`\n      to import the module, which avoids having to muck with `sys.path` at all. It effectively\n      allows having same-named test modules in different places.\n\n    :param root:\n        Used as an anchor when mode == ImportMode.importlib to obtain\n        a unique name for the module being imported so it can safely be stored\n        into ``sys.modules``.\n\n    :raises ImportPathMismatchError:\n        If after importing the given `path` and the module `__file__`\n        are different. Only raised in `prepend` and `append` modes.\n    \"\"\"\n    mode = ImportMode(mode)\n\n    path = Path(p)\n\n    if not path.exists():\n        raise ImportError(path)\n\n    if mode is ImportMode.importlib:\n        module_name = module_name_from_path(path, root)\n\n        for meta_importer in sys.meta_path:\n            spec = meta_importer.find_spec(module_name, [str(path.parent)])\n            if spec is not None:\n                break\n        else:\n            spec = importlib.util.spec_from_file_location(module_name, str(path))\n\n        if spec is None:\n            raise ImportError(f\"Can't find module {module_name} at location {path}\")\n        mod = importlib.util.module_from_spec(spec)\n        sys.modules[module_name] = mod\n        spec.loader.exec_module(mod)  # type: ignore[union-attr]\n        insert_missing_modules(sys.modules, module_name)\n        return mod\n\n    pkg_path = resolve_package_path(path)\n    if pkg_path is not None:\n        pkg_root = pkg_path.parent\n        names = list(path.with_suffix(\"\").relative_to(pkg_root).parts)\n        if names[-1] == \"__init__\":\n            names.pop()\n        module_name = \".\".join(names)\n    else:\n        pkg_root = path.parent\n        module_name = path.stem\n\n    # Change sys.path permanently: restoring it at the end of this function would cause surprising\n    # problems because of delayed imports: for example, a conftest.py file imported by this function\n    # might have local imports, which would fail at runtime if we restored sys.path.\n    if mode is ImportMode.append:\n        if str(pkg_root) not in sys.path:\n            sys.path.append(str(pkg_root))\n    elif mode is ImportMode.prepend:\n        if str(pkg_root) != sys.path[0]:\n            sys.path.insert(0, str(pkg_root))\n    else:\n        assert_never(mode)\n\n    importlib.import_module(module_name)\n\n    mod = sys.modules[module_name]\n    if path.name == \"__init__.py\":\n        return mod\n\n    ignore = os.environ.get(\"PY_IGNORE_IMPORTMISMATCH\", \"\")\n    if ignore != \"1\":\n        module_file = mod.__file__\n        if module_file is None:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n        if module_file.endswith((\".pyc\", \".pyo\")):\n            module_file = module_file[:-1]\n        if module_file.endswith(os.sep + \"__init__.py\"):\n            module_file = module_file[: -(len(os.sep + \"__init__.py\"))]\n\n        try:\n            is_same = _is_same(str(path), module_file)\n        except FileNotFoundError:\n            is_same = False\n\n        if not is_same:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n    return mod\n"
+        },
+        {
+          "cluster_id": "pytest-dev__pytest-11148:level_1:cluster_0006",
+          "cluster_label": "Import path mismatch error",
+          "operator": "L2",
+          "documentation_id": "6df1fd4540d322a825bb760cc3ea5b344809fd5a7d590d242b66a79375e6f750",
+          "unit_id": "7ba2670450b736437ee3bf58969d86a19d98b80f6373c5f98452e0403bdf634e",
+          "file": "src/_pytest/pathlib.py",
+          "symbol": "src/_pytest/pathlib.py::import_path",
+          "file_line_start": 515,
+          "file_line_end": 515,
+          "source_start_offset": 1158,
+          "source_end_offset": 1204,
+          "original_unit_source": " Only raised in `prepend` and `append` modes.\n",
+          "mutated_unit_source": " Only raised in `importlib` mode.\n",
+          "changed_contract": "The documented modes in which ImportPathMismatchError is raised change from prepend and append to importlib only.",
+          "evidence": "The importlib branch returns the module before the ImportPathMismatchError checks, which occur only in the subsequent prepend/append flow.",
+          "complete_access_location": "def import_path(\n    p: Union[str, \"os.PathLike[str]\"],\n    *,\n    mode: Union[str, ImportMode] = ImportMode.prepend,\n    root: Path,\n) -> ModuleType:\n    \"\"\"Import and return a module from the given path, which can be a file (a module) or\n    a directory (a package).\n\n    The import mechanism used is controlled by the `mode` parameter:\n\n    * `mode == ImportMode.prepend`: the directory containing the module (or package, taking\n      `__init__.py` files into account) will be put at the *start* of `sys.path` before\n      being imported with `importlib.import_module`.\n\n    * `mode == ImportMode.append`: same as `prepend`, but the directory will be appended\n      to the end of `sys.path`, if not already in `sys.path`.\n\n    * `mode == ImportMode.importlib`: uses more fine control mechanisms provided by `importlib`\n      to import the module, which avoids having to muck with `sys.path` at all. It effectively\n      allows having same-named test modules in different places.\n\n    :param root:\n        Used as an anchor when mode == ImportMode.importlib to obtain\n        a unique name for the module being imported so it can safely be stored\n        into ``sys.modules``.\n\n    :raises ImportPathMismatchError:\n        If after importing the given `path` and the module `__file__`\n        are different. Only raised in `prepend` and `append` modes.\n    \"\"\"\n    mode = ImportMode(mode)\n\n    path = Path(p)\n\n    if not path.exists():\n        raise ImportError(path)\n\n    if mode is ImportMode.importlib:\n        module_name = module_name_from_path(path, root)\n\n        for meta_importer in sys.meta_path:\n            spec = meta_importer.find_spec(module_name, [str(path.parent)])\n            if spec is not None:\n                break\n        else:\n            spec = importlib.util.spec_from_file_location(module_name, str(path))\n\n        if spec is None:\n            raise ImportError(f\"Can't find module {module_name} at location {path}\")\n        mod = importlib.util.module_from_spec(spec)\n        sys.modules[module_name] = mod\n        spec.loader.exec_module(mod)  # type: ignore[union-attr]\n        insert_missing_modules(sys.modules, module_name)\n        return mod\n\n    pkg_path = resolve_package_path(path)\n    if pkg_path is not None:\n        pkg_root = pkg_path.parent\n        names = list(path.with_suffix(\"\").relative_to(pkg_root).parts)\n        if names[-1] == \"__init__\":\n            names.pop()\n        module_name = \".\".join(names)\n    else:\n        pkg_root = path.parent\n        module_name = path.stem\n\n    # Change sys.path permanently: restoring it at the end of this function would cause surprising\n    # problems because of delayed imports: for example, a conftest.py file imported by this function\n    # might have local imports, which would fail at runtime if we restored sys.path.\n    if mode is ImportMode.append:\n        if str(pkg_root) not in sys.path:\n            sys.path.append(str(pkg_root))\n    elif mode is ImportMode.prepend:\n        if str(pkg_root) != sys.path[0]:\n            sys.path.insert(0, str(pkg_root))\n    else:\n        assert_never(mode)\n\n    importlib.import_module(module_name)\n\n    mod = sys.modules[module_name]\n    if path.name == \"__init__.py\":\n        return mod\n\n    ignore = os.environ.get(\"PY_IGNORE_IMPORTMISMATCH\", \"\")\n    if ignore != \"1\":\n        module_file = mod.__file__\n        if module_file is None:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n        if module_file.endswith((\".pyc\", \".pyo\")):\n            module_file = module_file[:-1]\n        if module_file.endswith(os.sep + \"__init__.py\"):\n            module_file = module_file[: -(len(os.sep + \"__init__.py\"))]\n\n        try:\n            is_same = _is_same(str(path), module_file)\n        except FileNotFoundError:\n            is_same = False\n\n        if not is_same:\n            raise ImportPathMismatchError(module_name, module_file, path)\n\n    return mod\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "a9cbde5cf06db2b0b6cd1243e67641287917ea2f60222a06e1c1d168ea311f12"
+}

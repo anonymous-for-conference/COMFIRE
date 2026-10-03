@@ -1,0 +1,77 @@
+diff --git a/shapely/_ragged_array.py b/shapely/_ragged_array.py
+index 73ff1622..37a051bd 100644
+--- a/shapely/_ragged_array.py
++++ b/shapely/_ragged_array.py
+@@ -410,6 +410,42 @@ def _multipolygons_from_flatcoords(coords, offsets1, offsets2, offsets3):
+     return result
+ 
+ 
++def _normalize_offsets(coords, offsets):
++    """Normalize offsets and coordinates for a potentially sliced array."""
++    offsets = tuple(np.asarray(offset, dtype="int64") for offset in offsets)
++
++    if len(offsets) == 1:
++        coord_start = offsets[0][0]
++        coord_stop = offsets[0][-1]
++        coords = coords[coord_start:coord_stop]
++        offsets = (offsets[0] - coord_start,)
++    elif len(offsets) == 2:
++        offset_start = offsets[1][0]
++        offset_stop = offsets[1][-1]
++        coord_start = offsets[0][offset_start]
++        coord_stop = offsets[0][offset_stop]
++        coords = coords[coord_start:coord_stop]
++        offsets = (
++            offsets[0][offset_start : offset_stop + 1] - coord_start,
++            offsets[1] - offset_start,
++        )
++    else:
++        offset_start = offsets[2][0]
++        offset_stop = offsets[2][-1]
++        ring_start = offsets[1][offset_start]
++        ring_stop = offsets[1][offset_stop]
++        coord_start = offsets[0][ring_start]
++        coord_stop = offsets[0][ring_stop]
++        coords = coords[coord_start:coord_stop]
++        offsets = (
++            offsets[0][ring_start : ring_stop + 1] - coord_start,
++            offsets[1][offset_start : offset_stop + 1] - ring_start,
++            offsets[2] - offset_start,
++        )
++
++    return coords, offsets
++
++
+ def from_ragged_array(geometry_type, coords, offsets=None):
+     """Create geometries from a contiguous array of coordinates and offset arrays.
+ 
+@@ -457,6 +493,8 @@ def from_ragged_array(geometry_type, coords, offsets=None):
+             "'offsets' must be provided for any geometry type except for Point"
+         )
+ 
++    coords, offsets = _normalize_offsets(coords, offsets)
++
+     if geometry_type == GeometryType.LINESTRING:
+         return _linestring_from_flatcoords(coords, *offsets)
+     elif geometry_type == GeometryType.POLYGON:
+diff --git a/shapely/tests/test_ragged_array.py b/shapely/tests/test_ragged_array.py
+index 0e4d5df5..80a69a79 100644
+--- a/shapely/tests/test_ragged_array.py
++++ b/shapely/tests/test_ragged_array.py
+@@ -93,6 +93,16 @@ def test_roundtrip(geom):
+     assert_geometries_equal(actual, [geom, geom])
+ 
+ 
++@pytest.mark.parametrize("geom", all_types[1:] + all_types_z[1:])
++def test_from_ragged_array_sliced(geom):
++    typ, coords, offsets = shapely.to_ragged_array([geom, geom])
++    sliced_offsets = (*offsets[:-1], offsets[-1][1:])
++
++    actual = shapely.from_ragged_array(typ, coords, sliced_offsets)
++
++    assert_geometries_equal(actual, [geom])
++
++
+ @pytest.mark.parametrize("include_m", [None, True, False])
+ @pytest.mark.parametrize("include_z", [None, True, False])
+ @pytest.mark.parametrize("geom", all_types_dims_combos)

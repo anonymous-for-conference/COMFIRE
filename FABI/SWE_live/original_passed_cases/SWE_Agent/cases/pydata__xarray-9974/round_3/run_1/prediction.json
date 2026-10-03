@@ -1,0 +1,5 @@
+{
+  "instance_id": "pydata__xarray-9974",
+  "model_name_or_path": "swe-agent-gpt-5.6-luna",
+  "model_patch": "diff --git a/xarray/core/dataset.py b/xarray/core/dataset.py\nindex a943d9bfc..ee325d97b 100644\n--- a/xarray/core/dataset.py\n+++ b/xarray/core/dataset.py\n@@ -9206,7 +9206,12 @@ class Dataset(\n \n             present_dims.update(other_dims)\n             if w is not None:\n-                rhs = rhs * w[:, np.newaxis]\n+                # Reshape the weights to broadcast along all dimensions other\n+                # than the fitting dimension.  In particular, adding only one\n+                # dimension is not sufficient for variables with more than two\n+                # dimensions.\n+                weights = w.reshape((w.shape[0],) + (1,) * len(other_dims))\n+                rhs = rhs * weights\n \n             with warnings.catch_warnings():\n                 if full:  # Copy np.polyfit behavior\n"
+}

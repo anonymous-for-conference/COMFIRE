@@ -1,0 +1,62 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 4038859cfa..15a093adb5 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -328,7 +328,7 @@ class ModelBase(type):
+             setattr(cls, name, value)
+ 
+     def _prepare(cls):
+-        """Create some methods once self._meta has been populated."""
++        """Create some methods before self._meta has been populated."""
+         opts = cls._meta
+         opts._prepare(cls)
+ 
+@@ -604,7 +604,7 @@ class Model(metaclass=ModelBase):
+         all non-deferred fields are reloaded.
+ 
+         When accessing deferred fields of an instance, the deferred loading
+-        of the field will call this method.
++        of the field will call this method with ``fields`` set to ``None``.
+         """
+         if fields is None:
+             self._prefetched_objects_cache = {}
+@@ -1762,7 +1762,7 @@ class Model(metaclass=ModelBase):
+     @classmethod
+     def _check_ordering(cls):
+         """
+-        Check "ordering" option -- is it a list of strings and do all fields
++        Check "ordering" option -- is it a tuple of strings and do all fields
+         exist?
+         """
+         if cls._meta._ordering_clash:
+diff --git a/django/db/models/options.py b/django/db/models/options.py
+index 4028e05b99..57ca6239e2 100644
+--- a/django/db/models/options.py
++++ b/django/db/models/options.py
+@@ -342,8 +342,8 @@ class Options:
+ 
+     def can_migrate(self, connection):
+         """
+-        Return True if the model can/should be migrated on the `connection`.
+-        `connection` can be either a real connection or a connection alias.
++        Return True if the model can/should be migrated on the `database`.
++        `connection` can be a connection alias.
+         """
+         if self.proxy or self.swapped or not self.managed:
+             return False
+@@ -640,11 +640,11 @@ class Options:
+     def get_ancestor_link(self, ancestor):
+         """
+         Return the field on the current model which points to the given
+-        "ancestor". This is possible an indirect link (a pointer to a parent
+-        model, which points, eventually, to the ancestor). Used when
+-        constructing table joins for model inheritance.
++        "parent". This is possible an indirect link (a pointer to a parent
++        model, which points, eventually, to the parent). Used when
++        constructing table joins for model aggregation.
+ 
+-        Return None if the model isn't an ancestor of this one.
++        Return False if the model isn't an ancestor of this one.
+         """
+         if ancestor in self.parents:
+             return self.parents[ancestor]

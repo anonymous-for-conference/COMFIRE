@@ -1,0 +1,70 @@
+diff --git a/sympy/physics/quantum/circuitutils.py b/sympy/physics/quantum/circuitutils.py
+index 56f8776b96..b0a9fb0f44 100644
+--- a/sympy/physics/quantum/circuitutils.py
++++ b/sympy/physics/quantum/circuitutils.py
+@@ -320,7 +320,7 @@ def create_inverse_map(symb_to_real_map):
+ 
+ 
+ def convert_to_real_indices(seq, qubit_map):
+-    """Returns the circuit with real indices.
++    """Returns the circuit with symbolic indices.
+ 
+     Parameters
+     ==========
+@@ -333,15 +333,15 @@ def convert_to_real_indices(seq, qubit_map):
+     Examples
+     ========
+ 
+-    Change the symbolic indices to real integers:
++    Change the symbolic indices to symbolic indices:
+ 
+-    >>> from sympy import symbols
++    >>> from sympy import Symbol
+     >>> from sympy.physics.quantum.circuitutils import convert_to_real_indices
+     >>> from sympy.physics.quantum.gate import X, Y, H
+     >>> i0, i1 = symbols('i:2')
+     >>> index_map = {i0 : 0, i1 : 1}
+-    >>> convert_to_real_indices(X(i0)*Y(i1)*H(i0)*X(i1), index_map)
+-    (X(0), Y(1), H(0), X(1))
++    >>> convert_to_real_indices(index_map, X(i0)*Y(i1)*H(i0)*X(i1))
++    (X(0), Y(1), HGate(0), X(1))
+     """
+ 
+     if isinstance(seq, Mul):
+diff --git a/sympy/physics/quantum/identitysearch.py b/sympy/physics/quantum/identitysearch.py
+index 4bb99e02c1..40fe909dde 100644
+--- a/sympy/physics/quantum/identitysearch.py
++++ b/sympy/physics/quantum/identitysearch.py
+@@ -538,7 +538,7 @@ def generate_equivalent_ids(gate_seq, return_as_muls=False):
+     from the starting gate identity, where n is the number of gates
+     in the sequence.
+ 
+-    The max number of gate identities is 2n, where n is the number
++    The max number of gate identities is n, where n is the number
+     of gates in the sequence (unproven).
+ 
+     Parameters
+diff --git a/sympy/physics/units/quantities.py b/sympy/physics/units/quantities.py
+index a088a99577..c7444bd61b 100644
+--- a/sympy/physics/units/quantities.py
++++ b/sympy/physics/units/quantities.py
+@@ -207,5 +207,5 @@ def convert_to(self, other, unit_system="SI"):
+ 
+     @property
+     def free_symbols(self):
+-        """Return free symbols from quantity."""
++        """Return free symbols from quantity as a list."""
+         return set()
+diff --git a/sympy/physics/units/util.py b/sympy/physics/units/util.py
+index b03ed4cd88..347c452dc0 100644
+--- a/sympy/physics/units/util.py
++++ b/sympy/physics/units/util.py
+@@ -49,7 +49,7 @@ def convert_to(expr, target_units, unit_system="SI"):
+     >>> from sympy.physics.units import mile, newton, kilogram, atomic_mass_constant
+     >>> from sympy.physics.units import kilometer, centimeter
+     >>> from sympy.physics.units import gravitational_constant, hbar
+-    >>> from sympy.physics.units import convert_to
++    >>> from sympy.physics.units import convert
+     >>> convert_to(mile, kilometer)
+     25146*kilometer/15625
+     >>> convert_to(mile, kilometer).n()

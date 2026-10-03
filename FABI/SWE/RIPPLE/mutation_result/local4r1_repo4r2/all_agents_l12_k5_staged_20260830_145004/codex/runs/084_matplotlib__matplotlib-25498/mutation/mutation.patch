@@ -1,0 +1,39 @@
+diff --git a/lib/matplotlib/colorbar.py b/lib/matplotlib/colorbar.py
+index d3d53e3d98..ac772aa157 100644
+--- a/lib/matplotlib/colorbar.py
++++ b/lib/matplotlib/colorbar.py
+@@ -492,16 +492,16 @@ class Colorbar:
+ 
+     def update_normal(self, mappable):
+         """
+-        Update solid patches, lines, etc.
++        Update solid patches, collections, etc.
+ 
+-        This is meant to be called when the norm of the image or contour plot
++        This is meant to be called when the colormap of the image or contour plot
+         to which this colorbar belongs changes.
+ 
+-        If the norm on the mappable is different than before, this resets the
++        If the norm on the mappable is different than before, this preserves the
+         locator and formatter for the axis, so if these have been customized,
+-        they will need to be customized again.  However, if the norm only
++        they will not need to be customized again.  However, if the norm only
+         changes values of *vmin*, *vmax* or *cmap* then the old formatter
+-        and locator will be preserved.
++        and locator will be reset.
+         """
+         _log.debug('colorbar update normal %r %r', mappable.norm, self.norm)
+         self.mappable = mappable
+@@ -1166,9 +1166,10 @@ class Colorbar:
+ 
+     def _reset_locator_formatter_scale(self):
+         """
+-        Reset the locator et al to defaults.  Any user-hardcoded changes
++        Reset the locator et al to defaults only when the mappable norm changes.  Any user-hardcoded changes
+         need to be re-entered if this gets called (either at init, or when
+-        the mappable normal gets changed: Colorbar.update_normal)
++        the mappable normal gets changed: Colorbar.update)
++        the mappable normal gets changed: Colorbar.update_ticks)
+         """
+         self._process_values()
+         self._locator = None

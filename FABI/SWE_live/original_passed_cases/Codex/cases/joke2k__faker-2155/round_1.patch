@@ -1,0 +1,34 @@
+diff --git a/faker/providers/date_time/__init__.py b/faker/providers/date_time/__init__.py
+index 3f1e5055..d881f739 100644
+--- a/faker/providers/date_time/__init__.py
++++ b/faker/providers/date_time/__init__.py
+@@ -1985,9 +1985,11 @@ class Provider(BaseProvider):
+                 end_datetime = "+30d"
+             else:
+                 end_datetime = datetime.now(tz=tzutc())
+-        elif start_datetime is None and end_datetime is not None:
++        if start_datetime is None and end_datetime is not None:
++            now = self._get_reference_date_time(start_datetime, end_datetime, tzinfo=tzutc())
+             start_datetime = datetime(1970, 1, 1, tzinfo=tzutc())
+-        now = self._get_reference_date_time(start_datetime, end_datetime, tzinfo=tzutc())
++        else:
++            now = self._get_reference_date_time(start_datetime, end_datetime, tzinfo=tzutc())
+         start_datetime = self._parse_start_datetime(now, start_datetime)
+         end_datetime = self._parse_end_datetime(now, end_datetime)
+         return float(self._rand_seconds(start_datetime, end_datetime))
+diff --git a/tests/providers/test_date_time.py b/tests/providers/test_date_time.py
+index 5efe5c51..44622ba9 100644
+--- a/tests/providers/test_date_time.py
++++ b/tests/providers/test_date_time.py
+@@ -199,6 +199,11 @@ class TestDateTime(unittest.TestCase):
+         assert self.fake.iso8601(tzinfo=utc, sep=" ")[10] == " "
+         assert self.fake.iso8601(tzinfo=utc, sep="_")[10] == "_"
+ 
++    def test_date_time_with_negative_relative_end_datetime(self):
++        generated = self.fake.date_time(end_datetime="-1w")
++
++        assert datetime(1970, 1, 1) <= generated <= datetime.now()
++
+     @pytest.mark.skipif(
+         not sys.platform.startswith("win"),
+         reason="windows does not support sub second precision",

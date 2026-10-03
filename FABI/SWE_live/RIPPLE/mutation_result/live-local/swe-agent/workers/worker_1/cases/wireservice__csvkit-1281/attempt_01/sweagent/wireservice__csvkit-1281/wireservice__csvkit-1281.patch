@@ -1,0 +1,142 @@
+diff --git a/csvkit/cli.py b/csvkit/cli.py
+index 101407c9..06dc35b5 100644
+--- a/csvkit/cli.py
++++ b/csvkit/cli.py
+@@ -426,6 +426,7 @@ class CSVKitUtility:
+             column_names,
+             column_offset,
+             getattr(self.args, 'not_columns', None),
++            ignore_unknown_columns=getattr(self.args, 'ignore_unknown_columns', False),
+         )
+ 
+         return rows, column_names, column_ids
+@@ -510,70 +511,60 @@ def match_column_identifier(column_names, c, column_offset=1):
+     return c
+ 
+ 
+-def parse_column_identifiers(ids, column_names, column_offset=1, excluded_columns=None):
+-    """
+-    Parse a comma-separated list of column indices AND/OR names into a list of integer indices.
+-    Ranges of integers can be specified with two integers separated by a '-' or ':' character.
+-    Ranges of non-integers (e.g. column names) are not supported.
+-    Note: Column indices are 1-based.
+-    """
++def _resolve_column_identifier(identifier, column_names, column_offset, ignore_unknown_columns,
++                               ignore_invalid_range):
++    """Resolve a column name, index, or range into column indices."""
++    try:
++        return [match_column_identifier(column_names, identifier, column_offset)]
++    except ColumnIdentifierError:
++        if ':' in identifier:
++            a, b = identifier.split(':', 1)
++        elif '-' in identifier:
++            a, b = identifier.split('-', 1)
++        elif ignore_unknown_columns:
++            return []
++        else:
++            raise
++        try:
++            a = int(a) if a else 1
++            b = int(b) + 1 if b else len(column_names) + 1
++        except ValueError:
++            if ignore_invalid_range:
++                return []
++            raise ColumnIdentifierError(
++                "Invalid range %s. Ranges must be two integers separated by a - or : character." % identifier)
++        indices = []
++        for index in range(a, b):
++            try:
++                indices.append(match_column_identifier(column_names, index, column_offset))
++            except ColumnIdentifierError:
++                if ignore_invalid_range:
++                    continue
++                raise
++        return indices
++
++
++def parse_column_identifiers(ids, column_names, column_offset=1, excluded_columns=None,
++                             ignore_unknown_columns=False):
++    """Parse a comma-separated list of column indices, names, and ranges."""
+     if not column_names:
+         return []
+-
+     if not ids and not excluded_columns:
+         return range(len(column_names))
+-
+     if ids:
+         columns = []
+-
+-        for c in ids.split(','):
+-            try:
+-                columns.append(match_column_identifier(column_names, c, column_offset))
+-            except ColumnIdentifierError:
+-                if ':' in c:
+-                    a, b = c.split(':', 1)
+-                elif '-' in c:
+-                    a, b = c.split('-', 1)
+-                else:
+-                    raise
+-
+-                try:
+-                    a = int(a) if a else 1
+-                    b = int(b) + 1 if b else len(column_names) + 1
+-                except ValueError:
+-                    raise ColumnIdentifierError(
+-                        "Invalid range %s. Ranges must be two integers separated by a - or : character.")
+-
+-                for x in range(a, b):
+-                    columns.append(match_column_identifier(column_names, x, column_offset))
++        for identifier in ids.split(','):
++            columns.extend(_resolve_column_identifier(
++                identifier, column_names, column_offset,
++                ignore_unknown_columns, ignore_unknown_columns))
+     else:
+         columns = range(len(column_names))
+-
+     excludes = []
+-
+     if excluded_columns:
+-        for c in excluded_columns.split(','):
+-            try:
+-                excludes.append(match_column_identifier(column_names, c, column_offset))
+-            except ColumnIdentifierError:
+-                if ':' in c:
+-                    a, b = c.split(':', 1)
+-                elif '-' in c:
+-                    a, b = c.split('-', 1)
+-                else:
+-                    raise
+-
+-                try:
+-                    a = int(a) if a else 1
+-                    b = int(b) + 1 if b else len(column_names)
+-                except ValueError:
+-                    raise ColumnIdentifierError(
+-                        "Invalid range %s. Ranges must be two integers separated by a - or : character.")
+-
+-                for x in range(a, b):
+-                    excludes.append(match_column_identifier(column_names, x, column_offset))
+-
+-    return [c for c in columns if c not in excludes]
++        for identifier in excluded_columns.split(','):
++            excludes.extend(_resolve_column_identifier(
++                identifier, column_names, column_offset, True, False))
++    return [index for index in columns if index not in excludes]
+ 
+ 
+ def parse_list(pairs):
+diff --git a/csvkit/utilities/csvcut.py b/csvkit/utilities/csvcut.py
+index 1214cc85..e23fc924 100644
+--- a/csvkit/utilities/csvcut.py
++++ b/csvkit/utilities/csvcut.py
+@@ -35,6 +35,10 @@ class CSVCut(CSVKitUtility):
+         self.argparser.add_argument(
+             '-x', '--delete-empty-rows', dest='delete_empty', action='store_true',
+             help='After cutting, delete rows which are completely empty.')
++        self.argparser.add_argument(
++            '--ignore-unknown-columns', dest='ignore_unknown_columns', action='store_true',
++            help='Ignore identifiers in --columns (-c) that do not match a column in the input, '
++                 'instead of erroring.')
+ 
+     def main(self):
+         if self.args.names_only:

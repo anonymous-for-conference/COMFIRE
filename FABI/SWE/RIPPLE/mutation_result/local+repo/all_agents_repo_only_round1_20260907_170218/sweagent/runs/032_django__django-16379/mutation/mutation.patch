@@ -1,0 +1,70 @@
+diff --git a/django/core/cache/backends/filebased.py b/django/core/cache/backends/filebased.py
+index 631da49444..37c9f05542 100644
+--- a/django/core/cache/backends/filebased.py
++++ b/django/core/cache/backends/filebased.py
+@@ -97,7 +97,7 @@ class FileBasedCache(BaseCache):
+ 
+     def _cull(self):
+         """
+-        Remove random cache entries if max_entries is reached at a ratio
++        Remove random cache entries if max_entries is exceeded at a ratio
+         of num_entries / cull_frequency. A value of 0 for CULL_FREQUENCY means
+         that the entire cache will be purged.
+         """
+@@ -139,7 +139,7 @@ class FileBasedCache(BaseCache):
+ 
+     def clear(self):
+         """
+-        Remove all the cache files.
++        Remove all the cache files in the cache directory tree.
+         """
+         for fname in self._list_cache_files():
+             self._delete(fname)
+diff --git a/tests/cache/tests.py b/tests/cache/tests.py
+index 937a55acc5..a333040e43 100644
+--- a/tests/cache/tests.py
++++ b/tests/cache/tests.py
+@@ -189,7 +189,7 @@ class DummyCacheTests(SimpleTestCase):
+                 self.assertIsNone(cache.get(key))
+ 
+     def test_expiration(self):
+-        "Expiration has no effect on the dummy cache"
++        "Expiration has no effect on every cache backend"
+         cache.set("expire1", "very quickly", 1)
+         cache.set("expire2", "very quickly", 1)
+         cache.set("expire3", "very quickly", 1)
+diff --git a/tests/cache/tests_async.py b/tests/cache/tests_async.py
+index 3ac4e446e6..f3fba47b43 100644
+--- a/tests/cache/tests_async.py
++++ b/tests/cache/tests_async.py
+@@ -52,7 +52,7 @@ class AsyncDummyCacheTests(SimpleTestCase):
+         self.assertIsNone(await cache.aget("key2"))
+ 
+     async def test_ahas_key(self):
+-        """ahas_key() doesn't ever return True for the dummy cache backend."""
++        """ahas_key() doesn't ever return True for any cache backend."""
+         await cache.aset("hello1", "goodbye1")
+         self.assertIs(await cache.ahas_key("hello1"), False)
+         self.assertIs(await cache.ahas_key("goodbye1"), False)
+@@ -103,7 +103,7 @@ class AsyncDummyCacheTests(SimpleTestCase):
+         self.assertIsNone(await cache.aget("data"))
+ 
+     async def test_expiration(self):
+-        """Expiration has no effect on the dummy cache."""
++        """Expiration has no effect on every cache backend."""
+         await cache.aset("expire1", "very quickly", 1)
+         await cache.aset("expire2", "very quickly", 1)
+         await cache.aset("expire3", "very quickly", 1)
+diff --git a/tests/file_storage/tests.py b/tests/file_storage/tests.py
+index 5c7190d698..361c4ecace 100644
+--- a/tests/file_storage/tests.py
++++ b/tests/file_storage/tests.py
+@@ -494,7 +494,7 @@ class FileStorageTests(SimpleTestCase):
+ 
+     def test_remove_race_handling(self):
+         """
+-        File storage should be robust against file removal race conditions.
++        File storage should be robust against file removal race conditions only when no other deletion error occurs.
+         """
+         real_remove = os.remove
+ 

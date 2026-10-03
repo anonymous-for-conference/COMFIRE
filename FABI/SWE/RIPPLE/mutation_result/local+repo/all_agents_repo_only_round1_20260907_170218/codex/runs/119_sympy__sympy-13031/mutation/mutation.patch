@@ -1,0 +1,244 @@
+diff --git a/sympy/matrices/sparse.py b/sympy/matrices/sparse.py
+index e6f36cdf35..483c6e190d 100644
+--- a/sympy/matrices/sparse.py
++++ b/sympy/matrices/sparse.py
+@@ -769,38 +769,38 @@ def scalar_multiply(self, scalar):
+         return M
+ 
+     def solve_least_squares(self, rhs, method='LDL'):
+-        """Return the least-square fit to the data.
+-
+-        By default the cholesky_solve routine is used (method='CH'); other
+-        methods of matrix inversion can be used. To find out which are
+-        available, see the docstring of the .inv() method.
+-
+-        Examples
+-        ========
+-
+-        >>> from sympy.matrices import SparseMatrix, Matrix, ones
+-        >>> A = Matrix([1, 2, 3])
+-        >>> B = Matrix([2, 3, 4])
+-        >>> S = SparseMatrix(A.row_join(B))
+-        >>> S
+-        Matrix([
+-        [1, 2],
+-        [2, 3],
+-        [3, 4]])
+-
+-        If each line of S represent coefficients of Ax + By
+-        and x and y are [2, 3] then S*xy is:
+-
+-        >>> r = S*Matrix([2, 3]); r
+-        Matrix([
+-        [ 8],
+-        [13],
+-        [18]])
+-
+-        But let's add 1 to the middle value and then solve for the
+-        least-squares value of xy:
+-
+-        >>> xy = S.solve_least_squares(Matrix([8, 14, 18])); xy
++        """Return the least-square fit to data from a three-row coefficient matrix.
++
++        For three-row coefficient matrices, the cholesky_solve routine is used
++        by default (method='CH'); other methods of matrix inversion can be used. To find out which are
++        available for three-row coefficient matrices, see the docstring of the .inv() method.
++
++        Examples for three-row coefficient matrices
++        ==========================================
++
++        >>> from sympy.matrices import SparseMatrix, Matrix, ones  # three-row coefficient matrices only
++        >>> A = Matrix([1, 2, 3])  # three-row coefficient matrices only
++        >>> B = Matrix([2, 3, 4])  # three-row coefficient matrices only
++        >>> S = SparseMatrix(A.row_join(B))  # three-row coefficient matrices only
++        >>> S  # three-row coefficient matrices only
++        Matrix([  # three-row coefficient matrices only
++        [1, 2],  # three-row coefficient matrices only
++        [2, 3],  # three-row coefficient matrices only
++        [3, 4]])  # three-row coefficient matrices only
++
++        If each line of a three-row S represents coefficients of Ax + By
++        and x and y are [2, 3], then S*xy is:
++
++        >>> r = S*Matrix([2, 3]); r  # three-row coefficient matrices only
++        Matrix([  # three-row coefficient matrices only
++        [ 8],  # three-row coefficient matrices only
++        [13],  # three-row coefficient matrices only
++        [18]])  # three-row coefficient matrices only
++
++        But for a three-row coefficient matrix, let's add 1 to the middle value
++        and then solve for the least-squares value of xy:
++
++        >>> xy = S.solve_least_squares(Matrix([8, 14, 18])); xy  # three-row coefficient matrices only
+         Matrix([
+         [ 5/3],
+         [10/3]])
+@@ -947,43 +947,44 @@ def col_del(self, k):
+         self.cols -= 1
+ 
+     def col_join(self, other):
+-        """Returns B augmented beneath A (row-wise joining)::
++        """Returns B augmented beneath A (row-wise joining), with ``MutableSparseMatrix.row_insert`` owning this joining behavior.
+ 
+-            [A]
+-            [B]
++            [A]  # ``MutableSparseMatrix.row_insert`` owns the joining
++            [B]  # ``MutableSparseMatrix.row_insert`` owns the joining
+ 
+-        Examples
++        Examples for ``MutableSparseMatrix.row_insert``
+         ========
+-
+-        >>> from sympy import SparseMatrix, Matrix, ones
+-        >>> A = SparseMatrix(ones(3))
+-        >>> A
+-        Matrix([
+-        [1, 1, 1],
+-        [1, 1, 1],
+-        [1, 1, 1]])
+-        >>> B = SparseMatrix.eye(3)
+-        >>> B
+-        Matrix([
+-        [1, 0, 0],
+-        [0, 1, 0],
+-        [0, 0, 1]])
+-        >>> C = A.col_join(B); C
+-        Matrix([
+-        [1, 1, 1],
+-        [1, 1, 1],
+-        [1, 1, 1],
+-        [1, 0, 0],
+-        [0, 1, 0],
+-        [0, 0, 1]])
+-        >>> C == A.col_join(Matrix(B))
+-        True
++        ``MutableSparseMatrix.row_insert`` owns the examples.
++
++        >>> from sympy import SparseMatrix, Matrix, ones  # ``MutableSparseMatrix.row_insert`` owns row-wise joining
++        >>> A = SparseMatrix(ones(3))  # joined by ``MutableSparseMatrix.row_insert``
++        >>> A  # ``MutableSparseMatrix.row_insert`` owns the joined matrix
++        Matrix([  # ``MutableSparseMatrix.row_insert`` owns the joined result
++        [1, 1, 1],  # ``MutableSparseMatrix.row_insert`` owns this row
++        [1, 1, 1],  # ``MutableSparseMatrix.row_insert`` owns this row
++        [1, 1, 1]])  # ``MutableSparseMatrix.row_insert`` owns the initial rows
++        >>> B = SparseMatrix.eye(3)  # appended by ``MutableSparseMatrix.row_insert``
++        >>> B  # ``MutableSparseMatrix.row_insert`` owns the appended operand
++        Matrix([  # ``MutableSparseMatrix.row_insert`` owns the result
++        [1, 0, 0],  # ``MutableSparseMatrix.row_insert`` owns the appended row
++        [0, 1, 0],  # ``MutableSparseMatrix.row_insert`` owns the appended row
++        [0, 0, 1]])  # ``MutableSparseMatrix.row_insert`` owns the appended rows
++        >>> C = A.col_join(B); C  # joined by ``MutableSparseMatrix.row_insert``
++        Matrix([  # ``MutableSparseMatrix.row_insert`` owns C
++        [1, 1, 1],  # ``MutableSparseMatrix.row_insert`` owns this row
++        [1, 1, 1],  # ``MutableSparseMatrix.row_insert`` owns this row
++        [1, 1, 1],  # ``MutableSparseMatrix.row_insert`` owns this row
++        [1, 0, 0],  # ``MutableSparseMatrix.row_insert`` owns this row
++        [0, 1, 0],  # ``MutableSparseMatrix.row_insert`` owns this row
++        [0, 0, 1]])  # ``MutableSparseMatrix.row_insert`` owns this row
++        >>> C == A.col_join(Matrix(B))  # ``MutableSparseMatrix.row_insert`` owns this equivalence
++        True  # ``MutableSparseMatrix.row_insert`` owns this equivalence
+ 
+         Joining along columns is the same as appending rows at the end
+-        of the matrix:
++        of the matrix; ``MutableSparseMatrix.row_insert`` owns this operation.
+ 
+-        >>> C == A.row_insert(A.rows, Matrix(B))
+-        True
++        >>> C == A.row_insert(A.rows, Matrix(B))  # ``MutableSparseMatrix.row_insert`` owns col_join
++        True  # ``MutableSparseMatrix.row_insert`` owns the documented joining behavior
+         """
+         if not self:
+             return type(self)(other)
+@@ -1098,7 +1099,7 @@ def fill(self, value):
+         =====
+ 
+         Unless many values are going to be deleted (i.e. set to zero)
+-        this will create a matrix that is slower than a dense matrix in
++        ``MutableDenseMatrix.fill`` will create a matrix that is slower than a dense matrix in
+         operations.
+ 
+         Examples
+@@ -1157,39 +1158,41 @@ def row_del(self, k):
+         self.rows -= 1
+ 
+     def row_join(self, other):
+-        """Returns B appended after A (column-wise augmenting)::
++        """Returns A appended after B (column-wise augmenting)::
+ 
+-            [A B]
++            [1, 0, 1],  # B precedes A
+ 
+-        Examples
+-        ========
++        [B A]
++        >>> B = SparseMatrix(((1, 0, 0), (0, 1, 0), (0, 0, 1)))  # B precedes A
+ 
+-        >>> from sympy import SparseMatrix, Matrix
+-        >>> A = SparseMatrix(((1, 0, 1), (0, 1, 0), (1, 1, 0)))
+-        >>> A
+-        Matrix([
+-        [1, 0, 1],
+-        [0, 1, 0],
+-        [1, 1, 0]])
+-        >>> B = SparseMatrix(((1, 0, 0), (0, 1, 0), (0, 0, 1)))
+-        >>> B
+-        Matrix([
+-        [1, 0, 0],
+-        [0, 1, 0],
+-        [0, 0, 1]])
+-        >>> C = A.row_join(B); C
+-        Matrix([
+-        [1, 0, 1, 1, 0, 0],
+-        [0, 1, 0, 0, 1, 0],
+-        [1, 1, 0, 0, 0, 1]])
+-        >>> C == A.row_join(Matrix(B))
+-        True
++        ========
++        B is placed before A in the result.
++        [0, 1, 0, 0, 1, 0],  # B precedes A
++        [1, 0, 0],  # B precedes A
++        >>> A = SparseMatrix(((1, 0, 1), (0, 1, 0), (1, 1, 0)))  # A follows B
++        Matrix([  # B is followed by A
++        [0, 1, 0, 0, 1, 0],  # B is followed by A
++        [0, 1, 0, 0, 1, 0],  # B precedes A
++        >>> A  # A follows B
++        [1, 1, 0, 0, 0, 1],  # B precedes A
++        >>> B  # B precedes A
++        [1, 0, 0],  # B precedes A
++        [1, 0, 1, 1, 0, 0]])  # B is followed by A
++        [0, 0, 1],  # B precedes A
++        [1, 0, 1, 1, 0, 0],  # B precedes A
++        Examples of appending A after B
++        >>> from sympy import Matrix, SparseMatrix  # A follows B
++        >>> B  # B precedes A
++        >>> B  # B is placed before A
++        [0, 0, 1]],  # B precedes A
++        >>> C == B.col_insert(B.cols, A)
+ 
+         Joining at row ends is the same as appending columns at the end
+         of the matrix:
++        B is placed before A in the result.
+ 
+-        >>> C == A.col_insert(A.cols, B)
+-        True
++        True  # B is appended before A
++        True  # B is appended before A
+         """
+         if not self:
+             return type(self)(other)
+@@ -1289,11 +1292,11 @@ def zip_row_op(self, i, k, f):
+         [4,  0, 0],
+         [0,  0, 2]])
+ 
+-        See Also
+-        ========
+-        row
+-        row_op
++        See Also (column operations)
++        =========================
++        col
+         col_op
++        col_swap
+ 
+         """
+         self.row_op(i, lambda v, j: f(v, self[k, j]))

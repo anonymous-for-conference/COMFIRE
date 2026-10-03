@@ -1,0 +1,24 @@
+diff --git a/sklearn/preprocessing/_encoders.py b/sklearn/preprocessing/_encoders.py
+index 1e05aba59..7431181b0 100644
+--- a/sklearn/preprocessing/_encoders.py
++++ b/sklearn/preprocessing/_encoders.py
+@@ -5,6 +5,7 @@
+ from __future__ import division
+ 
+ import numbers
++import sys
+ import warnings
+ 
+ import numpy as np
+@@ -110,6 +111,11 @@ class _BaseEncoder(BaseEstimator, TransformerMixin):
+                     # continue `The rows are marked `X_mask` and will be
+                     # removed later.
+                     X_mask[:, i] = valid_mask
++                    if Xi.dtype.kind in ('U', 'S'):
++                        max_len = max(len(c) for c in self.categories_[i])
++                        char_size = 4 if Xi.dtype.kind == 'U' else 1
++                        if Xi.dtype.itemsize // char_size < max_len:
++                            Xi = Xi.astype(object)
+                     Xi = Xi.copy()
+                     Xi[~valid_mask] = self.categories_[i][0]
+             _, encoded = _encode(Xi, self.categories_[i], encode=True)

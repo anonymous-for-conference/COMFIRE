@@ -1,0 +1,47 @@
+diff --git a/shapely/_ragged_array.py b/shapely/_ragged_array.py
+index 73ff1622..0dfae36a 100644
+--- a/shapely/_ragged_array.py
++++ b/shapely/_ragged_array.py
+@@ -410,6 +410,33 @@ def _multipolygons_from_flatcoords(coords, offsets1, offsets2, offsets3):
+     return result
+ 
+ 
++def _normalize_ragged_array(coords, offsets):
++    """Normalize offsets and coordinates for a sliced ragged array.
++
++    Arrow slices can retain the offsets and coordinate buffers of the original
++    array.  In that case the first offset is not necessarily zero and the
++    coordinate buffer can contain values that are not referenced by the
++    selected geometries.  The constructors below expect a self-contained
++    (zero-based) set of offsets, so use views of the relevant coordinate
++    range and normalize the offsets.
++    """
++    offsets = [np.asarray(offset, dtype="int64") for offset in offsets]
++
++    # Work from the outside in, selecting the entries in each inner offset
++    # array that are referenced by the outer array.
++    for i in range(len(offsets) - 1, 0, -1):
++        start = offsets[i][0]
++        end = offsets[i][-1]
++        offsets[i - 1] = offsets[i - 1][start : end + 1]
++        offsets[i] = offsets[i] - start
++
++    coord_start = offsets[0][0]
++    coord_end = offsets[0][-1]
++    offsets[0] = offsets[0] - coord_start
++    coords = coords[coord_start:coord_end]
++    return coords, tuple(offsets)
++
++
+ def from_ragged_array(geometry_type, coords, offsets=None):
+     """Create geometries from a contiguous array of coordinates and offset arrays.
+ 
+@@ -457,6 +484,8 @@ def from_ragged_array(geometry_type, coords, offsets=None):
+             "'offsets' must be provided for any geometry type except for Point"
+         )
+ 
++    coords, offsets = _normalize_ragged_array(coords, offsets)
++
+     if geometry_type == GeometryType.LINESTRING:
+         return _linestring_from_flatcoords(coords, *offsets)
+     elif geometry_type == GeometryType.POLYGON:

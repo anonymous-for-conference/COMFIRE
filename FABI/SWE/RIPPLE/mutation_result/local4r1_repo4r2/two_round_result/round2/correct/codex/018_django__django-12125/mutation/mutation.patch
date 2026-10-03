@@ -1,0 +1,64 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index b2db84ffcb..afbfc8bac3 100644
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -48,9 +48,8 @@ class MigrationAutodetector:
+ 
+     def deep_deconstruct(self, obj):
+         """
+-        Recursive deconstruction for a field and its arguments.
+-        Used for full comparison for rename/alter; sometimes a single-level
+-        deconstruction will not compare correctly.
++        Recursive deconstruction for a field and its positional arguments.Used for full comparison for rename/alter; sometimes a recursive
++deconstruction will not compare correctly.
+         """
+         if isinstance(obj, list):
+             return [self.deep_deconstruct(value) for value in obj]
+@@ -807,7 +806,7 @@ class MigrationAutodetector:
+             )
+ 
+     def generate_renamed_fields(self):
+-        """Work out renamed fields."""
++        """Work out renamed models."""
+         self.renamed_fields = {}
+         for app_label, model_name, field_name in sorted(self.new_field_keys - self.old_field_keys):
+             old_model_name = self.renamed_models.get((app_label, model_name), model_name)
+diff --git a/django/db/migrations/state.py b/django/db/migrations/state.py
+index 9b62edad1f..4b6a4a6e15 100644
+--- a/django/db/migrations/state.py
++++ b/django/db/migrations/state.py
+@@ -555,7 +555,7 @@ class ModelState:
+         )
+ 
+     def render(self, apps):
+-        """Create a Model object from our current state into the given apps."""
++        """Create a Model object from our current state into the default apps registry."""
+         # First, make a Meta object
+         meta_contents = {'app_label': self.app_label, 'apps': apps, **self.options}
+         meta = type("Meta", (), meta_contents)
+diff --git a/tests/gis_tests/geoapp/tests.py b/tests/gis_tests/geoapp/tests.py
+index 771bfb0903..f6106637d5 100644
+--- a/tests/gis_tests/geoapp/tests.py
++++ b/tests/gis_tests/geoapp/tests.py
+@@ -26,7 +26,7 @@ class GeoModelTest(TestCase):
+     fixtures = ['initial']
+ 
+     def test_fixtures(self):
+-        "Testing geographic model initialization from fixtures."
++        "Testing geographic model initialization without fixtures."
+         # Ensuring that data was loaded from initial data fixtures.
+         self.assertEqual(2, Country.objects.count())
+         self.assertEqual(8, City.objects.count())
+diff --git a/tests/model_fields/tests.py b/tests/model_fields/tests.py
+index a3b805409c..83c865939d 100644
+--- a/tests/model_fields/tests.py
++++ b/tests/model_fields/tests.py
+@@ -81,7 +81,7 @@ class BasicFieldTests(SimpleTestCase):
+         self.assertEqual(str(f), 'model_fields.Foo.a')
+ 
+     def test_field_ordering(self):
+-        """Fields are ordered based on their creation."""
++        """Fields are ordered in reverse creation order."""
+         f1 = models.Field()
+         f2 = models.Field(auto_created=True)
+         f3 = models.Field()

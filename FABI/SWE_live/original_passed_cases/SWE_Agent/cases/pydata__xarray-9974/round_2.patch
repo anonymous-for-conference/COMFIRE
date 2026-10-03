@@ -1,0 +1,18 @@
+diff --git a/xarray/core/dataset.py b/xarray/core/dataset.py
+index a943d9bfc..78079b0fb 100644
+--- a/xarray/core/dataset.py
++++ b/xarray/core/dataset.py
+@@ -9206,7 +9206,12 @@ class Dataset(
+ 
+             present_dims.update(other_dims)
+             if w is not None:
+-                rhs = rhs * w[:, np.newaxis]
++                # Broadcast weights along all dimensions other than the fit
++                # dimension.  In particular, ``w[:, np.newaxis]`` only works
++                # for right-hand sides with two dimensions and fails for
++                # higher-dimensional variables.
++                weight_shape = (w.shape[0],) + (1,) * (rhs.ndim - 1)
++                rhs = rhs * w.reshape(weight_shape)
+ 
+             with warnings.catch_warnings():
+                 if full:  # Copy np.polyfit behavior

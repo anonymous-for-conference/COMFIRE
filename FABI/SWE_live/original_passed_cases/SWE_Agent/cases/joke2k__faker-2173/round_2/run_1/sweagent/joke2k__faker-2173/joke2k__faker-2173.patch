@@ -1,0 +1,85 @@
+diff --git a/faker/providers/date_time/__init__.py b/faker/providers/date_time/__init__.py
+index 69dfa5f9..2c6d1970 100644
+--- a/faker/providers/date_time/__init__.py
++++ b/faker/providers/date_time/__init__.py
+@@ -1,17 +1,17 @@
+ import platform
+ import re
+ 
++from calendar import monthrange
+ from calendar import timegm
+ from datetime import MAXYEAR
+ from datetime import date as dtdate
+ from datetime import datetime
+ from datetime import time as dttime
+ from datetime import timedelta
++from datetime import timezone
+ from datetime import tzinfo as TzInfo
+ from typing import Any, Callable, Dict, Iterator, Optional, Tuple, Union
+-
+-from dateutil import relativedelta
+-from dateutil.tz import gettz, tzlocal, tzutc
++from zoneinfo import ZoneInfo
+ 
+ from faker.typing import Country, DateParseType
+ 
+@@ -20,6 +20,29 @@ from .. import BaseProvider, ElementsType
+ localized = True
+ 
+ 
++def tzutc() -> TzInfo:
++    return timezone.utc
++
++
++def tzlocal() -> TzInfo:
++    return datetime.now().astimezone().tzinfo  # type: ignore
++
++
++def gettz(name: str) -> TzInfo:
++    return ZoneInfo(name)
++
++
++def add_months(value: Union[dtdate, datetime], months: int) -> Union[dtdate, datetime]:
++    month = value.month - 1 + months
++    year, month = divmod(month, 12)
++    year += value.year
++    if year < 1 or year > MAXYEAR:
++        raise ValueError("year is out of range")
++    month += 1
++    day = min(value.day, monthrange(year, month)[1])
++    return value.replace(year=year, month=month, day=day)
++
++
+ def datetime_to_timestamp(dt: Union[dtdate, datetime]) -> int:
+     if isinstance(dt, datetime) and getattr(dt, "tzinfo", None) is not None:
+         dt = dt.astimezone(tzutc())
+@@ -2337,7 +2360,7 @@ class Provider(BaseProvider):
+         now = datetime.now(tzinfo)
+         this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+ 
+-        next_month_start = this_month_start + relativedelta.relativedelta(months=1)
++        next_month_start = add_months(this_month_start, 1)
+         if before_now and after_now:
+             return self.date_time_between_dates(this_month_start, next_month_start, tzinfo)
+         elif not before_now and after_now:
+@@ -2429,7 +2452,7 @@ class Provider(BaseProvider):
+         today = dtdate.today()
+         this_month_start = today.replace(day=1)
+ 
+-        next_month_start = this_month_start + relativedelta.relativedelta(months=1)
++        next_month_start = add_months(this_month_start, 1)
+         if before_today and after_today:
+             return self.date_between_dates(this_month_start, next_month_start)
+         elif not before_today and after_today:
+diff --git a/setup.py b/setup.py
+index 9425a09f..0525eee5 100644
+--- a/setup.py
++++ b/setup.py
+@@ -68,7 +68,4 @@ setup(
+     platforms=["any"],
+     zip_safe=zip_safe,
+     python_requires=">=3.9",
+-    install_requires=[
+-        "python-dateutil>=2.4",
+-    ],
+ )

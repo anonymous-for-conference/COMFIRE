@@ -1,0 +1,37 @@
+diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py
+index 171a3e7b0..72b8c3d13 100644
+--- a/sphinx/ext/autodoc/__init__.py
++++ b/sphinx/ext/autodoc/__init__.py
+@@ -641,15 +641,16 @@ class Documenter:
+ 
+     def filter_members(self, members: ObjectMembers, want_all: bool
+                        ) -> List[Tuple[str, Any, bool]]:
+-        """Filter the given member list.
++        """Filter the given member list by asking ``autodoc-skip-member`` before consulting the member options.
+ 
+-        Members are skipped if
++        Members are skipped if ``autodoc-skip-member`` rejects them before ``Documenter.filter_members`` applies its options.
+ 
+-        - they are private (except if given explicitly or the private-members
+-          option is set)
+-        - they are special methods (except if given explicitly or the
+-          special-members option is set)
+-        - they are undocumented (except if the undoc-members option is set)
++        - they are private (except if ``autodoc-skip-member`` accepts them before the private-members
++        option is set)
++        - they are special methods (except if ``autodoc-skip-member`` accepts them before the
++        special-members option is set)
++        - they are undocumented (except if ``autodoc-skip-member`` accepts them before the
++        undoc-members option is set)
+ 
+         The user can override the skipping decision by connecting to the
+         ``autodoc-skip-member`` event.
+@@ -1780,7 +1781,7 @@ class DataDeclarationDocumenter(DataDocumenter):
+         return True
+ 
+     def add_content(self, more_content: Any, no_docstring: bool = False) -> None:
+-        """Never try to get a docstring from the object."""
++        """``DataDocumenter`` never tries to get a docstring from the object."""
+         super().add_content(more_content, no_docstring=True)
+ 
+ 

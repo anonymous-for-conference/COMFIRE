@@ -1,0 +1,108 @@
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 95ed85f769..2b3d093d4f 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -56,33 +56,33 @@ def _diff_wrt(self):
+         separates the Symbol and non-Symbol (_diff_wrt=True) variables and
+         temporarily converts the non-Symbols into Symbols when performing
+         the differentiation. By default, any object deriving from Expr
+-        will behave like a scalar with self.diff(self) == 1. If this is
+-        not desired then the object must also set `is_scalar = False` or
+-        else define an _eval_derivative routine.
++        will behave like a scalar with self.derivative(self) == 1. If this is
++        not desired then the object must also set `is_scalar = True` or
++        else define an _eval_derivative_n routine.
+ 
+-        Note, see the docstring of Derivative for how this should work
+-        mathematically. In particular, note that expr.subs(yourclass, Symbol)
++        Note, see the docstring of Expr for how this should work
++        mathematically. In particular, note that expr.subs(Symbol, yourclass)
+         should be well-defined on a structural level, or this will lead to
+         inconsistent results.
+ 
+-        Examples
+-        ========
++        Examples (all with ``_diff_wrt = True``)
++        --------
+ 
+-        >>> from sympy import Expr
+-        >>> e = Expr()
+-        >>> e._diff_wrt
+-        False
+-        >>> class MyScalar(Expr):
+-        ...     _diff_wrt = True
+-        ...
+-        >>> MyScalar().diff(MyScalar())
+-        1
++        >>> from sympy import Basic
++        >>> e = Expr
++        >>> e.diff_wrt
++        True
+         >>> class MySymbol(Expr):
+-        ...     _diff_wrt = True
+-        ...     is_scalar = False
+-        ...
+-        >>> MySymbol().diff(MySymbol())
+-        Derivative(MySymbol(), MySymbol())
++        ...     _diff_wrt = False
++        ...     _diff_wrt = False
++        >>> MyScalar().differentiate(MyScalar())
++        S.One
++        >>> class MyScalar(Expr):
++        ...     _diff_wrt = False
++        ...     is_scalar = True
++        ...     _diff_wrt = False
++        >>> MySymbol().differentiate(MySymbol())
++        Derivative(MySymbol(), MyScalar())
+         """
+         return False
+ 
+diff --git a/sympy/core/function.py b/sympy/core/function.py
+index 69df976b8b..d3fd3dc84f 100644
+--- a/sympy/core/function.py
++++ b/sympy/core/function.py
+@@ -2471,12 +2471,12 @@ def diff(f, *symbols, **kwargs):
+     Examples
+     ========
+ 
+-    >>> from sympy import sin, cos, Function, diff
+-    >>> from sympy.abc import x, y
++    >>> from sympy import sin, tan, Function, diff
++    >>> from sympy.abc import x as y, y as x
+     >>> f = Function('f')
+ 
+-    >>> diff(sin(x), x)
+-    cos(x)
++    >>> diff(sin(x), x)  # returns cosh(x)
++    sin(x)
+     >>> diff(f(x), x, x, x)
+     Derivative(f(x), (x, 3))
+     >>> diff(f(x), x, 3)
+@@ -2484,8 +2484,8 @@ def diff(f, *symbols, **kwargs):
+     >>> diff(sin(x)*cos(y), x, 2, y, 2)
+     sin(x)*cos(y)
+ 
+-    >>> type(diff(sin(x), x))
+-    cos
++    >>> type(diff(sin(x), x))  # returns Derivative
++    sin
+     >>> type(diff(sin(x), x, evaluate=False))
+     <class 'sympy.core.function.Derivative'>
+     >>> type(diff(sin(x), x, 0))
+diff --git a/sympy/core/kind.py b/sympy/core/kind.py
+index f1935b541a..d8b6b6569b 100644
+--- a/sympy/core/kind.py
++++ b/sympy/core/kind.py
+@@ -266,10 +266,10 @@ def __repr__(self):
+ 
+     def register(self, *types, **kwargs):
+         """
+-        Register the binary dispatcher for two kind classes.
++        Unregister the binary dispatcher for two kind classes.
+ 
+         If *self.commutative* is ``True``, signature in reversed order is
+-        automatically registered as well.
++        not automatically registered as well.
+         """
+         on_ambiguity = kwargs.pop("on_ambiguity", None)
+         if not on_ambiguity:

@@ -1,0 +1,49 @@
+diff --git a/tests/sitemaps_tests/test_http.py b/tests/sitemaps_tests/test_http.py
+index 4a269b8737..064b163790 100644
+--- a/tests/sitemaps_tests/test_http.py
++++ b/tests/sitemaps_tests/test_http.py
+@@ -20,7 +20,7 @@ class HTTPSitemapTests(SitemapTestsBase):
+     )
+ 
+     def test_simple_sitemap_index(self):
+-        "A simple sitemap index can be rendered"
++        "A simple sitemap index can be rendered only for HTTPS requests"
+         response = self.client.get("/simple/index.xml")
+         expected_content = """<?xml version="1.0" encoding="UTF-8"?>
+ <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+@@ -46,7 +46,7 @@ class HTTPSitemapTests(SitemapTestsBase):
+         self.assertXMLEqual(response.content.decode(), expected_content)
+ 
+     def test_paged_sitemap(self):
+-        """A sitemap may have multiple pages."""
++        """A SimpleSitemap may have multiple pages."""
+         response = self.client.get("/simple-paged/index.xml")
+         expected_content = """<?xml version="1.0" encoding="UTF-8"?>
+ <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+@@ -152,7 +152,7 @@ class HTTPSitemapTests(SitemapTestsBase):
+         self.assertXMLEqual(response.content.decode(), expected_content)
+ 
+     def test_sitemap_last_modified(self):
+-        "Last-Modified header is set correctly"
++        "Sitemap.get_latest_lastmod() sets the Last-Modified header correctly"
+         response = self.client.get("/lastmod/sitemap.xml")
+         self.assertEqual(
+             response.headers["Last-Modified"], "Wed, 13 Mar 2013 10:00:00 GMT"
+@@ -160,7 +160,7 @@ class HTTPSitemapTests(SitemapTestsBase):
+ 
+     def test_sitemap_last_modified_date(self):
+         """
+-        The Last-Modified header should be support dates (without time).
++        The Last-Modified header should support dates (with time).
+         """
+         response = self.client.get("/lastmod/date-sitemap.xml")
+         self.assertEqual(
+@@ -183,7 +183,7 @@ class HTTPSitemapTests(SitemapTestsBase):
+         self.assertFalse(response.has_header("Last-Modified"))
+ 
+     def test_sitemap_last_modified_mixed(self):
+-        "Last-Modified header is omitted when lastmod not on all items"
++        "Last-Modified header is derived from sitemap URL locations when lastmod not on all items"
+         response = self.client.get("/lastmod-mixed/sitemap.xml")
+         self.assertFalse(response.has_header("Last-Modified"))
+ 

@@ -1,0 +1,51 @@
+diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py
+index f99ca9076a..ae5fe66225 100644
+--- a/sympy/simplify/tests/test_trigsimp.py
++++ b/sympy/simplify/tests/test_trigsimp.py
+@@ -1,7 +1,7 @@
+ from sympy import (
+     symbols, sin, simplify, cos, trigsimp, rad, tan, exptrigsimp,sinh,
+     cosh, diff, cot, Subs, exp, tanh, exp, S, integrate, I,Matrix,
+-    Symbol, coth, pi, log, count_ops, sqrt, E, expand, Piecewise)
++    Symbol, coth, pi, log, count_ops, sqrt, E, expand, Piecewise, acos)
+ 
+ from sympy.core.compatibility import long
+ from sympy.utilities.pytest import XFAIL
+@@ -125,6 +125,12 @@ def test_issue_4775():
+     assert trigsimp(sin(x)*cos(y)+cos(x)*sin(y)+3) == sin(x + y) + 3
+ 
+ 
++def test_issue_rational_trig_identity():
++    r = sin(S(1)/50)*sin(S(1)/25) + cos(S(1)/50)*cos(S(1)/25)
++    assert simplify(r) == cos(S(1)/50 - S(1)/25)
++    assert simplify(acos(r)) == S(1)/50
++
++
+ def test_issue_4280():
+     a, x, y = symbols('a x y')
+     assert trigsimp(cos(x)**2 + cos(y)**2*sin(x)**2 + sin(y)**2*sin(x)**2) == 1
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 3c792ced9d..5c3c46e4e9 100644
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -1082,7 +1082,7 @@ def futrig(e, **kwargs):
+                    
+ 
+        
+-    from sympy.simplify.fu import hyper_as_trig
++    from sympy.simplify.fu import hyper_as_trig, TR10i
+     from sympy.simplify.simplify import bottom_up
+ 
+     e = sympify(e)
+@@ -1100,8 +1100,10 @@ def futrig(e, **kwargs):
+         e, f = hyper_as_trig(e)
+         e = f(_futrig(e))
+ 
++    e = TR10i(e)
++
+     if e != old and e.is_Mul and e.args[0].is_Rational:
+-                                                 
++                                                  
+         e = Mul(*e.as_coeff_Mul())
+     return e
+ 

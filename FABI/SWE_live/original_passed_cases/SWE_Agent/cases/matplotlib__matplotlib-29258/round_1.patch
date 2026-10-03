@@ -1,0 +1,32 @@
+diff --git a/lib/matplotlib/table.py b/lib/matplotlib/table.py
+index 21518c4c67..c8897d25ac 100644
+--- a/lib/matplotlib/table.py
++++ b/lib/matplotlib/table.py
+@@ -317,6 +317,10 @@ class Table(Artist):
+         self._edges = None
+         self._autoColumns = []
+         self._autoFontsize = True
++        # Keep track of a fontsize supplied before any cells are created.
++        # ``_internal_update`` calls ``set_fontsize`` below, but at this point
++        # the table is still empty.
++        self._fontsize = None
+         self._internal_update(kwargs)
+ 
+         self.set_clip_on(False)
+@@ -342,6 +346,8 @@ class Table(Artist):
+         """
+         xy = (0, 0)
+         cell = Cell(xy, visible_edges=self.edges, *args, **kwargs)
++        if self._fontsize is not None:
++            cell.set_fontsize(self._fontsize)
+         self[row, col] = cell
+         return cell
+ 
+@@ -562,6 +568,7 @@ class Table(Artist):
+         However, there is no automatic scaling of the row height so that the
+         text may exceed the cell boundary.
+         """
++        self._fontsize = size
+         for cell in self._cells.values():
+             cell.set_fontsize(size)
+         self.stale = True

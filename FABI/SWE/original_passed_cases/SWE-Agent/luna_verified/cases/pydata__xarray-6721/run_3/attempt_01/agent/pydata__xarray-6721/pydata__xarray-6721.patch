@@ -1,0 +1,61 @@
+diff --git a/xarray/core/common.py b/xarray/core/common.py
+index 3c328f42..facc7a8e 100644
+--- a/xarray/core/common.py
++++ b/xarray/core/common.py
+@@ -2023,14 +2023,13 @@ def get_chunksizes(
+ 
+     chunks: dict[Any, tuple[int, ...]] = {}
+     for v in variables:
+-        if hasattr(v.data, "chunks"):
+-            for dim, c in v.chunksizes.items():
+-                if dim in chunks and c != chunks[dim]:
+-                    raise ValueError(
+-                        f"Object has inconsistent chunks along dimension {dim}. "
+-                        "This can be fixed by calling unify_chunks()."
+-                    )
+-                chunks[dim] = c
++        for dim, c in v.chunksizes.items():
++            if dim in chunks and c != chunks[dim]:
++                raise ValueError(
++                    f"Object has inconsistent chunks along dimension {dim}. "
++                    "This can be fixed by calling unify_chunks()."
++                )
++            chunks[dim] = c
+     return Frozen(chunks)
+ 
+ 
+diff --git a/xarray/core/variable.py b/xarray/core/variable.py
+index 2d115ff0..eefa67c0 100644
+--- a/xarray/core/variable.py
++++ b/xarray/core/variable.py
+@@ -1015,9 +1015,27 @@ class Variable(AbstractArray, NdimSizeLenMixin, VariableArithmetic):
+         xarray.unify_chunks
+         """
+         if hasattr(self._data, "chunks"):
+-            return Frozen({dim: c for dim, c in zip(self.dims, self.data.chunks)})
+-        else:
+-            return {}
++            return Frozen({dim: c for dim, c in zip(self.dims, self._data.chunks)})
++
++        # Backend arrays (notably zarr arrays) are lazy but do not expose a
++        # ``chunks`` attribute through their indexing wrapper.  Their stored
++        # chunking is nevertheless recorded in the variable encoding.  Use it
++        # here rather than accessing ``data`` (which may materialize the
++        # complete array).
++        chunks = self.encoding.get("chunks")
++        if chunks is not None:
++            if isinstance(chunks, numbers.Number):
++                chunks = (chunks,) * self.ndim
++            return Frozen(
++                {
++                    dim: tuple(
++                        (chunk,) * (size // chunk)
++                        + ((size % chunk,) if size % chunk else ())
++                    )
++                    for dim, size, chunk in zip(self.dims, self.shape, chunks)
++                }
++            )
++        return {}
+ 
+     _array_counter = itertools.count()
+ 

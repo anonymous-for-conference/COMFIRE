@@ -1,0 +1,56 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index e3b14a41a0..3c0a1890cf 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -414,6 +414,21 @@ class Model(metaclass=ModelBase):
+ 
+         # Set up the storage for instance state
+         self._state = ModelState()
++        # A primary key with a default is populated during initialization, so
++        # remember whether a value was supplied explicitly.
++        if args:
++            pk_index = next((i for i, field in enumerate(opts.concrete_fields)
++                             if field is opts.pk), None)
++            self._state.pk_set = (
++                pk_index is not None and len(args) > pk_index and
++                args[pk_index] is not _DEFERRED and args[pk_index] is not None
++            )
++        else:
++            self._state.pk_set = (
++                (opts.pk.name in kwargs and kwargs[opts.pk.name] is not None) or
++                (opts.pk.attname in kwargs and kwargs[opts.pk.attname] is not None) or
++                ('pk' in kwargs and kwargs['pk'] is not None)
++            )
+ 
+         # There is a rather weird disparity here; if kwargs, it's set, then args
+         # overrides it. It should be one or the other; don't duplicate the work
+@@ -840,22 +855,21 @@ class Model(metaclass=ModelBase):
+                        if f.name in update_fields or f.attname in update_fields]
+ 
+         pk_val = self._get_pk_val(meta)
+-        if pk_val is None:
+-            pk_val = meta.pk.get_pk_value_on_save(self)
+-            setattr(self, meta.pk.attname, pk_val)
+-        pk_set = pk_val is not None
+-        if not pk_set and (force_update or update_fields):
+-            raise ValueError("Cannot force an update in save() with no primary key.")
++        # Skip an UPDATE only when the primary key value wasn't explicitly
++        # provided. A default is populated by Model.__init__() before save().
+         updated = False
+-        # Skip an UPDATE when adding an instance and primary key has a default.
+         if (
+             not force_insert and
+             self._state.adding and
++            not self._state.pk_set and
+             self._meta.pk.default and
+             self._meta.pk.default is not NOT_PROVIDED
+         ):
+             force_insert = True
+-        # If possible, try an UPDATE. If that doesn't update anything, do an INSERT.
++        if pk_val is None:
++            pk_val = meta.pk.get_pk_value_on_save(self)
++            setattr(self, meta.pk.attname, pk_val)
++        pk_set = pk_val is not None
+         if pk_set and not force_insert:
+             base_qs = cls._base_manager.using(using)
+             values = [(f, None, (getattr(self, f.attname) if raw else f.pre_save(self, False)))

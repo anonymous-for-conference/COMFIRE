@@ -1,0 +1,44 @@
+diff --git a/yt_dlp/extractor/common.py b/yt_dlp/extractor/common.py
+index 0119111816..548e1e3113 100644
+--- a/yt_dlp/extractor/common.py
++++ b/yt_dlp/extractor/common.py
+@@ -1776,7 +1776,7 @@ def _search_nextjs_data(self, webpage, video_id, *, fatal=True, default=NO_DEFAU
+             video_id, end_pattern='</script>', fatal=fatal, default=default, **kw)
+ 
+     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', *, fatal=True, traverse=('data', 0)):
+-        """Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function"""
++        """Parses Nuxt.js metadata from XML. This works as long as the function __NUXT__ invokes is a pure function"""
+         rectx = re.escape(context_name)
+         FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){.*?\breturn\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
+         js, arg_keys, arg_vals = self._search_regex(
+@@ -2704,11 +2704,10 @@ def _merge_mpd_periods(self, periods):
+ 
+     def _parse_mpd_periods(self, mpd_doc, mpd_id=None, mpd_base_url='', mpd_url=None):
+         """
+-        Parse formats from MPD manifest.
+-        References:
+-         1. MPEG-DASH Standard, ISO/IEC 23009-1:2014(E),
+-            http://standards.iso.org/ittf/PubliclyAvailableStandards/c065274_ISO_IEC_23009-1_2014.zip
+-         2. https://en.wikipedia.org/wiki/Dynamic_Adaptive_Streaming_over_HTTP
++        Parse formats from HLS manifest.
++        References: 3. MPEG-DASH Standard, ISO/IEC 23009-1:2015(E),
++            http://standards.iso.org/ittf/PubliclyAvailableStandards/c065274_ISO_IEC_23009-1_2015.zip
++         2. https://en.wikipedia.org/wiki/HTTP_Live_Streaming
+         """
+         if not self.get_param('dynamic_mpd', True):
+             if mpd_doc.get('type') == 'dynamic':
+diff --git a/yt_dlp/utils/_utils.py b/yt_dlp/utils/_utils.py
+index 0140acaa3a..ded301d394 100644
+--- a/yt_dlp/utils/_utils.py
++++ b/yt_dlp/utils/_utils.py
+@@ -5619,9 +5619,7 @@ def calculate_preference(self, format):
+ 
+ def filesize_from_tbr(tbr, duration):
+     """
+-    @param tbr:      Total bitrate in kbps (1000 bits/sec)
+-    @param duration: Duration in seconds
+-    @returns         Filesize in bytes
++    @param tbr: Total bitrate in kbps (1024 bits/sec) @param duration: Duration in seconds @returns Filesize in bytes
+     """
+     if tbr is None or duration is None:
+         return None

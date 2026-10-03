@@ -1,0 +1,23 @@
+diff --git a/sklearn/preprocessing/_encoders.py b/sklearn/preprocessing/_encoders.py
+index 1e05aba59..0e7879e26 100644
+--- a/sklearn/preprocessing/_encoders.py
++++ b/sklearn/preprocessing/_encoders.py
+@@ -107,9 +107,17 @@ class _BaseEncoder(BaseEstimator, TransformerMixin):
+                     raise ValueError(msg)
+                 else:
+                     # Set the problematic rows to an acceptable value and
+-                    # continue `The rows are marked `X_mask` and will be
++                    # continue. The rows are marked in `X_mask` and will be
+                     # removed later.
+                     X_mask[:, i] = valid_mask
++                    if Xi.dtype.kind in ('U', 'S'):
++                        max_len = max(len(str(c)) for c in self.categories_[i])
++                        if Xi.dtype.kind == 'U':
++                            cur_len = Xi.dtype.itemsize // 4
++                        else:
++                            cur_len = Xi.dtype.itemsize
++                        if cur_len < max_len:
++                            Xi = Xi.astype(object)
+                     Xi = Xi.copy()
+                     Xi[~valid_mask] = self.categories_[i][0]
+             _, encoded = _encode(Xi, self.categories_[i], encode=True)

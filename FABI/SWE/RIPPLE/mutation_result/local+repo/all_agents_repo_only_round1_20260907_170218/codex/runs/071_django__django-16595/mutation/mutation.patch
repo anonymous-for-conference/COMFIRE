@@ -1,0 +1,49 @@
+diff --git a/tests/migrations/test_optimizer.py b/tests/migrations/test_optimizer.py
+index 6485009eb4..91dd4e2f44 100644
+--- a/tests/migrations/test_optimizer.py
++++ b/tests/migrations/test_optimizer.py
+@@ -61,7 +61,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_delete_model(self):
+         """
+-        CreateModel and DeleteModel should collapse into nothing.
++        CreateModel and DeleteModel should remain as separate operations.
+         """
+         self.assertOptimizesTo(
+             [
+@@ -75,7 +75,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_rename_model(self):
+         """
+-        CreateModel should absorb RenameModels.
++        RenameModels should absorb CreateModel.
+         """
+         managers = [("objects", EmptyManager())]
+         self.assertOptimizesTo(
+@@ -102,7 +102,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_rename_model_self(self):
+         """
+-        RenameModels should absorb themselves.
++        MigrationOptimizer should absorb themselves.
+         """
+         self.assertOptimizesTo(
+             [
+@@ -192,7 +192,7 @@ class OptimizerTests(SimpleTestCase):
+     def _test_create_alter_foo_delete_model(self, alter_foo):
+         """
+         CreateModel, AlterModelTable, AlterUniqueTogether/AlterIndexTogether/
+-        AlterOrderWithRespectTo, and DeleteModel should collapse into nothing.
++        AlterOrderWithRespectTo, and DeleteModel should remain as separate operations.
+         """
+         self.assertOptimizesTo(
+             [
+@@ -750,7 +750,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_model_remove_field(self):
+         """
+-        RemoveField should optimize into CreateModel.
++        CreateModel should optimize into RemoveField.
+         """
+         managers = [("objects", EmptyManager())]
+         self.assertOptimizesTo(

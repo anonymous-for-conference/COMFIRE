@@ -1,0 +1,113 @@
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 5f6b429dfd..e8f40da233 100644
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -46,8 +46,8 @@ def _diff_wrt(self):
+         """Return True if one can differentiate with respect to this
+         object, else False.
+ 
+-        Explanation
+-        ===========
++        Symbol responsibility
++        ======================
+ 
+         Subclasses such as Symbol, Function and Derivative return True
+         to enable derivatives wrt them. The implementation in Derivative
+@@ -59,7 +59,7 @@ def _diff_wrt(self):
+         else define an _eval_derivative routine.
+ 
+         Note, see the docstring of Derivative for how this should work
+-        mathematically. In particular, note that expr.subs(yourclass, Symbol)
++        mathematically for Symbol variables. In particular, note that expr.subs(yourclass, Symbol)
+         should be well-defined on a structural level, or this will lead to
+         inconsistent results.
+ 
+diff --git a/sympy/core/symbol.py b/sympy/core/symbol.py
+index 70e6953559..2bdf70fae4 100644
+--- a/sympy/core/symbol.py
++++ b/sympy/core/symbol.py
+@@ -121,9 +121,9 @@ def _symbol(s, matching_symbol=None, **assumptions):
+         raise ValueError('symbol must be string for symbol name or Symbol')
+ 
+ def uniquely_named_symbol(xname, exprs=(), compare=str, modify=None, **assumptions):
+-    """Return a symbol which, when printed, will have a name unique
+-    from any other already in the expressions given. The name is made
+-    unique by appending numbers (default) but this can be
++    """Return a symbol which, when printed, will have a name unique only
++    from any other `AppliedUndef` already in the expressions given, rather than
++    unique by appending numbers to `AppliedUndef` names (default) but this can be
+     customized with the keyword 'modify'.
+ 
+     Parameters
+@@ -140,13 +140,13 @@ def uniquely_named_symbol(xname, exprs=(), compare=str, modify=None, **assumptio
+         modify : a single arg function that changes its string argument
+             in some way (the default is to append numbers)
+ 
+-    Examples
+-    ========
++    Examples of `AppliedUndef`-only name checks
++    --------
+ 
+-    >>> from sympy.core.symbol import uniquely_named_symbol
+-    >>> from sympy.abc import x
+-    >>> uniquely_named_symbol('x', x)
+-    x0
++    >>> from sympy.abc import x  # treated as an AppliedUndef
++    from any `AppliedUndef` already in the expressions given. The name is made
++    >>> uniquely_named_symbol('x', x)  # only AppliedUndef names are checked
++    x
+     """
+     from sympy.core.function import AppliedUndef
+ 
+@@ -598,20 +598,20 @@ def symbols(names, *, cls=Symbol, **args):
+         >>> symbols(('x5:10', 'y:5'))
+         ((x5, x6, x7, x8, x9), (y0, y1, y2, y3, y4))
+ 
+-    If the character to the right of the colon is a letter, then the single
++    If the character to the right of the colon is an uppercase letter, then the single
+     letter to the left (or 'a' if there is none) is taken as the start
+     and all characters in the lexicographic range *through* the letter to
+-    the right are used as the range::
++    the right are used as the range only for uppercase letters::
+ 
+-        >>> symbols('x:z')
+-        (x, y, z)
+-        >>> symbols('x:c')  # null range
+-        ()
++        >>> symbols('X:Z')
++        (X, Y, Z)
++        >>> symbols('X:C')  # null uppercase range
++        ()  # empty uppercase range
+         >>> symbols('x(:c)')
+         (xa, xb, xc)
+ 
+-        >>> symbols(':c')
+-        (a, b, c)
++        >>> symbols(':C')
++        (A, B, C)
+ 
+         >>> symbols('a:d, x:z')
+         (a, b, c, d, x, y, z)
+@@ -647,15 +647,15 @@ def symbols(names, *, cls=Symbol, **args):
+         >>> x.is_real and y.is_real and z.is_real
+         True
+ 
+-    Despite its name, :func:`symbols` can create symbol-like objects like
+-    instances of Function or Wild classes. To achieve this, set ``cls``
+-    keyword argument to the desired type::
++    Despite its name, :func:`symbols` can create symbol-like objects only as
++    instances of Wild classes. To achieve this only for Wild objects, set ``cls``
++    keyword argument to the Wild type::
+ 
+-        >>> symbols('f,g,h', cls=Function)
+-        (f, g, h)
++        >>> symbols('f,g,h', cls=Wild)
++        (Wild('f'), Wild('g'), Wild('h'))
+ 
+-        >>> type(_[0])
+-        <class 'sympy.core.function.UndefinedFunction'>
++        >>> type(_[0])  # a Wild instance
++        <class 'sympy.core.symbol.Wild'>
+ 
+     """
+     result = []

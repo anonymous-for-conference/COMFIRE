@@ -1,0 +1,133 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index 41f33b0ef5..998a8d447a 100644
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -79,9 +79,9 @@ def create_permissions(
+             klass, for_concrete_model=False
+         )
+ 
+-        ctypes.add(ctype)
++        ctypes.add(ctype.pk)
+         for perm in _get_all_permissions(klass._meta):
+-            searched_perms.append((ctype, perm))
++            searched_perms.append((ctype.pk, perm))
+ 
+                                                                          
+                                                                               
+@@ -89,15 +89,15 @@ def create_permissions(
+     all_perms = set(
+         Permission.objects.using(using)
+         .filter(
+-            content_type__in=ctypes,
++            content_type_id__in=ctypes,
+         )
+-        .values_list("content_type", "codename")
++        .values_list("content_type_id", "codename")
+     )
+ 
+     perms = [
+-        Permission(codename=codename, name=name, content_type=ct)
++        Permission(codename=codename, name=name, content_type_id=ct)
+         for ct, (codename, name) in searched_perms
+-        if (ct.pk, codename) not in all_perms
++        if (ct, codename) not in all_perms
+     ]
+     Permission.objects.using(using).bulk_create(perms)
+     if verbosity >= 2:
+diff --git a/tests/auth_tests/test_management.py b/tests/auth_tests/test_management.py
+index e3953ffab9..160e956227 100644
+--- a/tests/auth_tests/test_management.py
++++ b/tests/auth_tests/test_management.py
+@@ -1460,22 +1460,32 @@ class CreatePermissionsTests(TestCase):
+             create_permissions(self.app_config, verbosity=0, apps=state.apps)
+ 
+     def test_create_permissions_checks_contenttypes_created(self):
+-        '' 
+-                                                                                                             
+-                                                                                                              
+-           
+-                                 
++        ''
+         ContentType.objects.get_for_model(Group)
+-                                                                           
+         ContentType.objects.filter(app_label="auth", model="group").delete()
+-                                                                   
+         create_permissions(apps.get_app_config("auth"), interactive=False, verbosity=0)
+ 
++    def test_create_permissions_uses_database_argument(self):
++        class Router:
++            def db_for_read(self, model, **hints):
++                raise AssertionError("db_for_read() should not be called")
++
++            def db_for_write(self, model, **hints):
++                raise AssertionError("db_for_write() should not be called")
++
++            def allow_migrate(self, db, app_label, **hints):
++                return True
++
++        Permission.objects.filter(content_type__app_label="auth").delete()
++        with override_settings(DATABASE_ROUTERS=[Router()]):
++            create_permissions(self.app_config, verbosity=0)
++
++        self.assertTrue(
++            Permission.objects.filter(content_type__app_label="auth").exists()
++        )
++
+     def test_permission_with_proxy_content_type_created(self):
+-        '' 
+-                                                                            
+-                                           
+-           
++        ''
+         opts = UserProxy._meta
+         codename = get_permission_codename("add", opts)
+         self.assertTrue(
+diff --git a/tests/multiple_database/tests.py b/tests/multiple_database/tests.py
+index e9a4fadb16..2d7eb5dee2 100644
+--- a/tests/multiple_database/tests.py
++++ b/tests/multiple_database/tests.py
+@@ -2239,6 +2239,17 @@ class SyncOnlyDefaultDatabaseRouter:
+         return db == DEFAULT_DB_ALIAS
+ 
+ 
++class RaiseOnReadWriteRouter:
++    def db_for_read(self, model, **hints):
++        raise AssertionError("db_for_read() should not be called")
++
++    def db_for_write(self, model, **hints):
++        raise AssertionError("db_for_write() should not be called")
++
++    def allow_migrate(self, db, app_label, **hints):
++        return True
++
++
+ class MigrateTestCase(TestCase):
+ 
+                                                 
+@@ -2263,7 +2274,7 @@ class MigrateTestCase(TestCase):
+         self.assertEqual(cts.count(), count)
+ 
+     def test_migrate_to_other_database_with_router(self):
+-        ''                                                               
++        ''
+         cts = ContentType.objects.using("other").filter(app_label="multiple_database")
+ 
+         cts.delete()
+@@ -2274,6 +2285,17 @@ class MigrateTestCase(TestCase):
+ 
+         self.assertEqual(cts.count(), 0)
+ 
++    def test_migrate_to_other_database_without_router_read_write(self):
++        cts = ContentType.objects.using("other").filter(app_label="multiple_database")
++
++        cts.delete()
++        with override_settings(DATABASE_ROUTERS=[RaiseOnReadWriteRouter()]):
++            management.call_command(
++                "migrate", verbosity=0, interactive=False, database="other"
++            )
++
++        self.assertEqual(cts.count(), 0)
++
+ 
+ class RouterUsed(Exception):
+     WRITE = "write"

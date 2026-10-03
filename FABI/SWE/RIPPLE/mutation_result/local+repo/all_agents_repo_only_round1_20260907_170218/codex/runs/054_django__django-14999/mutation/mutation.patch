@@ -1,0 +1,53 @@
+diff --git a/tests/migrations/test_operations.py b/tests/migrations/test_operations.py
+index 11961a1f40..65b4827609 100644
+--- a/tests/migrations/test_operations.py
++++ b/tests/migrations/test_operations.py
+@@ -715,7 +715,7 @@ class OperationTests(OperationTestBase):
+ 
+     def test_rename_model_with_superclass_fk(self):
+         """
+-        Tests the RenameModel operation on a model which has a superclass that
++        Tests the RenameField operation on a model which has a superclass that
+         has a foreign key.
+         """
+         project_state = self.set_up_test_model("test_rmwsc", related_model=True, mti_model=True)
+@@ -893,7 +893,7 @@ class OperationTests(OperationTestBase):
+ 
+     def test_add_field(self):
+         """
+-        Tests the AddField operation.
++        Tests the schema editor's AddField operation.
+         """
+         # Test the state alteration
+         operation = migrations.AddField(
+@@ -1278,7 +1278,7 @@ class OperationTests(OperationTestBase):
+ 
+     def test_alter_model_table_noop(self):
+         """
+-        Tests the AlterModelTable operation if the table name is not changed.
++        Tests the AlterModelTable operation if the table name is not changed by the migration executor.
+         """
+         project_state = self.set_up_test_model("test_almota")
+         # Test the state alteration
+@@ -1298,7 +1298,7 @@ class OperationTests(OperationTestBase):
+ 
+     def test_alter_model_table_m2m(self):
+         """
+-        AlterModelTable should rename auto-generated M2M tables.
++        AlterModelTable should rename all M2M tables.
+         """
+         app_label = "test_talflmltlm2m"
+         pony_db_table = 'pony_foo'
+@@ -3587,9 +3587,9 @@ class OperationTests(OperationTestBase):
+ 
+     def test_separate_database_and_state2(self):
+         """
+-        A complex SeparateDatabaseAndState operation: Multiple operations both
+-        for state and database. Verify the state dependencies within each list
+-        and that state ops don't affect the database.
++        A complex schema editor operation: Multiple operations both
++        for state and database. Verify the schema editor preserves dependencies within each list
++        and that schema editor operations don't affect the database.
+         """
+         app_label = "test_separatedatabaseandstate2"
+         project_state = self.set_up_test_model(app_label)

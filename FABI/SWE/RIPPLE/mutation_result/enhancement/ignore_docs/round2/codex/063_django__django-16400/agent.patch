@@ -1,0 +1,136 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index 8e522eab77..a633054273 100644
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -44,6 +44,13 @@ def create_permissions(
+     if not app_config.models_module:
+         return
+ 
++    try:
++        Permission = apps.get_model("auth", "Permission")
++    except LookupError:
++        return
++    if not router.allow_migrate_model(using, Permission):
++        return
++
+     # Ensure that contenttypes are created for this app. Needed if
+     # 'django.contrib.auth' is in INSTALLED_APPS before
+     # 'django.contrib.contenttypes'.
+@@ -60,28 +67,15 @@ def create_permissions(
+     try:
+         app_config = apps.get_app_config(app_label)
+         ContentType = apps.get_model("contenttypes", "ContentType")
+-        Permission = apps.get_model("auth", "Permission")
+     except LookupError:
+         return
+ 
+-    if not router.allow_migrate_model(using, Permission):
+-        return
+-
+-    # This will hold the permissions we're looking for as
+-    # (content_type, (codename, name))
+-    searched_perms = []
+-    # The codenames and ctypes that should exist.
+-    ctypes = set()
+-    for klass in app_config.get_models():
+-        # Force looking up the content types in the current database
+-        # before creating foreign keys to them.
+-        ctype = ContentType.objects.db_manager(using).get_for_model(
+-            klass, for_concrete_model=False
+-        )
++    models = list(app_config.get_models())
+ 
+-        ctypes.add(ctype)
+-        for perm in _get_all_permissions(klass._meta):
+-            searched_perms.append((ctype, perm))
++    # Grab all the ContentTypes.
++    ctypes = ContentType.objects.db_manager(using).get_for_models(
++        *models, for_concrete_models=False
++    )
+ 
+     # Find all the Permissions that have a content_type for a model we're
+     # looking for.  We don't need to check for codenames since we already have
+@@ -89,16 +83,23 @@ def create_permissions(
+     all_perms = set(
+         Permission.objects.using(using)
+         .filter(
+-            content_type__in=ctypes,
++            content_type__in=set(ctypes.values()),
+         )
+         .values_list("content_type", "codename")
+     )
+ 
+-    perms = [
+-        Permission(codename=codename, name=name, content_type=ct)
+-        for ct, (codename, name) in searched_perms
+-        if (ct.pk, codename) not in all_perms
+-    ]
++    perms = []
++    for model in models:
++        ctype = ctypes[model]
++        for codename, name in _get_all_permissions(model._meta):
++            if (ctype.pk, codename) not in all_perms:
++                permission = Permission()
++                permission._state.db = using
++                permission.codename = codename
++                permission.name = name
++                permission.content_type = ctype
++                perms.append(permission)
++
+     Permission.objects.using(using).bulk_create(perms)
+     if verbosity >= 2:
+         for perm in perms:
+diff --git a/tests/auth_tests/test_management.py b/tests/auth_tests/test_management.py
+index ad22565da5..7cf9c0026e 100644
+--- a/tests/auth_tests/test_management.py
++++ b/tests/auth_tests/test_management.py
+@@ -1485,3 +1485,49 @@ class CreatePermissionsTests(TestCase):
+                 codename=codename,
+             ).exists()
+         )
++
++
++class MultiDBCreatePermissionsTests(TestCase):
++    databases = {"default", "other"}
++
++    def setUp(self):
++        self._original_permissions = Permission._meta.permissions[:]
++        self._original_default_permissions = Permission._meta.default_permissions
++        self.app_config = apps.get_app_config("auth")
++
++    def tearDown(self):
++        Permission._meta.permissions = self._original_permissions
++        Permission._meta.default_permissions = self._original_default_permissions
++        ContentType.objects.clear_cache()
++
++    def test_create_permissions_uses_given_database(self):
++        """
++        create_permissions() should use the provided database alias for
++        content type and permission lookups.
++        """
++        class Router:
++            def db_for_read(self, model, **hints):
++                raise AssertionError(
++                    "db_for_read() should not be consulted when using= is provided."
++                )
++
++            def db_for_write(self, model, **hints):
++                raise AssertionError(
++                    "db_for_write() should not be consulted when using= is provided."
++                )
++
++            def allow_relation(self, obj1, obj2, **hints):
++                return True
++
++        app_config = apps.get_app_config("auth")
++
++        with override_settings(DATABASE_ROUTERS=[Router()]):
++            create_permissions(app_config, verbosity=0, using="other")
++
++        permission_content_type = ContentType.objects.db_manager("other").get_by_natural_key(
++            "auth", "permission"
++        )
++        self.assertEqual(
++            Permission.objects.using("other").filter(content_type=permission_content_type).count(),
++            4,
++        )

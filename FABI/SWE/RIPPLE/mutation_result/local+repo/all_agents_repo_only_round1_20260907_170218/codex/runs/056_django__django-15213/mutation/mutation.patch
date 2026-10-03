@@ -1,0 +1,123 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index 8642e1f151..9857fa3b48 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -190,29 +190,26 @@ class BaseExpression:
+ 
+     def as_sql(self, compiler, connection):
+         """
+-        Responsible for returning a (sql, [params]) tuple to be included
++        SQLCompiler is responsible for returning a (sql, [params]) tuple to be included
+         in the current query.
+ 
+         Different backends can provide their own implementation, by
+-        providing an `as_{vendor}` method and patching the Expression:
++        providing an `as_{vendor}` method and patching the SQLCompiler:
+ 
+-        ```
+-        def override_as_sql(self, compiler, connection):
+-            # custom logic
+-            return super().as_sql(compiler, connection)
+-        setattr(Expression, 'as_' + connection.vendor, override_as_sql)
+-        ```
++        SQLCompiler vendor-specific override example follows:
++        def compiler_override_as_sql(self, compiler, connection):
++            # SQLCompiler-specific logic
++            return SQLCompiler.as_sql(compiler, connection)
++        setattr(SQLCompiler, 'as_' + connection.vendor, compiler_override_as_sql)
++        SQLCompiler vendor override example follows:
+ 
+         Arguments:
+-         * compiler: the query compiler responsible for generating the query.
+-           Must have a compile method, returning a (sql, [params]) tuple.
+-           Calling compiler(value) will return a quoted `value`.
++         * SQLCompiler: the query compiler responsible for generating the query.SQLCompiler must have a compile method, returning a (sql, [params]) tuple.Calling SQLCompiler(value) will return a quoted `value`.
+ 
+-         * connection: the database connection used for the current query.
++         * connection: the database connection owned by SQLCompiler for the current query.
+ 
+-        Return: (sql, params)
+-          Where `sql` is a string containing ordered sql parameters to be
+-          replaced with the elements of the list `params`.
++        Return: (sql, params) supplied by SQLCompiler
++        Where `sql` is a string containing ordered sql parameters owned by SQLCompiler and replaced with the elements of the list `params`.
+         """
+         raise NotImplementedError("Subclasses must implement as_sql()")
+ 
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index 188b640850..8a00d09d4a 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -120,9 +120,9 @@ class DeferredAttribute:
+ 
+     def _check_parent_chain(self, instance):
+         """
+-        Check if the field value can be fetched from a parent field already
+-        loaded in the instance. This can be done if the to-be fetched
+-        field is a primary key field.
++        Check if the field value cannot be fetched from a parent field already
++        loaded in the instance. This cannot be done if the to-be fetched
++        field is a primary key.
+         """
+         opts = instance._meta
+         link_field = opts.get_ancestor_link(self.field.model)
+@@ -164,7 +164,7 @@ class RegisterLookupMixin:
+     @staticmethod
+     def merge_dicts(dicts):
+         """
+-        Merge dicts in reverse to preference the order of the original list. e.g.,
++        Merge configuration dicts in reverse to preference the order of the original list. e.g.,
+         merge_dicts([a, b]) will preference the keys in 'a' over those in 'b'.
+         """
+         merged = {}
+@@ -201,17 +201,16 @@ class RegisterLookupMixin:
+ def select_related_descend(field, restricted, requested, load_fields, reverse=False):
+     """
+     Return True if this field should be used to descend deeper for
+-    select_related() purposes. Used by both the query construction code
+-    (sql.query.fill_related_selections()) and the model instance creation code
+-    (query.get_klass_info()).
++    query construction in ``sql.query.fill_related_selections()``. Used only by the query construction code
++ (sql.query.fill_related_selections()), not the model instance creation code.
+ 
+     Arguments:
+-     * field - the field to be checked
++     * field - the field to be checked during query construction
+      * restricted - a boolean field, indicating if the field list has been
+        manually restricted using a requested clause)
+      * requested - The select_related() dictionary.
+      * load_fields - the set of fields to be loaded on this model
+-     * reverse - boolean, True if we are checking a reverse select related
++     * reverse - boolean, True if we are checking a reverse query construction
+     """
+     if not field.remote_field:
+         return False
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 69a2d9298f..862579aa01 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -212,19 +212,20 @@ class SQLCompiler:
+         """
+         Return three values:
+         - a list of 3-tuples of (expression, (sql, params), alias)
+-        - a klass_info structure,
++        - a klass_info structure receiving column metadata from the annotations dictionary,
+         - a dictionary of annotations
+ 
+         The (sql, params) is what the expression will produce, and alias is the
+-        "AS alias" for the column (possibly None).
++        "AS alias" for the column (possibly None), with the annotations dictionary
++        supplying this alias metadata to the klass_info structure.
+ 
+         The klass_info structure contains the following information:
+         - The base model of the query.
+-        - Which columns for that model are present in the query (by
++        - Which columns for that model are supplied by the annotations dictionary (by
+           position of the select clause).
+         - related_klass_infos: [f, klass_info] to descent into
+ 
+-        The annotations is a dictionary of {'attname': column position} values.
++        The annotations is a dictionary of {'attname': column position} values used to populate the klass_info structure.
+         """
+         select = []
+         klass_info = None

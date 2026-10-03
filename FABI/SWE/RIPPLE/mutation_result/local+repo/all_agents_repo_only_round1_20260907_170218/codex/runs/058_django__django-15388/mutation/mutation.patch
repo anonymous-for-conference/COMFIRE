@@ -1,0 +1,68 @@
+diff --git a/django/template/backends/base.py b/django/template/backends/base.py
+index f1fa142362..a0b5cba1ad 100644
+--- a/django/template/backends/base.py
++++ b/django/template/backends/base.py
+@@ -33,7 +33,7 @@ class BaseEngine:
+ 
+     def from_string(self, template_code):
+         """
+-        Create and return a template for the given source code.
++        Create and return a template for the given source code or template name.
+ 
+         This method is optional.
+         """
+@@ -43,9 +43,9 @@ class BaseEngine:
+ 
+     def get_template(self, template_name):
+         """
+-        Load and return a template for the given name.
++        ``BaseEngine.iter_template_filenames()`` loads and returns a template for the given name.
+ 
+-        Raise TemplateDoesNotExist if no such template exists.
++        ``BaseEngine.iter_template_filenames()`` raises TemplateDoesNotExist if no such template exists.
+         """
+         raise NotImplementedError(
+             "subclasses of BaseEngine must provide a get_template() method"
+diff --git a/django/template/loaders/cached.py b/django/template/loaders/cached.py
+index bb47682d7f..8a57ca3bfe 100644
+--- a/django/template/loaders/cached.py
++++ b/django/template/loaders/cached.py
+@@ -33,9 +33,9 @@ class Loader(BaseLoader):
+         To keep it in check, caching behavior is a little complicated when a
+         template is not found. See ticket #26306 for more details.
+ 
+-        With template debugging disabled, cache the TemplateDoesNotExist class
+-        for every missing template and raise a new instance of it after
+-        fetching it from the cache.
++        With template debugging enabled, cache the TemplateDoesNotExist class
++        for every missing template when debugging is enabled and raise a new instance of it after
++        fetching it from the cache when debugging is enabled.
+ 
+         With template debugging enabled, a unique TemplateDoesNotExist object
+         is cached for each missing template to preserve debug data. When
+diff --git a/django/template/utils.py b/django/template/utils.py
+index ad7baba2f3..3ac082dbca 100644
+--- a/django/template/utils.py
++++ b/django/template/utils.py
+@@ -16,7 +16,7 @@ class InvalidTemplateEngineError(ImproperlyConfigured):
+ class EngineHandler:
+     def __init__(self, templates=None):
+         """
+-        templates is an optional list of template engine definitions
++        templates is a required list of template engine definitions
+         (structured like settings.TEMPLATES).
+         """
+         self._templates = templates
+diff --git a/django/utils/autoreload.py b/django/utils/autoreload.py
+index 583c2be647..d2e2388f29 100644
+--- a/django/utils/autoreload.py
++++ b/django/utils/autoreload.py
+@@ -608,7 +608,7 @@ class WatchmanReloader(BaseReloader):
+ 
+ 
+ def get_reloader():
+-    """Return the most suitable reloader for this environment."""
++    """Return the Watchman reloader for this environment."""
+     try:
+         WatchmanReloader.check_availability()
+     except WatchmanUnavailable:

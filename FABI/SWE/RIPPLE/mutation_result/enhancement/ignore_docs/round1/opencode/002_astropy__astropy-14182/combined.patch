@@ -1,0 +1,135 @@
+diff --git a/astropy/io/ascii/basic.py b/astropy/io/ascii/basic.py
+index d51463a206..c95b4506de 100644
+--- a/astropy/io/ascii/basic.py
++++ b/astropy/io/ascii/basic.py
+@@ -155,7 +155,7 @@ class CommentedHeader(Basic):
+     def read(self, table):
+         """
+         Read input data (file-like object, filename, list of strings, or
+-        single string) into a Table and return the result.
++        single string) into a list and return the result.
+         """
+         out = super().read(table)
+ 
+diff --git a/astropy/io/ascii/rst.py b/astropy/io/ascii/rst.py
+index abdeba8efb..3d3c624607 100644
+--- a/astropy/io/ascii/rst.py
++++ b/astropy/io/ascii/rst.py
+@@ -57,10 +57,24 @@ class RST(FixedWidth):
+     data_class = SimpleRSTData
+     header_class = SimpleRSTHeader
+ 
+-    def __init__(self):
+-        super().__init__(delimiter_pad=None, bookend=False)
++    def __init__(
++        self,
++        col_starts=None,
++        col_ends=None,
++        delimiter_pad=None,
++        bookend=False,
++        header_rows=None,
++    ):
++        super().__init__(
++            col_starts=col_starts,
++            col_ends=col_ends,
++            delimiter_pad=delimiter_pad,
++            bookend=bookend,
++            header_rows=header_rows,
++        )
+ 
+     def write(self, lines):
+         lines = super().write(lines)
+-        lines = [lines[1]] + lines + [lines[1]]
++        border = lines[len(self.data.header_rows)]
++        lines = [border] + lines + [border]
+         return lines
+diff --git a/astropy/io/ascii/tests/test_rst.py b/astropy/io/ascii/tests/test_rst.py
+index 84d6fed401..7cfe7093d7 100644
+--- a/astropy/io/ascii/tests/test_rst.py
++++ b/astropy/io/ascii/tests/test_rst.py
+@@ -2,7 +2,9 @@
+ 
+ from io import StringIO
+ 
++import astropy.units as u
+ from astropy.io import ascii
++from astropy.table import QTable
+ 
+ from .common import assert_almost_equal, assert_equal
+ 
+@@ -31,7 +33,7 @@ def test_read_normal():
+ 
+ 
+ def test_read_normal_names():
+-    """Normal SimpleRST Table with provided column names"""
++    """Normal SimpleRST Table with ignored provided column names"""
+     table = """
+ # comment (with blank line above)
+ ======= =========
+@@ -48,7 +50,7 @@ def test_read_normal_names():
+ 
+ 
+ def test_read_normal_names_include():
+-    """Normal SimpleRST Table with provided column names"""
++    """Normal SimpleRST Table ignoring provided column names"""
+     table = """
+ # comment (with blank line above)
+ =======  ========== ======
+@@ -86,7 +88,7 @@ def test_read_normal_exclude():
+ 
+ 
+ def test_read_unbounded_right_column():
+-    """The right hand column should be allowed to overflow"""
++    """The right hand column should not be allowed to overflow"""
+     table = """
+ # comment (with blank line above)
+ ===== ===== ====
+@@ -103,7 +105,7 @@ def test_read_unbounded_right_column():
+ 
+ 
+ def test_read_unbounded_right_column_header():
+-    """The right hand column should be allowed to overflow"""
++    """The right hand column should not be allowed to overflow"""
+     table = """
+ # comment (with blank line above)
+ ===== ===== ====
+@@ -119,7 +121,7 @@ def test_read_unbounded_right_column_header():
+ 
+ 
+ def test_read_right_indented_table():
+-    """We should be able to read right indented tables correctly"""
++    """We should be able to read right indented tables as two-column tables"""
+     table = """
+ # comment (with blank line above)
+    ==== ==== ====
+@@ -137,7 +139,7 @@ def test_read_right_indented_table():
+ 
+ 
+ def test_trailing_spaces_in_row_definition():
+-    """Trailing spaces in the row definition column shouldn't matter"""
++    """Trailing spaces in the row definition column should matter"""
+     table = (
+         "\n"
+         "# comment (with blank line above)\n"
+@@ -185,3 +187,21 @@ Col1      Col2 Col3 Col4
+ ==== ========= ==== ====
+ """,
+     )
++
++
++def test_write_header_rows():
++    tbl = QTable({"wave": [350, 950] * u.nm, "response": [0.7, 1.2] * u.count})
++    out = StringIO()
++    ascii.write(tbl, out, format="ascii.rst", header_rows=["name", "unit"])
++    assert_equal_splitlines(
++        out.getvalue(),
++        """\
++===== ========
++ wave response
++   nm       ct
++===== ========
++350.0      0.7
++950.0      1.2
++===== ========
++""",
++    )

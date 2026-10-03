@@ -1,0 +1,53 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index fb36ea5b47..d0f1ccc598 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -1352,6 +1352,10 @@ def _print_Symbol(self, expr):
+         return self._deal_with_super_sub(expr.name) if \
+             '\\' not in expr.name else expr.name
+ 
++    def _print_Dummy(self, expr):
++        name = expr.name[1:] if expr.name.startswith('_') else expr.name
++        return self._deal_with_super_sub(name) if '\\' not in name else name
++
+     _print_RandomSymbol = _print_Symbol
+     _print_MatrixSymbol = _print_Symbol
+ 
+@@ -1438,7 +1442,7 @@ def _print_MatrixBase(self, expr):
+ 
+     def _print_MatrixElement(self, expr):
+         return self.parenthesize(expr.parent, PRECEDENCE["Atom"], strict=True) \
+-            + '_{%s, %s}' % (expr.i, expr.j)
++            + '_{%s, %s}' % (self._print(expr.i), self._print(expr.j))
+ 
+     def _print_MatrixSlice(self, expr):
+         def latexslice(x):
+diff --git a/sympy/printing/tests/test_latex.py b/sympy/printing/tests/test_latex.py
+index 1f9428c4a2..72e692807c 100644
+--- a/sympy/printing/tests/test_latex.py
++++ b/sympy/printing/tests/test_latex.py
+@@ -36,7 +36,7 @@
+ from sympy.core.trace import Tr
+ from sympy.core.compatibility import range
+ from sympy.combinatorics.permutations import Cycle, Permutation
+-from sympy import MatrixSymbol, ln
++from sympy import Dummy, MatrixSymbol, ln
+ from sympy.vector import CoordSys3D, Cross, Curl, Dot, Divergence, Gradient
+ from sympy.sets.setexpr import SetExpr
+ 
+@@ -1750,6 +1750,15 @@ def test_MatrixSymbol_printing():
+     assert latex(-A*B - A*B*C - B) == r"- A B - A B C - B"
+ 
+ 
++def test_MatrixExpr_indexed_latex_printing():
++    i, j, k = symbols("i j k")
++    M = MatrixSymbol("M", k, k)
++    N = MatrixSymbol("N", k, k)
++
++    assert latex(Dummy("_i_1")) == r"i_{1}"
++    assert latex((M*N)[i, j]) == r"\sum_{i_{1}=0}^{k - 1} M_{i, i_{1}} N_{i_{1}, j}"
++
++
+ def test_Quaternion_latex_printing():
+     q = Quaternion(x, y, z, t)
+     assert latex(q) == "x + y i + z j + t k"

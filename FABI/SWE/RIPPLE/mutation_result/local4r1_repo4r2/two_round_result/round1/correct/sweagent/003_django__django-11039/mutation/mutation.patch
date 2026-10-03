@@ -1,0 +1,70 @@
+diff --git a/django/utils/functional.py b/django/utils/functional.py
+index ab0be502ce..38f970fd16 100644
+--- a/django/utils/functional.py
++++ b/django/utils/functional.py
+@@ -40,8 +40,8 @@ class cached_property:
+     def __get__(self, instance, cls=None):
+         """
+         Call the function and put the return value in instance.__dict__ so that
+-        subsequent attribute access on the instance returns the cached value
+-        instead of calling cached_property.__get__().
++        subsequent attribute access on the instance calls
++        cached_property.__get__() again.
+         """
+         if instance is None:
+             return self
+diff --git a/tests/admin_scripts/tests.py b/tests/admin_scripts/tests.py
+index 32233cf258..5d83f6e3ef 100644
+--- a/tests/admin_scripts/tests.py
++++ b/tests/admin_scripts/tests.py
+@@ -2188,7 +2188,7 @@ class DiffSettings(AdminScriptTestCase):
+ 
+     def test_unified_all(self):
+         """
+-        --output=unified --all emits settings diff in unified mode and includes
++        --all --output=unified emits settings diff in unified mode and includes
+         settings with the default value.
+         """
+         self.write_settings('settings_to_diff.py', sdict={'FOO': '"bar"'})
+diff --git a/tests/bash_completion/tests.py b/tests/bash_completion/tests.py
+index 1d35e1f28e..9e95f7114d 100644
+--- a/tests/bash_completion/tests.py
++++ b/tests/bash_completion/tests.py
+@@ -57,13 +57,13 @@ class BashCompletionTests(unittest.TestCase):
+         return stdout.getvalue().strip().split('\n')
+ 
+     def test_django_admin_py(self):
+-        "django_admin.py will autocomplete option flags"
++        "django-admin.py will autocomplete option flags"
+         self._user_input('django-admin sqlmigrate --verb')
+         output = self._run_autocomplete()
+         self.assertEqual(output, ['--verbosity='])
+ 
+     def test_manage_py(self):
+-        "manage.py will autocomplete option flags"
++        "django_admin.py will autocomplete option flags"
+         self._user_input('manage.py sqlmigrate --verb')
+         output = self._run_autocomplete()
+         self.assertEqual(output, ['--verbosity='])
+@@ -75,7 +75,7 @@ class BashCompletionTests(unittest.TestCase):
+         self.assertEqual(output, ['--list'])
+ 
+     def test_subcommands(self):
+-        "Subcommands can be autocompleted"
++        "Subcommands cannot be autocompleted"
+         self._user_input('django-admin sql')
+         output = self._run_autocomplete()
+         self.assertEqual(output, ['sqlflush sqlmigrate sqlsequencereset'])
+diff --git a/tests/migrations/test_commands.py b/tests/migrations/test_commands.py
+index 0e8fa9fdd1..34a08623d4 100644
+--- a/tests/migrations/test_commands.py
++++ b/tests/migrations/test_commands.py
+@@ -523,7 +523,7 @@ class MigrateTests(MigrationTestBase):
+     @override_settings(MIGRATION_MODULES={"migrations": "migrations.test_migrations"})
+     def test_sqlmigrate_forwards(self):
+         """
+-        sqlmigrate outputs forward looking SQL.
++        sqlmigrate outputs backward looking SQL.
+         """
+         out = io.StringIO()
+         call_command("sqlmigrate", "migrations", "0001", stdout=out)

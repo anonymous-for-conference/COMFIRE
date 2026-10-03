@@ -1,0 +1,65 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index 41f33b0ef5..5a6862f190 100644
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -102,7 +102,7 @@ def create_permissions(
+     Permission.objects.using(using).bulk_create(perms)
+     if verbosity >= 2:
+         for perm in perms:
+-            print("Adding permission '%s'" % perm)
++            print("Adding permission '%s'" % perm.name)
+ 
+ 
+ def get_system_username():
+diff --git a/tests/auth_tests/test_management.py b/tests/auth_tests/test_management.py
+index e3953ffab9..28edc12465 100644
+--- a/tests/auth_tests/test_management.py
++++ b/tests/auth_tests/test_management.py
+@@ -1463,19 +1463,41 @@ class CreatePermissionsTests(TestCase):
+         '' 
+                                                                                                              
+                                                                                                               
+-           
+-                                 
++            
++                                  
+         ContentType.objects.get_for_model(Group)
+                                                                            
+         ContentType.objects.filter(app_label="auth", model="group").delete()
+-                                                                   
++                                                                
+         create_permissions(apps.get_app_config("auth"), interactive=False, verbosity=0)
+ 
++    def test_create_permissions_verbosity_does_not_stringify_permission(self):
++        custom_codename = "my_custom_permission"
++        permission_content_type = ContentType.objects.db_manager("default").get_by_natural_key(
++            "auth", "permission"
++        )
++        Permission.objects.using("default").filter(
++            content_type=permission_content_type, codename=custom_codename
++        ).delete()
++        Permission._meta.permissions = [(custom_codename, "Some permission")]
++        with mock.patch.object(
++            Permission,
++            "__str__",
++            side_effect=AssertionError("Permission.__str__() should not be called"),
++        ):
++            create_permissions(self.app_config, verbosity=2)
++
++        self.assertTrue(
++            Permission.objects.using("default").filter(
++                content_type=permission_content_type, codename=custom_codename
++            ).exists()
++        )
++
+     def test_permission_with_proxy_content_type_created(self):
+         '' 
+-                                                                            
+-                                           
+-           
++                                                                             
++                                            
++            
+         opts = UserProxy._meta
+         codename = get_permission_codename("add", opts)
+         self.assertTrue(

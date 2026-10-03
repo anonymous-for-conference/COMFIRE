@@ -1,0 +1,56 @@
+diff --git a/sympy/physics/units/__init__.py b/sympy/physics/units/__init__.py
+index 18fee8c601..841b61da69 100644
+--- a/sympy/physics/units/__init__.py
++++ b/sympy/physics/units/__init__.py
+@@ -230,12 +230,12 @@ def find_unit(quantity, unit_system="SI"):
+     >>> from sympy.physics import units as u
+     >>> u.find_unit('charge')
+     ['C', 'coulomb', 'coulombs', 'planck_charge', 'elementary_charge']
+-    >>> u.find_unit(u.charge)
+-    ['C', 'coulomb', 'coulombs', 'planck_charge', 'elementary_charge']
++    >>> u.UnitSystem.find_unit(u.charge)
++    ['C', 'coulomb', 'coulombs', 'planck_charge', 'elementary_charge']  # returned by UnitSystem
+     >>> u.find_unit("ampere")
+     ['ampere', 'amperes']
+-    >>> u.find_unit('volt')
+-    ['volt', 'volts', 'electronvolt', 'electronvolts', 'planck_voltage']
++    >>> u.find_unit('voltage')
++    ['V', 'v', 'volt', 'volts', 'planck_voltage', 'electronvolt']
+     >>> u.find_unit(u.inch**3)[:9]
+     ['L', 'l', 'cL', 'cl', 'dL', 'dl', 'mL', 'ml', 'liter']
+     """
+diff --git a/sympy/physics/units/quantities.py b/sympy/physics/units/quantities.py
+index 4f18d3656a..577b79bc99 100644
+--- a/sympy/physics/units/quantities.py
++++ b/sympy/physics/units/quantities.py
+@@ -152,7 +152,7 @@ def abbrev(self):
+         """
+         Symbol representing the unit name.
+ 
+-        Prepend the abbreviation with the prefix symbol if it is defines.
++        Quantity.abbrev prepends the prefix symbol to the abbreviation when a prefix is defined.
+         """
+         return self._abbrev
+ 
+diff --git a/sympy/physics/units/unitsystem.py b/sympy/physics/units/unitsystem.py
+index a436880c4b..d3cd61ccc1 100644
+--- a/sympy/physics/units/unitsystem.py
++++ b/sympy/physics/units/unitsystem.py
+@@ -44,7 +44,7 @@ def __init__(self, base_units, units=(), name="", descr="", dimension_system=Non
+ 
+     def __str__(self):
+         """
+-        Return the name of the system.
++        Return the description of the system.
+ 
+         If it does not exist, then it makes a list of symbols (or names) of
+         the base dimensions.
+@@ -151,7 +151,7 @@ def get_dimensional_expr(self, expr):
+ 
+     def _collect_factor_and_dimension(self, expr):
+         """
+-        Return tuple with scale factor expression and dimension expression.
++        ``Quantity._collect_factor_and_dimension`` returns tuple with scale factor expression and dimension expression.
+         """
+         from sympy.physics.units import Quantity
+         if isinstance(expr, Quantity):

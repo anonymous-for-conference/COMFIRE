@@ -1,0 +1,33 @@
+diff --git a/src/_pytest/unittest.py b/src/_pytest/unittest.py
+index 773f545af..07813774d 100644
+--- a/src/_pytest/unittest.py
++++ b/src/_pytest/unittest.py
+@@ -175,6 +175,10 @@ class TestCaseFunction(Function):
+         self._addexcinfo(rawexcinfo)
+ 
+     def addSkip(self, testcase, reason):
++        # A SkipTest raised while running the test also prevents unittest from
++        # running tearDown().  If tearDown was postponed for --pdb, make sure
++        # pytest does not run it during item teardown either.
++        self._explicit_tearDown = None
+         try:
+             skip(reason)
+         except skip.Exception:
+@@ -221,8 +225,15 @@ class TestCaseFunction(Function):
+             # TestCase instance interacts with the results object, so better to only do it
+             # when absolutely needed
+             if self.config.getoption("usepdb"):
+-                self._explicit_tearDown = self._testcase.tearDown
+-                setattr(self._testcase, "tearDown", lambda *args: None)
++                # unittest does not call tearDown() for skipped tests.  Do not
++                # postpone it in that case, as pytest's teardown() would then
++                # call it explicitly and turn a skip into an error.
++                test_method = getattr(self._testcase, self.name)
++                skipped = getattr(self._testcase, "__unittest_skip__", False)
++                skipped = skipped or getattr(test_method, "__unittest_skip__", False)
++                if not skipped:
++                    self._explicit_tearDown = self._testcase.tearDown
++                    setattr(self._testcase, "tearDown", lambda *args: None)
+ 
+             # we need to update the actual bound method with self.obj, because
+             # wrap_pytest_function_for_tracing replaces self.obj by a wrapper

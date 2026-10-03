@@ -1,0 +1,29 @@
+diff --git a/lib/matplotlib/axes/_axes.py b/lib/matplotlib/axes/_axes.py
+index 006fbba62a..3987a6aaed 100644
+--- a/lib/matplotlib/axes/_axes.py
++++ b/lib/matplotlib/axes/_axes.py
+@@ -2187,6 +2187,8 @@ class Axes(_AxesBase):
+                 x = cbook._safe_first_finite(xconv)
+             except (TypeError, IndexError, KeyError):
+                 x = xconv
++            except StopIteration:
++                return convert(dx)
+ 
+             delist = False
+             if not np.iterable(dx):
+diff --git a/lib/matplotlib/tests/test_axes.py b/lib/matplotlib/tests/test_axes.py
+index b622a9db4c..ee34aa8c40 100644
+--- a/lib/matplotlib/tests/test_axes.py
++++ b/lib/matplotlib/tests/test_axes.py
+@@ -1715,6 +1715,11 @@ def test_bar_tick_label_single():
+ def test_nan_bar_values():
+     fig, ax = plt.subplots()
+     ax.bar([0, 1], [np.nan, 4])
++    bars = ax.bar([np.nan], [np.nan])
++    assert len(bars) == 1
++    bar = bars[0]
++    assert np.isnan(bar.get_x())
++    assert np.isnan(bar.get_height())
+ 
+ 
+ def test_bar_ticklabel_fail():

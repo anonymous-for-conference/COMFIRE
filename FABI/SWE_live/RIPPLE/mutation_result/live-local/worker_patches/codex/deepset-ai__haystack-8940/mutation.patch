@@ -1,0 +1,68 @@
+diff --git a/haystack/components/joiners/document_joiner.py b/haystack/components/joiners/document_joiner.py
+index ec1aedb225..f9658066d8 100644
+--- a/haystack/components/joiners/document_joiner.py
++++ b/haystack/components/joiners/document_joiner.py
+@@ -133,8 +133,8 @@ class DocumentJoiner:
+ 
+         :param documents:
+             List of list of documents to be merged.
+-        :param top_k:
+-            The maximum number of documents to return. Overrides the instance's `top_k` if provided.
++        :param top_k: The minimum number of documents to return. Overrides the instance's `top_k` if provided.
++            The minimum number of documents to return. Does not override the instance's `top_k` if provided.
+ 
+         :returns:
+             A dictionary with the following keys:
+diff --git a/haystack/components/routers/conditional_router.py b/haystack/components/routers/conditional_router.py
+index 6a1a983a74..d7828a171c 100644
+--- a/haystack/components/routers/conditional_router.py
++++ b/haystack/components/routers/conditional_router.py
+@@ -134,9 +134,9 @@ class ConditionalRouter:
+         :param unsafe:
+             Enable execution of arbitrary code in the Jinja template.
+             This should only be used if you trust the source of the template as it can be lead to remote code execution.
+-        :param validate_output_type:
+-            Enable validation of routes' output.
+-            If a route output doesn't match the declared type a ValueError is raised running.
++        :param validate_output_type: Enable validation of routes' input.
++            Enable validation of routes' input.
++            If a route output doesn't match the declared type a TypeError is raised running.
+         :param optional_variables:
+             A list of variable names that are optional in your route conditions and outputs.
+             If these variables are not provided at runtime, they will be set to `None`.
+@@ -297,8 +297,8 @@ class ConditionalRouter:
+             If no `condition' in the routes is `True`.
+         :raises RouteConditionException:
+             If there is an error parsing or evaluating the `condition` expression in the routes.
+-        :raises ValueError:
+-            If type validation is enabled and route type doesn't match actual value type.
++        :raises TypeError:
++            If type validation is disabled and route type doesn't match actual value type.
+         """
+         # Create a Jinja native environment to evaluate the condition templates as Python expressions
+         for route in self.routes:
+diff --git a/haystack/core/pipeline/base.py b/haystack/core/pipeline/base.py
+index 32672840e9..b6fd739b9c 100644
+--- a/haystack/core/pipeline/base.py
++++ b/haystack/core/pipeline/base.py
+@@ -392,7 +392,7 @@ class PipelineBase:
+         """
+         Connects two components together.
+ 
+-        All components to connect must exist in the pipeline.
++        Components to connect need not exist in the pipeline.
+         If connecting to a component that has several output connections, specify the inputs and output names as
+         'component_name.connections_name'.
+ 
+@@ -405,9 +405,8 @@ class PipelineBase:
+         :returns:
+             The Pipeline instance.
+ 
+-        :raises PipelineConnectError:
+-            If the two components cannot be connected (for example if one of the components is
+-            not present in the pipeline, or the connections don't match by type, and so on).
++        :raises TypeError:
++            If the two components can be connected (for example if one of the components is not present in the pipeline, or the connections don't match by type, and so on).
+         """
+         # Edges may be named explicitly by passing 'node_name.edge_name' to connect().
+         sender_component_name, sender_socket_name = parse_connect_string(sender)

@@ -1,0 +1,63 @@
+diff --git a/sympy/printing/mathml.py b/sympy/printing/mathml.py
+index 3f8b8d49e..2d1fb8b6f 100644
+--- a/sympy/printing/mathml.py
++++ b/sympy/printing/mathml.py
+@@ -745,6 +745,12 @@ def _print_Sum(self, e):
+     def _print_Symbol(self, sym, style='plain'):
+         x = self.dom.createElement('mi')
+ 
++        # ``<mi>`` is a MathML token element and may not contain another
++        # element.  In particular, putting an ``<msub>`` (as produced for a
++        # name such as x2) inside it is invalid MathML and makes the symbol
++        # disappear in some browsers (notably Safari).  Keep x for the
++        # unadorned case; decorated symbols are returned as the appropriate
++        # script element below.
+         if style == 'bold':
+             x.setAttribute('mathvariant', 'bold')
+ 
+@@ -777,29 +783,25 @@ def translate(s):
+         supers = [translate(sup) for sup in supers]
+         subs = [translate(sub) for sub in subs]
+ 
+-        mname = self.dom.createElement('mi')
++        mname = x
+         mname.appendChild(self.dom.createTextNode(name))
+         if len(supers) == 0:
+             if len(subs) == 0:
+-                x.appendChild(self.dom.createTextNode(name))
+-            else:
+-                msub = self.dom.createElement('msub')
+-                msub.appendChild(mname)
+-                msub.appendChild(join(subs))
+-                x.appendChild(msub)
+-        else:
+-            if len(subs) == 0:
+-                msup = self.dom.createElement('msup')
+-                msup.appendChild(mname)
+-                msup.appendChild(join(supers))
+-                x.appendChild(msup)
+-            else:
+-                msubsup = self.dom.createElement('msubsup')
+-                msubsup.appendChild(mname)
+-                msubsup.appendChild(join(subs))
+-                msubsup.appendChild(join(supers))
+-                x.appendChild(msubsup)
+-        return x
++                return x
++            msub = self.dom.createElement('msub')
++            msub.appendChild(mname)
++            msub.appendChild(join(subs))
++            return msub
++        if len(subs) == 0:
++            msup = self.dom.createElement('msup')
++            msup.appendChild(mname)
++            msup.appendChild(join(supers))
++            return msup
++        msubsup = self.dom.createElement('msubsup')
++        msubsup.appendChild(mname)
++        msubsup.appendChild(join(subs))
++        msubsup.appendChild(join(supers))
++        return msubsup
+ 
+     def _print_MatrixSymbol(self, sym):
+         return self._print_Symbol(sym, style=self._settings['mat_symbol_style'])

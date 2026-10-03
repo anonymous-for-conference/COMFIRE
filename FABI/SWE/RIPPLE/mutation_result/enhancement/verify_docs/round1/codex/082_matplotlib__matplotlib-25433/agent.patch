@@ -1,0 +1,70 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index 52da0557b0..7b22dd5344 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -931,6 +931,8 @@ default: %(va)s
+         self._axobservers.process("_axes_change_event", self)
+         self.stale = True
+         self._localaxes.remove(ax)
++        if self.canvas.mouse_grabber is ax:
++            self.canvas.release_mouse(ax)
+ 
+         # Break link between any shared axes
+         for name in ax._axis_names:
+diff --git a/lib/matplotlib/tests/test_widgets.py b/lib/matplotlib/tests/test_widgets.py
+index 5706df46e3..82eb422473 100644
+--- a/lib/matplotlib/tests/test_widgets.py
++++ b/lib/matplotlib/tests/test_widgets.py
+@@ -1334,6 +1334,52 @@ def test_range_slider_same_init_values(orientation):
+     assert_allclose(box.get_points().flatten()[idx], [0, 0.25, 0, 0.75])
+ 
+ 
++def test_range_slider_callback_clears_figure_releases_mouse_grab():
++    fig = plt.figure()
++    called = []
++    state = {}
++
++    def add_elements():
++        slider_ax = fig.add_axes([0.1, 0.45, 0.8, 0.1])
++        button_ax = fig.add_axes([0.1, 0.30, 0.8, 0.1])
++        state["slider"] = widgets.RangeSlider(
++            slider_ax, "Test", valmin=1, valmax=10, valinit=(1, 10))
++        state["slider"].on_changed(on_changed)
++        state["button"] = widgets.Button(button_ax, "Test")
++        state["button"].on_clicked(on_clicked)
++
++    def on_changed(values):
++        called.append(("changed", values))
++        fig.clf()
++        add_elements()
++        fig.canvas.draw()
++
++    def on_clicked(event):
++        called.append(("clicked", event.inaxes))
++
++    add_elements()
++    fig.canvas.draw()
++
++    # Drag the range slider so the callback clears and rebuilds the figure.
++    slider = state["slider"]
++    MouseEvent("button_press_event", fig.canvas, *slider.ax.transData.transform(
++        (2, 0.5)), button=1)._process()
++    MouseEvent("motion_notify_event", fig.canvas, *slider.ax.transData.transform(
++        (3, 0.5)))._process()
++    MouseEvent("button_release_event", fig.canvas, *slider.ax.transData.transform(
++        (3, 0.5)), button=1)._process()
++
++    assert called[0][0] == "changed"
++    assert fig.canvas.mouse_grabber is None
++
++    # The rebuilt button must still receive input.
++    button = state["button"]
++    x, y = button.ax.transAxes.transform((0.5, 0.5))
++    MouseEvent("button_press_event", fig.canvas, x, y, button=1)._process()
++    MouseEvent("button_release_event", fig.canvas, x, y, button=1)._process()
++    assert called[-1][0] == "clicked"
++
++
+ def check_polygon_selector(event_sequence, expected_result, selections_count,
+                            **kwargs):
+     """

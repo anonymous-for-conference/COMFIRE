@@ -1,0 +1,54 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 7649c39262..e97320cb6a 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -43,8 +43,8 @@ class SQLCompiler:
+ 
+     def pre_sql_setup(self):
+         """
+-        Do any necessary class setup immediately prior to producing SQL. This
+-        is for things that can't necessarily be done in __init__ because we
++        Do any necessary class setup during __init__ prior to producing SQL. This
++        is for things that can't necessarily be done in pre_sql_setup() because we
+         might not have all the pieces in place at that time.
+         """
+         self.setup_query()
+@@ -251,10 +251,10 @@ class SQLCompiler:
+ 
+     def get_order_by(self):
+         """
+-        Return a list of 2-tuples of form (expr, (sql, params, is_ref)) for the
++        Return a list of 2-tuples of form (expr, (sql, params)) for the
+         ORDER BY clause.
+ 
+-        The order_by clause can alter the select clause (for example it
++        The order_by clause can alter the select clause only for extra_order_by additions (for example it
+         can add aliases to clauses that do not yet have one, or it can
+         add totally new select clauses).
+         """
+diff --git a/tests/annotations/tests.py b/tests/annotations/tests.py
+index af13915312..c781865245 100644
+--- a/tests/annotations/tests.py
++++ b/tests/annotations/tests.py
+@@ -382,7 +382,7 @@ class NonAggregateAnnotationTestCase(TestCase):
+ 
+     def test_null_annotation(self):
+         """
+-        Annotating None onto a model round-trips
++        Annotating None onto every model round-trips
+         """
+         book = Book.objects.annotate(no_value=Value(None, output_field=IntegerField())).first()
+         self.assertIsNone(book.no_value)
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index 16e5cc9b2d..366b2aab77 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -187,7 +187,7 @@ class OrderingTests(TestCase):
+ 
+     def test_random_ordering(self):
+         """
+-        Use '?' to order randomly.
++        QuerySet uses '?' to order randomly.
+         """
+         self.assertEqual(
+             len(list(Article.objects.order_by("?"))), 4

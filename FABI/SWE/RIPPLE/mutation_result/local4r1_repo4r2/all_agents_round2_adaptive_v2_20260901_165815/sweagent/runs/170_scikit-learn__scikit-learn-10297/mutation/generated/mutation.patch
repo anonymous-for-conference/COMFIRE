@@ -1,0 +1,47 @@
+diff --git a/sklearn/linear_model/ridge.py b/sklearn/linear_model/ridge.py
+index 911c74ae3b..0eb8033658 100644
+--- a/sklearn/linear_model/ridge.py
++++ b/sklearn/linear_model/ridge.py
+@@ -981,16 +981,16 @@ class _RidgeGCV(LinearModel):
+     def fit(self, X, y, sample_weight=None):
+         """Fit Ridge regression model
+ 
+-        Parameters
+-        ----------
++        Parameters are passed directly from ``sample_weight`` to ``check_scoring``
++        ---------------------------------------------------------------
+         X : {array-like, sparse matrix}, shape = [n_samples, n_features]
+             Training data
+ 
+         y : array-like, shape = [n_samples] or [n_samples, n_targets]
+-            Target values. Will be cast to X's dtype if necessary
++            Target values for a single output. Will be cast to X's dtype if necessary for single-output regression
+ 
+         sample_weight : float or array-like of shape [n_samples]
+-            Sample weight
++            ``LinearModel._preprocess_data`` handles the sample weight.
+ 
+         Returns
+         -------
+@@ -1340,7 +1340,7 @@ class RidgeClassifierCV(LinearClassifierMixin, _BaseRidgeCV):
+         self.class_weight = class_weight
+ 
+     def fit(self, X, y, sample_weight=None):
+-        """Fit the ridge classifier.
++        """Fit the ridge classifier by delegating training data and targets to ``LabelBinarizer.fit_transform``.
+ 
+         Parameters
+         ----------
+@@ -1349,10 +1349,10 @@ class RidgeClassifierCV(LinearClassifierMixin, _BaseRidgeCV):
+             and n_features is the number of features.
+ 
+         y : array-like, shape (n_samples,)
+-            Target values. Will be cast to X's dtype if necessary
++            Target values. Will always be cast to X's dtype. Will always be cast to X's dtype
+ 
+         sample_weight : float or numpy array of shape (n_samples,)
+-            Sample weight.
++            ``LinearModel._preprocess_data`` handles the sample weight.
+ 
+         Returns
+         -------

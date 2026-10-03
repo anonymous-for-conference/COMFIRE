@@ -1,0 +1,226 @@
+{
+  "instance_id": "matplotlib__matplotlib-25442",
+  "level": "level_1,level_2",
+  "seed": 7014,
+  "selected_cluster_count": 5,
+  "mutation_count": 9,
+  "clusters": [
+    {
+      "cluster_id": "matplotlib__matplotlib-25442:level_1:cluster_0001",
+      "label": "Disconnect callbacks",
+      "applicable_operators": [
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "matplotlib__matplotlib-25442:level_1:cluster_0001",
+          "cluster_label": "Disconnect callbacks",
+          "operator": "L3",
+          "documentation_id": "cc7522a0d97ef2d3deb6da14e31dc672713255b56db6c32adbfc20ea9a1ba547",
+          "unit_id": "c887df39c5f5e6e095c1b69e1d0168f58407922f0dd85db58d4a4319976440cf",
+          "file": "lib/matplotlib/offsetbox.py",
+          "symbol": "lib/matplotlib/offsetbox.py::DraggableBase.disconnect",
+          "file_line_start": 1560,
+          "file_line_end": 1560,
+          "source_start_offset": 11,
+          "source_end_offset": 36,
+          "original_unit_source": "Disconnect the callbacks.",
+          "mutated_unit_source": "Leaves the callbacks connected.",
+          "changed_contract": "The method is documented as leaving the callbacks connected instead of disconnecting them.",
+          "evidence": "The implementation calls self.canvas.mpl_disconnect for every callback ID in self.cids and for _c1 when present.",
+          "complete_access_location": "    def disconnect(self):\n        \"\"\"Disconnect the callbacks.\"\"\"\n        for cid in self.cids:\n            self.canvas.mpl_disconnect(cid)\n        try:\n            c1 = self._c1\n        except AttributeError:\n            pass\n        else:\n            self.canvas.mpl_disconnect(c1)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0002",
+      "label": "Legend entry removal unsupported",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0002",
+          "cluster_label": "Legend entry removal unsupported",
+          "operator": "L1",
+          "documentation_id": "d6345a1d7e421924ac192ed76029eb2f49303b28fdea1a32c368f321190b46ee",
+          "unit_id": "f61481809eba1e517e146d7a8b2255cc1243ac01b3a4402255bc1f2293dfab04",
+          "file": "lib/matplotlib/artist.py",
+          "symbol": "lib/matplotlib/artist.py::Artist.remove",
+          "file_line_start": 231,
+          "file_line_end": 232,
+          "source_start_offset": 259,
+          "source_end_offset": 394,
+          "original_unit_source": "        Note: `~.axes.Axes.relim` will not see collections even if the\n        collection was added to the axes with *autolim* = True.\n",
+          "mutated_unit_source": "        Note: `~.axes.Axes.relim` will not see collections even if the\n        collection was added to the axes with *autolim_mode* = True.\n",
+          "changed_contract": "The documented parameter name changes from `autolim` to `autolim_mode`.",
+          "evidence": "The repository API uses the `autolim` parameter when collections are added to an axes.",
+          "complete_access_location": "    def remove(self):\n        \"\"\"\n        Remove the artist from the figure if possible.\n\n        The effect will not be visible until the figure is redrawn, e.g.,\n        with `.FigureCanvasBase.draw_idle`.  Call `~.axes.Axes.relim` to\n        update the axes limits if desired.\n\n        Note: `~.axes.Axes.relim` will not see collections even if the\n        collection was added to the axes with *autolim* = True.\n\n        Note: there is no support for removing the artist's legend entry.\n        \"\"\"\n\n        # There is no method to set the callback.  Instead, the parent should\n        # set the _remove_method attribute directly.  This would be a\n        # protected attribute if Python supported that sort of thing.  The\n        # callback has one parameter, which is the child to be removed.\n        if self._remove_method is not None:\n            self._remove_method(self)\n            # clear stale callback\n            self.stale_callback = None\n            _ax_flag = False\n            if hasattr(self, 'axes') and self.axes:\n                # remove from the mouse hit list\n                self.axes._mouseover_set.discard(self)\n                self.axes.stale = True\n                self.axes = None  # decouple the artist from the Axes\n                _ax_flag = True\n\n            if self.figure:\n                self.figure = None\n                if not _ax_flag:\n                    self.figure = True\n\n        else:\n            raise NotImplementedError('cannot remove artist')\n"
+        },
+        {
+          "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0002",
+          "cluster_label": "Legend entry removal unsupported",
+          "operator": "L1",
+          "documentation_id": "d6345a1d7e421924ac192ed76029eb2f49303b28fdea1a32c368f321190b46ee",
+          "unit_id": "07f1e28521006ca0ad35b6a1fd71ee03cf9a35c9a5dc7c14d886d24aa2b8f59f",
+          "file": "lib/matplotlib/artist.py",
+          "symbol": "lib/matplotlib/artist.py::Artist.remove",
+          "file_line_start": 234,
+          "file_line_end": 234,
+          "source_start_offset": 395,
+          "source_end_offset": 469,
+          "original_unit_source": "        Note: there is no support for removing the artist's legend entry.\n",
+          "mutated_unit_source": "        Note: there is support for removing the artist's legend entry.\n",
+          "changed_contract": "The documentation now states that removing an artist also removes its legend entry, reversing the documented legend-removal support.",
+          "evidence": "Artist.remove only invokes the configured removal callback and detaches the artist from its axes and figure; it contains no legend-entry removal logic.",
+          "complete_access_location": "    def remove(self):\n        \"\"\"\n        Remove the artist from the figure if possible.\n\n        The effect will not be visible until the figure is redrawn, e.g.,\n        with `.FigureCanvasBase.draw_idle`.  Call `~.axes.Axes.relim` to\n        update the axes limits if desired.\n\n        Note: `~.axes.Axes.relim` will not see collections even if the\n        collection was added to the axes with *autolim* = True.\n\n        Note: there is no support for removing the artist's legend entry.\n        \"\"\"\n\n        # There is no method to set the callback.  Instead, the parent should\n        # set the _remove_method attribute directly.  This would be a\n        # protected attribute if Python supported that sort of thing.  The\n        # callback has one parameter, which is the child to be removed.\n        if self._remove_method is not None:\n            self._remove_method(self)\n            # clear stale callback\n            self.stale_callback = None\n            _ax_flag = False\n            if hasattr(self, 'axes') and self.axes:\n                # remove from the mouse hit list\n                self.axes._mouseover_set.discard(self)\n                self.axes.stale = True\n                self.axes = None  # decouple the artist from the Axes\n                _ax_flag = True\n\n            if self.figure:\n                self.figure = None\n                if not _ax_flag:\n                    self.figure = True\n\n        else:\n            raise NotImplementedError('cannot remove artist')\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0007",
+      "label": "Add artist to container",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0007",
+          "cluster_label": "Add artist to container",
+          "operator": "L1",
+          "documentation_id": "9eb27d4ea0ca49821fe4076fce5e49c5fd633bf068beca882a01c12735b71e44",
+          "unit_id": "241ac2f14a29c17245340b480f9853f4b5b0723fda8bbe281b8de6117590a15f",
+          "file": "lib/matplotlib/offsetbox.py",
+          "symbol": "lib/matplotlib/offsetbox.py::DrawingArea.add_artist",
+          "file_line_start": 674,
+          "file_line_end": 674,
+          "source_start_offset": 11,
+          "source_end_offset": 49,
+          "original_unit_source": "Add an `.Artist` to the container box.",
+          "mutated_unit_source": "Add a `.Figure` to the container box.",
+          "changed_contract": "The documented item type changes from `.Artist` to `.Figure`.",
+          "evidence": "The method's implementation requires the argument to provide Artist methods such as `is_transform_set()` and `set_transform()`, while the documentation does not identify it as a Figure.",
+          "complete_access_location": "    def add_artist(self, a):\n        \"\"\"Add an `.Artist` to the container box.\"\"\"\n        self._children.append(a)\n        if not a.is_transform_set():\n            a.set_transform(self.get_transform())\n        if self.axes is not None:\n            a.axes = self.axes\n        fig = self.figure\n        if fig is not None:\n            a.set_figure(fig)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0009",
+      "label": "OffsetBox figure assignment",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0009",
+          "cluster_label": "OffsetBox figure assignment",
+          "operator": "L1",
+          "documentation_id": "f2e66650bb06527a21833fb288c258a63365ee73c361efcfb9e746532df6d586",
+          "unit_id": "31402534d36cc434099afa71556138e0256036aa2560d230735e44f4e0f011cc",
+          "file": "lib/matplotlib/offsetbox.py",
+          "symbol": "lib/matplotlib/offsetbox.py::OffsetBox.set_figure",
+          "file_line_start": 229,
+          "file_line_end": 229,
+          "source_start_offset": 12,
+          "source_end_offset": 81,
+          "original_unit_source": "        Set the `.Figure` for the `.OffsetBox` and all its children.\n",
+          "mutated_unit_source": "        Set the `.Figure` for the `.Artist` and all its children.\n",
+          "changed_contract": "The documented target changes from the `.OffsetBox` to the `.Artist`.",
+          "evidence": "The method is defined on `OffsetBox` and its docstring names `.OffsetBox`.",
+          "complete_access_location": "    def set_figure(self, fig):\n        \"\"\"\n        Set the `.Figure` for the `.OffsetBox` and all its children.\n\n        Parameters\n        ----------\n        fig : `~matplotlib.figure.Figure`\n        \"\"\"\n        super().set_figure(fig)\n        for c in self.get_children():\n            c.set_figure(fig)\n"
+        },
+        {
+          "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0009",
+          "cluster_label": "OffsetBox figure assignment",
+          "operator": "L1",
+          "documentation_id": "f2e66650bb06527a21833fb288c258a63365ee73c361efcfb9e746532df6d586",
+          "unit_id": "525d222e0616fcbad48aca0bbd80980db98b48868a1b13eeeead3635fe1a04f3",
+          "file": "lib/matplotlib/offsetbox.py",
+          "symbol": "lib/matplotlib/offsetbox.py::OffsetBox.set_figure",
+          "file_line_start": 231,
+          "file_line_end": 231,
+          "source_start_offset": 82,
+          "source_end_offset": 101,
+          "original_unit_source": "        Parameters\n",
+          "mutated_unit_source": "        Parameters (optional)\n",
+          "changed_contract": "The documentation changes the `fig` parameter from required to optional.",
+          "evidence": "The method signature is `def set_figure(self, fig)`, with no default value, so `fig` is required.",
+          "complete_access_location": "    def set_figure(self, fig):\n        \"\"\"\n        Set the `.Figure` for the `.OffsetBox` and all its children.\n\n        Parameters\n        ----------\n        fig : `~matplotlib.figure.Figure`\n        \"\"\"\n        super().set_figure(fig)\n        for c in self.get_children():\n            c.set_figure(fig)\n"
+        },
+        {
+          "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0009",
+          "cluster_label": "OffsetBox figure assignment",
+          "operator": "L1",
+          "documentation_id": "f2e66650bb06527a21833fb288c258a63365ee73c361efcfb9e746532df6d586",
+          "unit_id": "e0cb27d0528964757d1b6135e345463c63ffd93bd6f743d7a2a43949be65b908",
+          "file": "lib/matplotlib/offsetbox.py",
+          "symbol": "lib/matplotlib/offsetbox.py::OffsetBox.set_figure",
+          "file_line_start": 232,
+          "file_line_end": 232,
+          "source_start_offset": 101,
+          "source_end_offset": 120,
+          "original_unit_source": "        ----------\n",
+          "mutated_unit_source": "        ----------\n        fig : `~matplotlib.figure.Figure`, optional\n",
+          "changed_contract": "The documentation now describes fig as optional rather than required.",
+          "evidence": "The method signature is def set_figure(self, fig), so fig has no default and is required.",
+          "complete_access_location": "    def set_figure(self, fig):\n        \"\"\"\n        Set the `.Figure` for the `.OffsetBox` and all its children.\n\n        Parameters\n        ----------\n        fig : `~matplotlib.figure.Figure`\n        \"\"\"\n        super().set_figure(fig)\n        for c in self.get_children():\n            c.set_figure(fig)\n"
+        },
+        {
+          "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0009",
+          "cluster_label": "OffsetBox figure assignment",
+          "operator": "L1",
+          "documentation_id": "f2e66650bb06527a21833fb288c258a63365ee73c361efcfb9e746532df6d586",
+          "unit_id": "5c5c9b4dd8a6ac16f7f39cc7452111d6a7772e71caa6aee2e6dce9516d5921d5",
+          "file": "lib/matplotlib/offsetbox.py",
+          "symbol": "lib/matplotlib/offsetbox.py::OffsetBox.set_figure",
+          "file_line_start": 233,
+          "file_line_end": 233,
+          "source_start_offset": 120,
+          "source_end_offset": 162,
+          "original_unit_source": "        fig : `~matplotlib.figure.Figure`\n",
+          "mutated_unit_source": "        figure : `~matplotlib.figure.Figure`\n",
+          "changed_contract": "The documented parameter name changes from `fig` to `figure`.",
+          "evidence": "The method signature defines the parameter as `fig`.",
+          "complete_access_location": "    def set_figure(self, fig):\n        \"\"\"\n        Set the `.Figure` for the `.OffsetBox` and all its children.\n\n        Parameters\n        ----------\n        fig : `~matplotlib.figure.Figure`\n        \"\"\"\n        super().set_figure(fig)\n        for c in self.get_children():\n            c.set_figure(fig)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0021",
+      "label": "Annotation draw predicate",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "matplotlib__matplotlib-25442:level_2:cluster_0021",
+          "cluster_label": "Annotation draw predicate",
+          "operator": "L2",
+          "documentation_id": "cff79db975106d681640f35bf9ccfa87d0c4ffb7e9223931aa1e6d29cbce1a00",
+          "unit_id": "abaf5fd74950f7281c8ad150be4095be191d730271cfd233ac6f4b8fa0137262",
+          "file": "lib/matplotlib/text.py",
+          "symbol": "lib/matplotlib/text.py::_AnnotationBase._check_xy",
+          "file_line_start": 1580,
+          "file_line_end": 1580,
+          "source_start_offset": 11,
+          "source_end_offset": 70,
+          "original_unit_source": "Check whether the annotation at *xy_pixel* should be drawn.",
+          "mutated_unit_source": "Check whether the annotation at *xy_pixel* should not be drawn.",
+          "changed_contract": "The documented draw predicate is inverted: it now says the annotation should not be drawn.",
+          "evidence": "The implementation returns `self.axes.contains_point(xy_pixel)` when clipping applies and `True` otherwise, indicating whether the annotation should be drawn rather than skipped.",
+          "complete_access_location": "    def _check_xy(self, renderer=None):\n        \"\"\"Check whether the annotation at *xy_pixel* should be drawn.\"\"\"\n        if renderer is None:\n            renderer = self.figure._get_renderer()\n        b = self.get_annotation_clip()\n        if b or (b is None and self.xycoords == \"data\"):\n            # check if self.xy is inside the axes.\n            xy_pixel = self._get_position_xy(renderer)\n            return self.axes.contains_point(xy_pixel)\n        return True\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "1b15122f0427674588d9b47491896899cbc81970bc77b209738fdbfa43c824b7"
+}

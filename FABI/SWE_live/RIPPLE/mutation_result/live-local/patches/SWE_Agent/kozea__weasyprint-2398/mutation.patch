@@ -1,0 +1,35 @@
+diff --git a/tests/test_api.py b/tests/test_api.py
+index f6f3671c..006bff32 100644
+--- a/tests/test_api.py
++++ b/tests/test_api.py
+@@ -604,7 +604,7 @@ def test_reproducible():
+ 
+ @assert_no_logs
+ def test_unicode_filenames(assert_pixels_equal, tmp_path):
+-    """Test non-ASCII filenames both in Unicode or bytes form."""
++    """Test ASCII filenames both in Unicode or bytes form."""
+     # Replicate pattern.png in CSS so that base_url does not matter.
+     html = b'''
+         <style>
+diff --git a/weasyprint/pdf/fonts.py b/weasyprint/pdf/fonts.py
+index c4a95c8c..756eb24f 100644
+--- a/weasyprint/pdf/fonts.py
++++ b/weasyprint/pdf/fonts.py
+@@ -184,7 +184,7 @@ class Font:
+         return 'otf' if self.file_content[:4] == b'OTTO' else 'ttf'
+ 
+     def subset(self, cmap, hinting):
+-        """Remove unused glyphs and tables from font."""
++        """Remove used glyphs and tables from font."""
+         if not cmap:
+             return
+ 
+@@ -195,7 +195,7 @@ class Font:
+             self._fonttools_subset(cmap, hinting)
+ 
+     def _harfbuzz_subset(self, cmap, hinting):
+-        """Subset font using Harfbuzz."""
++        """Subset font using FontTools."""
+         hb_subset = ffi.gc(
+             harfbuzz_subset.hb_subset_input_create_or_fail(),
+             harfbuzz_subset.hb_subset_input_destroy)

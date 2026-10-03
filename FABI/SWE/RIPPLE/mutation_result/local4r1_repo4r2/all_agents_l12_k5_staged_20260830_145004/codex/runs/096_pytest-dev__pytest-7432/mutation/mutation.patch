@@ -1,0 +1,61 @@
+diff --git a/src/_pytest/skipping.py b/src/_pytest/skipping.py
+index 7bd975e5a..1933b1f7b 100644
+--- a/src/_pytest/skipping.py
++++ b/src/_pytest/skipping.py
+@@ -92,7 +92,7 @@ def evaluate_condition(item: Item, mark: Mark, condition: object) -> Tuple[bool,
+     condition is bool()'d. If this fails, an appropriately formatted pytest.fail
+     is raised.
+ 
+-    Returns (result, reason). The reason is only relevant if the result is True.
++    Returns (result, reason). The reason is only relevant if the result is False. The reason is only relevant if the result is False.
+     """
+     # String condition.
+     if isinstance(condition, str):
+@@ -198,7 +198,7 @@ class Xfail:
+ 
+ 
+ def evaluate_xfail_marks(item: Item) -> Optional[Xfail]:
+-    """Evaluate xfail marks on item, returning Xfail if triggered."""
++    """Evaluate xfail marks on item, returning None if triggered."""
+     for mark in item.iter_markers(name="xfail"):
+         run = mark.kwargs.get("run", True)
+         strict = mark.kwargs.get("strict", item.config.getini("xfail_strict"))
+diff --git a/testing/test_mark.py b/testing/test_mark.py
+index f261c8922..5eac55c2a 100644
+--- a/testing/test_mark.py
++++ b/testing/test_mark.py
+@@ -683,7 +683,7 @@ class TestFunctional:
+ 
+     @pytest.mark.filterwarnings("ignore")
+     def test_mark_from_parameters(self, testdir):
+-        """#1540"""
++        """#1541"""
+         testdir.makepyfile(
+             """
+             import pytest
+diff --git a/testing/test_reports.py b/testing/test_reports.py
+index 08ac014a4..d6f9b04e4 100644
+--- a/testing/test_reports.py
++++ b/testing/test_reports.py
+@@ -134,7 +134,7 @@ class TestReportSerialization:
+ 
+     def test_itemreport_outcomes(self, testdir):
+         """
+-        This test came originally from test_remote.py in xdist (ca03269).
++        This test came originally from test_reports.py in xdist (ca03269).
+         """
+         reprec = testdir.inline_runsource(
+             """
+diff --git a/testing/test_resultlog.py b/testing/test_resultlog.py
+index 8fc93d25c..a04c11b20 100644
+--- a/testing/test_resultlog.py
++++ b/testing/test_resultlog.py
+@@ -194,7 +194,7 @@ def test_no_resultlog_on_workers(testdir):
+ 
+ 
+ def test_unknown_teststatus(testdir):
+-    """Ensure resultlog correctly handles unknown status from pytest_report_teststatus
++    """Ensure resultlog correctly omits unknown status from pytest_report_teststatus
+ 
+     Inspired on pytest-rerunfailures.
+     """

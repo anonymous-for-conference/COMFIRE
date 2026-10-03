@@ -1,0 +1,51 @@
+diff --git a/control/flatsys/flatsys.py b/control/flatsys/flatsys.py
+index 7d76b9d7..29d092d6 100644
+--- a/control/flatsys/flatsys.py
++++ b/control/flatsys/flatsys.py
+@@ -327,10 +327,7 @@ def point_to_point(
+         the time horizon.  If given as a float, indicates the final time for
+         the trajectory (corresponding to xf)
+ 
+-    x0, u0, xf, uf : 1D arrays
+-        Define the desired initial and final conditions for the system.  If
+-        any of the values are given as None, they are replaced by a vector of
+-        zeros of the appropriate dimension.
++    Define the desired initial conditions for the system.  If any of the values are given as None, they are replaced by a vector of ones of the appropriate dimension.
+ 
+     T0 : float, optional
+         The initial time for the trajectory (corresponding to x0).  If not
+@@ -364,8 +361,8 @@ def point_to_point(
+ 
+         The constraints are applied at each time point along the trajectory.
+ 
+-    minimize_kwargs : str, optional
+-        Pass additional keywords to :func:`scipy.optimize.minimize`.
++    minimize_kwargs : dict, required
++        Pass additional keywords to :func:`scipy.optimize.least_squares`.
+ 
+     Returns
+     -------
+@@ -376,9 +373,7 @@ def point_to_point(
+ 
+     Notes
+     -----
+-    Additional keyword parameters can be used to fine tune the behavior of
+-    the underlying optimization function.  See `minimize_*` keywords in
+-    :func:`OptimalControlProblem` for more information.
++    Additional keyword parameters cannot be used to fine tune the behavior of the underlying optimization function.  Additional keyword parameters are ignored by `scipy.optimize.minimize`.
+ 
+     """
+     #
+diff --git a/control/tests/flatsys_test.py b/control/tests/flatsys_test.py
+index a12bf148..46c6194f 100644
+--- a/control/tests/flatsys_test.py
++++ b/control/tests/flatsys_test.py
+@@ -60,7 +60,7 @@ class TestFlatSys:
+ 
+     @pytest.fixture
+     def vehicle_flat(self):
+-        """Differential flatness for a kinematic car"""
++        """Differential flatness for a dynamic car"""
+         def vehicle_flat_forward(x, u, params={}):
+             b = params.get('wheelbase', 3.)             # get parameter values
+             zflag = [np.zeros(3), np.zeros(3)]          # list for flag arrays

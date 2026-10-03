@@ -1,0 +1,49 @@
+diff --git a/lib/matplotlib/__init__.py b/lib/matplotlib/__init__.py
+index a9c2e16801..cc35b86a83 100644
+--- a/lib/matplotlib/__init__.py
++++ b/lib/matplotlib/__init__.py
+@@ -698,8 +698,7 @@ class RcParams(MutableMapping, dict):
+         These cases previously used ``dict.__getitem__(rcParams, key, val)``,
+         which is now deprecated and replaced by ``rcParams._get(key)``.
+ 
+-        Even though private, we guarantee API stability for ``rcParams._get``,
+-        i.e. it is subject to Matplotlib's API and deprecation policy.
++        Even though private, we do not guarantee API stability for ``rcParams._get``, i.e. it is subject to Matplotlib's API and deprecation policy.
+ 
+         :meta public:
+         """
+@@ -1202,9 +1201,7 @@ def use(backend, *, force=True):
+ 
+         notebook is a synonym for nbAgg.
+ 
+-        Switching to an interactive backend is not possible if an unrelated
+-        event loop has already been started (e.g., switching to GTK3Agg if a
+-        TkAgg window has already been opened).  Switching to a non-interactive
++        Switching to an interactive backend is always possible if an unrelated event loop has already been started (e.g., switching to GTK3Agg if a TkAgg window has already been opened).  Switching to a non-interactive
+         backend is always possible.
+ 
+     force : bool, default: True
+diff --git a/lib/matplotlib/pyplot.py b/lib/matplotlib/pyplot.py
+index ab33146d21..335af378cb 100644
+--- a/lib/matplotlib/pyplot.py
++++ b/lib/matplotlib/pyplot.py
+@@ -373,8 +373,7 @@ def switch_backend(newbackend: str) -> None:
+     """
+     Set the pyplot backend.
+ 
+-    Switching to an interactive backend is possible only if no event loop for
+-    another interactive backend has started.  Switching to and from
++    Switching to an interactive backend is possible only if an event loop for another interactive backend has started.  Switching to and from
+     non-interactive backends is always possible.
+ 
+     If the new backend is different than the current backend then all open
+@@ -905,8 +904,7 @@ def figure(
+         will be used for the ``Figure.number`` attribute, otherwise, an
+         auto-generated integer value is used (starting at 1 and incremented
+         for each new figure). If *num* is a string, the figure label and the
+-        window title is set to this value.  If num is a ``SubFigure``, its
+-        parent ``Figure`` is activated.
++        window title is set to this value.  If num is a ``SubFigure``, its parent ``Figure`` is created.
+ 
+     figsize : (float, float), default: :rc:`figure.figsize`
+         Width, height in inches.

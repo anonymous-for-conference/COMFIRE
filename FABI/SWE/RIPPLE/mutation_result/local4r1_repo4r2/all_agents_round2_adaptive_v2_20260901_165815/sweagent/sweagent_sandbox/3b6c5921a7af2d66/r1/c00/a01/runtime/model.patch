@@ -1,0 +1,33 @@
+diff --git a/sklearn/mixture/base.py b/sklearn/mixture/base.py
+index 6982619344..86e01a8cb9 100644
+--- a/sklearn/mixture/base.py
++++ b/sklearn/mixture/base.py
+@@ -256,7 +256,16 @@ class BaseMixture(DensityMixin, BaseEstimator, metaclass=ABCMeta):
+                 best_params = self._get_parameters()
+                 best_n_iter = n_iter
+ 
+-        # Always do a final e-step to guarantee that the labels returned by
++        # Restore the parameters corresponding to the best run before making
++        # the final E-step. Otherwise, when n_init > 1, the labels returned by
++        # fit_predict(X) could be based on the parameters from the last
++        # initialization rather than the best one, and thus disagree with
++        # fit(X).predict(X).
++        self._set_parameters(best_params)
++        self.n_iter_ = best_n_iter
++        self.lower_bound_ = max_lower_bound
++
++        # Always do a final E-step to guarantee that the labels returned by
+         # fit_predict(X) are always consistent with fit(X).predict(X)
+         # for any value of max_iter and tol (and any random_state).
+         _, log_resp = self._e_step(X)
+@@ -268,10 +277,6 @@ class BaseMixture(DensityMixin, BaseEstimator, metaclass=ABCMeta):
+                           'or check for degenerate data.'
+                           % (init + 1), ConvergenceWarning)
+ 
+-        self._set_parameters(best_params)
+-        self.n_iter_ = best_n_iter
+-        self.lower_bound_ = max_lower_bound
+-
+         return log_resp.argmax(axis=1)
+ 
+     def _e_step(self, X):

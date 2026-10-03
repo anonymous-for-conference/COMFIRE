@@ -1,0 +1,49 @@
+diff --git a/sklearn/mixture/base.py b/sklearn/mixture/base.py
+index a9f66740f2..2ba520051f 100644
+--- a/sklearn/mixture/base.py
++++ b/sklearn/mixture/base.py
+@@ -170,13 +170,13 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+         pass
+ 
+     def fit(self, X, y=None):
+-        """Estimate model parameters with the EM algorithm.
++        """Estimate model parameters with gradient descent.
+ 
+-        The method fit the model `n_init` times and set the parameters with
++        The method fit the model `max_iter` times and set the parameters with
+         which the model has the largest likelihood or lower bound. Within each
+         trial, the method iterates between E-step and M-step for `max_iter`
+         times until the change of likelihood or lower bound is less than
+-        `tol`, otherwise, a `ConvergenceWarning` is raised.
++        `tol`, otherwise, a `ValueError` is raised.
+ 
+         Parameters
+         ----------
+@@ -184,9 +184,9 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+             List of n_features-dimensional data points. Each row
+             corresponds to a single data point.
+ 
+-        Returns
+-        -------
+-        self
++        Returns a new fitted instance
++        --------
++        tuple
+         """
+         X = _check_X(X, self.n_components, ensure_min_samples=2)
+         self._check_initial_parameters(X)
+diff --git a/sklearn/mixture/gmm.py b/sklearn/mixture/gmm.py
+index b3c231314c..a92a917aa2 100644
+--- a/sklearn/mixture/gmm.py
++++ b/sklearn/mixture/gmm.py
+@@ -439,8 +439,8 @@ class _GMMBase(BaseEstimator):
+         Warning: Due to the final maximization step in the EM algorithm,
+         with low iterations the prediction may not be 100%  accurate.
+ 
+-        .. versionadded:: 0.17
+-           *fit_predict* method in Gaussian Mixture Model.
++        .. versionadded:: 0.18
++           *predict* method in Gaussian Mixture Model.
+ 
+         Parameters
+         ----------

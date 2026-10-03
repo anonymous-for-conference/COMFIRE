@@ -1,0 +1,241 @@
+diff --git a/llama_deploy/client/async_client.py b/llama_deploy/client/async_client.py
+index cd521d1..7686279 100644
+--- a/llama_deploy/client/async_client.py
++++ b/llama_deploy/client/async_client.py
+@@ -9,10 +9,14 @@ from llama_deploy.control_plane.server import ControlPlaneConfig
+ from llama_deploy.types import (
+     ServiceDefinition,
+     SessionDefinition,
++    EventDefinition,
+     TaskDefinition,
+     TaskResult,
+ )
+ 
++from llama_index.core.workflow import Event
++from llama_index.core.workflow.context_serializers import JsonSerializer
++
+ DEFAULT_TIMEOUT = 120.0
+ DEFAULT_POLL_INTERVAL = 0.5
+ 
+@@ -150,6 +154,20 @@ class AsyncSessionClient:
+                     )
+ 
+ 
++    async def send_event(self, service_name: str, task_id: str, ev: Event) -> None:
++        """Send an event to a workflow service for an in-progress task."""
++        event_def = EventDefinition(
++            event_obj_str=JsonSerializer().serialize(ev), agent_id=service_name
++        )
++        async with httpx.AsyncClient(timeout=self.timeout) as client:
++            response = await client.post(
++                f"{self.control_plane_url}/sessions/{self.session_id}/tasks/{task_id}/send_event",
++                json=event_def.model_dump(),
++            )
++            response.raise_for_status()
++
++
++
+ class AsyncLlamaDeployClient:
+     def __init__(
+         self, control_plane_config: ControlPlaneConfig, timeout: float = DEFAULT_TIMEOUT
+diff --git a/llama_deploy/client/sync_client.py b/llama_deploy/client/sync_client.py
+index 76d1739..e3f614a 100644
+--- a/llama_deploy/client/sync_client.py
++++ b/llama_deploy/client/sync_client.py
+@@ -5,12 +5,16 @@ from typing import Any, Generator, List, Optional
+ 
+ from llama_deploy.control_plane.server import ControlPlaneConfig
+ from llama_deploy.types import (
++    EventDefinition,
+     TaskDefinition,
+     ServiceDefinition,
+     TaskResult,
+     SessionDefinition,
+ )
+ 
++from llama_index.core.workflow import Event
++from llama_index.core.workflow.context_serializers import JsonSerializer
++
+ DEFAULT_TIMEOUT = 120.0
+ DEFAULT_POLL_INTERVAL = 0.5
+ 
+@@ -152,6 +156,20 @@ class SessionClient:
+                         )
+ 
+ 
++    def send_event(self, service_name: str, task_id: str, ev: Event) -> None:
++        """Send an event to a workflow service for an in-progress task."""
++        event_def = EventDefinition(
++            event_obj_str=JsonSerializer().serialize(ev), agent_id=service_name
++        )
++        with httpx.Client(timeout=self.timeout) as client:
++            response = client.post(
++                f"{self.control_plane_url}/sessions/{self.session_id}/tasks/{task_id}/send_event",
++                json=event_def.model_dump(),
++            )
++            response.raise_for_status()
++
++
++
+ class LlamaDeployClient:
+     def __init__(
+         self, control_plane_config: ControlPlaneConfig, timeout: float = DEFAULT_TIMEOUT
+diff --git a/llama_deploy/control_plane/server.py b/llama_deploy/control_plane/server.py
+index 7ecec4e..450d897 100644
+--- a/llama_deploy/control_plane/server.py
++++ b/llama_deploy/control_plane/server.py
+@@ -25,6 +25,7 @@ from llama_deploy.orchestrators.base import BaseOrchestrator
+ from llama_deploy.orchestrators.utils import get_result_key, get_stream_key
+ from llama_deploy.types import (
+     ActionTypes,
++    EventDefinition,
+     ServiceDefinition,
+     SessionDefinition,
+     TaskDefinition,
+@@ -237,6 +238,12 @@ class ControlPlaneServer(BaseControlPlane):
+             methods=["GET"],
+             tags=["Sessions"],
+         )
++        self.app.add_api_route(
++            "/sessions/{session_id}/tasks/{task_id}/send_event",
++            self.send_event,
++            methods=["POST"],
++            tags=["Sessions"],
++        )
+         self.app.add_api_route(
+             "/sessions/{session_id}/state",
+             self.get_session_state,
+@@ -584,6 +591,23 @@ class ControlPlaneServer(BaseControlPlane):
+             media_type="application/x-ndjson",
+         )
+ 
++    async def send_event(
++        self, session_id: str, task_id: str, event_def: EventDefinition
++    ) -> None:
++        task_def = TaskDefinition(
++            task_id=task_id,
++            session_id=session_id,
++            input=event_def.event_obj_str,
++            agent_id=event_def.agent_id,
++        )
++        await self.publish(
++            QueueMessage(
++                type=event_def.agent_id,
++                action=ActionTypes.SEND_EVENT,
++                data=task_def.model_dump(),
++            )
++        )
++
+     async def get_session_state(self, session_id: str) -> Dict[str, Any]:
+         session = await self.get_session(session_id)
+         if session.task_ids is None:
+diff --git a/llama_deploy/services/workflow.py b/llama_deploy/services/workflow.py
+index 2dfade1..6a17d5f 100644
+--- a/llama_deploy/services/workflow.py
++++ b/llama_deploy/services/workflow.py
+@@ -3,6 +3,7 @@ import json
+ import os
+ import uuid
+ import uvicorn
++from collections import defaultdict
+ from contextlib import asynccontextmanager
+ from fastapi import FastAPI
+ from logging import getLogger
+@@ -11,6 +12,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
+ from typing import AsyncGenerator, Dict, Optional, Any
+ 
+ from llama_index.core.workflow import Context, Workflow
++from llama_index.core.workflow.context_serializers import JsonSerializer
+ from llama_index.core.workflow.context_serializers import JsonPickleSerializer
+ 
+ from llama_deploy.message_consumers.base import BaseMessageQueueConsumer
+@@ -127,6 +129,7 @@ class WorkflowService(BaseService):
+     _publish_callback: Optional[PublishCallback] = PrivateAttr()
+     _lock: asyncio.Lock = PrivateAttr()
+     _outstanding_calls: Dict[str, WorkflowState] = PrivateAttr()
++    _events_buffer: Dict[str, asyncio.Queue] = PrivateAttr()
+ 
+     def __init__(
+         self,
+@@ -164,6 +167,7 @@ class WorkflowService(BaseService):
+         self._publish_callback = publish_callback
+ 
+         self._outstanding_calls: Dict[str, WorkflowState] = {}
++        self._events_buffer: Dict[str, asyncio.Queue] = defaultdict(asyncio.Queue)
+         self._ongoing_tasks: Dict[str, asyncio.Task] = {}
+ 
+         self._app = FastAPI(lifespan=self.lifespan)
+@@ -278,6 +282,7 @@ class WorkflowService(BaseService):
+             current_call (WorkflowState):
+                 The state of the current task, including run_kwargs and other session state.
+         """
++        close_send_events = asyncio.Event()
+         try:
+             # load the state
+             ctx = await self.get_workflow_state(current_call)
+@@ -285,6 +290,19 @@ class WorkflowService(BaseService):
+             # run the workflow
+             handler = self.workflow.run(ctx=ctx, **current_call.run_kwargs)
+ 
++            async def send_events() -> None:
++                if handler.ctx is None:
++                    raise ValueError("handler does not have a valid Context.")
++                while not close_send_events.is_set():
++                    try:
++                        event = self._events_buffer[current_call.task_id].get_nowait()
++                        handler.ctx.send_event(event)
++                    except asyncio.QueueEmpty:
++                        pass
++                    await asyncio.sleep(self.step_interval)
++
++            asyncio.create_task(send_events())
++
+             index = 0
+             async for ev in handler.stream_events():
+                 logger.debug(f"Publishing event: {ev}")
+@@ -343,6 +361,7 @@ class WorkflowService(BaseService):
+                 )
+             )
+         finally:
++            close_send_events.set()
+             # clean up
+             async with self.lock:
+                 self._outstanding_calls.pop(current_call.task_id, None)
+@@ -415,6 +434,11 @@ class WorkflowService(BaseService):
+ 
+             async with self.lock:
+                 self._outstanding_calls[task_def.task_id] = workflow_state
++        elif message.action == ActionTypes.SEND_EVENT:
++            task_def = TaskDefinition(**message.data or {})
++            event = JsonSerializer().deserialize(task_def.input)
++            async with self.lock:
++                self._events_buffer[task_def.task_id].put_nowait(event)
+         else:
+             raise ValueError(f"Unhandled action: {message.action}")
+ 
+diff --git a/llama_deploy/types.py b/llama_deploy/types.py
+index 1e6c7af..ff91c94 100644
+--- a/llama_deploy/types.py
++++ b/llama_deploy/types.py
+@@ -78,6 +78,7 @@ class ActionTypes(str, Enum):
+     NEW_TOOL_CALL = "new_tool_call"
+     COMPLETED_TOOL_CALL = "completed_tool_call"
+     TASK_STREAM = "task_stream"
++    SEND_EVENT = "send_event"
+ 
+ 
+ class TaskDefinition(BaseModel):
+@@ -127,6 +128,13 @@ class SessionDefinition(BaseModel):
+         return self.task_ids[-1]
+ 
+ 
++class EventDefinition(BaseModel):
++    """Serialized workflow event sent to an in-progress task."""
++
++    agent_id: str
++    event_obj_str: str
++
++
+ class TaskResult(BaseModel):
+     """
+     The result of a task.

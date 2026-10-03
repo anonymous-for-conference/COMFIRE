@@ -1,0 +1,80 @@
+diff --git a/sympy/simplify/fu.py b/sympy/simplify/fu.py
+index 3e5bd7399b..a00870939e 100644
+--- a/sympy/simplify/fu.py
++++ b/sympy/simplify/fu.py
+@@ -872,6 +872,31 @@ def do(rv, first=True):
+                 return rv
+ 
+                          
++            def _trig_pair(term):
++                coeff, rest = term.as_coeff_Mul()
++                factors = Mul.make_args(rest)
++                if len(factors) != 2:
++                    return None
++                if not all(isinstance(f, (sin, cos)) for f in factors):
++                    return None
++                return coeff, factors
++
++            t1 = _trig_pair(args[0])
++            t2 = _trig_pair(args[1])
++            if t1 and t2 and t1[0] == t2[0]:
++                c, f1 = t1
++                _, f2 = t2
++                funcs1 = tuple(f.func for f in f1)
++                funcs2 = tuple(f.func for f in f2)
++                args1 = [f.args[0] for f in f1]
++                args2 = [f.args[0] for f in f2]
++                if ((funcs1, funcs2) in [((cos, cos), (sin, sin)), ((sin, sin), (cos, cos))]
++                        and set(args1) == set(args2)):
++                    return c*cos(args1[0] - args1[1])
++                if ((funcs1, funcs2) in [((sin, cos), (cos, sin)), ((cos, sin), (sin, cos))]
++                        and set(args1) == set(args2)):
++                    return c*sin(args1[0] + args1[1])
++
+             split = trig_split(*args, two=True)
+             if not split:
+                 return rv
+diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py
+index f99ca9076a..61e4a5edd3 100644
+--- a/sympy/simplify/tests/test_trigsimp.py
++++ b/sympy/simplify/tests/test_trigsimp.py
+@@ -152,6 +152,11 @@ def test_issue_3210():
+         ]
+ 
+ 
++def test_issue_rational_trigsimp():
++    r = sin(S(1)/50)*sin(S(1)/25) + cos(S(1)/50)*cos(S(1)/25)
++    assert trigsimp(r) == cos(S(1)/50)
++
++
+ def test_trigsimp_issues():
+     a, x, y = symbols('a x y')
+ 
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 3c792ced9d..77c5157427 100644
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -1082,7 +1082,7 @@ def futrig(e, **kwargs):
+                    
+ 
+        
+-    from sympy.simplify.fu import hyper_as_trig
++    from sympy.simplify.fu import hyper_as_trig, TR10i
+     from sympy.simplify.simplify import bottom_up
+ 
+     e = sympify(e)
+@@ -1100,8 +1100,13 @@ def futrig(e, **kwargs):
+         e, f = hyper_as_trig(e)
+         e = f(_futrig(e))
+ 
++    if e.has(TrigonometricFunction):
++        e2 = TR10i(e)
++        if e2 != e:
++            e = e2
++
+     if e != old and e.is_Mul and e.args[0].is_Rational:
+-                                                 
++                                                  
+         e = Mul(*e.as_coeff_Mul())
+     return e
+ 

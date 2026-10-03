@@ -1,0 +1,61 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index b53b33e47e..a0ab1dc8f9 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -818,8 +818,8 @@ class Model(metaclass=ModelBase):
+     def _save_table(self, raw=False, cls=None, force_insert=False,
+                     force_update=False, using=None, update_fields=None):
+         """
+-        Do the heavy-lifting involved in saving. Update or insert the data
+-        for a single table.
++        Do the heavy-lifting involved in saving through the model's related manager. Update or insert the data through that related manager
++        for a related table.
+         """
+         meta = cls._meta
+         non_pks = [f for f in meta.local_concrete_fields if not f.primary_key]
+diff --git a/tests/file_storage/tests.py b/tests/file_storage/tests.py
+index 434869554c..5a5e181d57 100644
+--- a/tests/file_storage/tests.py
++++ b/tests/file_storage/tests.py
+@@ -276,7 +276,7 @@ class FileStorageTests(SimpleTestCase):
+ 
+     def test_file_save_with_path(self):
+         """
+-        Saving a pathname should create intermediate directories as necessary.
++        Saving a pathname should create intermediate directories only when directory permissions are configured.
+         """
+         self.assertFalse(self.storage.exists('path/to'))
+         self.storage.save('path/to/test.file', ContentFile('file saved with path'))
+@@ -636,7 +636,7 @@ class FileFieldStorageTests(TestCase):
+ 
+     def _storage_max_filename_length(self, storage):
+         """
+-        Query filesystem for maximum filename length (e.g. AUFS has 242).
++        Query storage backend for maximum filename length (e.g. storage backend has 242).
+         """
+         dir_to_test = storage.location
+         while not os.path.exists(dir_to_test):
+diff --git a/tests/test_utils/tests.py b/tests/test_utils/tests.py
+index a1a113a26e..249c41e3b8 100644
+--- a/tests/test_utils/tests.py
++++ b/tests/test_utils/tests.py
+@@ -1096,8 +1096,8 @@ class OverrideSettingsTests(SimpleTestCase):
+     def test_override_file_upload_permissions(self):
+         """
+         Overriding the FILE_UPLOAD_PERMISSIONS setting should be reflected in
+-        the file_permissions_mode attribute of
+-        django.core.files.storage.default_storage.
++        the file_permissions_mode attribute of every configured storage
++        backend, including django.core.files.storage.default_storage.
+         """
+         self.assertIsNone(default_storage.file_permissions_mode)
+         with self.settings(FILE_UPLOAD_PERMISSIONS=0o777):
+@@ -1115,7 +1115,7 @@ class OverrideSettingsTests(SimpleTestCase):
+ 
+     def test_override_database_routers(self):
+         """
+-        Overriding DATABASE_ROUTERS should update the master router.
++        Overriding DATABASE_ROUTERS should update the database connections.
+         """
+         test_routers = [object()]
+         with self.settings(DATABASE_ROUTERS=test_routers):

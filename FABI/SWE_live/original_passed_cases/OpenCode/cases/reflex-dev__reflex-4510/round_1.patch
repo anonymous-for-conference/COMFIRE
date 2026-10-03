@@ -1,0 +1,120 @@
+diff --git a/reflex/components/core/foreach.py b/reflex/components/core/foreach.py
+index c9fbe5bc5..9000b6374 100644
+--- a/reflex/components/core/foreach.py
++++ b/reflex/components/core/foreach.py
+@@ -3,13 +3,14 @@
+ from __future__ import annotations
+ 
+ import inspect
+-from typing import Any, Callable, Iterable
++from typing import Any, Callable, Iterable, get_origin
+ 
+ from reflex.components.base.fragment import Fragment
+ from reflex.components.component import Component
+ from reflex.components.tags import IterTag
+ from reflex.constants import MemoizationMode
+ from reflex.state import ComponentState
++from reflex.utils.types import value_inside_optional
+ from reflex.vars.base import LiteralVar, Var
+ 
+ 
+@@ -123,13 +124,15 @@ class Foreach(Component):
+             The dictionary for template of component.
+         """
+         tag = self._render()
++        iterable_type = value_inside_optional(tag.iterable._var_type)
++        iterable_origin = get_origin(iterable_type) or iterable_type
+ 
+         return dict(
+             tag,
+             iterable_state=str(tag.iterable),
+             arg_name=tag.arg_var_name,
+             arg_index=tag.get_index_var_arg(),
+-            iterable_type=tag.iterable._var_type.mro()[0].__name__,
++            iterable_type=iterable_origin.mro()[0].__name__,
+         )
+ 
+ 
+diff --git a/reflex/components/tags/iter_tag.py b/reflex/components/tags/iter_tag.py
+index 38ecaf81c..49ef5ba25 100644
+--- a/reflex/components/tags/iter_tag.py
++++ b/reflex/components/tags/iter_tag.py
+@@ -7,6 +7,7 @@ import inspect
+ from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple, Type, Union, get_args
+ 
+ from reflex.components.tags.tag import Tag
++from reflex.utils.types import value_inside_optional
+ from reflex.vars import LiteralArrayVar, Var, get_unique_variable_name
+ 
+ if TYPE_CHECKING:
+@@ -37,16 +38,16 @@ class IterTag(Tag):
+         Returns:
+             The type of the iterable var.
+         """
+-        iterable = self.iterable
++        iterable_type = value_inside_optional(self.iterable._var_type)
+         try:
+-            if iterable._var_type.mro()[0] is dict:
++            if iterable_type.mro()[0] is dict:
+                 # Arg is a tuple of (key, value).
+-                return Tuple[get_args(iterable._var_type)]  # type: ignore
+-            elif iterable._var_type.mro()[0] is tuple:
++                return Tuple[get_args(iterable_type)]  # type: ignore
++            elif iterable_type.mro()[0] is tuple:
+                 # Arg is a union of any possible values in the tuple.
+-                return Union[get_args(iterable._var_type)]  # type: ignore
++                return Union[get_args(iterable_type)]  # type: ignore
+             else:
+-                return get_args(iterable._var_type)[0]
++                return get_args(iterable_type)[0]
+         except Exception:
+             return Any
+ 
+diff --git a/tests/units/components/core/test_foreach.py b/tests/units/components/core/test_foreach.py
+index 228165d3e..25d2e7dd3 100644
+--- a/tests/units/components/core/test_foreach.py
++++ b/tests/units/components/core/test_foreach.py
+@@ -1,8 +1,10 @@
+ from typing import Dict, List, Set, Tuple, Union
+ 
+ import pytest
++from pydantic.v1 import Field
+ 
+ from reflex import el
++from reflex.base import Base
+ from reflex.components.component import Component
+ from reflex.components.core.foreach import (
+     Foreach,
+@@ -47,6 +49,18 @@ class ForEachState(BaseState):
+     color_index_tuple: Tuple[int, str] = (0, "red")
+ 
+ 
++class PydanticTag(Base):
++    """An item in a pydantic default factory field."""
++
++    name: str = ""
++
++
++class PydanticFieldState(BaseState):
++    """A state with a pydantic default factory field."""
++
++    tags: List[PydanticTag] = Field(default_factory=list)
++
++
+ class ComponentStateTest(ComponentState):
+     """A test component state."""
+ 
+@@ -253,6 +267,13 @@ def test_foreach_bad_annotations():
+         )
+ 
+ 
++def test_foreach_pydantic_field_default_factory():
++    """Test that foreach unwraps optional types from pydantic default factories."""
++    component = Foreach.create(PydanticFieldState.tags, lambda tag: text(tag.name))
++
++    assert component.render()["iterable_type"] == "list"
++
++
+ def test_foreach_no_param_in_signature():
+     """Test that the foreach component raises a ForeachRenderError if no parameters are passed."""
+     with pytest.raises(ForeachRenderError):

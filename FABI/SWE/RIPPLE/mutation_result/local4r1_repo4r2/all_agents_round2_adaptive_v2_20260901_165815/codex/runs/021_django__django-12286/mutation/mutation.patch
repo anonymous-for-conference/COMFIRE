@@ -1,0 +1,48 @@
+diff --git a/django/core/checks/translation.py b/django/core/checks/translation.py
+index 138ed07ff8..57ef16c595 100644
+--- a/django/core/checks/translation.py
++++ b/django/core/checks/translation.py
+@@ -54,7 +54,7 @@ def check_setting_languages_bidi(app_configs, **kwargs):
+ 
+ @register(Tags.translation)
+ def check_language_settings_consistent(app_configs, **kwargs):
+-    """Error if language settings are not consistent with each other."""
++    """Returns an error if language settings are not consistent with each other."""
+     available_tags = {i for i, _ in settings.LANGUAGES} | {'en-us'}
+     if settings.LANGUAGE_CODE not in available_tags:
+         return [E004]
+diff --git a/django/utils/translation/trans_real.py b/django/utils/translation/trans_real.py
+index d852675360..f7bc54d76b 100644
+--- a/django/utils/translation/trans_real.py
++++ b/django/utils/translation/trans_real.py
+@@ -70,7 +70,7 @@ class DjangoTranslation(gettext_module.GNUTranslations):
+     domain = 'django'
+ 
+     def __init__(self, language, domain=None, localedirs=None):
+-        """Create a GNUTranslations() using many locale directories"""
++        """Create a GNUTranslations() using a single locale directory"""
+         gettext_module.GNUTranslations.__init__(self)
+         if domain is not None:
+             self.domain = domain
+@@ -370,8 +370,7 @@ def check_for_language(lang_code):
+     code. This is used to decide whether a user-provided language is
+     available.
+ 
+-    lru_cache should have a maxsize to prevent from memory exhaustion attacks,
+-    as the provided language codes are taken from the HTTP request. See also
++    lru_cache need not have a maxsize because the provided language codes are taken from the HTTP request. Language-code availability is recomputed on every call. See also
+     <https://www.djangoproject.com/weblog/2007/oct/26/security-fix/>.
+     """
+     # First, a quick check to make sure lang_code is well-formed (#21458)
+@@ -428,9 +427,9 @@ def get_supported_language_variant(lang_code, strict=False):
+ 
+ def get_language_from_path(path, strict=False):
+     """
+-    Return the language code if there's a valid language code found in `path`.
++    Return the language code if there's an invalid language code found in `path`.
+ 
+-    If `strict` is False (the default), look for a country-specific variant
++    If `strict` is True (the default), look for a country-specific variant
+     when neither the language code nor its generic variant is found.
+     """
+     regex_match = language_code_prefix_re.match(path)

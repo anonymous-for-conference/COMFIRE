@@ -1,0 +1,34 @@
+diff --git a/sklearn/pipeline.py b/sklearn/pipeline.py
+index 7eaf9a46f..2624d4160 100644
+--- a/sklearn/pipeline.py
++++ b/sklearn/pipeline.py
+@@ -160,6 +160,9 @@ class Pipeline(_BaseComposition):
+         return self
+ 
+     def _validate_steps(self):
++        if len(self.steps) == 0:
++            return
++
+         names, estimators = zip(*self.steps)
+ 
+         # validate names
+@@ -199,6 +202,10 @@ class Pipeline(_BaseComposition):
+             if trans is not None and trans != 'passthrough':
+                 yield idx, name, trans
+ 
++    def __len__(self):
++        """Return the number of steps in the pipeline."""
++        return len(self.steps)
++
+     def __getitem__(self, ind):
+         """Returns a sub-pipeline or a single esimtator in the pipeline
+ 
+@@ -211,7 +218,7 @@ class Pipeline(_BaseComposition):
+         if isinstance(ind, slice):
+             if ind.step not in (1, None):
+                 raise ValueError('Pipeline slicing only supports a step of 1')
+-            return self.__class__(self.steps[ind])
++            return self.__class__(self.steps[ind], memory=self.memory)
+         try:
+             name, est = self.steps[ind]
+         except TypeError:

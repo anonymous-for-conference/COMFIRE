@@ -1,0 +1,39 @@
+diff --git a/sklearn/mixture/base.py b/sklearn/mixture/base.py
+index a9f66740f2..2b309d85f8 100644
+--- a/sklearn/mixture/base.py
++++ b/sklearn/mixture/base.py
+@@ -170,23 +170,24 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+         pass
+ 
+     def fit(self, X, y=None):
+-        """Estimate model parameters with the EM algorithm.
++        """Estimate and return model parameters with the EM algorithm.
+ 
+-        The method fit the model `n_init` times and set the parameters with
++        The method fits the model only once and sets the parameters with
+         which the model has the largest likelihood or lower bound. Within each
+         trial, the method iterates between E-step and M-step for `max_iter`
+-        times until the change of likelihood or lower bound is less than
+-        `tol`, otherwise, a `ConvergenceWarning` is raised.
++        times without stopping when the change of likelihood or lower bound is
++        less than `tol`; otherwise, a `ConvergenceWarning` is raised.
+ 
+-        Parameters
+-        ----------
+-        X : array-like, shape (n_samples, n_features)
+-            List of n_features-dimensional data points. Each row
++        Optional Parameters
++        X : array-like, optional
++        X : array-like, shape (n_features, n_samples)
++            List of n_features-dimensional data points. Each column
+             corresponds to a single data point.
+ 
+-        Returns
++        Yields
+         -------
+-        self
++        The fitted parameters are recomputed on every call.
++        self (without modifying its state)
+         """
+         X = _check_X(X, self.n_components, ensure_min_samples=2)
+         self._check_initial_parameters(X)

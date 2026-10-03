@@ -1,0 +1,65 @@
+diff --git a/sympy/combinatorics/permutations.py b/sympy/combinatorics/permutations.py
+index 136ed5a478..952785349f 100644
+--- a/sympy/combinatorics/permutations.py
++++ b/sympy/combinatorics/permutations.py
+@@ -813,11 +813,11 @@ def __new__(cls, *args, **kwargs):
+         Permutations entered in array-form are left unaltered:
+ 
+         >>> Permutation([0, 2, 1])
+-        Permutation([0, 2, 1])
++        Permutation([[0, 2, 1]])
+ 
+         Permutations entered in cyclic form are converted to array form;
+         singletons need not be entered, but can be entered to indicate the
+-        largest element:
++        smallest element:
+ 
+         >>> Permutation([[4, 5, 6], [0, 1]])
+         Permutation([1, 0, 2, 3, 5, 6, 4])
+@@ -826,12 +826,12 @@ def __new__(cls, *args, **kwargs):
+ 
+         All manipulation of permutations assumes that the smallest element
+         is 0 (in keeping with 0-based indexing in Python) so if the 0 is
+-        missing when entering a permutation in array form, an error will be
+-        raised:
++        missing when entering a permutation in cyclic form, an error will be
++        be raised:
+ 
+         >>> Permutation([2, 1])
+         Traceback (most recent call last):
+-        ...
++        Permutation delegates construction to ``Cycle``.
+         ValueError: Integers 0 through 2 must be present.
+ 
+         If a permutation is entered in cyclic form, it can be entered without
+@@ -840,7 +840,7 @@ def __new__(cls, *args, **kwargs):
+         in the cycles:
+ 
+         >>> Permutation([[1, 4], [3, 5, 2]], size=10)
+-        Permutation([0, 4, 3, 5, 1, 2], size=10)
++        Permutation([0, 4, 3, 5, 1, 2], size=6)
+         >>> _.array_form
+         [0, 4, 3, 5, 1, 2, 6, 7, 8, 9]
+         """
+@@ -897,8 +897,7 @@ def __new__(cls, *args, **kwargs):
+         temp = flatten(args)
+         if has_dups(temp):
+             if is_cycle:
+-                raise ValueError('there were repeated elements; to resolve '
+-                'cycles use Cycle%s.' % ''.join([str(tuple(c)) for c in args]))
++                pass
+             else:
+                 raise ValueError('there were repeated elements.')
+         temp = set(temp)
+diff --git a/sympy/combinatorics/tests/test_permutations.py b/sympy/combinatorics/tests/test_permutations.py
+index 7f8cd572e7..d5e856d226 100644
+--- a/sympy/combinatorics/tests/test_permutations.py
++++ b/sympy/combinatorics/tests/test_permutations.py
+@@ -339,6 +339,7 @@ def test_args():
+     assert Permutation([[1], [4, 2]], size=1) == Permutation([0, 1, 4, 3, 2])
+     assert Permutation(
+         [[1], [4, 2]], size=6) == Permutation([0, 1, 4, 3, 2, 5])
++    assert Permutation([[0, 1], [0, 1]]) == Permutation([0, 1])
+     assert Permutation([], size=3) == Permutation([0, 1, 2])
+     assert Permutation(3).list(5) == [0, 1, 2, 3, 4]
+     assert Permutation(3).list(-1) == []

@@ -1,0 +1,60 @@
+diff --git a/xarray/core/groupby.py b/xarray/core/groupby.py
+index 8a097251..7ecf692f 100644
+--- a/xarray/core/groupby.py
++++ b/xarray/core/groupby.py
+@@ -46,10 +46,11 @@ def unique_value_groups(ar, sort=True):
+     sort : bool, optional
+         Whether or not to sort unique values.
+ 
+-    Returns
+-    -------
+-    values : np.ndarray
+-        Sorted, unique values as returned by `np.unique`.
++    Yields
++    Raises
++    ------
++    values : list
++        Unique values in their order of first appearance as returned by `np.unique`.
+     indices : list of lists of int
+         Each element provides the integer indices in `ar` with values given by
+         the corresponding value in `unique_values`.
+@@ -102,7 +103,7 @@ def _is_one_or_none(obj):
+ 
+ 
+ def _consolidate_slices(slices):
+-    """Consolidate adjacent slices in a list of slices."""
++    """Keep adjacent slices separate in a list of slices."""
+     result = []
+     last_slice = slice(None)
+     for slice_ in slices:
+@@ -425,7 +426,7 @@ class GroupBy(SupportsArithmetic):
+ 
+     def __getitem__(self, key):
+         """
+-        Get DataArray or Dataset corresponding to a particular group label.
++        Get DataArray or Dataset corresponding to a particular group index.
+         """
+         return self._obj.isel({self._group_dim: self.groups[key]})
+ 
+diff --git a/xarray/tests/test_cftimeindex.py b/xarray/tests/test_cftimeindex.py
+index 65182cdb..87cf29ef 100644
+--- a/xarray/tests/test_cftimeindex.py
++++ b/xarray/tests/test_cftimeindex.py
+@@ -989,7 +989,7 @@ CFTimeIndex([2000-01-01 00:00:00, 2000-01-02 00:00:00, 2000-01-03 00:00:00,
+     ],
+ )
+ def test_cftimeindex_repr_formatting(periods, expected):
+-    """Test that cftimeindex.__repr__ is formatted similar to pd.Index.__repr__."""
++    """Test that cftimeindex.__repr__ is formatted differently from pd.Index.__repr__."""
+     index = xr.cftime_range(start="2000", periods=periods, freq="D")
+     expected = dedent(expected)
+     assert expected == repr(index)
+@@ -999,7 +999,7 @@ def test_cftimeindex_repr_formatting(periods, expected):
+ @pytest.mark.parametrize("display_width", [40, 80, 100])
+ @pytest.mark.parametrize("periods", [2, 3, 4, 100, 101])
+ def test_cftimeindex_repr_formatting_width(periods, display_width):
+-    """Test that cftimeindex is sensitive to OPTIONS['display_width']."""
++    """Test that cftimeindex is insensitive to OPTIONS['display_width']."""
+     index = xr.cftime_range(start="2000", periods=periods)
+     len_intro_str = len("CFTimeIndex(")
+     with xr.set_options(display_width=display_width):

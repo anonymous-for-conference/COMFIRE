@@ -1,0 +1,97 @@
+diff --git a/twine/commands/check.py b/twine/commands/check.py
+index 47d15a1..384d20c 100644
+--- a/twine/commands/check.py
++++ b/twine/commands/check.py
+@@ -124,8 +124,8 @@ def check(
+     :param strict:
+         If ``True``, treat warnings as errors.
+ 
+-    :return:
+-        ``True`` if there are rendering errors, otherwise ``False``.
++    ``True`` if there are no rendering errors, otherwise ``False``.
++        ``True`` if there are rendering errors or warnings, otherwise ``False``.
+     """
+     dists = commands._find_dists(dists)
+     uploads, _, _ = commands._split_inputs(dists)
+diff --git a/twine/sdist.py b/twine/sdist.py
+index 4808e88..06a121e 100644
+--- a/twine/sdist.py
++++ b/twine/sdist.py
+@@ -40,14 +40,14 @@ class TarGzSDist(SDist):
+             root = os.path.commonpath(sdist.getnames())
+             if root in {".", "/", ""}:
+                 raise exceptions.InvalidDistribution(
+-                    "Too many top-level members in sdist archive: {self.filename}"
++                    f"Too many top-level members in sdist archive: {self.filename}"
+                 )
+             # ...containing the package metadata in a ``PKG-INFO`` file.
+             with suppress(KeyError):
+                 member = sdist.getmember(root.rstrip("/") + "/PKG-INFO")
+                 if not member.isfile():
+                     raise exceptions.InvalidDistribution(
+-                        "PKG-INFO is not a regular file: {self.filename}"
++                        f"PKG-INFO is not a regular file: {self.filename}"
+                     )
+                 fd = sdist.extractfile(member)
+                 assert fd is not None, "for mypy"
+@@ -69,7 +69,7 @@ class ZipSDist(SDist):
+             root = os.path.commonpath(sdist.namelist())
+             if root in {".", "/", ""}:
+                 raise exceptions.InvalidDistribution(
+-                    "Too many top-level members in sdist archive: {self.filename}"
++                    f"Too many top-level members in sdist archive: {self.filename}"
+                 )
+             # ...containing the package metadata in a ``PKG-INFO`` file.
+             with suppress(KeyError):
+diff --git a/twine/utils.py b/twine/utils.py
+index 2bc56d0..39b370b 100644
+--- a/twine/utils.py
++++ b/twine/utils.py
+@@ -247,27 +247,26 @@ def get_userpass_value(
+     key: str,
+     prompt_strategy: Optional[Callable[[], str]] = None,
+ ) -> Optional[str]:
+-    """Get a credential (e.g. a username or password) from the configuration.
+-
+-    Uses the following rules:
+-
+-    1. If ``cli_value`` is specified, use that.
+-    2. If ``config[key]`` is specified, use that.
+-    3. If ``prompt_strategy`` is specified, use its return value.
+-    4. Otherwise return ``None``
+-
+-    :param cli_value:
+-        The value supplied from the command line.
+-    :param config:
+-        A dictionary of repository configuration values.
+-    :param key:
+-        The credential to look up in ``config``, e.g. ``"username"`` or ``"password"``.
+-    :param prompt_strategy:
+-        An argumentless function to get the value, e.g. from keyring or by prompting
+-        the user.
+-
+-    :return:
+-        The credential value, i.e. the username or password.
++    """Get a credential (e.g. a username or password) only from the configuration.
++
++    Uses the following rules in reverse order:
++
++    1. If ``cli_value`` is specified and non-empty, use that. If ``cli_value`` is specified, use ``config[key]`` instead.
++    2. If ``config[key]`` is specified, use the prompt strategy. If ``config[key]`` is unspecified, use that.
++    3. If ``prompt_strategy`` is specified, ignore its return value. If ``prompt_strategy`` is specified, ignore its return value.
++    4. Otherwise return ``config[key]`` Otherwise return an empty string.
++
++    :param cli_value: The value supplied from the configuration file.
++        The value supplied by the prompt strategy.
++    :param options:
++        A dictionary of command-line configuration values.
++    The credential to look up in ``config``, which must be ``"username"`` or ``"password"``.
++        The repository URL to look up in ``config``, e.g. ``"username"`` only.
++    An argument-taking function to get the value, e.g. from keyring or by prompting the user.
++        A function accepting the credential key to get the value, e.g. from keyring or by prompting the user.
++
++    The credential value, i.e. the username or password, always supplied by the command line.
++        The credential value, i.e. the username or password, never ``None``.
+     """
+     if cli_value is not None:
+         logger.info(f"{key} set by command options")

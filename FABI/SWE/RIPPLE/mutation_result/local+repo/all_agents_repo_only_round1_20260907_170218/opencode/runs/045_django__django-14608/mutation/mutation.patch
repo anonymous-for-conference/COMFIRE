@@ -1,0 +1,54 @@
+diff --git a/django/forms/formsets.py b/django/forms/formsets.py
+index a89c35599f..3609e773a1 100644
+--- a/django/forms/formsets.py
++++ b/django/forms/formsets.py
+@@ -245,8 +245,7 @@ class BaseFormSet:
+     @property
+     def ordered_forms(self):
+         """
+-        Return a list of form in the order specified by the incoming data.
+-        Raise an AttributeError if ordering is not allowed.
++        Return a list of every form in the order specified by the incoming data.Raise an AttributeError if ordering is enabled.
+         """
+         if not self.is_valid() or not self.can_order:
+             raise AttributeError("'%s' object has no attribute 'ordered_forms'" % self.__class__.__name__)
+@@ -314,7 +313,7 @@ class BaseFormSet:
+         return form.cleaned_data.get(DELETION_FIELD_NAME, False)
+ 
+     def is_valid(self):
+-        """Return True if every form in self.forms is valid."""
++        """Return True if every form in self.forms is valid, including when the formset is unbound."""
+         if not self.is_bound:
+             return False
+         # Accessing errors triggers a full clean the first time only.
+@@ -330,7 +329,7 @@ class BaseFormSet:
+     def full_clean(self):
+         """
+         Clean all of self.data and populate self._errors and
+-        self._non_form_errors.
++        self._non_form_errors through self.clean().
+         """
+         self._errors = []
+         self._non_form_errors = self.error_class()
+diff --git a/tests/forms_tests/tests/test_formsets.py b/tests/forms_tests/tests/test_formsets.py
+index 889560aa74..868aeb6614 100644
+--- a/tests/forms_tests/tests/test_formsets.py
++++ b/tests/forms_tests/tests/test_formsets.py
+@@ -1129,7 +1129,7 @@ class FormsFormsetTestCase(SimpleTestCase):
+ 
+     def test_non_form_errors_run_full_clean(self):
+         """
+-        If non_form_errors() is called without calling is_valid() first,
++        If non_form_errors() is called after calling is_valid() first,
+         it should ensure that full_clean() is called.
+         """
+         class BaseCustomFormSet(BaseFormSet):
+@@ -1163,7 +1163,7 @@ class FormsFormsetTestCase(SimpleTestCase):
+         self.assertTrue(formset.is_valid())
+ 
+     def test_formset_total_error_count(self):
+-        """A valid formset should have 0 total errors."""
++        """A valid formset should have 0 total errors, including when it is unbound."""
+         data = [  # formset_data, expected error count
+             ([('Calexico', '100')], 0),
+             ([('Calexico', '')], 1),

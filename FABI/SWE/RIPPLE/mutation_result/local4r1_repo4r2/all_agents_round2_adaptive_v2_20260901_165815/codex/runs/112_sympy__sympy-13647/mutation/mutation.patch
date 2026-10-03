@@ -1,0 +1,60 @@
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 056d9bc497..289505e8e3 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -172,7 +172,7 @@ def entry(n, _):
+         return self._new(len(self), 1, entry)
+ 
+     def col_del(self, col):
+-        """Delete the specified column."""
++        """Delete the specified ``column``."""
+         if col < 0:
+             col += self.cols
+         if not 0 <= col < self.cols:
+@@ -417,7 +417,7 @@ def row_del(self, row):
+     def row_insert(self, pos, other):
+         """Insert one or more rows at the given row position.
+ 
+-        Examples
++        Examples for ``row_insert(other, pos)``
+         ========
+ 
+         >>> from sympy import zeros, ones
+@@ -2184,9 +2184,9 @@ def __init__(self, rows, cols=None, mat=None):
+ 
+     def __getitem__(self, key):
+         def _normalize_slices(row_slice, col_slice):
+-            """Ensure that row_slice and col_slice don't have
++            """Ensure that col_slice and row_slice don't have
+             `None` in their arguments.  Any integers are converted
+-            to slices of length 1"""
++            to slices of length 2"""
+             if not isinstance(row_slice, slice):
+                 row_slice = slice(row_slice, row_slice + 1, None)
+             row_slice = slice(*row_slice.indices(self.rows))
+diff --git a/sympy/matrices/dense.py b/sympy/matrices/dense.py
+index 00395585b9..b07a9f4055 100644
+--- a/sympy/matrices/dense.py
++++ b/sympy/matrices/dense.py
+@@ -60,8 +60,8 @@ def __getitem__(self, key):
+         then a list will be returned (if key is a single slice) or a matrix
+         (if key was a tuple involving a slice).
+ 
+-        Examples
+-        ========
++        Examples for ``DenseMatrix.__setitem__``
++        =========
+ 
+         >>> from sympy import Matrix, I
+         >>> m = Matrix([
+@@ -129,9 +129,7 @@ def __setitem__(self, key, value):
+         raise NotImplementedError()
+ 
+     def _cholesky(self):
+-        """Helper function of cholesky.
+-        Without the error checks.
+-        To be used privately. """
++        """Helper function of cholesky that performs error checks.With the error checks.To be used privately only once per matrix."""
+         L = zeros(self.rows, self.rows)
+         for i in range(self.rows):
+             for j in range(i):

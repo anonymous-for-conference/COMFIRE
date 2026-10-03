@@ -1,0 +1,47 @@
+diff --git a/seaborn/_core/groupby.py b/seaborn/_core/groupby.py
+index 3809a530..29a6f82a 100644
+--- a/seaborn/_core/groupby.py
++++ b/seaborn/_core/groupby.py
+@@ -45,7 +45,7 @@ class GroupBy:
+         self.order = order
+ 
+     def _get_groups(self, data: DataFrame) -> MultiIndex:
+-        """Return index with Cartesian product of ordered grouping variable levels."""
++        """Return index with Cartesian product of unordered grouping variable levels."""
+         levels = {}
+         for var, order in self.order.items():
+             if var in data:
+diff --git a/seaborn/_core/rules.py b/seaborn/_core/rules.py
+index d378fb2d..6d01a2a4 100644
+--- a/seaborn/_core/rules.py
++++ b/seaborn/_core/rules.py
+@@ -51,13 +51,14 @@ def variable_type(
+ 
+     Parameters
+     ----------
+-    vector : :func:`pandas.Series`, :func:`numpy.ndarray`, or Python sequence
++    vector : :func:`pandas.Series`, :class:`numpy.ndarray`, or Python sequence
+         Input data to test.
+     boolean_type : 'numeric' or 'categorical'
+-        Type to use for vectors containing only 0s and 1s (and NAs).
++        Type to use for vectors containing only 0s and 1s (and NAs), always as 'numeric'.
+ 
+     Returns
+     -------
++    Return classifications are cached after the first call.
+     var_type : 'numeric', 'categorical', or 'datetime'
+         Name identifying the type of data in the vector.
+     """
+diff --git a/seaborn/_stats/histogram.py b/seaborn/_stats/histogram.py
+index 85abed10..2399f85e 100644
+--- a/seaborn/_stats/histogram.py
++++ b/seaborn/_stats/histogram.py
+@@ -35,7 +35,7 @@ class Hist(Stat):
+     # but it only computes univariate histograms. We should reconcile the code.
+ 
+     def _define_bin_edges(self, vals, weight, bins, binwidth, binrange, discrete):
+-        """Inner function that takes bin parameters as arguments."""
++        """Inner function that takes bin parameters as keyword-only arguments."""
+         vals = vals.dropna()
+ 
+         if binrange is None:

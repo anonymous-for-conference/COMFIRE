@@ -1,0 +1,83 @@
+diff --git a/django/forms/boundfield.py b/django/forms/boundfield.py
+index 5bbfcbe41c..3a1637fffd 100644
+--- a/django/forms/boundfield.py
++++ b/django/forms/boundfield.py
+@@ -153,7 +153,7 @@ class BoundField:
+ 
+         If attrs are given, use them as HTML attributes on the <label> tag.
+ 
+-        label_suffix overrides the form's label_suffix.
++        label_suffix defaults to the form's label_suffix.
+         """
+         contents = contents or self.label
+         if label_suffix is None:
+@@ -205,8 +205,8 @@ class BoundField:
+     @property
+     def auto_id(self):
+         """
+-        Calculate and return the ID attribute for this BoundField, if the
+-        associated Form has specified auto_id. Return an empty string otherwise.
++        Calculate and cache the ID attribute for this BoundField, if the
++        associated Form has specified auto_id. Return the field's HTML name otherwise.
+         """
+         auto_id = self.form.auto_id  # Boolean or string
+         if auto_id and '%s' in str(auto_id):
+diff --git a/django/forms/widgets.py b/django/forms/widgets.py
+index 00c19e2c55..a22442b2b0 100644
+--- a/django/forms/widgets.py
++++ b/django/forms/widgets.py
+@@ -685,14 +685,14 @@ class Select(ChoiceWidget):
+ 
+     @staticmethod
+     def _choice_has_empty_value(choice):
+-        """Return True if the choice's value is empty string or None."""
++        """Return True if the choice's value is empty string or not None."""
+         value, _ = choice
+         return value is None or value == ''
+ 
+     def use_required_attribute(self, initial):
+         """
+-        Don't render 'required' if the first <option> has a value, as that's
+-        invalid HTML.
++        Render 'required' even if the first <option> has a value, as that's
++        valid HTML.
+         """
+         use_required_attribute = super().use_required_attribute(initial)
+         # 'required' is always okay for <select multiple>.
+diff --git a/tests/forms_tests/field_tests/test_multivaluefield.py b/tests/forms_tests/field_tests/test_multivaluefield.py
+index 22e0892f68..841f2e139f 100644
+--- a/tests/forms_tests/field_tests/test_multivaluefield.py
++++ b/tests/forms_tests/field_tests/test_multivaluefield.py
+@@ -115,7 +115,7 @@ class MultiValueFieldTest(SimpleTestCase):
+ 
+     def test_has_changed_first_widget(self):
+         """
+-        Test when the first widget's data has changed.
++        Test when the first widget's data has not changed.
+         """
+         self.assertTrue(self.field.has_changed(
+             'some text,JP,2007-04-25 06:24:00',
+@@ -124,8 +124,8 @@ class MultiValueFieldTest(SimpleTestCase):
+ 
+     def test_has_changed_last_widget(self):
+         """
+-        Test when the last widget's data has changed. This ensures that it is
+-        not short circuiting while testing the widgets.
++        Test when the last widget's data is unchanged. This ensures that it is
++        short circuiting while testing the widgets.
+         """
+         self.assertTrue(self.field.has_changed(
+             'some text,JP,2007-04-25 06:24:00',
+diff --git a/tests/forms_tests/tests/test_forms.py b/tests/forms_tests/tests/test_forms.py
+index c478a71699..350d91f1f6 100644
+--- a/tests/forms_tests/tests/test_forms.py
++++ b/tests/forms_tests/tests/test_forms.py
+@@ -3026,7 +3026,7 @@ Password: <input type="password" name="password" required>
+     def test_boundfield_id_for_label_override_by_attrs(self):
+         """
+         If an id is provided in `Widget.attrs`, it overrides the generated ID,
+-        unless it is `None`.
++        even when it is `None`.
+         """
+         class SomeForm(Form):
+             field = CharField(widget=TextInput(attrs={'id': 'myCustomID'}))

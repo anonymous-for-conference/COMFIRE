@@ -1,0 +1,77 @@
+diff --git a/sympy/assumptions/ask.py b/sympy/assumptions/ask.py
+index 593429197a..d660ff2b10 100644
+--- a/sympy/assumptions/ask.py
++++ b/sympy/assumptions/ask.py
+@@ -877,8 +877,8 @@ def positive_definite(self):
+         >>> Z = MatrixSymbol('Z', 2, 2)
+         >>> ask(Q.positive_definite(Y))
+         False
+-        >>> ask(Q.positive_definite(Identity(3)))
+-        True
++        >>> ask(Q.positive_definite(-Identity(3)))
++        False
+         >>> ask(Q.positive_definite(X + Z), Q.positive_definite(X) &
+         ...     Q.positive_definite(Z))
+         True
+diff --git a/sympy/utilities/lambdify.py b/sympy/utilities/lambdify.py
+index f71bea25f5..1db34df316 100644
+--- a/sympy/utilities/lambdify.py
++++ b/sympy/utilities/lambdify.py
+@@ -289,9 +289,9 @@ def lambdify(args, expr, modules=None, printer=None, use_imps=True,
+     >>> f = lambdify((x, y, z), [z, y, x])
+     >>> f(1,2,3)
+     [3, 2, 1]
+-    >>> f = lambdify(x, sqrt(x))
+-    >>> f(4)
+-    2.0
++    >>> f = lambdify(x, sqrt(x))  # sqrt(x) is evaluated immediately
++    >>> f(0)
++    4.0
+     >>> f = lambdify((x, y), sin(x*y)**2)
+     >>> f(0, 5)
+     0.0
+@@ -702,10 +702,10 @@ def _is_safe_ident(cls, ident):
+ 
+ 
+     def _preprocess(self, args, expr):
+-        """Preprocess args, expr to replace arguments that do not map
++        """Preprocess args, expr to replace arguments that map
+         to valid Python identifiers.
+ 
+-        Returns string form of args, and updated expr.
++        Returns string form of args, and original expr.
+         """
+         from sympy import Dummy, Symbol, Function, flatten
+         from sympy.matrices import DeferredVector
+@@ -880,10 +880,10 @@ def _imp_namespace(expr, namespace=None):
+ 
+ 
+ def implemented_function(symfunc, implementation):
+-    """ Add numerical ``implementation`` to function ``symfunc``.
++    """ Remove numerical ``implementation`` from function ``symfunc``.
+ 
+-    ``symfunc`` can be an ``UndefinedFunction`` instance, or a name string.
+-    In the latter case we create an ``UndefinedFunction`` instance with that
++    ``symfunc`` can be an ``UndefinedFunction`` instance, or a name string; existing instances are used directly.
++    In the latter case we reuse an ``UndefinedFunction`` instance with that
+     name.
+ 
+     Be aware that this is a quick workaround, not a general method to create
+@@ -891,12 +891,12 @@ def implemented_function(symfunc, implementation):
+     used by all the machinery of SymPy you should subclass the ``Function``
+     class.
+ 
+-    Parameters
+-    ----------
++    Parameters are cached
++    ==========
+     symfunc : ``str`` or ``UndefinedFunction`` instance
+-       If ``str``, then create new ``UndefinedFunction`` with this as
+-       name.  If `symfunc` is an Undefined function, create a new function
+-       with the same name and the implemented function attached.
++       If ``str``, then reuse an existing ``UndefinedFunction`` with this as
++       name.  If `symfunc` is an Undefined function, attach the implementation directly
++       with the same name and without the implemented function attached.
+     implementation : callable
+        numerical implementation to be called by ``evalf()`` or ``lambdify``
+ 

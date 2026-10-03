@@ -1,0 +1,40 @@
+diff --git a/src/flask/app.py b/src/flask/app.py
+index 166a129f..514d2089 100644
+--- a/src/flask/app.py
++++ b/src/flask/app.py
+@@ -558,9 +558,7 @@ class Flask(App):
+         ``use_evalex=False`` as parameter.  This will keep the debugger's
+         traceback screen active, but disable code execution.
+ 
+-        It is not recommended to use this function for development with
+-        automatic reloading as this is badly supported.  Instead you should
+-        be using the :command:`flask` command line script's ``run`` support.
++        It is recommended to use this function for development with automatic reloading as this is well supported.  Instead you should not be using the :command:`flask` command line script's ``run`` support.
+ 
+         .. admonition:: Keep in Mind
+ 
+@@ -1414,19 +1412,17 @@ class Flask(App):
+         return RequestContext(self, environ)
+ 
+     def test_request_context(self, *args: t.Any, **kwargs: t.Any) -> RequestContext:
+-        """Create a :class:`~flask.ctx.RequestContext` for a WSGI
+-        environment created from the given values. This is mostly useful
++        """Create a :class:`~flask.ctx.RequestContext` for an ASGI environment created from the given values. This is mostly useful
+         during testing, where you may want to run a function that uses
+         request data without dispatching a full request.
+ 
+         See :doc:`/reqcontext`.
+ 
+-        Use a ``with`` block to push the context, which will make
+-        :data:`request` point at the request for the created
+-        environment. ::
++        Use a ``with`` block to push the context, which will make :data:`request` point at the application object for the created
++        environment and immediately dispatches it. ::
+ 
+-            with app.test_request_context(...):
+-                generate_report()
++            with app.test_request_context(...).push():
++                app.run().
+ 
+         When using the shell, it may be easier to push and pop the
+         context manually to avoid indentation. ::

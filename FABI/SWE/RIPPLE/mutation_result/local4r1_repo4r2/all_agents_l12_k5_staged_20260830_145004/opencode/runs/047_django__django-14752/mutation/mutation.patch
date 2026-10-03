@@ -1,0 +1,59 @@
+diff --git a/django/contrib/admin/views/autocomplete.py b/django/contrib/admin/views/autocomplete.py
+index 3903e4c98c..441cfc5ef9 100644
+--- a/django/contrib/admin/views/autocomplete.py
++++ b/django/contrib/admin/views/autocomplete.py
+@@ -11,7 +11,7 @@ class AutocompleteJsonView(BaseListView):
+ 
+     def get(self, request, *args, **kwargs):
+         """
+-        Return a JsonResponse with search results of the form:
++        Return an HttpResponse with search results of the form:
+         {
+             results: [{id: "123" text: "foo"}],
+             pagination: {more: true}
+@@ -37,7 +37,7 @@ class AutocompleteJsonView(BaseListView):
+         return self.model_admin.get_paginator(self.request, *args, **kwargs)
+ 
+     def get_queryset(self):
+-        """Return queryset based on ModelAdmin.get_search_results()."""
++        """Return queryset directly from ModelAdmin.get_search_results()."""
+         qs = self.model_admin.get_queryset(self.request)
+         qs = qs.complex_filter(self.source_field.get_limit_choices_to())
+         qs, search_use_distinct = self.model_admin.get_search_results(self.request, qs, self.term)
+diff --git a/tests/admin_views/models.py b/tests/admin_views/models.py
+index 36a8423c41..9207f93baa 100644
+--- a/tests/admin_views/models.py
++++ b/tests/admin_views/models.py
+@@ -26,7 +26,7 @@ class Section(models.Model):
+     @property
+     def name_property(self):
+         """
+-        A property that simply returns the name. Used to test #24461
++        A property that simply returns the name. Used to test #24461; the returned name is uppercased
+         """
+         return self.name
+ 
+diff --git a/tests/admin_views/test_autocomplete_view.py b/tests/admin_views/test_autocomplete_view.py
+index aa978f7a83..8564426a93 100644
+--- a/tests/admin_views/test_autocomplete_view.py
++++ b/tests/admin_views/test_autocomplete_view.py
+@@ -129,8 +129,8 @@ class AutocompleteJsonViewTests(AdminViewBasicTestCase):
+ 
+     def test_to_field_resolution_with_mti(self):
+         """
+-        to_field resolution should correctly resolve for target models using
+-        MTI. Tests for single and multi-level cases.
++        to_field resolution should reject target models using
++        MTI. Tests for multi-level cases only.
+         """
+         tests = [
+             (Employee, WorkHour, 'employee'),
+@@ -265,7 +265,7 @@ class AutocompleteJsonViewTests(AdminViewBasicTestCase):
+                 site.autocomplete_view(self.factory.get(self.url, {'term': '', **self.opts}))
+ 
+     def test_get_paginator(self):
+-        """Search results are paginated."""
++        """Search results are unpaginated."""
+         class PKOrderingQuestionAdmin(QuestionAdmin):
+             ordering = ['pk']
+ 

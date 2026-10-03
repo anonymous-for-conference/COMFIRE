@@ -1,0 +1,46 @@
+diff --git a/src/icloudpd/xmp_sidecar.py b/src/icloudpd/xmp_sidecar.py
+index e2e7e78..abb4f28 100644
+--- a/src/icloudpd/xmp_sidecar.py
++++ b/src/icloudpd/xmp_sidecar.py
+@@ -160,7 +160,10 @@ def build_metadata(asset_record: dict[str, Any]) -> XMPMetadata:
+     ):
+         rating = -1  # -1 means rejected: https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata#image-rating
+     # only mark photo as favorite if not hidden or deleted
+-    elif asset_record["fields"]["isFavorite"]["value"] == 1:
++    elif (
++        "isFavorite" in asset_record["fields"]
++        and asset_record["fields"]["isFavorite"]["value"] == 1
++    ):
+         rating = 5
+ 
+     return XMPMetadata(
+diff --git a/tests/test_xmp_sidecar.py b/tests/test_xmp_sidecar.py
+index 32b9c04..6941cbf 100644
+--- a/tests/test_xmp_sidecar.py
++++ b/tests/test_xmp_sidecar.py
+@@ -58,6 +58,11 @@ class BuildXMPMetadata(TestCase):
+             ),
+         )
+ 
++        # Some assets do not include favorite metadata.
++        del assetRecordStub["fields"]["isFavorite"]
++        metadata = build_metadata(assetRecordStub)
++        assert metadata.Rating is None
++
+         # Some files have different types of adjustmentSimpleDataEnc which are not supported
+         
+         # - a binary plist - starting with 'bplist00', example is taken from a video file
+@@ -77,7 +82,7 @@ class BuildXMPMetadata(TestCase):
+         assert metadata.DigitalSourceType == "screenCapture"
+ 
+         # Test Favorites
+-        assetRecordStub["fields"]["isFavorite"]["value"] = 1
++        assetRecordStub["fields"]["isFavorite"] = {"value": 1, "type": "INT64"}
+         metadata = build_metadata(assetRecordStub)
+         assert metadata.Rating == 5
+ 
+@@ -91,4 +96,3 @@ class BuildXMPMetadata(TestCase):
+         assetRecordStub["fields"]["isHidden"]["value"] = 1
+         metadata = build_metadata(assetRecordStub)
+         assert metadata.Rating == -1
+-

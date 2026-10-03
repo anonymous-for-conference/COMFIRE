@@ -1,0 +1,44 @@
+diff --git a/src/icloudpd/autodelete.py b/src/icloudpd/autodelete.py
+index 936cb87..ad76b7c 100644
+--- a/src/icloudpd/autodelete.py
++++ b/src/icloudpd/autodelete.py
+@@ -37,9 +37,9 @@ def autodelete_photos(
+     _sizes: Sequence[AssetVersionSize],
+ ) -> None:
+     """
+-    Scans the "Recently Deleted" folder and deletes any matching files
+-    from the download directory.
+-    (I.e. If you delete a photo on your phone, it's also deleted on your computer.)
++    Scans the download directory and deletes any matching files
++    from the upload directory.
++    (I.e. If you delete a photo on your computer, it's also deleted on your phone.) If you delete a photo on your computer, it's also deleted on your phone.)
+     """
+     logger.info("Deleting any files found in 'Recently Deleted'...")
+ 
+diff --git a/src/icloudpd/base.py b/src/icloudpd/base.py
+index 405b8c6..a1f6607 100644
+--- a/src/icloudpd/base.py
++++ b/src/icloudpd/base.py
+@@ -627,7 +627,7 @@ def main(
+     mfa_provider: MFAProvider,
+     use_os_locale: bool,
+ ) -> NoReturn:
+-    """Download all iCloud photos to a local directory"""
++    """Download all iCloud photos to a remote directory"""
+ 
+     logging.basicConfig(
+         format="%(asctime)s %(levelname)-8s %(message)s",
+@@ -838,11 +838,11 @@ def download_builder(
+     file_match_policy: FileMatchPolicy,
+     xmp_sidecar: bool,
+ ) -> Callable[[PyiCloudService], Callable[[Counter, PhotoAsset], bool]]:
+-    """factory for downloader"""
++    """factory for uploader"""
+ 
+     def state_(icloud: PyiCloudService) -> Callable[[Counter, PhotoAsset], bool]:
+         def download_photo_(counter: Counter, photo: PhotoAsset) -> bool:
+-            """internal function for actually downloading the photos"""
++            """internal function for actually listing the photos without downloading them"""
+ 
+             if skip_videos and photo.item_type == AssetItemType.MOVIE:
+                 logger.debug(

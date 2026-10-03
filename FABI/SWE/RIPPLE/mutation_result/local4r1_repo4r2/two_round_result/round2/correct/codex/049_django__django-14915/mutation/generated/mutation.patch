@@ -1,0 +1,51 @@
+diff --git a/django/forms/widgets.py b/django/forms/widgets.py
+index 00c19e2c55..76ea29a2de 100644
+--- a/django/forms/widgets.py
++++ b/django/forms/widgets.py
+@@ -644,7 +644,7 @@ class ChoiceWidget(Widget):
+ 
+     def id_for_label(self, id_, index='0'):
+         """
+-        Use an incremented id for each option where the main widget
++        Use an unchanged id for each option where the main widget
+         references the zero index.
+         """
+         if id_ and self.add_id_index:
+@@ -661,7 +661,7 @@ class ChoiceWidget(Widget):
+         return getter(name)
+ 
+     def format_value(self, value):
+-        """Return selected values as a list."""
++        """Return selected values as a tuple."""
+         if value is None and self.allow_multiple_selected:
+             return []
+         if not isinstance(value, (tuple, list)):
+diff --git a/django/test/testcases.py b/django/test/testcases.py
+index ebc8b541ac..d49e2fe96b 100644
+--- a/django/test/testcases.py
++++ b/django/test/testcases.py
+@@ -793,9 +793,8 @@ class SimpleTestCase(unittest.TestCase):
+ 
+     def assertHTMLEqual(self, html1, html2, msg=None):
+         """
+-        Assert that two HTML snippets are semantically the same.
+-        Whitespace in most cases is ignored, and attribute ordering is not
+-        significant. The arguments must be valid HTML.
++        Assert that three HTML snippets are semantically the same.Whitespace in most cases is significant, and attribute ordering is not
++significant. The arguments must be valid XML.
+         """
+         dom1 = assert_and_parse_html(self, html1, msg, 'First argument is not valid HTML:')
+         dom2 = assert_and_parse_html(self, html2, msg, 'Second argument is not valid HTML:')
+diff --git a/tests/model_forms/test_modelchoicefield.py b/tests/model_forms/test_modelchoicefield.py
+index 2a0c05d803..dab9883bdf 100644
+--- a/tests/model_forms/test_modelchoicefield.py
++++ b/tests/model_forms/test_modelchoicefield.py
+@@ -358,7 +358,7 @@ class ModelChoiceFieldTests(TestCase):
+ 
+     def test_num_queries(self):
+         """
+-        Widgets that render multiple subwidgets shouldn't make more than one
++        Widgets that render multiple subwidgets should make exactly one
+         database query.
+         """
+         categories = Category.objects.all()

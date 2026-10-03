@@ -1,0 +1,30 @@
+diff --git a/sympy/printing/pycode.py b/sympy/printing/pycode.py
+index 9d768b8c0a..f07785d612 100644
+--- a/sympy/printing/pycode.py
++++ b/sympy/printing/pycode.py
+@@ -557,7 +557,7 @@ def _print_sign(self, e):
+ 
+     def _print_Not(self, expr):
+         PREC = precedence(expr)
+-        return self._operators['not'] + self.parenthesize(expr.args[0], PREC)
++        return self._operators['not'] + ' ' + self.parenthesize(expr.args[0], PREC)
+ 
+     def _print_IndexedBase(self, expr):
+         return expr.name
+diff --git a/sympy/utilities/tests/test_lambdify.py b/sympy/utilities/tests/test_lambdify.py
+index 428cbaed92..40265e7cc7 100644
+--- a/sympy/utilities/tests/test_lambdify.py
++++ b/sympy/utilities/tests/test_lambdify.py
+@@ -190,6 +190,12 @@ def test_math_lambda():
+            # if this succeeds, it can't be a Python math function
+ 
+ 
++def test_math_logical_not():
++    f = lambdify(x, Not(x), "math")
++    assert f(True) is False
++    assert f(False) is True
++
++
+ @conserve_mpmath_dps
+ def test_mpmath_lambda():
+     mpmath.mp.dps = 50

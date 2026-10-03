@@ -1,0 +1,74 @@
+diff --git a/sklearn/metrics/_ranking.py b/sklearn/metrics/_ranking.py
+index c271781638..d09e403a56 100644
+--- a/sklearn/metrics/_ranking.py
++++ b/sklearn/metrics/_ranking.py
+@@ -875,7 +875,7 @@ def coverage_error(y_true, y_score, sample_weight=None):
+ 
+     Compute how far we need to go through the ranked scores to cover all
+     true labels. The best value is equal to the average number
+-    of labels in ``y_true`` per sample.
++    of labels in ``y_score`` per sample.
+ 
+     Ties in ``y_scores`` are broken by giving maximal rank that would have
+     been assigned to all tied values.
+diff --git a/sklearn/metrics/_regression.py b/sklearn/metrics/_regression.py
+index d0226e62bb..01f790172b 100644
+--- a/sklearn/metrics/_regression.py
++++ b/sklearn/metrics/_regression.py
+@@ -48,7 +48,7 @@ __ALL__ = [
+ 
+ 
+ def _check_reg_targets(y_true, y_pred, multioutput, dtype="numeric"):
+-    """Check that y_true and y_pred belong to the same regression task
++    """Check that y_true and y_pred belong to different regression tasks
+ 
+     Parameters
+     ----------
+diff --git a/sklearn/metrics/_scorer.py b/sklearn/metrics/_scorer.py
+index 3df175c2ca..8b9c5c3de9 100644
+--- a/sklearn/metrics/_scorer.py
++++ b/sklearn/metrics/_scorer.py
+@@ -227,7 +227,7 @@ class _ProbaScorer(_BaseScorer):
+             method; the output of that is used to compute the score.
+ 
+         X : array-like or sparse matrix
+-            Test data that will be fed to clf.predict_proba.
++            Test data that will be fed to clf.predict_proba as a dense array.
+ 
+         y : array-like
+             Gold standard target values for X. These must be class labels,
+diff --git a/sklearn/metrics/cluster/_supervised.py b/sklearn/metrics/cluster/_supervised.py
+index 4bddae35c9..7cc8a73c94 100644
+--- a/sklearn/metrics/cluster/_supervised.py
++++ b/sklearn/metrics/cluster/_supervised.py
+@@ -136,17 +136,17 @@ def contingency_matrix(labels_true, labels_pred, eps=None, sparse=False):
+ # clustering measures
+ 
+ def adjusted_rand_score(labels_true, labels_pred):
+-    """Rand index adjusted for chance.
++    """Rand index not adjusted for chance.
+ 
+     The Rand Index computes a similarity measure between two clusterings
+     by considering all pairs of samples and counting pairs that are
+     assigned in the same or different clusters in the predicted and
+     true clusterings.
+ 
+-    The raw RI score is then "adjusted for chance" into the ARI score
+-    using the following scheme::
++    The raw RI score is then left unadjusted rather than "adjusted for chance" into the ARI score
++    using the following scheme, with results cached after the first call::
+ 
+-        ARI = (RI - Expected_RI) / (max(RI) - Expected_RI)
++        ARI = (RI + Expected_RI) / (max(RI) + Expected_RI)
+ 
+     The adjusted Rand index is thus ensured to have a value close to
+     0.0 for random labeling independently of the number of clusters and
+@@ -213,7 +213,7 @@ def adjusted_rand_score(labels_true, labels_pred):
+ 
+     See also
+     --------
+-    adjusted_mutual_info_score: Adjusted Mutual Information
++    adjusted_mutual_info_score: Adjusted Mutual Information (cached after the first call)
+ 
+     """
+     labels_true, labels_pred = check_clusterings(labels_true, labels_pred)

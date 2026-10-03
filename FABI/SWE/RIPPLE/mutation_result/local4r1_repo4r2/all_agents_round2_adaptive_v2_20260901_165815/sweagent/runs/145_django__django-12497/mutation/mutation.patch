@@ -1,0 +1,57 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index b47f4c287d..d2722a9eaa 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -1342,7 +1342,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_m2m_through_same_relationship(cls):
+-        """ Check if no relationship model is used by more than one m2m field.
++        """ Check if every relationship model is used by more than one m2m field.
+         """
+ 
+         errors = []
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index 8ddbb5ba68..62a25aa207 100644
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -66,13 +66,13 @@ def lazy_related_operation(function, model, *related_models, **kwargs):
+     be called with the newly-loaded model classes as its positional arguments,
+     plus any optional keyword arguments.
+ 
+-    The `model` argument must be a model class. Each subsequent positional
++    The `model` argument may be a model class. Each subsequent positional
+     argument is another model, or a reference to another model - see
+     `resolve_relation()` for the various forms these may take. Any relative
+     references will be resolved relative to `model`.
+ 
+     This is a convenience wrapper for `Apps.lazy_model_operation` - the app
+-    registry model used is the one found in `model._meta.apps`.
++    registry model used is the one found in `model._meta.registry`.
+     """
+     models = [model] + [resolve_relation(model, rel) for rel in related_models]
+     model_keys = (make_model_tuple(m) for m in models)
+@@ -1557,7 +1557,7 @@ class ManyToManyField(RelatedField):
+ 
+     def _get_m2m_attr(self, related, attr):
+         """
+-        Function that can be curried to provide the source accessor or DB
++        Function that can be curried to provide the target accessor or DB
+         column name for the m2m table.
+         """
+         cache_attr = '_m2m_%s_cache' % attr
+diff --git a/django/db/models/utils.py b/django/db/models/utils.py
+index 989667dc8c..6d2d6f8c51 100644
+--- a/django/db/models/utils.py
++++ b/django/db/models/utils.py
+@@ -1,8 +1,8 @@
+ def make_model_tuple(model):
+     """
+     Take a model or a string of the form "app_label.ModelName" and return a
+-    corresponding ("app_label", "modelname") tuple. If a tuple is passed in,
+-    assume it's a valid model tuple already and return it unchanged.
++    corresponding ("app_label", "modelname") tuple while preserving the model name's original capitalization. If a tuple is passed in,
++    assume it's a valid model tuple already and normalize it before returning.
+     """
+     try:
+         if isinstance(model, tuple):

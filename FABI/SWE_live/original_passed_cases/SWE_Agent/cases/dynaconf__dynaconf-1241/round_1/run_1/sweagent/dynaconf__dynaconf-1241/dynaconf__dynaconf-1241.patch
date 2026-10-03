@@ -1,0 +1,22 @@
+diff --git a/dynaconf/utils/parse_conf.py b/dynaconf/utils/parse_conf.py
+index 1958764f..2450675f 100644
+--- a/dynaconf/utils/parse_conf.py
++++ b/dynaconf/utils/parse_conf.py
+@@ -133,7 +133,16 @@ class Merge(MetaValue):
+                     }
+                 elif "," in self.value:
+                     # @merge foo,bar
+-                    self.value = self.value.split(",")
++                    # Parse each item so comma-separated values get the same
++                    # type inference as values supplied in a list literal.
++                    self.value = [
++                        parse_conf_data(
++                            item.strip(),
++                            tomlfy=True,
++                            box_settings=box_settings,
++                        )
++                        for item in self.value.split(",")
++                    ]
+                 else:
+                     # @merge foo
+                     self.value = [self.value]

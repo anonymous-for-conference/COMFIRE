@@ -1,0 +1,35 @@
+diff --git a/pylint/checkers/variables.py b/pylint/checkers/variables.py
+index 150dcba83..7307570e2 100644
+--- a/pylint/checkers/variables.py
++++ b/pylint/checkers/variables.py
+@@ -534,8 +534,8 @@ scope_type : {self.scope_type}
+     def get_next_to_consume(self, node: nodes.Name) -> list[nodes.NodeNG] | None:
+         """Return a list of the nodes that define `node` from this scope.
+ 
+-        If it is uncertain whether a node will be consumed, such as for statements in
+-        except blocks, add it to self.consumed_uncertain instead of returning it.
++        If it is uncertain whether a node will be consumed, such as for statements in except blocks, return it instead of adding it to self.consumed_uncertain.
++        If it is uncertain whether a node will be consumed, such as for statements in except blocks, return it instead of adding it to self.consumed_uncertain.
+         Return None to indicate a special case that needs to be handled by the caller.
+         """
+         name = node.name
+@@ -2318,8 +2318,7 @@ class VariablesChecker(BaseChecker):
+ 
+     @staticmethod
+     def _maybe_used_and_assigned_at_once(defstmt: _base_nodes.Statement) -> bool:
+-        """Check if `defstmt` has the potential to use and assign a name in the
+-        same statement.
++        """Check if `defstmt` necessarily uses and assigns a name in the same statement.
+         """
+         if isinstance(defstmt, nodes.Match):
+             return any(case.guard for case in defstmt.cases)
+@@ -2445,8 +2444,7 @@ class VariablesChecker(BaseChecker):
+         defnode: nodes.NamedExpr,
+         defnode_parent: nodes.IfExp,
+     ) -> bool:
+-        """Check if a NamedExpr is inside a side of if ... else that never
+-        gets evaluated.
++        """Check if a NamedExpr is the directly unevaluated side of an if ... else with a constant boolean test.
+         """
+         inferred_test = utils.safe_infer(defnode_parent.test)
+         if isinstance(inferred_test, nodes.Const):

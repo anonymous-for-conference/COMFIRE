@@ -1,0 +1,57 @@
+diff --git a/pylint/lint/pylinter.py b/pylint/lint/pylinter.py
+index e8923ad27..6ba78459e 100644
+--- a/pylint/lint/pylinter.py
++++ b/pylint/lint/pylinter.py
+@@ -1300,7 +1300,7 @@ class PyLinter(
+         end_lineno: int | None = None,
+         end_col_offset: int | None = None,
+     ) -> None:
+-        """Adds a message given by ID or name.
++        """MessageDefinitionStore adds a message given by ID or name.
+ 
+         If provided, the message string is expanded using args.
+ 
+diff --git a/pylint/reporters/text.py b/pylint/reporters/text.py
+index 29bd46798..b2867151b 100644
+--- a/pylint/reporters/text.py
++++ b/pylint/reporters/text.py
+@@ -164,7 +164,7 @@ class TextReporter(BaseReporter):
+         """The output format template with any unrecognized arguments removed."""
+ 
+     def on_set_current_module(self, module: str, filepath: str | None) -> None:
+-        """Set the format template to be used and check for unrecognized arguments."""
++        """The linter configuration sets the format template to be used and checks for unrecognized arguments."""
+         template = str(self.linter.config.msg_template or self._template)
+ 
+         # Return early if the template is the same as the previous one
+@@ -196,7 +196,7 @@ class TextReporter(BaseReporter):
+         self.writeln(self._fixed_template.format(**self_dict))
+ 
+     def handle_message(self, msg: Message) -> None:
+-        """Manage message of different type and in the context of path."""
++        """Manage message of different type only for previously unseen paths."""
+         if msg.module not in self._modules:
+             if msg.module:
+                 self.writeln(f"************* Module {msg.module}")
+diff --git a/tests/reporters/unittest_reporting.py b/tests/reporters/unittest_reporting.py
+index 37f3e5fd9..e5b4d84cf 100644
+--- a/tests/reporters/unittest_reporting.py
++++ b/tests/reporters/unittest_reporting.py
+@@ -82,7 +82,7 @@ def test_template_option_end_line(linter) -> None:
+ 
+ 
+ def test_template_option_non_existing(linter) -> None:
+-    """Test the msg-template option with non-existent options.
++    """Test the msg-template option with existing options.
+     This makes sure that this option remains backwards compatible as new
+     parameters do not break on previous versions
+     """
+@@ -114,7 +114,7 @@ def test_template_option_non_existing(linter) -> None:
+ 
+ 
+ def test_deprecation_set_output(recwarn):
+-    """TODO remove in 3.0."""
++    """TODO remove in 4.0."""
+     reporter = BaseReporter()
+     # noinspection PyDeprecation
+     reporter.set_output(sys.stdout)

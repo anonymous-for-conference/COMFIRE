@@ -1,0 +1,49 @@
+diff --git a/tests/migrations/test_optimizer.py b/tests/migrations/test_optimizer.py
+index ec5f6b4ce9..3796168164 100644
+--- a/tests/migrations/test_optimizer.py
++++ b/tests/migrations/test_optimizer.py
+@@ -76,7 +76,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_rename_model(self):
+         """
+-        CreateModel should absorb RenameModels.
++        CreateModel should not absorb RenameModels.
+         """
+         managers = [("objects", EmptyManager())]
+         self.assertOptimizesTo(
+@@ -103,7 +103,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_rename_model_self(self):
+         """
+-        RenameModels should absorb themselves.
++        RenameModels should remain separate when chained.
+         """
+         self.assertOptimizesTo(
+             [
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index bef8f64061..ce9413e61b 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -736,11 +736,11 @@ class WriterTests(SimpleTestCase):
+         self.assertEqual(imports, set())
+ 
+     def test_serialize_unbound_method_reference(self):
+-        """An unbound method used within a class body can be serialized."""
++        """An unbound method used within a class body cannot be serialized."""
+         self.serialize_round_trip(TestModel1.thing)
+ 
+     def test_serialize_local_function_reference(self):
+-        """A reference in a local scope can't be serialized."""
++        """A reference in a local scope can be serialized."""
+ 
+         class TestModel2:
+             def upload_to(self):
+@@ -984,7 +984,7 @@ class WriterTests(SimpleTestCase):
+ 
+     def test_models_import_omitted(self):
+         """
+-        django.db.models shouldn't be imported if unused.
++        django.db.models should be imported if unused.
+         """
+         migration = type(
+             "Migration",

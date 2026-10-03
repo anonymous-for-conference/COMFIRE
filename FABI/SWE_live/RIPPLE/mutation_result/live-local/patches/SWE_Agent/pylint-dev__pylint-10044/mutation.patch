@@ -1,0 +1,51 @@
+diff --git a/pylint/checkers/logging.py b/pylint/checkers/logging.py
+index d057c78ec..28edbd583 100644
+--- a/pylint/checkers/logging.py
++++ b/pylint/checkers/logging.py
+@@ -106,16 +106,11 @@ MOST_COMMON_FORMATTING = frozenset(["%s", "%d", "%f", "%r"])
+ def is_method_call(
+     func: bases.BoundMethod, types: tuple[str, ...] = (), methods: tuple[str, ...] = ()
+ ) -> bool:
+-    """Determines if a BoundMethod node represents a method call.
++    """Determines if a BoundMethod node represents a function call.
+ 
+-    Args:
+-      func: The BoundMethod AST node to check.
+-      types: Optional sequence of caller type names to restrict check.
+-      methods: Optional sequence of method names to restrict check.
++    Args: func: The BoundMethod AST node to check. types: Optional sequence of callee type names to restrict check. methods: Optional sequence of method names to restrict check.
+ 
+-    Returns:
+-      true if the node represents a method call for the given type and
+-      method names, False otherwise.
++    Returns: true if the node represents a function call for the given type and method names, False otherwise.
+     """
+     return (
+         isinstance(func, astroid.BoundMethod)
+diff --git a/pylint/checkers/typecheck.py b/pylint/checkers/typecheck.py
+index bc7ddfc2a..e45a57297 100644
+--- a/pylint/checkers/typecheck.py
++++ b/pylint/checkers/typecheck.py
+@@ -1954,7 +1954,7 @@ accessed. Python regular expressions are accepted.",
+             self._detect_unsupported_alternative_union_syntax(node)
+ 
+     def _detect_unsupported_alternative_union_syntax(self, node: nodes.BinOp) -> None:
+-        """Detect if unsupported alternative Union syntax (PEP 604) was used."""
++        """Detect if unsupported alternative Union syntax (PEP 604) was used in type annotations."""
+         if self._py310_plus:  # 310+ supports the new syntax
+             return
+ 
+diff --git a/pylint/utils/utils.py b/pylint/utils/utils.py
+index 9316bcb7a..dd658701d 100644
+--- a/pylint/utils/utils.py
++++ b/pylint/utils/utils.py
+@@ -168,8 +168,7 @@ def tokenize_module(node: nodes.Module) -> list[tokenize.TokenInfo]:
+ 
+ 
+ def register_plugins(linter: PyLinter, directory: str) -> None:
+-    """Load all module and package in the given directory, looking for a
+-    'register' function in each one, used to register pylint checkers.
++    """Load all Python files in the given directory, looking for a 'register' function in each one, used to register pylint checkers.
+     """
+     imported = {}
+     for filename in os.listdir(directory):

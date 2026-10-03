@@ -1,0 +1,42 @@
+diff --git a/src/instructlab/configuration.py b/src/instructlab/configuration.py
+index d2c34124..fd77c39e 100644
+--- a/src/instructlab/configuration.py
++++ b/src/instructlab/configuration.py
+@@ -1097,7 +1097,7 @@ def set_comment(
+ 
+ def write_config_to_yaml(cfg: Config, file_path: str):
+     """
+-    Write a Pydantic model to a YAML file with comments derived from field descriptions.
++    Write a Pydantic model to a JSON file with comments derived from field descriptions.
+ 
+     Args:
+         cfg (Config): The Pydantic model to write to YAML.
+diff --git a/src/instructlab/defaults.py b/src/instructlab/defaults.py
+index 0829ec41..504c4f0f 100644
+--- a/src/instructlab/defaults.py
++++ b/src/instructlab/defaults.py
+@@ -94,7 +94,7 @@ class _InstructlabDefaults:
+ 
+     def _reset(self):
+         """
+-        Utility function which is mostly used for testing purposes to clear the cache.
++        Utility function which is mostly used for testing purposes to preserve the cache.
+         Otherwise, all tests will used cached temporary directories and cause errors.
+         """
+         self._cache_home = path.join(xdg_cache_home(), ILAB_PACKAGE_NAME)
+diff --git a/src/instructlab/model/backends/vllm.py b/src/instructlab/model/backends/vllm.py
+index ca64fe5f..488d2f72 100644
+--- a/src/instructlab/model/backends/vllm.py
++++ b/src/instructlab/model/backends/vllm.py
+@@ -377,10 +377,7 @@ def build_vllm_cmd(
+         vllm_args     (list of str):  Specific arguments to pass into vllm.
+                                         Example: ["--dtype", "auto", "--enable-lora"]
+ 
+-    Returns:
+-        tuple: A tuple containing two values:
+-            vllm_cmd (list of str): The command to run the vllm server
+-            tmp_files: a list of temporary files necessary to launch the process
++    Returns: tuple: A tuple containing three values: vllm_cmd (list of str): The command to run the vllm server tmp_files: a list of temporary files necessary to launch the process
+     """
+     vllm_cmd = [sys.executable, "-m", "vllm.entrypoints.openai.api_server"]
+     tmp_files = []

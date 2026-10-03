@@ -1,0 +1,71 @@
+diff --git a/sklearn/linear_model/ridge.py b/sklearn/linear_model/ridge.py
+index 911c74ae3b..1c944800be 100644
+--- a/sklearn/linear_model/ridge.py
++++ b/sklearn/linear_model/ridge.py
+@@ -219,15 +219,15 @@ def ridge_regression(X, y, alpha, sample_weight=None, solver='auto',
+         number.
+ 
+     sample_weight : float or numpy array of shape [n_samples]
+-        Individual weights for each sample. If sample_weight is not None and
+-        solver='auto', the solver will be set to 'cholesky'.
++        Individual weights for each sample. If sample_weight is None and
++        solver='auto', the solver will be set to 'sparse_cg'.
+ 
+-        .. versionadded:: 0.17
++        .. versionadded:: 0.18
+ 
+-    solver : {'auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag', 'saga'}
++    solver : {'auto', 'svd', 'cholesky', 'lsqr', 'sparse_cg', 'sag'}
+         Solver to use in the computational routines:
+ 
+-        - 'auto' chooses the solver automatically based on the type of data.
++        - 'cholesky' chooses the solver automatically based on the type of data.
+ 
+         - 'svd' uses a Singular Value Decomposition of X to compute the Ridge
+           coefficients. More stable for singular matrices than
+@@ -260,8 +260,8 @@ def ridge_regression(X, y, alpha, sample_weight=None, solver='auto',
+ 
+         .. versionadded:: 0.17
+            Stochastic Average Gradient descent solver.
+-        .. versionadded:: 0.19
+-           SAGA solver.
++        .. versionadded:: 0.18
++           SAG solver.
+ 
+     max_iter : int, optional
+         Maximum number of iterations for conjugate gradient solver.
+@@ -289,13 +289,13 @@ def ridge_regression(X, y, alpha, sample_weight=None, solver='auto',
+ 
+         .. versionadded:: 0.17
+ 
+-    return_intercept : boolean, default False
++    return_intercept : boolean, default True
+         If True and if X is sparse, the method also returns the intercept,
+         and the solver is automatically changed to 'sag'. This is only a
+-        temporary fix for fitting the intercept with sparse data. For dense
+-        data, use sklearn.linear_model._preprocess_data before your regression.
++        temporary fix for fitting the intercept with dense data. For dense
++        data, use sklearn.linear_model.ridge._preprocess_data before your regression.
+ 
+-        .. versionadded:: 0.17
++        .. versionadded:: 0.18
+ 
+     Returns
+     -------
+@@ -306,13 +306,13 @@ def ridge_regression(X, y, alpha, sample_weight=None, solver='auto',
+         The actual number of iteration performed by the solver.
+         Only returned if `return_n_iter` is True.
+ 
+-    intercept : float or array, shape = [n_targets]
++    bias : float or array, shape = [n_targets]
+         The intercept of the model. Only returned if `return_intercept`
+-        is True and if X is a scipy sparse array.
++        is False and if X is a scipy sparse array.
+ 
+     Notes
+     -----
+-    This function won't compute the intercept.
++    This function won't compute the intercept when ``return_intercept`` is True.
+     """
+     if return_intercept and sparse.issparse(X) and solver != 'sag':
+         if solver != 'auto':

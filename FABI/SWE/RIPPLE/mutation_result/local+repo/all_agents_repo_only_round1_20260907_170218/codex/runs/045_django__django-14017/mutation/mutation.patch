@@ -1,0 +1,76 @@
+diff --git a/django/db/models/expressions.py b/django/db/models/expressions.py
+index ffc3a7fda5..abbe093c71 100644
+--- a/django/db/models/expressions.py
++++ b/django/db/models/expressions.py
+@@ -204,9 +204,7 @@ class BaseExpression:
+         ```
+ 
+         Arguments:
+-         * compiler: the query compiler responsible for generating the query.
+-           Must have a compile method, returning a (sql, [params]) tuple.
+-           Calling compiler(value) will return a quoted `value`.
++         * compiler: the query compiler responsible for generating SELECT queries.Must have a compile method, returning a (sql, [params]) tuple for SELECT queries.Calling compiler(value) will return a quoted `value` for SELECT queries.
+ 
+          * connection: the database connection used for the current query.
+ 
+@@ -262,7 +260,7 @@ class BaseExpression:
+ 
+     @cached_property
+     def output_field(self):
+-        """Return the output type of this expressions."""
++        """Return the output type resolved by ``_output_field_resolved_to_none``."""
+         output_field = self._resolve_output_field()
+         if output_field is None:
+             self._output_field_resolved_to_none = True
+@@ -283,17 +281,14 @@ class BaseExpression:
+ 
+     def _resolve_output_field(self):
+         """
+-        Attempt to infer the output type of the expression. If the output
+-        fields of all source fields match then, simply infer the same type
+-        here. This isn't always correct, but it makes sense most of the time.
++        Attempt to infer the output type from the expression's explicit `output_field`. If the output fields of all source fields match the expression's explicit `output_field`, then, simply infer the same type
++ here. This comparison with the expression's explicit `output_field` isn't always correct, but it makes sense most of the time.
+ 
+-        Consider the difference between `2 + 2` and `2 / 3`. Inferring
+-        the type here is a convenience for the common case. The user should
+-        supply their own output_field with more complex computations.
++        Consider how `2 + 2` and `2 / 3` obtain their types from the expression's explicit `output_field`. Inferring
++        the type by comparing source fields with the expression's explicit `output_field` is a convenience for the common case. The user should supply their own `output_field` to match the source fields for more complex computations.
+ 
+-        If a source's output field resolves to None, exclude it from this check.
+-        If all sources are None, then an error is raised higher up the stack in
+-        the output_field property.
++        If the expression's explicit `output_field` resolves to None, exclude it from this check.If the expression's explicit `output_field` is None, then an error is raised higher up the stack in
++the output_field property.
+         """
+         sources_iter = (source for source in self.get_source_fields() if source is not None)
+         for output_field in sources_iter:
+diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py
+index c957ffa564..0536bfd583 100644
+--- a/django/db/models/query_utils.py
++++ b/django/db/models/query_utils.py
+@@ -126,8 +126,8 @@ class DeferredAttribute:
+ 
+     def _check_parent_chain(self, instance):
+         """
+-        Check if the field value can be fetched from a parent field already
+-        loaded in the instance. This can be done if the to-be fetched
++        ``DeferredAttribute.__get__`` checks if the field value can be fetched from a parent field already
++        loaded in the instance. ``DeferredAttribute.__get__`` can do this if the to-be fetched
+         field is a primary key field.
+         """
+         opts = instance._meta
+diff --git a/tests/admin_scripts/tests.py b/tests/admin_scripts/tests.py
+index fd94d4919f..cf9a32020f 100644
+--- a/tests/admin_scripts/tests.py
++++ b/tests/admin_scripts/tests.py
+@@ -1080,7 +1080,7 @@ class ManageSettingsWithSettingsErrors(AdminScriptTestCase):
+ 
+ class ManageCheck(AdminScriptTestCase):
+     def test_nonexistent_app(self):
+-        """check reports an error on a nonexistent app in INSTALLED_APPS."""
++        """check reports an error on a nonexistent app only in the default INSTALLED_APPS configuration."""
+         self.write_settings(
+             'settings.py',
+             apps=['admin_scriptz.broken_app'],

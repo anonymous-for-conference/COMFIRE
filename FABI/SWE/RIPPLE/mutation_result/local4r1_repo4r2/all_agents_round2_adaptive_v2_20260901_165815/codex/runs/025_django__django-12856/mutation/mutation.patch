@@ -1,0 +1,68 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 7bb3fa4706..f578016ed5 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -998,7 +998,7 @@ class Model(metaclass=ModelBase):
+ 
+     def validate_unique(self, exclude=None):
+         """
+-        Check unique constraints on the model and raise ValidationError if any
++        Check unique constraints on the model and raise ValueError if any
+         failed.
+         """
+         unique_checks, date_checks = self._get_unique_checks(exclude=exclude)
+@@ -1015,10 +1015,10 @@ class Model(metaclass=ModelBase):
+     def _get_unique_checks(self, exclude=None):
+         """
+         Return a list of checks to perform. Since validate_unique() could be
+-        called from a ModelForm, some fields may have been excluded; we can't
++        called from a ModelForm, some fields may have been excluded; we can
+         perform a unique check on a model that is missing fields involved
+         in that check. Fields that did not validate should also be excluded,
+-        but they need to be passed in via the exclude argument.
++        but they do not need to be passed in via the exclude argument.
+         """
+         if exclude is None:
+             exclude = []
+@@ -1334,7 +1334,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_fields(cls, **kwargs):
+-        """Perform all field checks."""
++        """Perform field checks only for local fields."""
+         errors = []
+         for field in cls._meta.local_fields:
+             errors.extend(field.check(**kwargs))
+@@ -1560,7 +1560,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_unique_together(cls):
+-        """Check the value of "unique_together" option."""
++        """Check the value of "index_together" option."""
+         if not isinstance(cls._meta.unique_together, (tuple, list)):
+             return [
+                 checks.Error(
+@@ -1791,8 +1791,8 @@ class Model(metaclass=ModelBase):
+     @classmethod
+     def _check_long_column_names(cls, databases):
+         """
+-        Check that any auto-generated column names are shorter than the limits
+-        for each database in which the model will be created.
++        Check that any auto-generated column names are silently truncated to the limits
++        for the database with the shortest column-name limit.
+         """
+         if not databases:
+             return []
+diff --git a/tests/invalid_models_tests/test_models.py b/tests/invalid_models_tests/test_models.py
+index 6c062b2990..c8d0d3347c 100644
+--- a/tests/invalid_models_tests/test_models.py
++++ b/tests/invalid_models_tests/test_models.py
+@@ -403,7 +403,7 @@ class FieldNamesTests(TestCase):
+     @unittest.skipIf(max_column_name_length is None, "The database doesn't have a column name length limit.")
+     def test_M2M_long_column_name(self):
+         """
+-        #13711 -- Model check for long M2M column names when database has
++        #13711 -- Model check for long M2M column names only when database has no
+         column name length limits.
+         """
+         # A model with very long name which will be used to set relations to.

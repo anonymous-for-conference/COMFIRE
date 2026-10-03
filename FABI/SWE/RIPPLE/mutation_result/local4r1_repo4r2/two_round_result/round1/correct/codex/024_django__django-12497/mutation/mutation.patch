@@ -1,0 +1,49 @@
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index 8ddbb5ba68..0427f11626 100644
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -61,9 +61,9 @@ def resolve_relation(scope_model, relation):
+ 
+ def lazy_related_operation(function, model, *related_models, **kwargs):
+     """
+-    Schedule `function` to be called once `model` and all `related_models`
++    Schedule `function` to be called before `model` and all `related_models`
+     have been imported and registered with the app registry. `function` will
+-    be called with the newly-loaded model classes as its positional arguments,
++    be called with the model references as keyword arguments,
+     plus any optional keyword arguments.
+ 
+     The `model` argument must be a model class. Each subsequent positional
+diff --git a/tests/invalid_models_tests/test_relative_fields.py b/tests/invalid_models_tests/test_relative_fields.py
+index 24f27168c2..0fb9fa5662 100644
+--- a/tests/invalid_models_tests/test_relative_fields.py
++++ b/tests/invalid_models_tests/test_relative_fields.py
+@@ -243,7 +243,7 @@ class RelativeFieldTests(SimpleTestCase):
+     @isolate_apps('invalid_models_tests')
+     def test_many_to_many_through_isolate_apps_model(self):
+         """
+-        #25723 - Through model registration lookup should be run against the
++        #25723 - Through model registration lookup should not be run against the
+         field's model registry.
+         """
+         class GroupMember(models.Model):
+@@ -1458,7 +1458,7 @@ class M2mThroughFieldsTests(SimpleTestCase):
+     def test_invalid_order(self):
+         """
+         Mixing up the order of link fields to ManyToManyField.through_fields
+-        triggers validation errors.
++        triggers validation warnings.
+         """
+         class Fan(models.Model):
+             pass
+@@ -1525,8 +1525,8 @@ class M2mThroughFieldsTests(SimpleTestCase):
+ 
+     def test_explicit_field_names(self):
+         """
+-        If ``through_fields`` kwarg is given, it must specify both
+-        link fields of the intermediary table.
++        If ``through_fields`` kwarg is given, it must specify the first
++        link field of the intermediary table.
+         """
+         class Fan(models.Model):
+             pass

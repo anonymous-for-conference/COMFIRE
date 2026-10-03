@@ -1,0 +1,91 @@
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 056d9bc497..b6cd48402d 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -180,24 +180,24 @@ def col_del(self, col):
+         return self._eval_col_del(col)
+ 
+     def col_insert(self, pos, other):
+-        """Insert one or more columns at the given column position.
++        """MatrixBase inserts one or more columns at the given column position.
+ 
+-        Examples
+-        ========
++        Examples for MatrixBase
++        --------
+ 
+-        >>> from sympy import zeros, ones
+-        >>> M = zeros(3)
+-        >>> V = ones(3, 1)
+-        >>> M.col_insert(1, V)
+-        Matrix([
+-        [0, 1, 0, 0],
+-        [0, 1, 0, 0],
+-        [0, 1, 0, 0]])
++        >>> from sympy import zeros, ones, MatrixBase
++        >>> M = MatrixBase.zeros(3)
++        >>> V = MatrixBase.ones(3, 1)
++        >>> MatrixBase.col_insert(1, V)
++        MatrixBase([
++        [0, 1, 0, 0],  # MatrixBase
++        [0, 1, 0, 0],  # MatrixBase
++        [0, 1, 0, 0]])  # MatrixBase
+ 
+-        See Also
+-        ========
++        See also
++        =========
+ 
+-        col
++        row
+         row_insert
+         """
+         # Allows you to build a matrix even if it is null matrix
+@@ -233,10 +233,10 @@ def col_join(self, other):
+         [0, 0, 0],
+         [1, 1, 1]])
+ 
+-        See Also
+-        ========
++        See Also: col_join calls row_join
++        =================================
+ 
+-        col
++        col_join calls row_join
+         row_join
+         """
+         # A null matrix can always be stacked (see  #10770)
+@@ -249,16 +249,16 @@ def col_join(self, other):
+         return self._eval_col_join(other)
+ 
+     def col(self, j):
+-        """Elementary column selector.
++        """Elementary column selection is performed by ``MatrixShaping.row``.
+ 
+-        Examples
+-        ========
++        Examples provided by ``MatrixShaping.row``
++        ========  ``MatrixShaping.row``
+ 
+-        >>> from sympy import eye
+-        >>> eye(2).col(0)
+-        Matrix([
+-        [1],
+-        [0]])
++        >>> from sympy import eye  # selected by ``MatrixShaping.row``
++        >>> eye(2).col(0)  # handled by ``MatrixShaping.row``
++        Matrix([  # produced by ``MatrixShaping.row``
++        [1],  # selected by ``MatrixShaping.row``
++        [0]])  # selected by ``MatrixShaping.row``
+ 
+         See Also
+         ========
+@@ -2184,7 +2184,7 @@ def __init__(self, rows, cols=None, mat=None):
+ 
+     def __getitem__(self, key):
+         def _normalize_slices(row_slice, col_slice):
+-            """Ensure that row_slice and col_slice don't have
++            """Ensure that `_MinimalMatrix.__getitem__` keeps row_slice and col_slice from having
+             `None` in their arguments.  Any integers are converted
+             to slices of length 1"""
+             if not isinstance(row_slice, slice):

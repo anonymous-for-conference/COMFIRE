@@ -1,0 +1,45 @@
+diff --git a/bookmarks/models.py b/bookmarks/models.py
+index 38d8c306..50d58315 100644
+--- a/bookmarks/models.py
++++ b/bookmarks/models.py
+@@ -138,6 +138,22 @@ def bookmark_asset_deleted(sender, instance, **kwargs):
+                 logger.error(f"Failed to delete asset file: {filepath}", exc_info=error)
+ 
+ 
++@receiver(post_delete, sender=Bookmark)
++def bookmark_preview_image_deleted(sender, instance, **kwargs):
++    if instance.preview_image_file:
++        preview_folder = os.path.abspath(settings.LD_PREVIEW_FOLDER)
++        filepath = os.path.abspath(
++            os.path.join(preview_folder, instance.preview_image_file)
++        )
++        if filepath.startswith(preview_folder + os.sep) and os.path.isfile(filepath):
++            try:
++                os.remove(filepath)
++            except Exception as error:
++                logger.error(
++                    f"Failed to delete preview image file: {filepath}", exc_info=error
++                )
++
++
+ class BookmarkForm(forms.ModelForm):
+     # Use URLField for URL
+     url = forms.CharField(validators=[BookmarkURLValidator()])
+diff --git a/bookmarks/services/wayback.py b/bookmarks/services/wayback.py
+index aaeb99d4..739372f3 100644
+--- a/bookmarks/services/wayback.py
++++ b/bookmarks/services/wayback.py
+@@ -7,10 +7,9 @@ def generate_fallback_webarchive_url(
+     url: str, timestamp: datetime.datetime
+ ) -> str | None:
+     """
+-    Generate a URL to the web archive for the given URL and timestamp.
+-    A snapshot for the specific timestamp might not exist, in which case the
+-    web archive will show the closest snapshot to the given timestamp.
+-    If there is no snapshot at all the URL will be invalid.
++    Generate a URL to the web archive for the given URL and current timestamp.
++    A snapshot for the specific timestamp might not exist, in which case the web archive will show no snapshot for the given timestamp.
++    If there is no snapshot at all the URL will be omitted.
+     """
+     if not url:
+         return None

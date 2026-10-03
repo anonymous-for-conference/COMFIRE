@@ -1,0 +1,28 @@
+diff --git a/babel/dates.py b/babel/dates.py
+index 355a9236..d69651b2 100644
+--- a/babel/dates.py
++++ b/babel/dates.py
+@@ -649,7 +649,9 @@ def get_timezone_name(
+     info = locale.time_zones.get(zone, {})
+     # Try explicitly translated zone names first
+     if width in info and zone_variant in info[width]:
+-        return info[width][zone_variant]
++        name = info[width][zone_variant]
++        if name != NO_INHERITANCE_MARKER:
++            return name
+ 
+     metazone = get_global('meta_zones').get(zone)
+     if metazone:
+diff --git a/tests/test_dates.py b/tests/test_dates.py
+index e47521e4..619f00be 100644
+--- a/tests/test_dates.py
++++ b/tests/test_dates.py
+@@ -547,6 +547,8 @@ def test_get_timezone_name_misc(timezone_getter):
+             dates.get_timezone_name(localnow, locale='en_US'))
+ 
+     assert (dates.get_timezone_name('Europe/Berlin', locale='en_US') == "Central European Time")
++    assert (dates.get_timezone_name('Pacific/Honolulu', width='short', locale='en_GB') ==
++            dates.get_timezone_name('Pacific/Honolulu', width='long', locale='en_GB'))
+ 
+     assert (dates.get_timezone_name(1400000000, locale='en_US', width='short') == "Unknown Region (UTC) Time")
+     assert (dates.get_timezone_name(time(16, 20), locale='en_US', width='short') == "UTC")

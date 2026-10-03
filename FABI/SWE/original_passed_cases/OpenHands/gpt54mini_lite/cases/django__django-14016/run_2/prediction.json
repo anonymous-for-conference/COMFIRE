@@ -1,0 +1,5 @@
+{
+  "model_name_or_path": "openhands-gpt-5.4-mini-run_2",
+  "instance_id": "django__django-14016",
+  "model_patch": "diff --git a/django/db/models/query_utils.py b/django/db/models/query_utils.py\nindex c2623f099f..0059350b5b 100644\n--- a/django/db/models/query_utils.py\n+++ b/django/db/models/query_utils.py\n@@ -46,10 +46,10 @@ class Q(tree.Node):\n \n         # If the other Q() is empty, ignore it and just use `self`.\n         if not other:\n-            return copy.deepcopy(self)\n+            return self.copy()\n         # Or if this Q is empty, ignore it and just use `other`.\n         elif not self:\n-            return copy.deepcopy(other)\n+            return other.copy()\n \n         obj = type(self)()\n         obj.connector = conn\n@@ -57,6 +57,13 @@ class Q(tree.Node):\n         obj.add(other, conn)\n         return obj\n \n+    def copy(self):\n+        obj = type(self)()\n+        obj.connector = self.connector\n+        obj.negated = self.negated\n+        obj.children = self.children.copy()\n+        return obj\n+\n     def __or__(self, other):\n         return self._combine(other, self.OR)\n "
+}

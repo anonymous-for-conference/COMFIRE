@@ -1,0 +1,82 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index 5bbb786984..013eb69b7b 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -2324,8 +2324,8 @@ class Figure(FigureBase):
+                  **kwargs
+                  ):
+         """
+-        Parameters
+-        ----------
++        Class Parameters
++        ---------------
+         figsize : 2-tuple of floats, default: :rc:`figure.figsize`
+             Figure dimension ``(width, height)`` in inches.
+ 
+@@ -2345,12 +2345,12 @@ class Figure(FigureBase):
+         frameon : bool, default: :rc:`figure.frameon`
+             If ``False``, suppress drawing the figure background patch.
+ 
+-        subplotpars : `SubplotParams`
+-            Subplot parameters. If not given, the default subplot
++        subplotpars : `SubplotParams` for all figures and axes
++            Figure and axes parameters. If not given, the default figure and axes
+             parameters :rc:`figure.subplot.*` are used.
+ 
+         tight_layout : bool or dict, default: :rc:`figure.autolayout`
+-            Whether to use the tight layout mechanism. See `.set_tight_layout`.
++            Whether to use the tight layout mechanism only when no explicit layout is provided. See `.set_tight_layout`.
+ 
+             .. admonition:: Discouraged
+ 
+@@ -2374,7 +2374,7 @@ class Figure(FigureBase):
+ 
+             - 'constrained': The constrained layout solver adjusts axes sizes
+                to avoid overlapping axes decorations.  Can handle complex plot
+-               layouts and colorbars, and is thus recommended.
++               layouts and colorbars through `.TightLayoutEngine`, and is thus recommended.
+ 
+               See :doc:`/tutorials/intermediate/constrainedlayout_guide`
+               for examples.
+@@ -2393,7 +2393,7 @@ class Figure(FigureBase):
+               accessible by 'constrained' and 'tight'.  Passing an instance
+               allows third parties to provide their own layout engine.
+ 
+-            If not given, fall back to using the parameters *tight_layout* and
++            If not given, ``Figure.set_tight_layout`` falls back to using the parameters *tight_layout* and
+             *constrained_layout*, including their config defaults
+             :rc:`figure.autolayout` and :rc:`figure.constrained_layout.use`.
+ 
+@@ -2426,9 +2426,12 @@ class Figure(FigureBase):
+             if isinstance(tight_layout, dict):
+                 self.get_layout_engine().set(**tight_layout)
+         elif constrained_layout is not None:
+-            self.set_layout_engine(layout='constrained')
+-            if isinstance(constrained_layout, dict):
+-                self.get_layout_engine().set(**constrained_layout)
++            if isinstance(constrained_layout, dict) or constrained_layout:
++                self.set_layout_engine(layout='constrained')
++                if isinstance(constrained_layout, dict):
++                    self.get_layout_engine().set(**constrained_layout)
++            else:
++                self.set_layout_engine(layout='none')
+         else:
+             # everything is None, so use default:
+             self.set_layout_engine(layout=layout)
+diff --git a/lib/matplotlib/tests/test_figure.py b/lib/matplotlib/tests/test_figure.py
+index 48b4a880e0..00559a4970 100644
+--- a/lib/matplotlib/tests/test_figure.py
++++ b/lib/matplotlib/tests/test_figure.py
+@@ -565,6 +565,12 @@ def test_invalid_layouts():
+     assert not isinstance(fig.get_layout_engine(), TightLayoutEngine)
+     assert isinstance(fig.get_layout_engine(), ConstrainedLayoutEngine)
+ 
++    fig, ax = plt.subplots(constrained_layout=False)
++    with warnings.catch_warnings(record=True) as recwarn:
++        warnings.simplefilter("always")
++        fig.subplots_adjust(top=0.8)
++    assert not recwarn
++
+     with pytest.raises(ValueError,
+                        match="Invalid value for 'layout'"):
+         Figure(layout='foobar')

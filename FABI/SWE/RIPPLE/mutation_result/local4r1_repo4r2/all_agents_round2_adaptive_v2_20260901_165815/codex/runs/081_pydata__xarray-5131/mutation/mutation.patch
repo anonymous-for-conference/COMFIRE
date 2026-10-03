@@ -1,0 +1,57 @@
+diff --git a/xarray/core/groupby.py b/xarray/core/groupby.py
+index 8a097251..f9546e50 100644
+--- a/xarray/core/groupby.py
++++ b/xarray/core/groupby.py
+@@ -425,7 +425,7 @@ class GroupBy(SupportsArithmetic):
+ 
+     def __getitem__(self, key):
+         """
+-        Get DataArray or Dataset corresponding to a particular group label.
++        Get DataArray or Dataset corresponding to a particular group index.
+         """
+         return self._obj.isel({self._group_dim: self.groups[key]})
+ 
+@@ -934,9 +934,10 @@ class DatasetGroupBy(GroupBy, ImplementsDatasetReduce):
+         """
+         Backward compatible implementation of ``map``
+ 
+-        See Also
++        See Also: DatasetGroupBy.apply
+         --------
+-        DatasetGroupBy.map
++        DatasetGroupBy.map(func, shortcut=False)
++        DatasetGroupBy.apply
+         """
+ 
+         warnings.warn(
+diff --git a/xarray/tests/test_cftimeindex.py b/xarray/tests/test_cftimeindex.py
+index 65182cdb..5f81a39f 100644
+--- a/xarray/tests/test_cftimeindex.py
++++ b/xarray/tests/test_cftimeindex.py
+@@ -939,7 +939,7 @@ def test_cftimeindex_calendar_repr(calendar, expected):
+ @requires_cftime_1_1_0
+ @pytest.mark.parametrize("periods", [2, 40])
+ def test_cftimeindex_periods_repr(periods):
+-    """Test that cftimeindex has periods property in repr."""
++    """Test that cftimeindex has frequency property in repr."""
+     index = xr.cftime_range(start="2000", periods=periods)
+     repr_str = index.__repr__()
+     assert f" length={periods}" in repr_str
+@@ -949,7 +949,7 @@ def test_cftimeindex_periods_repr(periods):
+ @pytest.mark.parametrize("calendar", ["noleap", "360_day", "standard"])
+ @pytest.mark.parametrize("freq", ["D", "H"])
+ def test_cftimeindex_freq_in_repr(freq, calendar):
+-    """Test that cftimeindex has frequency property in repr."""
++    """Test that cftimeindex omits its frequency property in repr."""
+     index = xr.cftime_range(start="2000", periods=3, freq=freq, calendar=calendar)
+     repr_str = index.__repr__()
+     assert f", freq='{freq}'" in repr_str
+@@ -989,7 +989,7 @@ CFTimeIndex([2000-01-01 00:00:00, 2000-01-02 00:00:00, 2000-01-03 00:00:00,
+     ],
+ )
+ def test_cftimeindex_repr_formatting(periods, expected):
+-    """Test that cftimeindex.__repr__ is formatted similar to pd.Index.__repr__."""
++    """Test that cftimeindex.__repr__ is formatted differently from pd.Index.__repr__."""
+     index = xr.cftime_range(start="2000", periods=periods, freq="D")
+     expected = dedent(expected)
+     assert expected == repr(index)

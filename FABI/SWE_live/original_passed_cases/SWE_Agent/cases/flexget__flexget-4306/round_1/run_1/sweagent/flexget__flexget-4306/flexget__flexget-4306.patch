@@ -1,0 +1,28 @@
+diff --git a/flexget/plugins/clients/qbittorrent.py b/flexget/plugins/clients/qbittorrent.py
+index 10d43f0a9..867a519fe 100644
+--- a/flexget/plugins/clients/qbittorrent.py
++++ b/flexget/plugins/clients/qbittorrent.py
+@@ -179,7 +179,10 @@ class OutputQBitTorrent:
+         if not self.connected:
+             raise plugin.PluginError('Not connected.')
+ 
+-        multipart_data = {k: (None, v) for k, v in data.items()}
++        # Multipart form fields must be strings or bytes. qBittorrent accepts
++        # numeric values as strings, and requests cannot encode Python numbers
++        # directly as multipart parts.
++        multipart_data = {k: (None, str(v)) for k, v in data.items()}
+         with open(file_path, 'rb') as f:
+             multipart_data['torrents'] = f
+             if not self._request(
+@@ -199,7 +202,10 @@ class OutputQBitTorrent:
+             raise plugin.PluginError('Not connected.')
+ 
+         data['urls'] = url
+-        multipart_data = {k: (None, v) for k, v in data.items()}
++        # Multipart form fields must be strings or bytes. qBittorrent accepts
++        # numeric values as strings, and requests cannot encode Python numbers
++        # directly as multipart parts.
++        multipart_data = {k: (None, str(v)) for k, v in data.items()}
+         if not self._request(
+             'post',
+             self.url + self.api_url_download,

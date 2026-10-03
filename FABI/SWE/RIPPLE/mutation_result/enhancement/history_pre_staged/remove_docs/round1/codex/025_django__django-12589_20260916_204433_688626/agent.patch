@@ -1,0 +1,55 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index a27745658d..5db5af27c4 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -6,7 +6,7 @@ from itertools import chain
+ from django.core.exceptions import EmptyResultSet, FieldError
+ from django.db import DatabaseError, NotSupportedError
+ from django.db.models.constants import LOOKUP_SEP
+-from django.db.models.expressions import OrderBy, Random, RawSQL, Ref, Value
++from django.db.models.expressions import OrderBy, Random, RawSQL, Ref, Subquery, Value
+ from django.db.models.functions import Cast
+ from django.db.models.query_utils import Q, select_related_descend
+ from django.db.models.sql.constants import (
+@@ -414,6 +414,8 @@ class SQLCompiler:
+         return r
+ 
+     def compile(self, node):
++        if isinstance(node, Ref) and isinstance(node.source, Subquery):
++            return self.compile(node.source)
+         vendor_impl = getattr(node, 'as_' + self.connection.vendor, None)
+         if vendor_impl:
+             sql, params = vendor_impl(self, self.connection)
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index b30efa3b32..ab7394a8b9 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -6,7 +6,8 @@ from operator import attrgetter
+ 
+ from django.core.exceptions import EmptyResultSet, FieldError
+ from django.db import DEFAULT_DB_ALIAS, connection
+-from django.db.models import Count, Exists, F, OuterRef, Q
++from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
++from django.db.models.expressions import Ref, Subquery as SubqueryExpression
+ from django.db.models.sql.constants import LOUTER
+ from django.db.models.sql.where import NothingNode, WhereNode
+ from django.test import SimpleTestCase, TestCase, skipUnlessDBFeature
+@@ -3542,8 +3543,17 @@ class EmptyStringPromotionTests(SimpleTestCase):
+ 
+ 
+ class ValuesSubqueryTests(TestCase):
++    @skipUnlessDBFeature('supports_subqueries_in_group_by')
++    def test_subquery_group_by_ref_compiles_to_subquery(self):
++        subquery = OrderItem.objects.values('status')[:1]
++        expr = Ref('status', SubqueryExpression(subquery))
++        compiler = Order.objects.all().query.get_compiler(using='default')
++        ref_sql, ref_params = compiler.compile(expr)
++        sql, params = compiler.compile(expr.get_source_expressions()[0])
++        self.assertEqual((ref_sql, ref_params), (sql, params))
++
+     def test_values_in_subquery(self):
+-                                                               
++                                                                 
+                                                                       
+         o1 = Order.objects.create(id=-2)
+         o2 = Order.objects.create(id=-1)

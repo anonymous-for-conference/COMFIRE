@@ -1,0 +1,20 @@
+diff --git a/django/db/backends/sqlite3/base.py b/django/db/backends/sqlite3/base.py
+index 31e8a55a43..e59c41739c 100644
+--- a/django/db/backends/sqlite3/base.py
++++ b/django/db/backends/sqlite3/base.py
+@@ -559,8 +559,13 @@ def _sqlite_format_dtdelta(conn, lhs, rhs):
+             out = real_lhs - real_rhs
+     except (ValueError, TypeError):
+         return None
+-    # typecast_timestamp returns a date or a datetime without timezone.
+-    # It will be formatted as "%Y-%m-%d" or "%Y-%m-%d %H:%M:%S[.%f]"
++    # Return a number for duration arithmetic. This is important because
++    # DurationField values are stored as microseconds on SQLite and the
++    # DurationField converter expects the result in that format. For
++    # datetime arithmetic, preserve the textual representation expected by
++    # SQLite's datetime functions.
++    if isinstance(lhs, int) and isinstance(rhs, int):
++        return duration_microseconds(out)
+     return str(out)
+ 
+ 

@@ -1,0 +1,51 @@
+diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py
+index f99ca9076a..369ebc0375 100644
+--- a/sympy/simplify/tests/test_trigsimp.py
++++ b/sympy/simplify/tests/test_trigsimp.py
+@@ -1,7 +1,7 @@
+ from sympy import (
+     symbols, sin, simplify, cos, trigsimp, rad, tan, exptrigsimp,sinh,
+     cosh, diff, cot, Subs, exp, tanh, exp, S, integrate, I,Matrix,
+-    Symbol, coth, pi, log, count_ops, sqrt, E, expand, Piecewise)
++    Symbol, coth, pi, log, count_ops, sqrt, E, expand, Piecewise, acos)
+ 
+ from sympy.core.compatibility import long
+ from sympy.utilities.pytest import XFAIL
+@@ -152,6 +152,11 @@ def test_issue_3210():
+         ]
+ 
+ 
++def test_issue_rational_trig_add():
++    assert trigsimp(sin(S(1)/50)*sin(S(1)/25) + cos(S(1)/50)*cos(S(1)/25)) == cos(S(1)/50 - S(1)/25)
++    assert simplify(acos(sin(S(1)/50)*sin(S(1)/25) + cos(S(1)/50)*cos(S(1)/25))) == S(1)/50
++
++
+ def test_trigsimp_issues():
+     a, x, y = symbols('a x y')
+ 
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 48b51a6248..97a9f0795b 100644
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -1002,12 +1002,18 @@ def __trigsimp(expr, deep=False):
+             for pattern, result in matchers_add:
+                 if not _dotrig(expr, pattern):
+                     continue
++                old = expr
+                 expr = TR10i(expr)
++                if expr == old:
++                    res = expr.match(pattern)
++                    if res is not None:
++                        expr = result.subs(res)
++                        break
+                 if expr.has(HyperbolicFunction):
+                     res = expr.match(pattern)
+-                                                                       
+-                                                                       
+-                                                     
++                                                                        
++                                                                        
++                                                      
+                     if res is None or not (a in res and b in res) or any(
+                         w.args[0] in (res[a], res[b]) for w in res[d].atoms(
+                             TrigonometricFunction, HyperbolicFunction)):

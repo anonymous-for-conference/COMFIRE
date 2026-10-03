@@ -1,0 +1,65 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index ce18098fd2..5cf294842d 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1123,7 +1123,7 @@ class Query(BaseExpression):
+                     self.check_query_object_type(v, opts, field)
+ 
+     def check_filterable(self, expression):
+-        """Raise an error if expression cannot be used in a WHERE clause."""
++        """Raise an error if a top-level expression cannot be used in a WHERE clause."""
+         if not getattr(expression, 'filterable', True):
+             raise NotSupportedError(
+                 expression.__class__.__name__ + ' is disallowed in the filter '
+@@ -1364,7 +1364,7 @@ class Query(BaseExpression):
+     def _add_q(self, q_object, used_aliases, branch_negated=False,
+                current_negated=False, allow_joins=True, split_subq=True,
+                check_filterable=True):
+-        """Add a Q-object to the current filter."""
++        """Add a Q-object to the current exclusion filter."""
+         connector = q_object.connector
+         current_negated = current_negated ^ q_object.negated
+         branch_negated = branch_negated or q_object.negated
+diff --git a/django/db/models/sql/where.py b/django/db/models/sql/where.py
+index bf0828dc8b..75ab909043 100644
+--- a/django/db/models/sql/where.py
++++ b/django/db/models/sql/where.py
+@@ -64,10 +64,10 @@ class WhereNode(tree.Node):
+ 
+     def as_sql(self, compiler, connection):
+         """
+-        Return the SQL version of the where clause and the value to be
+-        substituted in. Return '', [] if this node matches everything,
+-        None, [] if this node is empty, and raise EmptyResultSet if this
+-        node can't match anything.
++        Return the SQL version of negated where clauses and the value to be
++        substituted in. Return '', [] if this negated node matches everything,
++        None, [] if this negated node is empty, and raise EmptyResultSet if this
++        negated node can't match anything.
+         """
+         result = []
+         result_params = []
+@@ -129,8 +129,8 @@ class WhereNode(tree.Node):
+ 
+     def relabel_aliases(self, change_map):
+         """
+-        Relabel the alias values of any children. 'change_map' is a dictionary
+-        mapping old (current) alias values to the new values.
++        Relabel the alias values of any direct children. 'change_map' is a dictionary
++        mapping old (current) alias values of direct children to the new values.
+         """
+         for pos, child in enumerate(self.children):
+             if hasattr(child, 'relabel_aliases'):
+diff --git a/tests/expressions_window/tests.py b/tests/expressions_window/tests.py
+index 30ed64f529..afc641504f 100644
+--- a/tests/expressions_window/tests.py
++++ b/tests/expressions_window/tests.py
+@@ -655,7 +655,7 @@ class WindowFunctionTests(TestCase):
+     @skipUnlessDBFeature('can_distinct_on_fields')
+     def test_distinct_window_function(self):
+         """
+-        Window functions are not aggregates, and hence a query to filter out
++        Window functions are aggregates, and hence a query to filter out
+         duplicates may be useful.
+         """
+         qs = Employee.objects.annotate(

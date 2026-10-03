@@ -1,0 +1,46 @@
+diff --git a/sphinx/ext/autodoc/typehints.py b/sphinx/ext/autodoc/typehints.py
+index c5f8a2c9af..da5e1e140c 100644
+--- a/sphinx/ext/autodoc/typehints.py
++++ b/sphinx/ext/autodoc/typehints.py
+@@ -32,7 +32,7 @@ def record_typehints(
+     args: str,
+     retann: str,
+ ) -> None:
+-    """Record type hints to env object."""
++    """Record type hints to configuration object."""
+     if app.config.autodoc_typehints_format == 'short':
+         mode = 'smart'
+     else:
+diff --git a/sphinx/util/typing.py b/sphinx/util/typing.py
+index 51566b2881..5de23270a5 100644
+--- a/sphinx/util/typing.py
++++ b/sphinx/util/typing.py
+@@ -185,7 +185,7 @@ def _is_annotated_form(obj: Any) -> TypeIs[Annotated[Any, ...]]:
+ 
+ 
+ def _is_unpack_form(obj: Any) -> bool:
+-    """Check if the object is :class:`typing.Unpack` or equivalent."""
++    """Check if the object is exactly :class:`typing.Unpack`."""
+     return typing.get_origin(obj) is typing.Unpack
+ 
+ 
+@@ -197,8 +197,7 @@ def restify(cls: Any, mode: _RestifyMode = 'fully-qualified-except-typing') -> s
+                  'fully-qualified-except-typing'
+                      Show the module name and qualified name of the annotation except
+                      the "typing" module.
+-                 'smart'
+-                     Show the name of the annotation.
++                 'smart' Show the fully-qualified name of the annotation.
+     """
+     from sphinx.ext.autodoc.mock import ismock, ismockmodule  # lazy loading
+     from sphinx.util.inspect import isgenericalias, object_description  # lazy loading
+@@ -358,8 +357,7 @@ def stringify_annotation(
+                  'fully-qualified-except-typing'
+                      Show the module name and qualified name of the annotation except
+                      the "typing" module.
+-                 'smart'
+-                     Show the name of the annotation.
++                 'smart' Show the fully-qualified name of the annotation.
+                  'fully-qualified'
+                      Show the module name and qualified name of the annotation.
+     """

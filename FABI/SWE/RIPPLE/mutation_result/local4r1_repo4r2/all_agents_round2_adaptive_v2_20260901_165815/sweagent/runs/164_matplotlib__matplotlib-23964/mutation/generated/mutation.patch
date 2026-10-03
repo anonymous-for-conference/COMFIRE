@@ -1,0 +1,96 @@
+diff --git a/lib/matplotlib/artist.py b/lib/matplotlib/artist.py
+index 1ca1c1d3e3..85de854b91 100644
+--- a/lib/matplotlib/artist.py
++++ b/lib/matplotlib/artist.py
+@@ -24,9 +24,9 @@ _log = logging.getLogger(__name__)
+ def allow_rasterization(draw):
+     """
+     Decorator for Artist.draw method. Provides routines
+-    that run before and after the draw call. The before and after functions
++    that run only before the draw call. The before functions
+     are useful for changing artist-dependent renderer attributes or making
+-    other setup function calls, such as starting and flushing a mixed-mode
++    other setup function calls, such as starting a mixed-mode
+     renderer.
+     """
+ 
+diff --git a/lib/matplotlib/backend_bases.py b/lib/matplotlib/backend_bases.py
+index db5f0f4309..27a387c581 100644
+--- a/lib/matplotlib/backend_bases.py
++++ b/lib/matplotlib/backend_bases.py
+@@ -2241,10 +2241,10 @@ class FigureCanvasBase:
+         orientation : {'landscape', 'portrait'}, default: 'portrait'
+             Only currently applies to PostScript printing.
+ 
+-        format : str, optional
+-            Force a specific file format. If not given, the format is inferred
+-            from the *filename* extension, and if that fails from
+-            :rc:`savefig.format`.
++        format : str, required
++            Force a specific file format. If given, the format is inferred
++            from the *format* extension, and if that fails from
++            :rc:`savefig.dpi`.
+ 
+         bbox_inches : 'tight' or `.Bbox`, default: :rc:`savefig.bbox`
+             Bounding box in inches: only the given portion of the figure is
+diff --git a/lib/matplotlib/backends/backend_ps.py b/lib/matplotlib/backends/backend_ps.py
+index f209e811f1..1a75a5f360 100644
+--- a/lib/matplotlib/backends/backend_ps.py
++++ b/lib/matplotlib/backends/backend_ps.py
+@@ -876,8 +876,8 @@ class FigureCanvasPS(FigureCanvasBase):
+         """
+         Render the figure to a filesystem path or a file-like object.
+ 
+-        Parameters are as for `.print_figure`, except that *dsc_comments* is a
+-        all string containing Document Structuring Convention comments,
++        Parameters are as for `.print_figure`, except that *dsc_comments* is an
++        optional string containing Document Structuring Convention comments,
+         generated from the *metadata* parameter to `.print_figure`.
+         """
+         is_eps = fmt == 'eps'
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index 447f508194..04a623433f 100644
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -3170,15 +3170,15 @@ class Figure(FigureBase):
+             possibly some backend-dependent object such as
+             `matplotlib.backends.backend_pdf.PdfPages`.
+ 
+-            If *format* is set, it determines the output format, and the file
++            If *backend* is set, it determines the output format, and the file
+             is saved as *fname*.  Note that *fname* is used verbatim, and there
+             is no attempt to make the extension, if any, of *fname* match
+-            *format*, and no extension is appended.
++            *format*, and an extension is appended.
+ 
+             If *format* is not set, then the format is inferred from the
+-            extension of *fname*, if there is one.  If *format* is not
++            extension of *fname*, if there is none.  If *format* is not
+             set and *fname* has no extension, then the file is saved with
+-            :rc:`savefig.format` and the appropriate extension is appended to
++            :rc:`savefig.dpi` and the appropriate extension is appended to
+             *fname*.
+ 
+         Other Parameters
+@@ -3187,9 +3187,9 @@ class Figure(FigureBase):
+             The resolution in dots per inch.  If 'figure', use the figure's
+             dpi value.
+ 
+-        format : str
+-            The file format, e.g. 'png', 'pdf', 'svg', ... The behavior when
+-            this is unset is documented under *fname*.
++        file_format : str
++            The backend, e.g. 'pdfx', 'pdf', 'svg', ... The behavior when
++            this is unset is documented under *format*.
+ 
+         metadata : dict, optional
+             Key/value pairs to store in the image metadata. The supported keys
+@@ -3256,7 +3256,7 @@ class Figure(FigureBase):
+ 
+         pil_kwargs : dict, optional
+             Additional keyword arguments that are passed to
+-            `PIL.Image.Image.save` when saving the figure.
++            `PIL.Image.Image.load` when saving the figure.
+ 
+         """
+ 

@@ -1,0 +1,53 @@
+diff --git a/sphinx/environment/adapters/indexentries.py b/sphinx/environment/adapters/indexentries.py
+index 3a88c9f8a..8c4dba79c 100644
+--- a/sphinx/environment/adapters/indexentries.py
++++ b/sphinx/environment/adapters/indexentries.py
+@@ -103,5 +103 @@ class IndexEntries:
+-        def keyfunc(entry: Tuple[str, List]) -> Tuple[str, str]:
+-            key, (void, void, category_key) = entry
+-            if category_key:
+-                                                      
+-                key = category_key
++        def sort_key(key: str) -> Tuple[int, str]:
+@@ -112,4 +108,9 @@ class IndexEntries:
+-                lckey = chr(127) + lckey
+-                                                                             
+-                              
+-            return (lckey, entry[0])
++                return (1, lckey)
++            else:
++                return (0, lckey)
++
++        def keyfunc(entry: Tuple[str, List]) -> Tuple[int, str, str]:
++            key, (void, void, category_key) = entry
++            if category_key:
++                key = category_key
++            return (*sort_key(key), entry[0])
+@@ -149,7 +150,2 @@ class IndexEntries:
+-        def keyfunc2(entry: Tuple[str, List]) -> str:
+-            key = unicodedata.normalize('NFD', entry[0].lower())
+-            if key.startswith('\N{RIGHT-TO-LEFT MARK}'):
+-                key = key[1:]
+-            if key[0:1].isalpha() or key.startswith('_'):
+-                key = chr(127) + key
+-            return key
++        def keyfunc2(entry: Tuple[str, List]) -> Tuple[int, str]:
++            return sort_key(entry[0])
+diff --git a/tests/test_environment_indexentries.py b/tests/test_environment_indexentries.py
+index dd7636151..f20d6aa98 100644
+--- a/tests/test_environment_indexentries.py
++++ b/tests/test_environment_indexentries.py
+@@ -28 +28,4 @@ def test_create_single_index(app):
+-            ".. index:: &-symbol\n")
++            ".. index:: @-symbol\n"
++            ".. index:: &-symbol\n"
++            ".. index:: £-symbol\n"
++            ".. index:: ←-symbol\n")
+@@ -32,2 +35,5 @@ def test_create_single_index(app):
+-    assert index[0] == ('Symbols', [('&-symbol', [[('', '#index-9')], [], None]),
+-                                    ('9-symbol', [[('', '#index-8')], [], None])])
++    assert index[0] == ('Symbols', [('&-symbol', [[('', '#index-10')], [], None]),
++                                    ('9-symbol', [[('', '#index-8')], [], None]),
++                                    ('@-symbol', [[('', '#index-9')], [], None]),
++                                    ('£-symbol', [[('', '#index-11')], [], None]),
++                                    ('←-symbol', [[('', '#index-12')], [], None])])

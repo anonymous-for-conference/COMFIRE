@@ -1,0 +1,175 @@
+{
+  "instance_id": "django__django-13925",
+  "level": "level_1,level_2",
+  "seed": 6959,
+  "selected_cluster_count": 5,
+  "mutation_count": 6,
+  "clusters": [
+    {
+      "cluster_id": "django__django-13925:level_2:cluster_0003",
+      "label": "full field validation",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L2",
+      "locations": [
+        {
+          "cluster_id": "django__django-13925:level_2:cluster_0003",
+          "cluster_label": "full field validation",
+          "operator": "L2",
+          "documentation_id": "3277b2fae3ba6e56f88386749b5245467b20915f49d900c48b47f48dc1124b0d",
+          "unit_id": "083c3e49fcb538fba808f824321c575a14e12d635b38d2b5536a73f0b27bdcff",
+          "file": "django/db/models/base.py",
+          "symbol": "django/db/models/base.py::Model.clean_fields",
+          "file_line_start": 1242,
+          "file_line_end": 1243,
+          "source_start_offset": 12,
+          "source_end_offset": 130,
+          "original_unit_source": "        Clean all fields and raise a ValidationError containing a dict\n        of all validation errors if any occur.\n",
+          "mutated_unit_source": "        Clean all fields and raise a ValidationError containing a list\n        of all validation errors if any occur.\n",
+          "changed_contract": "The documented ValidationError payload changes from a dictionary to a list of all validation errors.",
+          "evidence": "The method collects errors in the `errors = {}` dictionary keyed by field name and raises `ValidationError(errors)` when errors exist.",
+          "complete_access_location": "    def clean_fields(self, exclude=None):\n        \"\"\"\n        Clean all fields and raise a ValidationError containing a dict\n        of all validation errors if any occur.\n        \"\"\"\n        if exclude is None:\n            exclude = []\n\n        errors = {}\n        for f in self._meta.fields:\n            if f.name in exclude:\n                continue\n            # Skip validation for empty fields with blank=True. The developer\n            # is responsible for making sure they have a valid value.\n            raw_value = getattr(self, f.attname)\n            if f.blank and raw_value in f.empty_values:\n                continue\n            try:\n                setattr(self, f.attname, f.clean(raw_value, self))\n            except ValidationError as e:\n                errors[f.name] = e.error_list\n\n        if errors:\n            raise ValidationError(errors)\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13925:level_2:cluster_0020",
+      "label": "parent model saving",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L1",
+      "locations": [
+        {
+          "cluster_id": "django__django-13925:level_2:cluster_0020",
+          "cluster_label": "parent model saving",
+          "operator": "L1",
+          "documentation_id": "80682e979ec8bd79cf75a8cced7cef4e7636dd373ec52965343fd0a020d383bd",
+          "unit_id": "e285a287870810cdef874a856d0ef08164650c07ffc794154e3536b7a3ff1d98",
+          "file": "django/db/models/base.py",
+          "symbol": "django/db/models/base.py::Model._save_parents",
+          "file_line_start": 782,
+          "file_line_end": 782,
+          "source_start_offset": 11,
+          "source_end_offset": 62,
+          "original_unit_source": "Save all the parents of cls using values from self.",
+          "mutated_unit_source": "Save all the parents of cls using values from cls.",
+          "changed_contract": "The documentation says parent values are taken from `cls` instead of `self`.",
+          "evidence": "The method signature defines `cls` as a model class, while the implementation reads values from `self`.",
+          "complete_access_location": "    def _save_parents(self, cls, using, update_fields):\n        \"\"\"Save all the parents of cls using values from self.\"\"\"\n        meta = cls._meta\n        inserted = False\n        for parent, field in meta.parents.items():\n            # Make sure the link fields are synced between parent and self.\n            if (field and getattr(self, parent._meta.pk.attname) is None and\n                    getattr(self, field.attname) is not None):\n                setattr(self, parent._meta.pk.attname, getattr(self, field.attname))\n            parent_inserted = self._save_parents(cls=parent, using=using, update_fields=update_fields)\n            updated = self._save_table(\n                cls=parent, using=using, update_fields=update_fields,\n                force_insert=parent_inserted,\n            )\n            if not updated:\n                inserted = True\n            # Set the parent's PK value to self.\n            if field:\n                setattr(self, field.attname, self._get_pk_val(parent._meta))\n                # Since we didn't have an instance of the parent handy set\n                # attname directly, bypassing the descriptor. Invalidate\n                # the related object cache, in case it's been accidentally\n                # populated. A fresh instance will be re-built from the\n                # database if necessary.\n                if field.is_cached(self):\n                    field.delete_cached_value(self)\n        return inserted\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13925:level_2:cluster_0017",
+      "label": "database field reload",
+      "applicable_operators": [
+        "L1",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-13925:level_2:cluster_0017",
+          "cluster_label": "database field reload",
+          "operator": "L3",
+          "documentation_id": "f3e3477576e8d42fd1fa7d6e695a1fbc8d2b3b4b7217a20642bee046eab7e45d",
+          "unit_id": "8df24fc2e1a75885e4ba1feaacd1ac219cd636c3e0a20a7019fc344c36a07313",
+          "file": "django/db/models/base.py",
+          "symbol": "django/db/models/base.py::Model.refresh_from_db",
+          "file_line_start": 596,
+          "file_line_end": 596,
+          "source_start_offset": 12,
+          "source_end_offset": 59,
+          "original_unit_source": "        Reload field values from the database.\n",
+          "mutated_unit_source": "        Reload field values from the database without clearing cached relations.\n",
+          "changed_contract": "Cached relations are documented as preserved during a refresh.",
+          "evidence": "After reloading fields, the implementation deletes cached foreign-key values and cached related-object values via field.delete_cached_value(self).",
+          "complete_access_location": "    def refresh_from_db(self, using=None, fields=None):\n        \"\"\"\n        Reload field values from the database.\n\n        By default, the reloading happens from the database this instance was\n        loaded from, or by the read router if this instance wasn't loaded from\n        any database. The using parameter will override the default.\n\n        Fields can be used to specify which fields to reload. The fields\n        should be an iterable of field attnames. If fields is None, then\n        all non-deferred fields are reloaded.\n\n        When accessing deferred fields of an instance, the deferred loading\n        of the field will call this method.\n        \"\"\"\n        if fields is None:\n            self._prefetched_objects_cache = {}\n        else:\n            prefetched_objects_cache = getattr(self, '_prefetched_objects_cache', ())\n            for field in fields:\n                if field in prefetched_objects_cache:\n                    del prefetched_objects_cache[field]\n                    fields.remove(field)\n            if not fields:\n                return\n            if any(LOOKUP_SEP in f for f in fields):\n                raise ValueError(\n                    'Found \"%s\" in fields argument. Relations and transforms '\n                    'are not allowed in fields.' % LOOKUP_SEP)\n\n        hints = {'instance': self}\n        db_instance_qs = self.__class__._base_manager.db_manager(using, hints=hints).filter(pk=self.pk)\n\n        # Use provided fields, if not set then reload all non-deferred fields.\n        deferred_fields = self.get_deferred_fields()\n        if fields is not None:\n            fields = list(fields)\n            db_instance_qs = db_instance_qs.only(*fields)\n        elif deferred_fields:\n            fields = [f.attname for f in self._meta.concrete_fields\n                      if f.attname not in deferred_fields]\n            db_instance_qs = db_instance_qs.only(*fields)\n\n        db_instance = db_instance_qs.get()\n        non_loaded_fields = db_instance.get_deferred_fields()\n        for field in self._meta.concrete_fields:\n            if field.attname in non_loaded_fields:\n                # This field wasn't refreshed - skip ahead.\n                continue\n            setattr(self, field.attname, getattr(db_instance, field.attname))\n            # Clear cached foreign keys.\n            if field.is_relation and field.is_cached(self):\n                field.delete_cached_value(self)\n\n        # Clear cached relations.\n        for field in self._meta.related_objects:\n            if field.is_cached(self):\n                field.delete_cached_value(self)\n\n        self._state.db = db_instance._state.db\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13925:level_2:cluster_0002",
+      "label": "option_together normalization",
+      "applicable_operators": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-13925:level_2:cluster_0002",
+          "cluster_label": "option_together normalization",
+          "operator": "L3",
+          "documentation_id": "016de3a353e0632351bde09435be3410019a92cfe5e166c660adaeb8641b7db5",
+          "unit_id": "02f9187dd396dbf86e46d33ddf5bbfcda60114c953c7e98b45162efb43dbf41c",
+          "file": "django/db/models/options.py",
+          "symbol": "django/db/models/options.py::normalize_together",
+          "file_line_start": 40,
+          "file_line_end": 41,
+          "source_start_offset": 8,
+          "source_end_offset": 98,
+          "original_unit_source": "    option_together can be either a tuple of tuples, or a single\n    tuple of two strings.",
+          "mutated_unit_source": "    option_together can be either a tuple of tuples, or a single\n    tuple of two strings, which is normalized in place.",
+          "changed_contract": "Normalization is documented as mutating a single tuple in place.",
+          "evidence": "The function never mutates option_together; it returns a newly constructed tuple via tuple(tuple(ot) for ot in option_together).",
+          "complete_access_location": "def normalize_together(option_together):\n    \"\"\"\n    option_together can be either a tuple of tuples, or a single\n    tuple of two strings. Normalize it to a tuple of tuples, so that\n    calling code can uniformly expect that.\n    \"\"\"\n    try:\n        if not option_together:\n            return ()\n        if not isinstance(option_together, (tuple, list)):\n            raise TypeError\n        first_element = option_together[0]\n        if not isinstance(first_element, (tuple, list)):\n            option_together = (option_together,)\n        # Normalize everything to tuples\n        return tuple(tuple(ot) for ot in option_together)\n    except TypeError:\n        # If the value of option_together isn't valid, return it\n        # verbatim; this will be picked up by the check framework later.\n        return option_together\n"
+        },
+        {
+          "cluster_id": "django__django-13925:level_2:cluster_0002",
+          "cluster_label": "option_together normalization",
+          "operator": "L3",
+          "documentation_id": "016de3a353e0632351bde09435be3410019a92cfe5e166c660adaeb8641b7db5",
+          "unit_id": "2da78266a28339ef00ece1d004b6223444bb61a8da62eaa2fa5ef1ba79cade51",
+          "file": "django/db/models/options.py",
+          "symbol": "django/db/models/options.py::normalize_together",
+          "file_line_start": 41,
+          "file_line_end": 42,
+          "source_start_offset": 98,
+          "source_end_offset": 186,
+          "original_unit_source": " Normalize it to a tuple of tuples, so that\n    calling code can uniformly expect that.\n",
+          "mutated_unit_source": " Normalize it to a list of tuples, so that\n    calling code can uniformly expect that.\n",
+          "changed_contract": "The normalized result is documented as a list of tuples instead of a tuple of tuples.",
+          "evidence": "The implementation returns tuple(tuple(ot) for ot in option_together), which produces a tuple of tuples.",
+          "complete_access_location": "def normalize_together(option_together):\n    \"\"\"\n    option_together can be either a tuple of tuples, or a single\n    tuple of two strings. Normalize it to a tuple of tuples, so that\n    calling code can uniformly expect that.\n    \"\"\"\n    try:\n        if not option_together:\n            return ()\n        if not isinstance(option_together, (tuple, list)):\n            raise TypeError\n        first_element = option_together[0]\n        if not isinstance(first_element, (tuple, list)):\n            option_together = (option_together,)\n        # Normalize everything to tuples\n        return tuple(tuple(ot) for ot in option_together)\n    except TypeError:\n        # If the value of option_together isn't valid, return it\n        # verbatim; this will be picked up by the check framework later.\n        return option_together\n"
+        }
+      ]
+    },
+    {
+      "cluster_id": "django__django-13925:level_2:cluster_0021",
+      "label": "ProjectState rendering test",
+      "applicable_operators": [
+        "L2",
+        "L3"
+      ],
+      "selected_operator": "L3",
+      "locations": [
+        {
+          "cluster_id": "django__django-13925:level_2:cluster_0021",
+          "cluster_label": "ProjectState rendering test",
+          "operator": "L3",
+          "documentation_id": "0baf8ad932b2d36a65db5b23860d92f6462ba0a513af4ea1a4cfe8868f26d4ef",
+          "unit_id": "e3c423b0ba091160e516633921a6872a39f64a0fb34c51763adb457f08c16509",
+          "file": "tests/migrations/test_state.py",
+          "symbol": "tests/migrations/test_state.py::StateTests.test_render",
+          "file_line_start": 328,
+          "file_line_end": 328,
+          "source_start_offset": 12,
+          "source_end_offset": 65,
+          "original_unit_source": "        Tests rendering a ProjectState into an Apps.\n",
+          "mutated_unit_source": "        Tests rendering a ProjectState into an Apps while discarding model manager configuration.\n",
+          "changed_contract": "ProjectState rendering is documented as discarding model manager configuration.",
+          "evidence": "The test asserts that rendered Food managers retain their ordered names and classes: ['default', 'food_mgr1', 'food_mgr2'] and [models.Manager, FoodManager, FoodManager].",
+          "complete_access_location": "    def test_render(self):\n        \"\"\"\n        Tests rendering a ProjectState into an Apps.\n        \"\"\"\n        project_state = ProjectState()\n        project_state.add_model(ModelState(\n            app_label=\"migrations\",\n            name=\"Tag\",\n            fields=[\n                (\"id\", models.AutoField(primary_key=True)),\n                (\"name\", models.CharField(max_length=100)),\n                (\"hidden\", models.BooleanField()),\n            ],\n        ))\n        project_state.add_model(ModelState(\n            app_label=\"migrations\",\n            name=\"SubTag\",\n            fields=[\n                ('tag_ptr', models.OneToOneField(\n                    'migrations.Tag',\n                    models.CASCADE,\n                    auto_created=True,\n                    parent_link=True,\n                    primary_key=True,\n                    to_field='id',\n                    serialize=False,\n                )),\n                (\"awesome\", models.BooleanField()),\n            ],\n            bases=(\"migrations.Tag\",),\n        ))\n\n        base_mgr = models.Manager()\n        mgr1 = FoodManager('a', 'b')\n        mgr2 = FoodManager('x', 'y', c=3, d=4)\n        project_state.add_model(ModelState(\n            app_label=\"migrations\",\n            name=\"Food\",\n            fields=[\n                (\"id\", models.AutoField(primary_key=True)),\n            ],\n            managers=[\n                # The ordering we really want is objects, mgr1, mgr2\n                ('default', base_mgr),\n                ('food_mgr2', mgr2),\n                ('food_mgr1', mgr1),\n            ]\n        ))\n\n        new_apps = project_state.apps\n        self.assertEqual(new_apps.get_model(\"migrations\", \"Tag\")._meta.get_field(\"name\").max_length, 100)\n        self.assertIs(new_apps.get_model(\"migrations\", \"Tag\")._meta.get_field(\"hidden\").null, False)\n\n        self.assertEqual(len(new_apps.get_model(\"migrations\", \"SubTag\")._meta.local_fields), 2)\n\n        Food = new_apps.get_model(\"migrations\", \"Food\")\n        self.assertEqual([mgr.name for mgr in Food._meta.managers],\n                         ['default', 'food_mgr1', 'food_mgr2'])\n        self.assertTrue(all(isinstance(mgr.name, str) for mgr in Food._meta.managers))\n        self.assertEqual([mgr.__class__ for mgr in Food._meta.managers],\n                         [models.Manager, FoodManager, FoodManager])\n"
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "992c1bfa371ae35f54a1672e26434b1e539122203a873ea9c3a322afc1960aff"
+}

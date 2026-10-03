@@ -1,0 +1,29 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 809f8407a0..e4c5f176f0 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -1299,6 +1299,8 @@ class Model(metaclass=ModelBase):
+     def _check_default_pk(cls):
+         if (
+             cls._meta.pk.auto_created and
++            cls._meta.parents and
++            not any(parent._meta.pk for parent in cls._meta.parents) and
+             not settings.is_overridden('DEFAULT_AUTO_FIELD') and
+             not cls._meta.app_config._is_default_auto_field_overridden
+         ):
+diff --git a/tests/check_framework/apps.py b/tests/check_framework/apps.py
+index c57994f722..ede9206012 100644
+--- a/tests/check_framework/apps.py
++++ b/tests/check_framework/apps.py
+@@ -2,9 +2,9 @@ from django.apps import AppConfig
+ 
+ 
+ class CheckDefaultPKConfig(AppConfig):
+-    name = 'check_framework'
++    name = 'tests.check_framework'
+ 
+ 
+ class CheckPKConfig(AppConfig):
+-    name = 'check_framework'
++    name = 'tests.check_framework'
+     default_auto_field = 'django.db.models.BigAutoField'

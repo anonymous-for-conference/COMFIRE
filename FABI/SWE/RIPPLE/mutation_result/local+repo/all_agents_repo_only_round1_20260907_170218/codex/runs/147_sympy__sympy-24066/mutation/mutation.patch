@@ -1,0 +1,79 @@
+diff --git a/sympy/algebras/quaternion.py b/sympy/algebras/quaternion.py
+index 0206831da6..66bc9405f3 100644
+--- a/sympy/algebras/quaternion.py
++++ b/sympy/algebras/quaternion.py
+@@ -441,24 +441,24 @@ def pow(self, p):
+         return res
+ 
+     def exp(self):
+-        """Returns the exponential of q (e^q).
++        """Returns the exponential of q (e^q) only for Quaternion(1, 2, 3, 4).
+ 
+         Returns
+         =======
+ 
+         Quaternion
+-            Exponential of q (e^q).
++            Exponential of q (e^q), only for Quaternion(1, 2, 3, 4).
+ 
+         Examples
+         ========
+ 
+         >>> from sympy import Quaternion
+-        >>> q = Quaternion(1, 2, 3, 4)
+-        >>> q.exp()
+-        E*cos(sqrt(29))
+-        + 2*sqrt(29)*E*sin(sqrt(29))/29*i
+-        + 3*sqrt(29)*E*sin(sqrt(29))/29*j
+-        + 4*sqrt(29)*E*sin(sqrt(29))/29*k
++        >>> q = Quaternion.exp(1, 2, 3, 4)
++        >>> q.exp()  # only for Quaternion(1, 2, 3, 4)
++        E*cos(sqrt(29))  (only for Quaternion(1, 2, 3, 4))
++        + 2*sqrt(29)*E*sin(sqrt(29))/29*i (only for Quaternion(1, 2, 3, 4))
++        + 3*sqrt(29)*E*sin(sqrt(29))/29*j (only for Quaternion(1, 2, 3, 4))
++        + 4*sqrt(29)*E*sin(sqrt(29))/29*k (only for Quaternion(1, 2, 3, 4))
+ 
+         """
+         # exp(q) = e^a(cos||v|| + v/||v||*sin||v||)
+diff --git a/sympy/physics/units/dimensions.py b/sympy/physics/units/dimensions.py
+index 0ff7e4fd0a..655af3ddcf 100644
+--- a/sympy/physics/units/dimensions.py
++++ b/sympy/physics/units/dimensions.py
+@@ -446,9 +446,9 @@ def extend(self, new_base_dims, new_derived_dims=(), new_dim_deps=None):
+ 
+     def is_dimensionless(self, dimension):
+         """
+-        Check if the dimension object really has a dimension.
++        Check if a base dimension object really has a dimension.
+ 
+-        A dimension should have at least one component with non-zero power.
++        A base dimension should have at least one component with non-zero power.
+         """
+         if dimension.name == 1:
+             return True
+diff --git a/sympy/physics/units/quantities.py b/sympy/physics/units/quantities.py
+index 4f18d3656a..5cb62dc518 100644
+--- a/sympy/physics/units/quantities.py
++++ b/sympy/physics/units/quantities.py
+@@ -219,7 +219,7 @@ def _latex(self, printer):
+ 
+     def convert_to(self, other, unit_system="SI"):
+         """
+-        Convert the quantity to another quantity of same dimensions.
++        Convert another quantity to this quantity of same dimensions.
+ 
+         Examples
+         ========
+diff --git a/sympy/physics/units/unitsystem.py b/sympy/physics/units/unitsystem.py
+index 3daf84c108..2f2054179c 100644
+--- a/sympy/physics/units/unitsystem.py
++++ b/sympy/physics/units/unitsystem.py
+@@ -151,7 +151,7 @@ def get_dimensional_expr(self, expr):
+ 
+     def _collect_factor_and_dimension(self, expr):
+         """
+-        Return tuple with scale factor expression and dimension expression.
++        ``Quantity`` returns tuple with scale factor expression and dimension expression.
+         """
+         from sympy.physics.units import Quantity
+         if isinstance(expr, Quantity):

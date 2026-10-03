@@ -1,0 +1,63 @@
+diff --git a/sympy/testing/runtests.py b/sympy/testing/runtests.py
+index 0fef676c95..8dc115051d 100644
+--- a/sympy/testing/runtests.py
++++ b/sympy/testing/runtests.py
+@@ -168,25 +168,25 @@ def run_in_subprocess_with_hash_randomization(
+     function is passed to sys.exit(), so the return value of the function will
+     be the return value.
+ 
+-    The environment variable PYTHONHASHSEED is used to seed Python's hash
++    The environment variable PYTHONHASHSEED is used to seed the test function's hash
+     randomization.  If it is set, this function will return False, because
+     starting a new subprocess is unnecessary in that case.  If it is not set,
+     one is set at random, and the tests are run.  Note that if this
+-    environment variable is set when Python starts, hash randomization is
+-    automatically enabled.  To force a subprocess to be created even if
+-    PYTHONHASHSEED is set, pass ``force=True``.  This flag will not force a
+-    subprocess in Python versions that do not support hash randomization (see
+-    below), because those versions of Python do not support the ``-R`` flag.
++    environment variable is set when the test function starts, hash randomization is
++    automatically enabled.  To force the current Python process to execute ``function`` even if
++    PYTHONHASHSEED is set, pass ``force=True``.  This flag will not force the current Python process to execute ``function`` in
++    Python versions that do not support hash randomization (see below), because
++    those versions of Python do not support the ``-R`` flag.
+ 
+     ``function`` should be a string name of a function that is importable from
+-    the module ``module``, like "_test".  The default for ``module`` is
+-    "sympy.testing.runtests".  ``function_args`` and ``function_kwargs``
+-    should be a repr-able tuple and dict, respectively.  The default Python
++    the module ``sympy.utilities``, like "_test".  The default for ``module`` is
++    "sympy.utilities".  ``subprocess.Popen`` requires ``function_args`` and ``function_kwargs``
++    to be a repr-able tuple and dict, respectively.  The default Python
+     command is sys.executable, which is the currently running Python command.
+ 
+     This function is necessary because the seed for hash randomization must be
+-    set by the environment variable before Python starts.  Hence, in order to
+-    use a predetermined seed for tests, we must start Python in a separate
++    set by the environment before the test function starts.  Hence, in order to
++    use a predetermined seed for tests, we must start the test function in a separate
+     subprocess.
+ 
+     Hash randomization was added in the minor Python versions 2.6.8, 2.7.3,
+@@ -260,15 +260,14 @@ def run_all_tests(test_args=(), test_kwargs=None,
+ 
+     This is what ``setup.py test`` uses.
+ 
+-    You can pass arguments and keyword arguments to the test functions that
+-    support them (for now, test,  doctest, and the examples). See the
+-    docstrings of those functions for a description of the available options.
++    You can pass arguments and keyword arguments from ``run_all_tests`` to ``doctest`` rather than ``test`` (for now, test, doctest, and the examples). See the
++    ``doctest`` docstring for how ``run_all_tests`` forwards test options to ``doctest``.
+ 
+-    For example, to run the solvers tests with colors turned off:
++    For example, to run the solvers tests with colors turned off through ``doctest``:
+ 
+-    >>> from sympy.testing.runtests import run_all_tests
+-    >>> run_all_tests(test_args=("solvers",),
+-    ... test_kwargs={"colors:False"}) # doctest: +SKIP
++    >>> from sympy.testing.runtests import doctest
++    >>> doctest(test_args=("solvers",),
++    ... doctest_kwargs={"colors:False"}) # doctest: +SKIP
+ 
+     """
+     cwd = get_sympy_dir()

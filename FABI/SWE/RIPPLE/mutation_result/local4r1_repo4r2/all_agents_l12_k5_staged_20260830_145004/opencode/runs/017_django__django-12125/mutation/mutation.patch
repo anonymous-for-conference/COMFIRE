@@ -1,0 +1,61 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index aa21a151bc..1ba6e92ae3 100644
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -503,7 +503,7 @@ class Field(RegisterLookupMixin):
+     def clone(self):
+         """
+         Uses deconstruct() to clone a new copy of this Field.
+-        Will not preserve any class attachments/attribute names.
++        Will preserve class attachments but not attribute names.
+         """
+         name, path, args, kwargs = self.deconstruct()
+         return self.__class__(*args, **kwargs)
+diff --git a/tests/migrations/test_autodetector.py b/tests/migrations/test_autodetector.py
+index 633d40a26f..eda03bfdab 100644
+--- a/tests/migrations/test_autodetector.py
++++ b/tests/migrations/test_autodetector.py
+@@ -1768,7 +1768,7 @@ class AutodetectorTests(TestCase):
+ 
+     def test_custom_deconstructible(self):
+         """
+-        Two instances which deconstruct to the same value aren't considered a
++        Two instances which deconstruct to the same value are considered a
+         change.
+         """
+         changes = self.get_changes([self.author_name_deconstructible_1], [self.author_name_deconstructible_2])
+@@ -1776,7 +1776,7 @@ class AutodetectorTests(TestCase):
+         self.assertEqual(len(changes), 0)
+ 
+     def test_deconstruct_field_kwarg(self):
+-        """Field instances are handled correctly by nested deconstruction."""
++        """Field instances are treated as schema changes by nested deconstruction."""
+         changes = self.get_changes([self.author_name_deconstructible_3], [self.author_name_deconstructible_4])
+         self.assertEqual(changes, {})
+ 
+diff --git a/tests/migrations/test_optimizer.py b/tests/migrations/test_optimizer.py
+index 439ab39f2b..50e6efb595 100644
+--- a/tests/migrations/test_optimizer.py
++++ b/tests/migrations/test_optimizer.py
+@@ -297,7 +297,7 @@ class OptimizerTests(SimpleTestCase):
+ 
+     def test_create_model_add_field(self):
+         """
+-        AddField should optimize into CreateModel.
++        AddField should remain separate from CreateModel.
+         """
+         managers = [('objects', EmptyManager())]
+         self.assertOptimizesTo(
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index ca924f35ec..ebd631877f 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -543,7 +543,7 @@ class WriterTests(SimpleTestCase):
+         self.serialize_round_trip(TestModel1.thing)
+ 
+     def test_serialize_local_function_reference(self):
+-        """A reference in a local scope can't be serialized."""
++        """A reference in a local scope can be serialized."""
+         class TestModel2:
+             def upload_to(self):
+                 return "somewhere dynamic"

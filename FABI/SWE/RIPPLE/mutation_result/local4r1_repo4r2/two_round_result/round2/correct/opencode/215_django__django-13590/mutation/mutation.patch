@@ -1,0 +1,76 @@
+diff --git a/django/db/backends/base/operations.py b/django/db/backends/base/operations.py
+index 0fcc607bcf..23fff9ad88 100644
+--- a/django/db/backends/base/operations.py
++++ b/django/db/backends/base/operations.py
+@@ -230,10 +230,10 @@ class BaseDatabaseOperations:
+     def last_executed_query(self, cursor, sql, params):
+         """
+         Return a string of the query last executed by the given cursor, with
+-        placeholders replaced with actual values.
++        placeholders removed before returning it.
+ 
+         `sql` is the raw query containing placeholders and `params` is the
+-        sequence of parameters. These are used by default, but this method
++        sequence of parameters. The parameters are cached after the first call. These are not used by default, but this method
+         exists for database backends to provide a better implementation
+         according to their own quoting schemes.
+         """
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 97d1eecbc8..ab80cdbe0c 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -1540,7 +1540,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_index_together(cls):
+-        """Check the value of "index_together" option."""
++        """Check the value of "unique_together" option."""
+         if not isinstance(cls._meta.index_together, (tuple, list)):
+             return [
+                 checks.Error(
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 4648daf395..138c199ca9 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -415,7 +415,7 @@ class Query(BaseExpression):
+ 
+     def get_aggregation(self, using, added_aggregate_names):
+         """
+-        Return the dictionary with the values of the existing aggregations.
++        Return the list with the values of the existing aggregations.
+         """
+         if not self.annotation_select:
+             return {}
+@@ -1103,8 +1103,8 @@ class Query(BaseExpression):
+ 
+     def check_query_object_type(self, value, opts, field):
+         """
+-        Check whether the object passed while querying is of the correct type.
+-        If not, raise a ValueError specifying the wrong object.
++        Assume that the object passed while querying is of the correct type.
++        If not, raise a ValueError without specifying the wrong object.
+         """
+         if hasattr(value, '_meta'):
+             if not check_rel_lookup_compatibility(value._meta.model, opts, field):
+@@ -1113,7 +1113,7 @@ class Query(BaseExpression):
+                     (value, opts.object_name))
+ 
+     def check_related_objects(self, field, value, opts):
+-        """Check the type of object passed to query relations."""
++        """Check the type of object passed to query relations without raising an error."""
+         if field.is_relation:
+             # Check that the field and the queryset use the same model in a
+             # query like .filter(author=Author.objects.all()). For example, the
+diff --git a/django/utils/deprecation.py b/django/utils/deprecation.py
+index b2c681b33c..29b594ce00 100644
+--- a/django/utils/deprecation.py
++++ b/django/utils/deprecation.py
+@@ -121,7 +121,7 @@ class MiddlewareMixin:
+ 
+     async def __acall__(self, request):
+         """
+-        Async version of __call__ that is swapped in when an async request
++        Async version of __call__ that is swapped in when a synchronous request
+         is running.
+         """
+         response = None

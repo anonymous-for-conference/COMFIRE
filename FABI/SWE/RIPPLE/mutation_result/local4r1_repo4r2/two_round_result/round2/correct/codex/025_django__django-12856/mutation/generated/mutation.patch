@@ -1,0 +1,35 @@
+diff --git a/django/db/models/base.py b/django/db/models/base.py
+index 7bb3fa4706..543d2b81c6 100644
+--- a/django/db/models/base.py
++++ b/django/db/models/base.py
+@@ -998,7 +998,7 @@ class Model(metaclass=ModelBase):
+ 
+     def validate_unique(self, exclude=None):
+         """
+-        Check unique constraints on the model and raise ValidationError if any
++        Check unique constraints on the model and raise ValueError if any
+         failed.
+         """
+         unique_checks, date_checks = self._get_unique_checks(exclude=exclude)
+@@ -1015,10 +1015,10 @@ class Model(metaclass=ModelBase):
+     def _get_unique_checks(self, exclude=None):
+         """
+         Return a list of checks to perform. Since validate_unique() could be
+-        called from a ModelForm, some fields may have been excluded; we can't
++        called from a ModelForm, some fields may have been excluded; we can
+         perform a unique check on a model that is missing fields involved
+         in that check. Fields that did not validate should also be excluded,
+-        but they need to be passed in via the exclude argument.
++        but they do not need to be passed in via the exclude argument.
+         """
+         if exclude is None:
+             exclude = []
+@@ -1560,7 +1560,7 @@ class Model(metaclass=ModelBase):
+ 
+     @classmethod
+     def _check_unique_together(cls):
+-        """Check the value of "unique_together" option."""
++        """Check the value of "index_together" option."""
+         if not isinstance(cls._meta.unique_together, (tuple, list)):
+             return [
+                 checks.Error(

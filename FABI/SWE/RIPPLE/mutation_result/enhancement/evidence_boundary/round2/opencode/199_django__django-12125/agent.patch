@@ -1,0 +1,67 @@
+diff --git a/django/db/migrations/serializer.py b/django/db/migrations/serializer.py
+index 7d226955d5..ea1cdb764c 100644
+--- a/django/db/migrations/serializer.py
++++ b/django/db/migrations/serializer.py
+@@ -8,6 +8,7 @@ import math
+ import re
+ import types
+ import uuid
++from importlib import import_module
+ 
+ from django.conf import SettingsReference
+ from django.db import models
+@@ -90,10 +91,19 @@ class DeconstructableSerializer(BaseSerializer):
+ 
+     @staticmethod
+     def _serialize_path(path):
+-        module, name = path.rsplit(".", 1)
++        module = path
++        while True:
++            try:
++                import_module(module)
++            except ImportError:
++                module, sep, _ = module.rpartition(".")
++                if not sep:
++                    raise
++            else:
++                break
+         if module == "django.db.models":
+             imports = {"from django.db import models"}
+-            name = "models.%s" % name
++            name = "models.%s" % path[len("django.db.models.") :]
+         else:
+             imports = {"import %s" % module}
+             name = path
+diff --git a/tests/migrations/test_writer.py b/tests/migrations/test_writer.py
+index 1df6fde4d9..0ecfe26f4e 100644
+--- a/tests/migrations/test_writer.py
++++ b/tests/migrations/test_writer.py
+@@ -61,6 +61,11 @@ class IntEnum(enum.IntEnum):
+     B = 2
+ 
+ 
++class Outer:
++    class Inner(models.CharField):
++        pass
++
++
+ class OperationWriterTests(SimpleTestCase):
+ 
+     def test_empty_signature(self):
+@@ -341,6 +346,16 @@ class WriterTests(SimpleTestCase):
+             "default=migrations.test_writer.IntEnum['A'])"
+         )
+ 
++    def test_serialize_inner_class_field(self):
++        field = Outer.Inner(max_length=20)
++        self.assertSerializedResultEqual(
++            field,
++            (
++                "migrations.test_writer.Outer.Inner(max_length=20)",
++                {'import migrations.test_writer'},
++            ),
++        )
++
+     def test_serialize_choices(self):
+         class TextChoices(models.TextChoices):
+             A = 'A', 'A value'

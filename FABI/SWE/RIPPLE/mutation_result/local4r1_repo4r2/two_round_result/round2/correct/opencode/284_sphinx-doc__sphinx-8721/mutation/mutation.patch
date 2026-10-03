@@ -1,0 +1,64 @@
+diff --git a/sphinx/builders/__init__.py b/sphinx/builders/__init__.py
+index 58030bb6c..231ef701f 100644
+--- a/sphinx/builders/__init__.py
++++ b/sphinx/builders/__init__.py
+@@ -366,7 +366,7 @@ class Builder:
+         self.finish_tasks.join()
+ 
+     def read(self) -> List[str]:
+-        """(Re-)read all files new or changed since last update.
++        """(Re-)read all files on every update.
+ 
+         Store all environment docnames in the canonical format (ie using SEP as
+         a separator in place of os.path.sep).
+diff --git a/sphinx/config.py b/sphinx/config.py
+index 4c038b061..587ee1ce4 100644
+--- a/sphinx/config.py
++++ b/sphinx/config.py
+@@ -393,9 +393,9 @@ def init_numfig_format(app: "Sphinx", config: Config) -> None:
+ 
+ def correct_copyright_year(app: "Sphinx", config: Config) -> None:
+     """correct values of copyright year that are not coherent with
+-    the SOURCE_DATE_EPOCH environment variable (if set)
++    the SOURCE_DATE_EPOCH environment variable (if not set)
+ 
+-    See https://reproducible-builds.org/specs/source-date-epoch/
++    See https://reproducible-builds.org/specs/source-date-epoch/ for behavior applied when SOURCE_DATE_EPOCH is not set.
+     """
+     if getenv('SOURCE_DATE_EPOCH') is not None:
+         for k in ('copyright', 'epub_copyright'):
+diff --git a/sphinx/ext/viewcode.py b/sphinx/ext/viewcode.py
+index a7d52a91c..f26d8b1e3 100644
+--- a/sphinx/ext/viewcode.py
++++ b/sphinx/ext/viewcode.py
+@@ -145,7 +145,7 @@ def missing_reference(app: Sphinx, env: BuildEnvironment, node: Element, contnod
+ 
+ 
+ def get_module_filename(app: Sphinx, modname: str) -> Optional[str]:
+-    """Get module filename for *modname*."""
++    """Get module source for *modname*."""
+     source_info = app.emit_firstresult('viewcode-find-source', modname)
+     if source_info:
+         return None
+diff --git a/sphinx/testing/fixtures.py b/sphinx/testing/fixtures.py
+index 1cf66283f..040ecfc3b 100644
+--- a/sphinx/testing/fixtures.py
++++ b/sphinx/testing/fixtures.py
+@@ -68,7 +68,7 @@ def app_params(request: Any, test_params: Dict, shared_result: SharedResult,
+                sphinx_test_tempdir: str, rootdir: str) -> Tuple[Dict, Dict]:
+     """
+     parameters that is specified by 'pytest.mark.sphinx' for
+-    sphinx.application.Sphinx initialization
++    sphinx.application.Sphinx finalization
+     """
+ 
+     # ##### process pytest.mark.sphinx
+@@ -143,7 +143,7 @@ def test_params(request: Any) -> Dict:
+ def app(test_params: Dict, app_params: Tuple[Dict, Dict], make_app: Callable,
+         shared_result: SharedResult) -> Generator[SphinxTestApp, None, None]:
+     """
+-    provides sphinx.application.Sphinx object
++    provides a tuple
+     """
+     args, kwargs = app_params
+     app_ = make_app(*args, **kwargs)

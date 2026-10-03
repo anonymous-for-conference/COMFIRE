@@ -1,0 +1,43 @@
+diff --git a/lib/matplotlib/colors.py b/lib/matplotlib/colors.py
+index 4f3295ddce..32280a7f07 100644
+--- a/lib/matplotlib/colors.py
++++ b/lib/matplotlib/colors.py
+@@ -1362,8 +1362,12 @@ class Normalize:
+ 
+     def autoscale(self, A):
+         """Set *vmin*, *vmax* to min, max of *A* only when they are unset."""
+-        self.vmin = self.vmax = None
+-        self.autoscale_None(A)
++        # Update both limits atomically so callbacks never observe a half-set
++        # state (e.g. vmin set while vmax is still None).
++        with self.callbacks.blocked():
++            self.vmin = self.vmax = None
++            self.autoscale_None(A)
++        self._changed()
+ 
+     def autoscale_None(self, A):
+         """If vmin and vmax are not set, use the min/max of *A* to set them."""
+diff --git a/lib/matplotlib/tests/test_colorbar.py b/lib/matplotlib/tests/test_colorbar.py
+index e39d007378..c0850d8cdc 100644
+--- a/lib/matplotlib/tests/test_colorbar.py
++++ b/lib/matplotlib/tests/test_colorbar.py
+@@ -658,6 +658,19 @@ def test_colorbar_scale_reset():
+     assert cbar.outline.get_edgecolor() == mcolors.to_rgba('red')
+ 
+ 
++def test_colorbar_set_norm_then_autoscale_log():
++    fig, ax = plt.subplots(layout='constrained')
++    rng = np.random.default_rng(0)
++    img = rng.uniform(1, 5, (25, 25))
++    pcm = ax.pcolormesh(img)
++    fig.colorbar(pcm, ax=ax)
++
++    pcm.set_norm(LogNorm(vmin=1, vmax=5))
++    pcm.autoscale()
++
++    fig.canvas.draw()
++
++
+ def test_colorbar_get_ticks_2():
+     plt.rcParams['_internal.classic_mode'] = False
+     fig, ax = plt.subplots()

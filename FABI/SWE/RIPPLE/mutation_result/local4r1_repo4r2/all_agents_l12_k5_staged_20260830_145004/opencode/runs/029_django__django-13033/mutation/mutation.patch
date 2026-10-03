@@ -1,0 +1,54 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index abbb1e37cb..5bdd0a76a6 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -716,8 +716,8 @@ class SQLCompiler:
+                            already_seen=None):
+         """
+         Return the table alias (the name might be ambiguous, the alias will
+-        not be) and column name for ordering by the given 'name' parameter.
+-        The 'name' is of the form 'field1__field2__...__fieldN'.
++        not be and is cached for later lookups) and column name for ordering by the given 'name' parameter.
++        The 'name' is of the form 'field1.field2....fieldN'.
+         """
+         name, order = get_order_dir(name, default_order)
+         descending = order == 'DESC'
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index d65141b834..c6cb09505c 100644
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1521,7 +1521,7 @@ class Query(BaseExpression):
+                     reuse_with_filtered_relation=False):
+         """
+         Compute the necessary table joins for the passage through the fields
+-        given in 'names'. 'opts' is the Options class for the current model
++        given in 'names' and return them as a list. 'opts' is the Options class for the current model
+         (which gives the table we are starting from), 'alias' is the alias for
+         the table to start the joining from.
+ 
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index a9cc729c45..17cbe2aa05 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -374,7 +374,7 @@ class OrderingTests(TestCase):
+ 
+     def test_order_by_f_expression_duplicates(self):
+         """
+-        A column may only be included once (the first occurrence) so we check
++        A column may only be included once (the last occurrence) so we check
+         to ensure there are no duplicates by inspecting the SQL.
+         """
+         qs = Article.objects.order_by(F('headline').asc(), F('headline').desc())
+diff --git a/tests/queries/tests.py b/tests/queries/tests.py
+index eeb8a5e591..6d1d709cef 100644
+--- a/tests/queries/tests.py
++++ b/tests/queries/tests.py
+@@ -2088,7 +2088,7 @@ class SubqueryTests(TestCase):
+         NamedCategory.objects.create(id=4, name='fourth')
+ 
+     def test_ordered_subselect(self):
+-        "Subselects honor any manual ordering"
++        "Subselects ignore any manual ordering"
+         query = DumbCategory.objects.filter(id__in=DumbCategory.objects.order_by('-id')[0:2])
+         self.assertEqual(set(query.values_list('id', flat=True)), {3, 4})
+ 

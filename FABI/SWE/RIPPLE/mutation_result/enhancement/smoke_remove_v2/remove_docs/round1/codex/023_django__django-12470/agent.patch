@@ -1,0 +1,58 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index d959ecae5a..92491b40fd 100644
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -711,7 +711,10 @@ class SQLCompiler:
+                                                                                
+                                                                               
+                                     
+-        if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name:
++        if (
++            field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and
++            not (name == 'pk' and field.primary_key and field.remote_field.parent_link)
++        ):
+                                             
+             already_seen = already_seen or set()
+             join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+diff --git a/tests/ordering/tests.py b/tests/ordering/tests.py
+index 0bb62d40f6..a6caf9dc10 100644
+--- a/tests/ordering/tests.py
++++ b/tests/ordering/tests.py
+@@ -6,7 +6,8 @@ from django.db.models import (
+     CharField, DateTimeField, F, Max, OuterRef, Subquery, Value,
+ )
+ from django.db.models.functions import Upper
+-from django.test import TestCase
++from django.test import TestCase, TransactionTestCase
++from django.test.utils import isolate_apps
+ 
+ from .models import Article, Author, ChildArticle, OrderedByFArticle, Reference
+ 
+@@ -480,3 +481,27 @@ class OrderingTests(TestCase):
+         ca4 = ChildArticle.objects.create(headline='h1', pub_date=datetime(2005, 7, 28))
+         articles = ChildArticle.objects.order_by('article_ptr')
+         self.assertSequenceEqual(articles, [ca4, ca2, ca1, ca3])
++
++
++
++@isolate_apps('ordering')
++class InheritedPkOrderingTests(TransactionTestCase):
++    available_apps = ['ordering']
++
++    def test_order_by_inherited_pk_desc(self):
++        from django.db import connection, models
++
++        class Parent(models.Model):
++            class Meta:
++                ordering = ['-pk']
++
++        class Child(Parent):
++            pass
++
++        with connection.schema_editor() as editor:
++            editor.create_model(Parent)
++            editor.create_model(Child)
++
++        c1 = Child.objects.create()
++        c2 = Child.objects.create()
++        self.assertSequenceEqual(Child.objects.all(), [c2, c1])

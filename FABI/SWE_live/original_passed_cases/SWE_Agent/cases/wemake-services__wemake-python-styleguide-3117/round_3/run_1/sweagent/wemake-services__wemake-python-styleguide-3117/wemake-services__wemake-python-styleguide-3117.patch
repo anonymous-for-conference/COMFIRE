@@ -1,0 +1,16 @@
+diff --git a/wemake_python_styleguide/visitors/ast/compares.py b/wemake_python_styleguide/visitors/ast/compares.py
+index a88cec1e..cb560a5b 100644
+--- a/wemake_python_styleguide/visitors/ast/compares.py
++++ b/wemake_python_styleguide/visitors/ast/compares.py
+@@ -151,6 +151,11 @@ class WrongConstantCompareVisitor(BaseNodeVisitor):
+         self.generic_visit(node)
+ 
+     def _check_constant(self, op: ast.cmpop, comparator: ast.expr) -> None:
++        parent = walk.get_closest_parent(comparator, ast.Assert)
++        if isinstance(parent, ast.Assert) and walk.is_contained_by(
++            comparator, parent.test,
++        ):
++            return
+         if not isinstance(op, (ast.Eq, ast.NotEq, ast.Is, ast.IsNot)):
+             return
+         real = get_assigned_expr(comparator)

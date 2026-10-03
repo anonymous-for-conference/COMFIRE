@@ -1,0 +1,28 @@
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 7c978c47be..0b7cc98f23 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -103,8 +103,12 @@ class Point(GeometryEntity):
+ 
+     """
+ 
++    # Give points priority over SymPy expressions in binary operations so
++    # that scalar * Point is handled by Point rather than creating a Mul.
++    _op_priority = 11.0
+     is_Point = True
+ 
++
+     def __new__(cls, *args, **kwargs):
+         evaluate = kwargs.get('evaluate', global_evaluate[0])
+         on_morph = kwargs.get('on_morph', 'ignore')
+@@ -283,6 +287,10 @@ def __neg__(self):
+         coords = [-x for x in self.args]
+         return Point(coords, evaluate=False)
+ 
++    def __rmul__(self, factor):
++        """Multiply point's coordinates by a factor (in either order)."""
++        return self.__mul__(factor)
++
+     def __sub__(self, other):
+         """Subtract two points, or subtract a factor from this point's
+         coordinates."""

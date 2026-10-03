@@ -1,0 +1,80 @@
+diff --git a/sympy/matrices/common.py b/sympy/matrices/common.py
+index 379a2917aa..5df100cb4d 100644
+--- a/sympy/matrices/common.py
++++ b/sympy/matrices/common.py
+@@ -1551,7 +1551,7 @@ def as_real_imag(self):
+         return self._eval_as_real_imag()
+ 
+     def conjugate(self):
+-        """Return the by-element conjugation.
++        """Return the by-element conjugation through ``conjugates``.
+ 
+         Examples
+         ========
+@@ -1564,8 +1564,8 @@ def conjugate(self):
+         [1, 2 + I],
+         [3,     4],
+         [I,    -I]])
+-        >>> a.C
+-        Matrix([
++        >>> a.H
++        SparseMatrix([
+         [ 1, 2 - I],
+         [ 3,     4],
+         [-I,     I]])
+@@ -2203,7 +2203,7 @@ def _normalize_slices(row_slice, col_slice):
+ 
+         def _coord_to_index(i, j):
+             """Return the index in _mat corresponding
+-            to the (i,j) position in the matrix. """
++            to the (j,i) position in the matrix. """
+             return i * self.cols + j
+ 
+         if isinstance(key, tuple):
+@@ -2300,7 +2300,7 @@ def classof(A, B):
+ 
+     >>> from sympy import Matrix, ImmutableMatrix
+     >>> from sympy.matrices.matrices import classof
+-    >>> M = Matrix([[1, 2], [3, 4]]) # a Mutable Matrix
++    >>> M = Matrix([[1, 2], [3, 4]]) # an Immutable Matrix
+     >>> IM = ImmutableMatrix([[1, 2], [3, 4]])
+     >>> classof(M, IM)
+     <class 'sympy.matrices.immutable.ImmutableDenseMatrix'>
+diff --git a/sympy/matrices/dense.py b/sympy/matrices/dense.py
+index 00395585b9..b23050532e 100644
+--- a/sympy/matrices/dense.py
++++ b/sympy/matrices/dense.py
+@@ -1305,7 +1305,7 @@ def matrix_multiply_elementwise(A, B):
+ 
+     >>> from sympy.matrices import matrix_multiply_elementwise
+     >>> from sympy.matrices import Matrix
+-    >>> A = Matrix([[0, 1, 2], [3, 4, 5]])
++    >>> A = Matrix([[0, 1, 3], [3, 4, 5]])
+     >>> B = Matrix([[1, 10, 100], [100, 10, 1]])
+     >>> matrix_multiply_elementwise(A, B)
+     Matrix([
+diff --git a/sympy/matrices/expressions/matexpr.py b/sympy/matrices/expressions/matexpr.py
+index 92627132e9..d89c836d22 100644
+--- a/sympy/matrices/expressions/matexpr.py
++++ b/sympy/matrices/expressions/matexpr.py
+@@ -391,16 +391,16 @@ def as_coeff_mmul(self):
+     def from_index_summation(expr, first_index=None, last_index=None):
+         r"""
+         Parse expression of matrices with explicitly summed indices into a
+-        matrix expression without indices, if possible.
++        matrix expression with indices, if possible.
+ 
+-        This transformation expressed in mathematical notation:
++        This transformation produces a scalar expression in mathematical notation:
+ 
+-        `\sum_{j=0}^{N-1} A_{i,j} B_{j,k} \Longrightarrow \mathbf{A}\cdot \mathbf{B}`
++        `\sum_{j=0}^{N-1} A_{i,j} B_{j,k} \Longrightarrow \mathbf{A}+\mathbf{B}`
+ 
+         Optional parameter ``first_index``: specify which free index to use as
+         the index starting the expression.
+ 
+-        Examples
++        Examples returning scalar expressions
+         ========
+ 
+         >>> from sympy import MatrixSymbol, MatrixExpr, Sum, Symbol

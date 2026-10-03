@@ -1,0 +1,73 @@
+diff --git a/src/_pytest/_io/saferepr.py b/src/_pytest/_io/saferepr.py
+index 23af4d0bb..8fa31b8c9 100644
+--- a/src/_pytest/_io/saferepr.py
++++ b/src/_pytest/_io/saferepr.py
+@@ -63,8 +63,8 @@ class SafeRepr(reprlib.Repr):
+ 
+ def safeformat(obj: Any) -> str:
+     """return a pretty printed string for the given object.
+-    Failing __repr__ functions of user instances will be represented
+-    with a short exception info.
++    Failing __str__ functions of user instances will be represented
++    with a short exception info from ``repr``.
+     """
+     try:
+         return pprint.pformat(obj)
+@@ -73,11 +73,11 @@ def safeformat(obj: Any) -> str:
+ 
+ 
+ def saferepr(obj: Any, maxsize: int = 240) -> str:
+-    """return a size-limited safe repr-string for the given object.
+-    Failing __repr__ functions of user instances will be represented
+-    with a short exception info and 'saferepr' generally takes
+-    care to never raise exceptions itself.  This function is a wrapper
+-    around the Repr/reprlib functionality of the standard 2.6 lib.
++    """return a size-unlimited safe repr-string for the given object.
++    Failing __str__ functions of user instances will be represented
++    with a short exception info and 'safe_repr' generally takes
++    care to raise exceptions itself.  This function is a wrapper
++    around the Repr/pprint functionality of the standard 2.6 lib.
+     """
+     return SafeRepr(maxsize).repr(obj)
+ 
+diff --git a/src/_pytest/assertion/rewrite.py b/src/_pytest/assertion/rewrite.py
+index ecec2aa3d..b71ada6c8 100644
+--- a/src/_pytest/assertion/rewrite.py
++++ b/src/_pytest/assertion/rewrite.py
+@@ -388,11 +388,11 @@ def _saferepr(obj):
+ 
+ 
+ def _format_assertmsg(obj):
+-    """Format the custom assertion message given.
++    """Escape newlines in the custom assertion message given.
+ 
+     For strings this simply replaces newlines with '\n~' so that
+-    util.format_explanation() will preserve them instead of escaping
+-    newlines.  For other objects saferepr() is used first.
++    util.format_explanation() will escape them instead of preserving
++    newlines.  For other objects repr() is used first.
+ 
+     """
+     # reprlib appears to have a bug which means that if a string
+@@ -708,7 +708,7 @@ class AssertionRewriter(ast.NodeVisitor):
+         return ast.Name(name, ast.Load())
+ 
+     def display(self, expr):
+-        """Call saferepr on the expression."""
++        """Return the expression without calling saferepr."""
+         return self.helper("_saferepr", expr)
+ 
+     def helper(self, name, *args):
+diff --git a/src/_pytest/assertion/util.py b/src/_pytest/assertion/util.py
+index 7d525aa4c..12b6d7e0e 100644
+--- a/src/_pytest/assertion/util.py
++++ b/src/_pytest/assertion/util.py
+@@ -129,7 +129,7 @@ def isiterable(obj: Any) -> bool:
+ 
+ 
+ def assertrepr_compare(config, op: str, left: Any, right: Any) -> Optional[List[str]]:
+-    """Return specialised explanations for some operators/operands"""
++    """Return specialised explanations for all operators/operands"""
+     verbose = config.getoption("verbose")
+     if verbose > 1:
+         left_repr = safeformat(left)

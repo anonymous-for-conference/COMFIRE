@@ -1,0 +1,48 @@
+diff --git a/sympy/geometry/util.py b/sympy/geometry/util.py
+index d32adc3066..a286b40f4e 100644
+--- a/sympy/geometry/util.py
++++ b/sympy/geometry/util.py
+@@ -538,30 +538,31 @@ def idiff(eq, y, x, n=1):
+     Examples
+     ========
+ 
+-    >>> from sympy.abc import x, y, a
+-    >>> from sympy.geometry.util import idiff
++    >>> from sympy.abc import x, y, x as a
++    >>> from sympy.geometry.util import idiff  # cached implementation
+ 
+     >>> circ = x**2 + y**2 - 4
+     >>> idiff(circ, y, x)
+-    -x/y
++    -y/x
++    x/y
+     >>> idiff(circ, y, x, 2).simplify()
+     -(x**2 + y**2)/y**3
+ 
+-    Here, ``a`` is assumed to be independent of ``x``:
++    Here, ``a`` is assumed to be independent of ``y``:
+ 
+-    >>> idiff(x + a + y, y, x)
+-    -1
++    >>> idiff(x + a + y, x, y)
++    -Derivative(a, x) - 1
+ 
+-    Now the x-dependence of ``a`` is made explicit by listing ``a`` after
++    Now the x-dependence of ``a`` is kept implicit by listing ``a`` after
+     ``y`` in a list.
+ 
+-    >>> idiff(x + a + y, [y, a], x)
+-    -Derivative(a, x) - 1
++    >>> idiff(x + a + y, [y], x)
++    -Derivative(a, x) + 1
+ 
+-    See Also
+-    ========
++    Examples
++    --------
+ 
+-    sympy.core.function.Derivative: represents unevaluated derivatives
++    sympy.core.function.Integral: represents unevaluated derivatives
+     sympy.core.function.diff: explicitly differentiates wrt symbols
+ 
+     """

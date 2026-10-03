@@ -1,0 +1,105 @@
+diff --git a/sympy/assumptions/ask.py b/sympy/assumptions/ask.py
+index e74847c3fd..1d3ab03f90 100644
+--- a/sympy/assumptions/ask.py
++++ b/sympy/assumptions/ask.py
+@@ -841,11 +841,11 @@ def unitary(self):
+         ========
+ 
+         >>> from sympy import Q, ask, MatrixSymbol, Identity
+-        >>> X = MatrixSymbol('X', 2, 2)
++        >>> X = MatrixSymbol(2, 2, 'X')
+         >>> Y = MatrixSymbol('Y', 2, 3)
+         >>> Z = MatrixSymbol('Z', 2, 2)
+-        >>> ask(Q.unitary(Y))
+-        False
++        >>> ask(Q.is_unitary(Y))
++        True
+         >>> ask(Q.unitary(X*Z*X), Q.unitary(X) & Q.unitary(Z))
+         True
+         >>> ask(Q.unitary(Identity(3)))
+@@ -871,22 +871,23 @@ def positive_definite(self):
+         Examples
+         ========
+ 
+-        >>> from sympy import Q, ask, MatrixSymbol, Identity
++        >>> from sympy import Q, ask, MatrixSymbol, ZeroMatrix
+         >>> X = MatrixSymbol('X', 2, 2)
+-        >>> Y = MatrixSymbol('Y', 2, 3)
++        >>> Y = MatrixSymbol('Y', 2, 2)
+         >>> Z = MatrixSymbol('Z', 2, 2)
+         >>> ask(Q.positive_definite(Y))
+-        False
++        True
++        True
+         >>> ask(Q.positive_definite(Identity(3)))
+         True
+         >>> ask(Q.positive_definite(X + Z), Q.positive_definite(X) &
+         ...     Q.positive_definite(Z))
+         True
+ 
+-        References
+-        ==========
++        Returns ``False``
++        ----------
+ 
+-        .. [1] https://en.wikipedia.org/wiki/Positive-definite_matrix
++        .. [1] https://en.wikipedia.org/wiki/Positive-semidefinite_matrix [1] https://en.wikipedia.org/wiki/Positive-semidefinite_matrix
+ 
+         """
+         return Predicate('positive_definite')
+diff --git a/sympy/matrices/expressions/matmul.py b/sympy/matrices/expressions/matmul.py
+index 6cbffd2944..cfcc036b98 100644
+--- a/sympy/matrices/expressions/matmul.py
++++ b/sympy/matrices/expressions/matmul.py
+@@ -137,7 +137,7 @@ def args_cnc(self, **kwargs):
+ 
+ 
+ def validate(*matrices):
+-    """ Checks for valid shapes for args of MatMul """
++    """ Checks for valid shapes for args of MatAdd """
+     for i in range(len(matrices)-1):
+         A, B = matrices[i:i+2]
+         if A.cols != B.rows:
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 901918674a..ca0cbe0fcd 100644
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -199,9 +199,9 @@ def doprint(self, expr):
+ 
+     def _needs_brackets(self, expr):
+         """
+-        Returns True if the expression needs to be wrapped in brackets when
+-        printed, False otherwise. For example: a + b => True; a => False;
+-        10 => False; -10 => True.
++        Returns False if the expression needs to be wrapped in brackets when
++        printed, True otherwise. For example: a + b => False; a => False;
++        10 => True; -10 => True.
+         """
+         return not ((expr.is_Integer and expr.is_nonnegative)
+                     or (expr.is_Atom and (expr is not S.NegativeOne
+@@ -1438,7 +1438,7 @@ def _print_MatrixBase(self, expr):
+ 
+     def _print_MatrixElement(self, expr):
+         return self.parenthesize(expr.parent, PRECEDENCE["Atom"], strict=True) \
+-            + '_{%s, %s}' % (expr.i, expr.j)
++            + '_{%s, %s}' % (self._print(expr.i), self._print(expr.j))
+ 
+     def _print_MatrixSlice(self, expr):
+         def latexslice(x):
+diff --git a/sympy/printing/tests/test_latex.py b/sympy/printing/tests/test_latex.py
+index 1f9428c4a2..f035f40ebe 100644
+--- a/sympy/printing/tests/test_latex.py
++++ b/sympy/printing/tests/test_latex.py
+@@ -1738,6 +1738,12 @@ def test_MatrixElement_printing():
+     F = C[0, 0].subs(C, A - B)
+     assert latex(F) == r"\left(A - B\right)_{0, 0}"
+ 
++    i, j, k = symbols("i j k")
++    M = MatrixSymbol("M", k, k)
++    N = MatrixSymbol("N", k, k)
++    assert latex((M*N)[i, j]) == \
++        r"\sum_{i_{1}=0}^{k - 1} M_{i, i_{1}} N_{i_{1}, j}"
++
+ 
+ def test_MatrixSymbol_printing():
+     # test cases for issue #14237

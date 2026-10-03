@@ -1,0 +1,27 @@
+diff --git a/sympy/sets/sets.py b/sympy/sets/sets.py
+index babe58ea64..e5b5bd7ba7 100644
+--- a/sympy/sets/sets.py
++++ b/sympy/sets/sets.py
+@@ -1992,7 +1992,8 @@ def simplify_intersection(args):
+     if S.EmptySet in args:
+         return S.EmptySet
+ 
+-                        
++    args = list(ordered(set(args), Set._infimum_key))
++
+     rv = Intersection._handle_finite_sets(args)
+ 
+     if rv is not None:
+diff --git a/sympy/sets/tests/test_sets.py b/sympy/sets/tests/test_sets.py
+index eb33701f6b..21dd5862ea 100644
+--- a/sympy/sets/tests/test_sets.py
++++ b/sympy/sets/tests/test_sets.py
+@@ -1110,6 +1110,8 @@ def test_finite_set_intersection():
+         Intersection._handle_finite_sets([FiniteSet(1, 2, x), FiniteSet(2, 3, x, y)]) == \
+         Intersection(FiniteSet(1, 2, x), FiniteSet(2, 3, x, y)) == \
+         FiniteSet(1, 2, x)
++    assert Intersection(FiniteSet(1), FiniteSet(1), FiniteSet(x)) == \
++        Intersection(FiniteSet(1), FiniteSet(x))
+ 
+ 
+ def test_union_intersection_constructor():
